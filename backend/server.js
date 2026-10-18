@@ -2,11 +2,13 @@
 // SERVIDOR RESTful BACKEND & GATEWAY FIDO2 / WEBAUTHN / OFFLINE-SYNC
 // ============================================================================
 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
 const { db, secureEnclaveSimulator } = require('./db');
+const { isSupabaseConfigured, testSupabaseConnection } = require('./supabase');
 const {
   generateP256KeyPair,
   generateNonce,
@@ -29,6 +31,22 @@ app.use(express.json({
   }
 }));
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Estado del Sistema y Diagnóstico de Base de Datos (Supabase vs. SQLite)
+app.get('/api/v1/system/status', async (req, res) => {
+  try {
+    const supabaseInfo = await testSupabaseConnection();
+    res.json({
+      status: 'online',
+      database_engine: supabaseInfo.connected ? 'supabase_cloud' : 'sqlite_local',
+      supabase_configured: isSupabaseConfigured(),
+      supabase_details: supabaseInfo,
+      server_time: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ----------------------------------------------------------------------------
 // 1. AUTENTICACIÓN BIOMÉTRICA NATIVA & PASSKEYS (FIDO2 / WEBAUTHN)

@@ -64,12 +64,36 @@ document.addEventListener('DOMContentLoaded', () => {
   setupDistributorSimulator();
   setupPayrollSimulator();
   initCombosManagement();
+  checkSystemDbStatus();
 
   // Cargar datos iniciales del portal
   refreshPortalData();
   // Precargar paquete diario inicial para el distribuidor
   downloadDailyPack();
 });
+
+// Chequeo de Motor de Base de Datos (Supabase Cloud vs. SQLite Local)
+async function checkSystemDbStatus() {
+  try {
+    const res = await fetch('/api/v1/system/status');
+    const data = await res.json();
+    const pill = document.getElementById('dbStatusPill');
+    const text = document.getElementById('dbStatusText');
+    if (!pill || !text) return;
+
+    if (data.database_engine === 'supabase_cloud') {
+      text.textContent = `🟢 Supabase Cloud (${data.supabase_details?.latencyMs || 25}ms)`;
+      pill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+      pill.style.color = '#34d399';
+    } else {
+      text.textContent = '💾 SQLite Local (Offline-Ready)';
+      pill.style.borderColor = 'rgba(102, 204, 255, 0.4)';
+      pill.style.color = 'var(--sea-onahau)';
+    }
+  } catch (e) {
+    console.warn('No se pudo consultar estado de la BD:', e);
+  }
+}
 
 // Checklist interactivo de entrega de bultos
 window.toggleChecklistItem = function(cardEl) {
