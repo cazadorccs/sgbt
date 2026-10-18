@@ -18,7 +18,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=2.0">
 </head>
 <body>
 
@@ -34,8 +34,8 @@
 
     <!-- SYSTEM INDICATOR PILLS -->
     <div class="system-pills">
-      <button id="btnToggleAccessibility" class="btn btn-outline" style="border-color: #8b5cf6; color: #d8b4fe; padding: 0.35rem 0.75rem; font-size: 0.75rem;" title="Modo Accesibilidad / Adulto Mayor / Almacenes Oscuros">
-        👁️ Alto Contraste / Fuente Grande
+      <button id="btnToggleAccessibility" class="btn btn-outline" style="border-color: #cbd5e1; color: #475569; padding: 0.35rem 0.75rem; font-size: 0.75rem; background: #ffffff;" title="Modo Accesibilidad / Adulto Mayor / Fuente Grande">
+        👁️ Accesibilidad
       </button>
 
       <div id="connectionPill" class="status-pill online" title="Control del entorno de red">
@@ -46,19 +46,11 @@
         </button>
       </div>
 
-      <div class="status-pill" style="border-color: rgba(6, 182, 212, 0.4); color: #38bdf8;">
+      <div class="status-pill" style="border-color: rgba(6, 182, 212, 0.4); color: #0284c7;">
         <span>🔐 Secure Enclave (ES256)</span>
       </div>
 
-      <div class="status-pill" style="border-color: rgba(139, 92, 246, 0.4); color: #c084fc;">
-        <span>⚡ idx_unique_daily_claim</span>
-      </div>
-
-      <div id="dbStatusPill" class="status-pill" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399;" title="Motor de Base de Datos Activo">
-        <span id="dbStatusText">💾 SQLite Local (Offline-Ready)</span>
-      </div>
-
-      <div id="userSessionPill" class="status-pill" style="display: none; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; align-items: center; gap: 0.5rem;" title="Usuario Conectado">
+      <div id="userSessionPill" class="status-pill" style="display: none; border-color: rgba(56, 189, 248, 0.4); color: #0284c7; align-items: center; gap: 0.5rem;" title="Usuario Conectado">
         <span id="userSessionName" style="font-weight: 700;">👤 Usuario</span>
         <span id="userSessionRole" class="badge badge-activo" style="font-size: 0.65rem;">Rol</span>
         <button id="btnLogout" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; border-color: #ef4444; color: #fca5a5; margin-left: 0.3rem;">
@@ -94,20 +86,20 @@
          VISTA 0: LOGIN INSTITUCIONAL SEGÚN ROL (BENEFICIARIO / OPERADOR / ADMIN)
          ====================================================================== -->
     <section id="view-login" class="view-section active-view" style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 1rem 0;">
-      <div class="glass-panel" style="width: 100%; max-width: 480px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); border: 1px solid rgba(153, 230, 255, 0.25);">
+      <div class="glass-panel" style="width: 100%; max-width: 480px; box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08); border: 1px solid rgba(2, 132, 199, 0.18);">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-          <div style="font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 12px var(--sea-pacific));">🏛️</div>
-          <h2 style="font-size: 1.4rem; color: var(--sea-tranquil); font-weight: 800; margin-bottom: 0.35rem;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(0 4px 10px rgba(2, 132, 199, 0.3));">🏛️</div>
+          <h2 style="font-size: 1.4rem; color: #0f172a; font-weight: 800; margin-bottom: 0.35rem;">
             BIENESTAR ALIMENTARIO MIPPCI
           </h2>
-          <p style="font-size: 0.85rem; color: var(--sea-anakiwa); line-height: 1.4;">
+          <p style="font-size: 0.85rem; color: #475569; line-height: 1.4;">
             Acceso Institucional por Rol &middot; Beneficiarios, Almacén y Gestión Humana
           </p>
         </div>
 
         <form id="loginForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
-            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; margin-bottom: 0.4rem;">
+            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.4rem;">
               Cédula de Identidad del Trabajador
             </label>
             <div style="display: flex; gap: 0.5rem;">
@@ -126,61 +118,61 @@
                 autocomplete="username"
               >
             </div>
-            <div style="font-size: 0.72rem; color: var(--text-dim); margin-top: 0.35rem;">
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.35rem;">
               Ingrese solo números o seleccione uno de los perfiles rápidos abajo.
             </div>
           </div>
 
           <div id="loginAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
 
-          <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 15px rgba(0, 153, 204, 0.4);">
+          <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);">
             🚀 Ingresar al Sistema
           </button>
         </form>
 
         <!-- ACCESO RÁPIDO PARA PRUEBAS Y DEMOSTRACIÓN DE ROLES -->
-        <div style="margin-top: 1.75rem; border-top: 1px solid rgba(153, 230, 255, 0.15); padding-top: 1.25rem;">
-          <div style="font-size: 0.75rem; color: var(--sea-onahau); font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; text-align: center;">
+        <div style="margin-top: 1.75rem; border-top: 1px solid #e2e8f0; padding-top: 1.25rem;">
+          <div style="font-size: 0.75rem; color: #0284c7; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; text-align: center;">
             ⚡ Acceso Rápido por Rol (Demostración)
           </div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             
             <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-18456123" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong style="color: #fff; font-size: 0.85rem;">🏢 Carlos Mendoza</strong>
-                <div style="font-size: 0.7rem; color: var(--text-dim);">V-18.456.123 &middot; Telecomunicaciones</div>
+                <strong style="color: #0f172a; font-size: 0.85rem;">🏢 Carlos Mendoza</strong>
+                <div style="font-size: 0.7rem; color: #64748b;">V-18.456.123 &middot; Telecomunicaciones</div>
               </div>
               <span class="badge badge-activo" style="font-size: 0.65rem;">Beneficiario Activo</span>
             </button>
 
             <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-06894321" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong style="color: #fff; font-size: 0.85rem;">👴 Hilda Domínguez</strong>
-                <div style="font-size: 0.7rem; color: var(--text-dim);">V-06.894.321 &middot; Prensa</div>
+                <strong style="color: #0f172a; font-size: 0.85rem;">👴 Hilda Domínguez</strong>
+                <div style="font-size: 0.7rem; color: #64748b;">V-06.894.321 &middot; Prensa</div>
               </div>
               <span class="badge badge-jubilado" style="font-size: 0.65rem;">Beneficiaria Jubilada</span>
             </button>
 
             <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-14111222" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong style="color: #fff; font-size: 0.85rem;">📦 Miguel Torres</strong>
-                <div style="font-size: 0.7rem; color: var(--text-dim);">V-14.111.222 &middot; Logística y Almacén</div>
+                <strong style="color: #0f172a; font-size: 0.85rem;">📦 Miguel Torres</strong>
+                <div style="font-size: 0.7rem; color: #64748b;">V-14.111.222 &middot; Logística y Almacén</div>
               </div>
               <span class="badge badge-passkey" style="font-size: 0.65rem;">Operador de Mesa</span>
             </button>
 
             <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-13222333" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong style="color: #fff; font-size: 0.85rem;">🏛️ Lic. Claudia Vega</strong>
-                <div style="font-size: 0.7rem; color: var(--text-dim);">V-13.222.333 &middot; Supervisor RRHH</div>
+                <strong style="color: #0f172a; font-size: 0.85rem;">🏛️ Lic. Claudia Vega</strong>
+                <div style="font-size: 0.7rem; color: #64748b;">V-13.222.333 &middot; Supervisor RRHH</div>
               </div>
               <span class="badge badge-override" style="font-size: 0.65rem;">Supervisor</span>
             </button>
 
             <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-11123987" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
               <div>
-                <strong style="color: #fff; font-size: 0.85rem;">👔 Ing. Juan Carlos Rivas</strong>
-                <div style="font-size: 0.7rem; color: var(--text-dim);">V-11.123.987 &middot; Dirección General</div>
+                <strong style="color: #0f172a; font-size: 0.85rem;">👔 Ing. Juan Carlos Rivas</strong>
+                <div style="font-size: 0.7rem; color: #64748b;">V-11.123.987 &middot; Dirección General</div>
               </div>
               <span class="badge badge-activo" style="font-size: 0.65rem;">Director / Admin</span>
             </button>
@@ -188,7 +180,7 @@
           </div>
         </div>
 
-        <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: var(--text-dim);">
+        <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b;">
           🔐 Protegido con Criptografía FIDO2 ES256 & Supabase Cloud SSOT
         </div>
       </div>
@@ -1072,6 +1064,6 @@ Listo para recibir transacciones de nómina SSOT...
   <!-- SCRIPTS -->
   <script src="/js/qrcode.js"></script>
   <script src="/js/html5-qrcode.min.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/app.js?v=2.0"></script>
 </body>
 </html>

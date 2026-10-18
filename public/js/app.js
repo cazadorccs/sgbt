@@ -440,14 +440,14 @@ async function loadCombosCatalog() {
       // Convertir rubros separados por comas o saltos de línea a viñetas si existen
       const rubros = (c.description || '').split(/,|\n/).map(r => r.trim()).filter(Boolean);
       const rubrosHtml = rubros.length > 0 
-        ? `<div style="margin: 0.6rem 0; font-size: 0.76rem; color: var(--sea-onahau); background: rgba(0,0,0,0.25); border-radius: 6px; padding: 0.5rem 0.75rem;">
-             <strong style="color: var(--sea-malibu); display: block; margin-bottom: 0.25rem;">📋 Rubros Incluidos:</strong>
+        ? `<div style="margin: 0.6rem 0; font-size: 0.76rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem;">
+             <strong style="color: #0284c7; display: block; margin-bottom: 0.25rem;">📋 Rubros Incluidos:</strong>
              <ul style="margin: 0; padding-left: 1.1rem; line-height: 1.4;">
                ${rubros.slice(0, 5).map(item => `<li>${item}</li>`).join('')}
-               ${rubros.length > 5 ? `<li style="color: var(--text-dim); font-style: italic;">... y ${rubros.length - 5} rubros más</li>` : ''}
+               ${rubros.length > 5 ? `<li style="color: #64748b; font-style: italic;">... y ${rubros.length - 5} rubros más</li>` : ''}
              </ul>
            </div>`
-        : `<p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.6rem;">${c.description || 'Sin descripción'}</p>`;
+        : `<p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.6rem;">${c.description || 'Sin descripción'}</p>`;
 
       card.innerHTML = `
         <div class="package-card-header">
@@ -457,12 +457,12 @@ async function loadCombosCatalog() {
           <span class="package-card-badge ${tagClass}">${categoryLabel}</span>
         </div>
         ${rubrosHtml}
-        <div class="combo-meta" style="font-size: 0.75rem; border-top: 1px solid rgba(153, 230, 255, 0.1); padding-top: 0.6rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
-          <span style="color: var(--sea-anakiwa);">📦 ${c.dietary_info || 'Almacén Estándar'}</span>
-          <span style="color: ${c.is_active ? '#34d399' : '#f87171'}; font-weight: 600;">
+        <div class="combo-meta" style="font-size: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 0.6rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+          <span style="color: #475569;">📦 ${c.dietary_info || 'Almacén Estándar'}</span>
+          <span style="color: ${c.is_active ? '#16a34a' : '#ef4444'}; font-weight: 600;">
             ${c.is_active ? '● Activo' : '○ Inactivo'}
           </span>
-          <button class="btn btn-outline btn-delete-combo" data-id="${c.id}" style="padding: 0.15rem 0.5rem; font-size: 0.7rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; margin-left: auto;">
+          <button class="btn btn-outline btn-delete-combo" data-id="${c.id}" style="padding: 0.15rem 0.5rem; font-size: 0.7rem; border-color: #fca5a5; color: #dc2626; margin-left: auto;">
             🗑️ Eliminar
           </button>
         </div>
@@ -641,11 +641,11 @@ window.openSecurityDossier = async function(workerId) {
     let passkeysHtml = passkeys.length === 0 ? '<p style="color: var(--text-dim);">No tiene passkeys enroladas.</p>' : '';
     passkeys.forEach(p => {
       passkeysHtml += `
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--bg-card-border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div style="font-weight: 600; color: #fff;">📱 ${p.device_name}</div>
-            <div class="text-mono" style="font-size: 0.7rem; color: var(--text-dim);">${p.credential_id}</div>
-            <div style="font-size: 0.7rem; color: var(--text-muted);">Firmas emitidas: ${p.sign_count} &middot; Enrolado: ${new Date(p.enrolled_at).toLocaleDateString()}</div>
+            <div style="font-weight: 700; color: #0f172a;">📱 ${p.device_name}</div>
+            <div class="text-mono" style="font-size: 0.7rem; color: #64748b;">${p.credential_id}</div>
+            <div style="font-size: 0.7rem; color: #475569;">Firmas emitidas: ${p.sign_count} &middot; Enrolado: ${new Date(p.enrolled_at).toLocaleDateString()}</div>
           </div>
           <div>
             ${p.status === 'active' 
@@ -656,13 +656,13 @@ window.openSecurityDossier = async function(workerId) {
       `;
     });
 
-    let nfcHtml = nfcCards.length === 0 ? '<p style="color: var(--text-dim);">Sin tarjetas NFC asociadas.</p>' : '';
+    let nfcHtml = nfcCards.length === 0 ? '<p style="color: #64748b;">Sin tarjetas NFC asociadas.</p>' : '';
     nfcCards.forEach(n => {
       nfcHtml += `
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--bg-card-border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div class="text-mono" style="font-weight: 700; color: #38bdf8;">💳 UID: ${n.card_uid}</div>
-            <div style="font-size: 0.7rem; color: var(--text-dim);">Emitida: ${new Date(n.issued_at).toLocaleDateString()}</div>
+            <div class="text-mono" style="font-weight: 700; color: #0284c7;">💳 UID: ${n.card_uid}</div>
+            <div style="font-size: 0.7rem; color: #64748b;">Emitida: ${new Date(n.issued_at).toLocaleDateString()}</div>
           </div>
           <span class="badge ${n.status === 'active' ? 'badge-nfc' : 'badge-revoked'}">${n.status.toUpperCase()}</span>
         </div>
@@ -677,13 +677,13 @@ window.openSecurityDossier = async function(workerId) {
     }
 
     content.innerHTML = `
-      <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--bg-card-border); border-radius: 8px; padding: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+      <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
         <div>
-          <h4 style="color: #fff; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <h4 style="color: #0f172a; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             ${worker.full_name}
             ${dossierBadge}
           </h4>
-          <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">Cédula: <span class="text-mono" style="color: #fff;">${worker.document_id}</span> &middot; Depto: ${worker.department_name || 'N/A'}</div>
+          <div style="font-size: 0.75rem; color: #475569; margin-top: 0.2rem;">Cédula: <span class="text-mono" style="color: #0f172a; font-weight: 700;">${worker.document_id}</span> &middot; Depto: ${worker.department_name || 'N/A'}</div>
         </div>
       </div>
 

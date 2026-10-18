@@ -3,7 +3,7 @@
 // Garantiza funcionamiento al 100% en sótanos y almacenes sin señal celular
 // ============================================================================
 
-const CACHE_NAME = 'mippci-bienestar-v1.2';
+const CACHE_NAME = 'mippci-bienestar-v2.0-light';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -21,7 +21,7 @@ const STATIC_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Precargando shell de la aplicación para modo Offline...');
+      console.log('[SW] Precargando shell de la aplicación para modo Offline (v2.0 Light)...');
       return cache.addAll(STATIC_ASSETS);
     }).then(() => self.skipWaiting())
   );
@@ -49,7 +49,6 @@ self.addEventListener('fetch', (event) => {
 
   // A) Rutas de la API (/api/...)
   if (url.pathname.startsWith('/api/')) {
-    // Si es daily-pack o catálogo de combos, intentar red primero y guardar en caché
     if (url.pathname.includes('/daily-pack') || url.pathname.includes('/admin/combos')) {
       event.respondWith(
         fetch(event.request)
@@ -68,31 +67,27 @@ self.addEventListener('fetch', (event) => {
       return;
     }
 
-    // Otras peticiones API van directo a red (o se gestionan por la cola local del cliente)
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // B) Recursos estáticos (HTML, CSS, JS, Iconos): Estrategia Stale-While-Revalidate
+  // B) Recursos estáticos (HTML, CSS, JS, Iconos): Estrategia Network-First con fallback a Caché
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // En segundo plano refrescar la caché si hay conexión
-        fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, networkResponse));
-          }
-        }).catch(() => {/* Silencioso en offline */});
-        return cachedResponse;
-      }
-
-      // Si no estaba en caché, pedir a la red
-      return fetch(event.request).catch(() => {
-        // Si falla la red y es navegación HTML, retornar página principal en caché
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
+    fetch(event.request)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const clone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
   );
 });
