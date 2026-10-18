@@ -1,0 +1,46 @@
+{
+  "name": "Sistema de Beneficios y Despacho MIPPCI",
+  "short_name": "Bienestar MIPPCI",
+  "description": "Plataforma institucional de entrega de víveres, proteína y combos con autenticación biométrica Passkeys y modo Offline-First",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#040d16",
+  "theme_color": "#0099cc",
+  "categories": ["productivity", "government", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Mi Código de Retiro",
+      "short_name": "Mi QR",
+      "description": "Generar código dinámico de retiro con Passkey",
+      "url": "/#view-worker",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mesa de Despacho",
+      "short_name": "Despacho",
+      "description": "Escanear y registrar entregas en almacén",
+      "url": "/#view-distributor",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

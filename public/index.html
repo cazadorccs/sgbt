@@ -2,8 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>BIENESTAR ALIMENTARIO | Despacho de Víveres y Proteína con Passkeys (MIPPCI)</title>
+  
+  <!-- PWA & Mobile Web App Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0099cc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Bienestar MIPPCI">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -46,6 +57,10 @@
       <div id="dbStatusPill" class="status-pill" style="border-color: rgba(16, 185, 129, 0.4); color: #34d399;" title="Motor de Base de Datos Activo">
         <span id="dbStatusText">💾 SQLite Local (Offline-Ready)</span>
       </div>
+
+      <button id="btnInstallPwa" class="btn btn-primary" style="display: none; padding: 0.3rem 0.75rem; font-size: 0.75rem; border-radius: 9999px; box-shadow: 0 0 15px var(--sea-pacific);">
+        📲 Instalar App
+      </button>
     </div>
 
     <!-- MAIN NAVIGATION TABS -->
@@ -553,25 +568,44 @@
               </div>
             </div>
 
-            <!-- VISOR DE ESCANEO / SIMULADOR DE LECTURA -->
+            <!-- VISOR DE ESCANEO / LECTOR DE CÁMARA REAL Y NFC -->
             <div style="margin-bottom: 1rem;">
-              <label style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">
-                Escáner Criptográfico Local (Sin Internet):
-              </label>
+              <div class="flex-between">
+                <label style="font-size: 0.7rem; color: var(--sea-anakiwa); text-transform: uppercase; font-weight: 700;">
+                  Escáner Criptográfico Local (Sin Internet):
+                </label>
+                <span id="cameraStatusBadge" class="badge badge-viveres" style="font-size: 0.6rem;">Cámara Lista</span>
+              </div>
               
-              <div style="background: #020617; border: 2px dashed #334155; border-radius: var(--radius-md); padding: 1.25rem; text-align: center; margin-top: 0.4rem; position: relative;">
-                <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📷</div>
-                <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-                  Enfoque el QR del trabajador o escanee la tarjeta física NFC
+              <!-- Visor de Cámara Real en Vivo -->
+              <div id="liveCameraContainer" style="display: none; background: #000; border-radius: var(--radius-md); overflow: hidden; margin-top: 0.5rem; position: relative; border: 2px solid var(--sea-malibu); box-shadow: 0 0 25px var(--accent-primary-glow);">
+                <div id="cameraQrReader" style="width: 100%;"></div>
+                <div style="padding: 0.5rem; display: flex; gap: 0.5rem; background: rgba(4, 13, 22, 0.95); border-top: 1px solid rgba(153, 230, 255, 0.1);">
+                  <button type="button" id="btnStopCameraScanner" class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.35rem; color: #fca5a5; border-color: rgba(239, 68, 68, 0.4);">
+                    ⏹️ Detener Cámara
+                  </button>
+                </div>
+              </div>
+
+              <!-- Contenedor estático cuando la cámara está apagada -->
+              <div id="cameraStandbyBox" style="background: #020617; border: 2px dashed rgba(102, 204, 255, 0.3); border-radius: var(--radius-md); padding: 1.25rem; text-align: center; margin-top: 0.4rem; position: relative;">
+                <div style="font-size: 2.2rem; margin-bottom: 0.35rem;">📹</div>
+                <p style="font-size: 0.75rem; color: var(--sea-onahau); margin-bottom: 0.75rem;">
+                  Enfoque el código QR dinámico del trabajador o acerque la tarjeta NFC física
                 </p>
 
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                  <button id="btnScanWorkerGeneratedQr" class="btn btn-primary" style="width: 100%; font-size: 0.8rem;">
-                    ⚡ Escanear QR Activo de la App Trabajador
+                  <button type="button" id="btnStartCameraScanner" class="btn btn-primary" style="width: 100%; font-size: 0.82rem; font-weight: 700;">
+                    📹 Iniciar Escáner con Cámara en Vivo
                   </button>
-                  <button id="btnSimulateNfcTap" class="btn btn-cyan" style="width: 100%; font-size: 0.8rem;">
-                    💳 Simular Lectura de Tarjeta NFC (04A1B2C3D4E5F6)
-                  </button>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <button type="button" id="btnScanWorkerGeneratedQr" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.4rem;">
+                      ⚡ Simular Escaneo QR
+                    </button>
+                    <button type="button" id="btnSimulateNfcTap" class="btn btn-cyan" style="font-size: 0.72rem; padding: 0.4rem;">
+                      💳 Simular NFC
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -918,6 +952,7 @@ Listo para recibir transacciones de nómina SSOT...
 
   <!-- SCRIPTS -->
   <script src="/js/qrcode.js"></script>
+  <script src="/js/html5-qrcode.min.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>
