@@ -59,7 +59,7 @@ function playAudioFeedback(type = 'success') {
 // ----------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   setupNavigation();
-  setupAccessibilityMode();
+  setupGeneralSettings();
   setupNetworkToggle();
   setupWorkerSimulator();
   setupDistributorSimulator();
@@ -107,24 +107,97 @@ window.toggleChecklistItem = function(cardEl) {
   cardEl.classList.toggle('checked');
 };
 
-// Accesibilidad y Alto Contraste (Adultos Mayores / Sótano)
-function setupAccessibilityMode() {
-  const btnToggle = document.getElementById('btnToggleAccessibility');
+// ============================================================================
+// CONFIGURACIÓN GENERAL & ACCESIBILIDAD (ALTO CONTRASTE / FUENTE GRANDE)
+// ============================================================================
+function setupGeneralSettings() {
+  const btnOpen = document.getElementById('btnOpenGeneralSettings');
+  const modalBackdrop = document.getElementById('generalSettingsModalBackdrop');
+  const btnClose = document.getElementById('btnCloseGeneralSettingsModal');
+  const btnApply = document.getElementById('btnApplyGeneralSettings');
+  const toggleHighContrast = document.getElementById('toggleHighContrastSetting');
+  const labelStatus = document.getElementById('labelHighContrastStatus');
   const btnMobileToggle = document.getElementById('btnDeviceAccessibilityToggle');
 
-  function toggleMode() {
-    const isMode = document.body.classList.toggle('senior-accessible-mode');
-    if (btnToggle) {
-      btnToggle.textContent = isMode ? '👓 Modo Normal' : '👁️ Alto Contraste / Fuente Grande';
-      btnToggle.style.background = isMode ? 'rgba(139, 92, 246, 0.3)' : 'transparent';
+  function applyHighContrast(enabled, save = true) {
+    if (enabled) {
+      document.body.classList.add('senior-accessible-mode');
+    } else {
+      document.body.classList.remove('senior-accessible-mode');
     }
+
+    if (toggleHighContrast) {
+      toggleHighContrast.checked = !!enabled;
+    }
+
+    if (labelStatus) {
+      labelStatus.textContent = enabled ? 'Activado' : 'Desactivado';
+      labelStatus.style.color = enabled ? '#0284c7' : '#64748b';
+    }
+
     if (btnMobileToggle) {
-      btnMobileToggle.textContent = isMode ? '👓 Normal' : '👁️ Grande';
+      btnMobileToggle.textContent = enabled ? '👓 Normal' : '👁️ Grande';
+    }
+
+    if (save) {
+      try {
+        localStorage.setItem('sgbt_high_contrast', enabled ? 'true' : 'false');
+      } catch (e) {
+        console.warn('No se pudo guardar la preferencia de accesibilidad:', e);
+      }
     }
   }
 
-  btnToggle?.addEventListener('click', toggleMode);
-  btnMobileToggle?.addEventListener('click', toggleMode);
+  // Restaurar preferencia almacenada
+  try {
+    const isSavedHighContrast = localStorage.getItem('sgbt_high_contrast') === 'true';
+    if (isSavedHighContrast) {
+      applyHighContrast(true, false);
+    }
+  } catch (e) {
+    console.warn('Error leyendo localStorage de accesibilidad:', e);
+  }
+
+  // Toggle Switch dentro del Modal de Configuración General
+  toggleHighContrast?.addEventListener('change', (e) => {
+    applyHighContrast(e.target.checked, true);
+  });
+
+  // Apertura y Cierre del Modal
+  btnOpen?.addEventListener('click', () => {
+    if (modalBackdrop) {
+      modalBackdrop.classList.add('active');
+    }
+  });
+
+  const closeModal = () => {
+    if (modalBackdrop) {
+      modalBackdrop.classList.remove('active');
+    }
+  };
+
+  btnClose?.addEventListener('click', closeModal);
+  btnApply?.addEventListener('click', closeModal);
+
+  // Cerrar al hacer clic en el backdrop oscuro exterior
+  modalBackdrop?.addEventListener('click', (e) => {
+    if (e.target === modalBackdrop) {
+      closeModal();
+    }
+  });
+
+  // Atajo de teclado ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modalBackdrop?.classList.contains('active')) {
+      closeModal();
+    }
+  });
+
+  // Botón rápido en la vista móvil del beneficiario (si existe)
+  btnMobileToggle?.addEventListener('click', () => {
+    const current = document.body.classList.contains('senior-accessible-mode');
+    applyHighContrast(!current, true);
+  });
 }
 
 // ----------------------------------------------------------------------------

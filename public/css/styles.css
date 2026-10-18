@@ -1168,100 +1168,182 @@ body {
 }
 
 /* ============================================================================
-   ACCESIBILIDAD PARA ADULTOS MAYORES Y ALMACENES (ALTO CONTRASTE)
+   CONFIGURACIÓN GENERAL & SWITCHES DE CONTROL
+   ============================================================================ */
+.setting-item-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.15rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+}
+
+.setting-item-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #cbd5e1;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 9999px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #ffffff;
+  transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #0284c7;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+}
+
+/* ============================================================================
+   ACCESIBILIDAD: ALTO CONTRASTE / FUENTE GRANDE
    UI-UX PRO MAX COMPLIANT: WCAG 2.2 AAA Contrast >= 7:1, Touch >= 48px
    ============================================================================ */
 body.senior-accessible-mode {
-  font-size: 18px !important;
-  background-color: #000000 !important;
-  color: var(--sea-tranquil) !important;
+  font-size: 19px !important;
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
 }
 
 body.senior-accessible-mode .glass-panel,
 body.senior-accessible-mode .kpi-card,
 body.senior-accessible-mode .package-card,
 body.senior-accessible-mode .combo-card,
-body.senior-accessible-mode .device-frame {
-  background: #05101a !important;
-  border: 2px solid var(--sea-malibu) !important;
+body.senior-accessible-mode .device-frame,
+body.senior-accessible-mode .modal-dialog {
+  background: #ffffff !important;
+  border: 2.5px solid #0284c7 !important;
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.18) !important;
+}
+
+body.senior-accessible-mode .master-header {
+  background: #ffffff !important;
+  border-bottom: 3px solid #0284c7 !important;
 }
 
 body.senior-accessible-mode .btn {
   min-height: 52px !important;
-  font-size: 1rem !important;
-  font-weight: 700 !important;
-  border-width: 2px !important;
-  padding: 0.65rem 1.25rem !important;
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  border-width: 2.5px !important;
+  padding: 0.75rem 1.4rem !important;
 }
 
 body.senior-accessible-mode .btn-primary {
-  background: var(--sea-pacific) !important;
+  background: #0284c7 !important;
   color: #ffffff !important;
-  border-color: var(--sea-malibu) !important;
+  border-color: #0369a1 !important;
 }
 
-body.senior-accessible-mode .btn-cyan {
-  background: var(--sea-malibu) !important;
-  color: #040d16 !important;
-  border-color: var(--sea-onahau) !important;
+body.senior-accessible-mode .btn-outline {
+  border-color: #0f172a !important;
+  color: #0f172a !important;
+  background: #ffffff !important;
+  font-weight: 800 !important;
 }
 
 body.senior-accessible-mode .badge {
-  font-size: 0.85rem !important;
-  padding: 0.4rem 0.85rem !important;
-  font-weight: 800 !important;
+  font-size: 0.9rem !important;
+  padding: 0.45rem 0.95rem !important;
+  font-weight: 900 !important;
   border-width: 2px !important;
 }
 
 body.senior-accessible-mode .badge-jubilado {
-  background: #581c87 !important;
-  color: #f3e8ff !important;
-  border-color: #d8b4fe !important;
+  background: #f3e8ff !important;
+  color: #581c87 !important;
+  border-color: #9333ea !important;
 }
 
 body.senior-accessible-mode .badge-activo {
-  background: #004d66 !important;
-  color: var(--sea-onahau) !important;
-  border-color: var(--sea-malibu) !important;
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #0284c7 !important;
 }
 
 body.senior-accessible-mode .badge-contratado {
-  background: #006688 !important;
-  color: var(--sea-tranquil) !important;
-  border-color: var(--sea-anakiwa) !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+  border-color: #059669 !important;
 }
 
 body.senior-accessible-mode .modern-table th {
-  font-size: 0.85rem !important;
-  color: var(--sea-tranquil) !important;
-  background: #0a1b2c !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  background: #e2e8f0 !important;
+  border-bottom: 2px solid #0f172a !important;
 }
 
 body.senior-accessible-mode .modern-table td {
-  font-size: 0.95rem !important;
-  color: #ffffff !important;
-  padding: 1.1rem 1rem !important;
+  font-size: 1.05rem !important;
+  color: #000000 !important;
+  padding: 1.15rem 1rem !important;
+  font-weight: 600 !important;
 }
 
 body.senior-accessible-mode .text-dim,
 body.senior-accessible-mode .kpi-subtext,
 body.senior-accessible-mode .text-muted {
-  color: var(--sea-anakiwa) !important;
+  color: #1e293b !important;
+  font-weight: 500 !important;
 }
 
 body.senior-accessible-mode .form-input,
 body.senior-accessible-mode .form-select {
-  font-size: 1rem !important;
-  min-height: 48px !important;
-  background: #05101a !important;
-  border: 2px solid var(--sea-malibu) !important;
-  color: var(--sea-tranquil) !important;
+  font-size: 1.05rem !important;
+  min-height: 50px !important;
+  background: #ffffff !important;
+  border: 2px solid #0284c7 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
 }
 
 body.senior-accessible-mode .feedback-title {
-  font-size: 1.9rem !important;
+  font-size: 2.1rem !important;
+  font-weight: 900 !important;
+  color: #000000 !important;
 }
 
 body.senior-accessible-mode .feedback-subtitle {
-  font-size: 1.15rem !important;
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: #1e293b !important;
 }
+
