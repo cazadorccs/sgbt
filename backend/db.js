@@ -1,9 +1,9 @@
 // ============================================================================
-// BASE DE DATOS LOCAL Y RELACIONAL (SQLite compatible con SQLCipher / PostgreSQL)
-// Implementa el esquema estricto y el índice anti-fraude idx_unique_daily_claim
+// BASE DE DATOS MULTI-ENTORNO (LOCAL / SERVERLESS / VERCEL / SUPABASE)
+// Soporta better-sqlite3 nativo de alto rendimiento y motor WebAssembly (sql.js)
+// para compatibilidad 100% con Vercel Serverless Functions sin compilación C++
 // ============================================================================
 
-const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -14,11 +14,115 @@ const DB_PATH = isVercel
   ? path.join('/tmp', 'combos_platform.sqlite') 
   : path.join(__dirname, 'combos_platform.sqlite');
 
-const db = new Database(DB_PATH);
+let rawDb = null;
+let isWasmMode = false;
+let readyResolve;
+const readyPromise = new Promise((resolve) => {
+  readyResolve = resolve;
+});
 
-// Habilitar claves foráneas y modo WAL para alto rendimiento
-db.pragma('foreign_keys = ON');
-db.pragma('journal_mode = WAL');
+// Simulador de Enclave Seguro de Dispositivos Móviles (Keystore / Titan M2)
+const secureEnclaveSimulator = new Map();
+
+// Interfaz universal de Base de Datos compatible con better-sqlite3 y sql.js
+const db = {
+  prepare(sql) {
+    if (!isWasmMode && rawDb) {
+      return rawDb.prepare(sql);
+    }
+
+    return {
+      get(...params) {
+        if (!rawDb) return undefined;
+        const flat = params.flat();
+        const stmt = rawDb.prepare(sql);
+        try {
+          if (flat.length > 0) stmt.bind(flat);
+          if (stmt.step()) {
+            return stmt.getAsObject();
+          }
+          return undefined;
+        } finally {
+          stmt.free();
+        }
+      },
+      all(...params) {
+        if (!rawDb) return [];
+        const flat = params.flat();
+        const stmt = rawDb.prepare(sql);
+        const results = [];
+        try {
+          if (flat.length > 0) stmt.bind(flat);
+          while (stmt.step()) {
+            results.push(stmt.getAsObject());
+          }
+          return results;
+        } finally {
+          stmt.free();
+        }
+      },
+      run(...params) {
+        if (!rawDb) return { changes: 0, lastInsertRowid: 0 };
+        const flat = params.flat();
+        if (flat.length > 0) {
+          rawDb.run(sql, flat);
+        } else {
+          rawDb.run(sql);
+        }
+        const changes = rawDb.getRowsModified();
+        let lastInsertRowid = 0;
+        try {
+          const res = rawDb.exec('SELECT last_insert_rowid() as id');
+          if (res.length && res[0].values.length) {
+            lastInsertRowid = res[0].values[0][0];
+          }
+        } catch (e) {}
+
+        // Persistir copia en /tmp en Vercel
+        if (isVercel && rawDb) {
+          try {
+            const data = rawDb.export();
+            fs.writeFileSync(DB_PATH, Buffer.from(data));
+          } catch (e) {}
+        }
+
+        return { changes, lastInsertRowid };
+      }
+    };
+  },
+  exec(sql) {
+    if (!isWasmMode && rawDb) {
+      return rawDb.exec(sql);
+    }
+    if (rawDb) {
+      rawDb.exec(sql);
+    }
+  },
+  pragma(str) {
+    if (!isWasmMode && rawDb) {
+      return rawDb.pragma(str);
+    }
+    if (rawDb) {
+      try { rawDb.exec('PRAGMA ' + str); } catch (e) {}
+    }
+  },
+  transaction(fn) {
+    if (!isWasmMode && rawDb) {
+      return rawDb.transaction(fn);
+    }
+    return (...args) => {
+      rawDb.run('BEGIN TRANSACTION;');
+      try {
+        const res = fn(...args);
+        rawDb.run('COMMIT;');
+        return res;
+      } catch (err) {
+        try { rawDb.run('ROLLBACK;'); } catch (rbErr) {}
+        throw err;
+      }
+    };
+  }
+};
 
 // Inicializar tablas
 function initializeDatabase() {
@@ -246,7 +350,7 @@ function initializeDatabase() {
 }
 
 // Almacén seguro en memoria para simulación de llaves privadas (Secure Enclave simulado)
-const secureEnclaveSimulator = new Map();
+// (declarado al inicio del archivo)
 
 function seedDatabase() {
   const rowCount = db.prepare('SELECT COUNT(*) as count FROM workers').get();
@@ -391,11 +495,81 @@ function seedDatabase() {
   console.log('[DB] Seeds iniciales cargados exitosamente.');
 }
 
-// Inicializar y cargar seeds
-initializeDatabase();
-seedDatabase();
+// ----------------------------------------------------------------------------
+// INICIALIZACIÓN DEL MOTOR DE BASE DE DATOS (NATIVO O WEBASSEMBLY)
+// ----------------------------------------------------------------------------
+let Database = null;
+try {
+  Database = require('better-sqlite3');
+} catch (nativeErr) {
+  console.warn('[DB] better-sqlite3 nativo no disponible en este entorno:', nativeErr.message);
+}
+
+if (Database) {
+  try {
+    if (isVercel) {
+      const bundledDb = path.join(__dirname, 'combos_platform.sqlite');
+      if (fs.existsSync(bundledDb) && !fs.existsSync(DB_PATH)) {
+        try { fs.copyFileSync(bundledDb, DB_PATH); } catch (e) {}
+      }
+    }
+
+    rawDb = new Database(DB_PATH);
+    rawDb.pragma('foreign_keys = ON');
+    if (isVercel) {
+      rawDb.pragma('journal_mode = MEMORY');
+    } else {
+      rawDb.pragma('journal_mode = WAL');
+    }
+
+    initializeDatabase();
+    seedDatabase();
+    readyResolve(true);
+    console.log('[DB] Motor better-sqlite3 nativo activo exitosamente.');
+  } catch (err) {
+    console.warn('[DB] Fallo al iniciar better-sqlite3, pasando a motor WebAssembly:', err.message);
+    rawDb = null;
+  }
+}
+
+// Si better-sqlite3 no está disponible o falló (Vercel Serverless), activar sql.js (WebAssembly)
+if (!rawDb) {
+  isWasmMode = true;
+  const initSqlJs = require('sql.js');
+
+  initSqlJs().then((SQL) => {
+    try {
+      if (fs.existsSync(DB_PATH)) {
+        const fileBuffer = fs.readFileSync(DB_PATH);
+        rawDb = new SQL.Database(fileBuffer);
+        console.log('[DB] Base de datos SQLite cargada desde archivo existente en memoria WASM.');
+      } else {
+        rawDb = new SQL.Database();
+        console.log('[DB] Base de datos SQLite creada en memoria WASM (Zero-Config Serverless).');
+      }
+
+      initializeDatabase();
+      seedDatabase();
+
+      try {
+        const data = rawDb.export();
+        fs.writeFileSync(DB_PATH, Buffer.from(data));
+      } catch (saveErr) {}
+
+      readyResolve(true);
+      console.log('[DB] Motor SQLite WebAssembly (sql.js) listo y operativo para Vercel.');
+    } catch (wasmErr) {
+      console.error('[DB FATAL] Fallo al inicializar sql.js:', wasmErr);
+      readyResolve(false);
+    }
+  }).catch((loadErr) => {
+    console.error('[DB FATAL] Fallo al cargar módulo sql.js:', loadErr);
+    readyResolve(false);
+  });
+}
 
 module.exports = {
   db,
+  readyPromise,
   secureEnclaveSimulator
 };

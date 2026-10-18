@@ -7,7 +7,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
-const { db, secureEnclaveSimulator } = require('./db');
+const { db, readyPromise, secureEnclaveSimulator } = require('./db');
 const { isSupabaseConfigured, testSupabaseConnection } = require('./supabase');
 const {
   generateP256KeyPair,
@@ -31,6 +31,19 @@ app.use(express.json({
   }
 }));
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Middleware de sincronización para Vercel Serverless / SQLite en frío
+app.use(async (req, res, next) => {
+  try {
+    if (readyPromise) {
+      await readyPromise;
+    }
+    next();
+  } catch (err) {
+    console.error('[DB WAIT ERROR]', err);
+    res.status(500).json({ error: 'La base de datos se está inicializando: ' + err.message });
+  }
+});
 
 // Estado del Sistema y Diagnóstico de Base de Datos (Supabase vs. SQLite)
 app.get('/api/v1/system/status', async (req, res) => {

@@ -2038,7 +2038,17 @@ async function executeLogin(rawDocId) {
       body: JSON.stringify({ document_id: rawDocId })
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      console.error('[API ERROR] Respuesta no es JSON:', rawText);
+      showLoginAlert(`Error de comunicación con el servidor (${res.status}): Verifique la configuración en Vercel.`);
+      playAudioFeedback('error');
+      return;
+    }
+
     if (!res.ok || !data.success) {
       showLoginAlert(data.error || 'Cédula no encontrada en el padrón institucional.');
       playAudioFeedback('error');
