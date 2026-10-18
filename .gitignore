@@ -19,9 +19,9 @@ yarn-error.log*
 
 # Archivos de base de datos local y temporales
 *.db
-*.db-journal
+*.db-*
 *.sqlite
-*.sqlite-journal
+*.sqlite-*
 data/
 
 # IDEs y SO
