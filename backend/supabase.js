@@ -7,8 +7,12 @@ require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.SUPABASE_SGBT_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+  process.env.SUPABASE_SGBT_SERVICE_ROLE_KEY || 
+  process.env.SUPABASE_ANON_KEY || 
+  process.env.SUPABASE_SGBT_ANON_KEY || 
+  process.env.SUPABASE_KEY;
 const databaseUrl = process.env.DATABASE_URL;
 
 let supabase = null;
@@ -78,7 +82,17 @@ async function testSupabaseConnection() {
       const start = Date.now();
       const { data, error } = await supabase.from('combos').select('id, name').limit(1);
       const latencyMs = Date.now() - start;
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('schema cache') || error.message.includes('find the table')) {
+          return {
+            connected: true,
+            mode: 'supabase_rest_api_tables_pending',
+            latencyMs,
+            message: 'Autenticación exitosa con Supabase. Pendiente ejecutar backend/supabase_schema.sql en el SQL Editor para inicializar las tablas.'
+          };
+        }
+        throw error;
+      }
       return {
         connected: true,
         mode: 'supabase_rest_api',
