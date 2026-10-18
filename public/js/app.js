@@ -4,8 +4,9 @@
 
 const STATE = {
   isOnline: true,
-  currentView: 'view-portal',
+  currentView: 'view-login',
   currentSubtab: 'subtab-dashboard',
+  currentUser: null,
   selectedWorkerId: null,
   activeQrPayload: null,
   qrTimerInterval: null,
@@ -66,11 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initCombosManagement();
   checkSystemDbStatus();
   setupPwa();
+  setupAuth();
 
   // Cargar datos iniciales del portal
   refreshPortalData();
   // Precargar paquete diario inicial para el distribuidor
   downloadDailyPack();
+
+  // Verificar si hay sesión activa o ir a Login
+  checkAuthSession();
 });
 
 // Chequeo de Motor de Base de Datos (Supabase Cloud vs. SQLite Local)
@@ -123,26 +128,55 @@ function setupAccessibilityMode() {
 }
 
 // ----------------------------------------------------------------------------
-// NAVEGACIÓN
+// NAVEGACIÓN & VISTAS RBAC
 // ----------------------------------------------------------------------------
-function setupNavigation() {
+function navigateTo(viewId) {
   const navBtns = document.querySelectorAll('.nav-tab-btn');
   const views = document.querySelectorAll('.view-section');
+
+  // Si el usuario es un trabajador final, restringir acceso únicamente a view-worker o view-login
+  if (STATE.currentUser && STATE.currentUser.role === 'worker') {
+    if (viewId !== 'view-worker' && viewId !== 'view-login') {
+      viewId = 'view-worker';
+    }
+  }
+
+  views.forEach(v => {
+    v.classList.remove('active-view');
+    if (v.id === 'view-login') {
+      v.style.display = 'none';
+    }
+  });
+
+  navBtns.forEach(b => b.classList.remove('active'));
+
+  const targetView = document.getElementById(viewId);
+  if (targetView) {
+    targetView.classList.add('active-view');
+    if (viewId === 'view-login') {
+      targetView.style.display = 'flex';
+    } else {
+      targetView.style.display = '';
+    }
+  }
+
+  const activeBtn = document.querySelector(`.nav-tab-btn[data-view="${viewId}"]`);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  STATE.currentView = viewId;
+
+  if (viewId === 'view-portal') {
+    refreshPortalData();
+  }
+}
+
+function setupNavigation() {
+  const navBtns = document.querySelectorAll('.nav-tab-btn');
 
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const viewId = btn.getAttribute('data-view');
-      navBtns.forEach(b => b.classList.remove('active'));
-      views.forEach(v => v.classList.remove('active-view'));
-
-      btn.classList.add('active');
-      const targetView = document.getElementById(viewId);
-      if (targetView) targetView.classList.add('active-view');
-      STATE.currentView = viewId;
-
-      if (viewId === 'view-portal') {
-        refreshPortalData();
-      }
+      navigateTo(viewId);
     });
   });
 
@@ -163,17 +197,17 @@ function setupNavigation() {
     });
   });
 
-  document.getElementById('btnRefreshPortal').addEventListener('click', refreshPortalData);
-  document.getElementById('btnExportDeliveries').addEventListener('click', () => {
+  document.getElementById('btnRefreshPortal')?.addEventListener('click', refreshPortalData);
+  document.getElementById('btnExportDeliveries')?.addEventListener('click', () => {
     window.open('/api/v1/admin/export?format=csv', '_blank');
   });
 
   // Modales
-  document.getElementById('btnCloseSupervisorModal').addEventListener('click', () => {
-    document.getElementById('supervisorModalBackdrop').classList.remove('active');
+  document.getElementById('btnCloseSupervisorModal')?.addEventListener('click', () => {
+    document.getElementById('supervisorModalBackdrop')?.classList.remove('active');
   });
-  document.getElementById('btnCloseDossierModal').addEventListener('click', () => {
-    document.getElementById('securityDossierModalBackdrop').classList.remove('active');
+  document.getElementById('btnCloseDossierModal')?.addEventListener('click', () => {
+    document.getElementById('securityDossierModalBackdrop')?.classList.remove('active');
   });
 }
 
@@ -736,9 +770,9 @@ function setupWorkerSimulator() {
     }
   }
 
-  loadWorkerSelect();
+  window.updateWorkerCard = updateWorkerCard;
 
-  workerSelect.addEventListener('change', () => {
+  workerSelect?.addEventListener('change', () => {
     STATE.selectedWorkerId = workerSelect.value;
     updateWorkerCard();
   });
@@ -748,6 +782,17 @@ function setupWorkerSimulator() {
     const res = await fetch(`/api/v1/admin/workers/${STATE.selectedWorkerId}/security-dossier`);
     const data = await res.json();
     const { worker, passkeys } = data;
+
+    // Actualizar nombre y cédula en la barra superior móvil del beneficiario
+    const headerIdEl = document.getElementById('workerHeaderIdentity');
+    if (headerIdEl) {
+      headerIdEl.textContent = `${worker.full_name} (${worker.document_id})`;
+    }
+
+    // Sincronizar selector si existe
+    if (workerSelect && workerSelect.value !== worker.id) {
+      workerSelect.value = worker.id;
+    }
 
     // Actualizar insignia de condición laboral en la barra superior móvil
     const condBadgeEl = document.getElementById('workerConditionBadge');
@@ -1667,5 +1712,199 @@ function setupPwa() {
     console.log('[PWA] Aplicación instalada exitosamente en este dispositivo.');
     if (btnInstall) btnInstall.style.display = 'none';
   });
+}
+
+// ============================================================================
+// CONTROL DE ACCESO BASADO EN ROLES (RBAC) & AUTENTICACIÓN INSTITUCIONAL
+// ============================================================================
+function setupAuth() {
+  const loginForm = document.getElementById('loginForm');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+  const quickBtns = document.querySelectorAll('.quick-login-btn');
+  const btnLogout = document.getElementById('btnLogout');
+  const btnWorkerMobileLogout = document.getElementById('btnWorkerMobileLogout');
+
+  // Submit manual
+  const doLogin = () => {
+    const docType = document.getElementById('loginDocType')?.value || 'V';
+    const docNum = document.getElementById('loginDocNumber')?.value.trim();
+    if (!docNum) {
+      showLoginAlert('Por favor ingrese el número de Cédula de Identidad.');
+      return;
+    }
+    executeLogin(`${docType}-${docNum}`);
+  };
+
+  btnSubmit?.addEventListener('click', doLogin);
+  loginForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    doLogin();
+  });
+
+  // Acceso Rápido / Demo Chips con un solo clic
+  quickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const doc = btn.getAttribute('data-doc');
+      if (doc) {
+        const parts = doc.split('-');
+        if (parts.length === 2) {
+          const typeSelect = document.getElementById('loginDocType');
+          const numInput = document.getElementById('loginDocNumber');
+          if (typeSelect) typeSelect.value = parts[0];
+          if (numInput) numInput.value = parts[1];
+        }
+        executeLogin(doc);
+      }
+    });
+  });
+
+  // Logout
+  btnLogout?.addEventListener('click', handleLogout);
+  btnWorkerMobileLogout?.addEventListener('click', handleLogout);
+}
+
+function showLoginAlert(msg) {
+  const alertBox = document.getElementById('loginAlertBox');
+  if (alertBox) {
+    alertBox.textContent = msg;
+    alertBox.style.display = 'block';
+  }
+}
+
+async function executeLogin(rawDocId) {
+  const alertBox = document.getElementById('loginAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Verificando Identidad...';
+  }
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document_id: rawDocId })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      showLoginAlert(data.error || 'Cédula no encontrada en el padrón institucional.');
+      playAudioFeedback('error');
+      return;
+    }
+
+    playAudioFeedback('success');
+    const user = data.user;
+    STATE.currentUser = user;
+    localStorage.setItem('sgbt_user', JSON.stringify(user));
+    applyUserSession(user);
+
+  } catch (err) {
+    console.error('Error de login:', err);
+    showLoginAlert('Error de conexión con el servidor: ' + err.message);
+    playAudioFeedback('error');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '🚀 Ingresar al Sistema';
+    }
+  }
+}
+
+function applyUserSession(user) {
+  const masterNav = document.getElementById('masterNav');
+  const userPill = document.getElementById('userSessionPill');
+  const userName = document.getElementById('userSessionName');
+  const userRole = document.getElementById('userSessionRole');
+  const simSelector = document.getElementById('workerSimulatorSelectorContainer');
+  const techPanel = document.getElementById('workerSecurityExplanationPanel');
+  const workerHeaderId = document.getElementById('workerHeaderIdentity');
+
+  // Actualizar sesión en la cabecera
+  if (userPill && userName && userRole) {
+    userName.textContent = `👤 ${user.full_name}`;
+    userPill.style.display = 'flex';
+
+    if (user.role === 'worker') {
+      const isJubilado = user.worker_type === 'jubilado';
+      userRole.className = isJubilado ? 'badge badge-jubilado' : 'badge badge-activo';
+      userRole.textContent = isJubilado ? '👴 Jubilado' : '🏢 Beneficiario';
+    } else if (user.role === 'operator') {
+      userRole.className = 'badge badge-passkey';
+      userRole.textContent = '📦 Operador Almacén';
+    } else {
+      userRole.className = 'badge badge-override';
+      userRole.textContent = '🏛️ Gestión Humana';
+    }
+  }
+
+  // Comportamiento estricto según Rol:
+  if (user.role === 'worker') {
+    // 1. EL TRABAJADOR / JUBILADO SOLO VE LA VISTA BENEFICIARIO
+    // La barra de navegación master-nav queda completamente OCULTA
+    if (masterNav) masterNav.style.display = 'none';
+    if (simSelector) simSelector.style.display = 'none';
+    if (techPanel) techPanel.style.display = 'none';
+    if (workerHeaderId) workerHeaderId.textContent = `${user.full_name} (${user.document_id})`;
+
+    STATE.selectedWorkerId = user.id;
+    if (typeof window.updateWorkerCard === 'function') {
+      window.updateWorkerCard();
+    }
+    navigateTo('view-worker');
+
+  } else if (user.role === 'operator') {
+    // 2. OPERADOR DE MESA DE DESPACHO
+    if (masterNav) masterNav.style.display = 'none';
+    STATE.operatorId = user.id;
+    navigateTo('view-distributor');
+
+  } else {
+    // 3. ADMINISTRADOR / SUPERVISOR / RRHH
+    if (masterNav) masterNav.style.display = 'flex';
+    if (simSelector) simSelector.style.display = 'block';
+    if (techPanel) techPanel.style.display = 'block';
+    STATE.supervisorId = user.document_id;
+    navigateTo('view-portal');
+  }
+}
+
+function handleLogout() {
+  STATE.currentUser = null;
+  localStorage.removeItem('sgbt_user');
+  
+  const userPill = document.getElementById('userSessionPill');
+  const masterNav = document.getElementById('masterNav');
+  if (userPill) userPill.style.display = 'none';
+  if (masterNav) masterNav.style.display = 'none';
+
+  const docInput = document.getElementById('loginDocNumber');
+  if (docInput) docInput.value = '';
+
+  const alertBox = document.getElementById('loginAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+
+  navigateTo('view-login');
+}
+
+function checkAuthSession() {
+  try {
+    const saved = localStorage.getItem('sgbt_user');
+    if (saved) {
+      const user = JSON.parse(saved);
+      if (user && user.id) {
+        STATE.currentUser = user;
+        applyUserSession(user);
+        return;
+      }
+    }
+  } catch (e) {
+    console.warn('Error al leer sesión guardada:', e);
+  }
+  
+  // Si no hay sesión previa guardada, mostrar la vista de Login
+  navigateTo('view-login');
 }
 

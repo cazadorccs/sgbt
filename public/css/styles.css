@@ -592,11 +592,53 @@ body {
   background: #000000;
   border: 10px solid #27272a;
   border-radius: 48px;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(16, 185, 129, 0.1);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 153, 204, 0.15);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: all var(--transition-fast);
+}
+
+@media (max-width: 640px) {
+  .mobile-simulation-layout {
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  .device-frame {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: calc(100vh - 120px) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .device-notch {
+    display: none !important;
+  }
+  .master-header {
+    padding: 0.6rem 0.85rem !important;
+  }
+  .brand-title p {
+    display: none !important;
+  }
+  .system-pills {
+    display: none !important;
+  }
+}
+
+.quick-login-btn {
+  background: rgba(153, 230, 255, 0.04);
+  border: 1px solid rgba(153, 230, 255, 0.15);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.quick-login-btn:hover {
+  background: rgba(0, 153, 204, 0.18);
+  border-color: var(--sea-malibu);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 153, 204, 0.25);
 }
 
 .device-notch {

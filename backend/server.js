@@ -48,6 +48,65 @@ app.get('/api/v1/system/status', async (req, res) => {
   }
 });
 
+// Autenticación Institucional por Cédula / Credenciales y Control de Roles (RBAC)
+app.post('/api/v1/auth/login', (req, res) => {
+  const { document_id } = req.body;
+
+  if (!document_id || !document_id.trim()) {
+    return res.status(400).json({ error: 'La Cédula de Identidad es requerida' });
+  }
+
+  const cleanDoc = document_id.trim().toUpperCase();
+
+  try {
+    const worker = db.prepare(`
+      SELECT w.*, d.name as department_name, d.code as department_code
+      FROM workers w
+      LEFT JOIN departments d ON w.department_id = d.id
+      WHERE UPPER(w.document_id) = ? OR w.id = ? OR UPPER(w.document_id) LIKE ?
+    `).get(cleanDoc, cleanDoc, `%${cleanDoc.replace(/[^0-9]/g, '')}%`);
+
+    if (!worker) {
+      return res.status(404).json({
+        error: 'Funcionario no encontrado. Verifique la Cédula o consulte con Gestión Humana.'
+      });
+    }
+
+    const passkey = db.prepare(`
+      SELECT * FROM passkey_credentials 
+      WHERE worker_id = ? AND status = 'active' 
+      LIMIT 1
+    `).get(worker.id);
+
+    const entitlement = db.prepare(`
+      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description
+      FROM daily_entitlements de
+      JOIN combos c ON de.combo_id = c.id
+      WHERE de.worker_id = ?
+      ORDER BY de.valid_date DESC LIMIT 1
+    `).get(worker.id);
+
+    res.json({
+      success: true,
+      user: {
+        id: worker.id,
+        document_id: worker.document_id,
+        full_name: worker.full_name,
+        email: worker.email,
+        role: worker.role || 'worker',
+        worker_type: worker.worker_type || 'activo',
+        department: worker.department_name,
+        has_passkey: Boolean(passkey),
+        has_smartphone: Boolean(worker.has_smartphone)
+      },
+      entitlement: entitlement || null
+    });
+  } catch (err) {
+    console.error('[LOGIN ERROR]', err);
+    res.status(500).json({ error: 'Error interno al autenticar' });
+  }
+});
+
 // ----------------------------------------------------------------------------
 // 1. AUTENTICACIÓN BIOMÉTRICA NATIVA & PASSKEYS (FIDO2 / WEBAUTHN)
 // ----------------------------------------------------------------------------
