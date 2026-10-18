@@ -153,9 +153,96 @@ function initializeDatabase() {
       SET status = 'claimed'
       WHERE id = NEW.entitlement_id;
     END;
+
+    -- 10. CONFIGURACIÓN INSTITUCIONAL DE MARCA BLANCA / TENANT GUBERNAMENTAL
+    CREATE TABLE IF NOT EXISTS tenant_settings (
+      id TEXT PRIMARY KEY DEFAULT 'current_tenant',
+      entity_name TEXT NOT NULL DEFAULT 'Ministerio del Poder Popular para la Comunicación y la Información',
+      entity_short_name TEXT NOT NULL DEFAULT 'MIPPCI',
+      slogan TEXT NOT NULL DEFAULT 'Bienestar y Soberanía Alimentaria Institucional',
+      logo_url TEXT,
+      primary_color TEXT DEFAULT '#0284c7',
+      secondary_color TEXT DEFAULT '#0ea5e9',
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 11. PLANIFICACIÓN DE JORNADAS DE DESPACHO (CAMPAIGNS)
+    CREATE TABLE IF NOT EXISTS delivery_campaigns (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      combo_id TEXT REFERENCES combos(id) ON DELETE SET NULL,
+      target_group TEXT NOT NULL DEFAULT 'all', -- 'all', 'activo', 'jubilado', 'contratado', o departamento
+      distribution_point_id TEXT REFERENCES distribution_points(id) ON DELETE SET NULL,
+      status TEXT NOT NULL DEFAULT 'programada', -- 'programada', 'en_curso', 'finalizada', 'cancelada'
+      notification_sent INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- 12. NOTIFICACIONES DEL SISTEMA (IN-APP & WEB PUSH)
+    CREATE TABLE IF NOT EXISTS system_notifications (
+      id TEXT PRIMARY KEY,
+      campaign_id TEXT REFERENCES delivery_campaigns(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      target_group TEXT NOT NULL DEFAULT 'all',
+      notification_type TEXT NOT NULL DEFAULT 'jornada', -- 'jornada', 'alerta', 'recordatorio'
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
-  console.log('[DB] Esquema relacional verificado e inicializado.');
+  // Migraciones automáticas seguras de columnas opcionales en tablas existentes
+  try { db.exec("ALTER TABLE combos ADD COLUMN items_detail TEXT DEFAULT ''"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN icon TEXT DEFAULT '🍱'"); } catch (e) {}
+
+  // Inicializar tenant_settings por defecto si está vacío
+  const tenantExists = db.prepare("SELECT COUNT(*) as count FROM tenant_settings WHERE id = 'current_tenant'").get();
+  if (tenantExists.count === 0) {
+    db.prepare(`
+      INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color)
+      VALUES ('current_tenant', 'Ministerio del Poder Popular para la Comunicación y la Información', 'MIPPCI', 'Bienestar y Soberanía Alimentaria Institucional', '', '#0284c7', '#0ea5e9')
+    `).run();
+  }
+
+  // Inicializar una campaña de demostración si la tabla está vacía
+  const campCount = db.prepare("SELECT COUNT(*) as count FROM delivery_campaigns").get();
+  if (campCount.count === 0) {
+    const campId = crypto.randomUUID();
+    const todayStr = new Date().toISOString().split('T')[0];
+    const comboViveres = 'c1a2b3c4-1111-2222-3333-444455556666';
+    const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000';
+    db.prepare(`
+      INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent)
+      VALUES (?, 'Gran Jornada Integral de Víveres y Proteína - Mes en Curso', 'Despacho institucional para todo el personal activo y jubilado en Almacén Central', ?, ?, ?, 'all', ?, 'en_curso', 1)
+    `).run(campId, todayStr, todayStr, comboViveres, pointPlantaA);
+
+    // Notificación inicial de la jornada
+    db.prepare(`
+      INSERT INTO system_notifications (id, campaign_id, title, message, target_group, notification_type)
+      VALUES (?, ?, '📢 ¡Jornada de Despacho Activa!', 'Se encuentra activo el despacho de tu Bolsa de Víveres y Proteína en el Almacén Central. Recuerda presentar tu código QR biométrico o documento.', 'all', 'jornada')
+    `).run(crypto.randomUUID(), campId);
+  }
+
+  // Actualizar detalle de rubros para combos existentes si están vacíos
+  try {
+    db.prepare(`
+      UPDATE combos 
+      SET items_detail = '4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros (Caraotas), 2 Latas de Sardinas en Aceite',
+          icon = '🌾'
+      WHERE category = 'almuerzo' OR category = 'bolsa_viveres'
+    `).run();
+
+    db.prepare(`
+      UPDATE combos 
+      SET items_detail = '2 Polleras Enteras Beneficiadas (aprox. 4.2 kg), 1 Pieza de Carne de Res para Guisar (1.5 kg), 1 Cartón de Huevos Frescos (30 unidades)',
+          icon = '🍗'
+      WHERE category = 'proteico'
+    `).run();
+  } catch (e) {}
+
+  console.log('[DB] Esquema relacional verificado e inicializado con soporte Multi-Ente, Jornadas y Notificaciones.');
 }
 
 // Almacén seguro en memoria para simulación de llaves privadas (Secure Enclave simulado)

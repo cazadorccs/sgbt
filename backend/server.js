@@ -891,7 +891,7 @@ app.get('/api/v1/admin/combos', (req, res) => {
 });
 
 app.post('/api/v1/admin/combos', (req, res) => {
-  const { name, description, category, dietary_info, calories, target_group } = req.body;
+  const { name, description, category, dietary_info, calories, items_detail, icon } = req.body;
 
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'El nombre del combo es obligatorio' });
@@ -901,13 +901,15 @@ app.post('/api/v1/admin/combos', (req, res) => {
   const cat = category || 'combo_especial';
   const info = dietary_info || 'Estándar';
   const cal = parseInt(calories, 10) || 0;
+  const items = items_detail ? items_detail.trim() : '';
+  const comboIcon = icon || (cat === 'proteico' ? '🍗' : (cat === 'navideno' ? '🎄' : '🍱'));
 
   try {
     const insert = db.prepare(`
-      INSERT INTO combos (id, name, description, category, calories, dietary_info, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO combos (id, name, description, category, calories, dietary_info, items_detail, icon, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
     `);
-    insert.run(newId, name.trim(), description || '', cat, cal, info);
+    insert.run(newId, name.trim(), description || '', cat, cal, info, items, comboIcon);
 
     const created = db.prepare('SELECT * FROM combos WHERE id = ?').get(newId);
     console.log(`[CATALOG] Nuevo beneficio institucional configurado: "${created.name}" (${created.category})`);
@@ -926,10 +928,8 @@ app.post('/api/v1/admin/combos', (req, res) => {
 app.delete('/api/v1/admin/combos/:id', (req, res) => {
   const { id } = req.params;
   try {
-    // Verificar si tiene asignaciones activas
     const inUse = db.prepare('SELECT COUNT(*) as count FROM daily_entitlements WHERE combo_id = ?').get(id);
     if (inUse.count > 0) {
-      // En lugar de borrar, marcar inactivo para preservar integridad referencial
       db.prepare('UPDATE combos SET is_active = 0 WHERE id = ?').run(id);
       return res.json({ success: true, message: 'Combo desactivado (posee asignaciones históricas asociadas)' });
     }
@@ -939,6 +939,490 @@ app.delete('/api/v1/admin/combos/:id', (req, res) => {
   } catch (err) {
     console.error('[CATALOG DELETE ERROR]', err);
     res.status(500).json({ error: 'Error al eliminar combo' });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 4.9 CONFIGURACIÓN DEL ENTE GUBERNAMENTAL / MARCA BLANCA (MULTI-TENANT B2G)
+// ----------------------------------------------------------------------------
+app.get('/api/v1/tenant/settings', (req, res) => {
+  try {
+    let tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
+    if (!tenant) {
+      tenant = {
+        id: 'current_tenant',
+        entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+        entity_short_name: 'MIPPCI',
+        slogan: 'Bienestar y Soberanía Alimentaria Institucional',
+        logo_url: '',
+        primary_color: '#0284c7',
+        secondary_color: '#0ea5e9'
+      };
+    }
+
+    const distributionPoints = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE is_active = 1').all();
+    const departments = db.prepare('SELECT id, code, name FROM departments ORDER BY name ASC').all();
+
+    res.json({
+      tenant,
+      distributionPoints,
+      departments
+    });
+  } catch (err) {
+    console.error('[TENANT GET ERROR]', err);
+    res.status(500).json({ error: 'Error al obtener configuración del ente' });
+  }
+});
+
+app.post('/api/v1/tenant/settings', (req, res) => {
+  const { entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color } = req.body;
+
+  if (!entity_name || !entity_name.trim()) {
+    return res.status(400).json({ error: 'El nombre del ente gubernamental es requerido' });
+  }
+
+  try {
+    db.prepare(`
+      INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color, updated_at)
+      VALUES ('current_tenant', ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(id) DO UPDATE SET
+        entity_name = excluded.entity_name,
+        entity_short_name = excluded.entity_short_name,
+        slogan = excluded.slogan,
+        logo_url = excluded.logo_url,
+        primary_color = excluded.primary_color,
+        secondary_color = excluded.secondary_color,
+        updated_at = CURRENT_TIMESTAMP
+    `).run(
+      entity_name.trim(),
+      (entity_short_name || 'GOB').trim().toUpperCase(),
+      (slogan || '').trim(),
+      logo_url || '',
+      primary_color || '#0284c7',
+      secondary_color || '#0ea5e9'
+    );
+
+    const updated = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
+    console.log(`[TENANT] Identidad institucional actualizada: ${updated.entity_short_name} - ${updated.entity_name}`);
+
+    res.json({
+      success: true,
+      message: 'Identidad y configuración institucional guardadas exitosamente',
+      tenant: updated
+    });
+  } catch (err) {
+    console.error('[TENANT POST ERROR]', err);
+    res.status(500).json({ error: 'Error al actualizar configuración institucional' });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 4.10 GESTIÓN DINÁMICA DE BENEFICIARIOS / NÓMINA FLEXIBLE
+// ----------------------------------------------------------------------------
+app.post('/api/v1/admin/workers', (req, res) => {
+  const { document_id, full_name, email, department_id, worker_type, role, has_smartphone, phone_number, shift } = req.body;
+
+  if (!document_id || !full_name) {
+    return res.status(400).json({ error: 'Cédula y Nombre Completo son obligatorios' });
+  }
+
+  const cleanDoc = document_id.trim().toUpperCase();
+  const workerEmail = (email && email.trim()) ? email.trim() : `${cleanDoc.toLowerCase().replace(/[^a-z0-9]/g, '')}@institucion.gob.ve`;
+
+  try {
+    const existing = db.prepare('SELECT id FROM workers WHERE document_id = ?').get(cleanDoc);
+    if (existing) {
+      return res.status(409).json({ error: `Ya existe un beneficiario registrado con la cédula ${cleanDoc}` });
+    }
+
+    const workerId = crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO workers (
+        id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, phone_number
+      ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
+    `).run(
+      workerId,
+      cleanDoc,
+      full_name.trim(),
+      workerEmail,
+      department_id || null,
+      shift || 'jornada_continua',
+      worker_type || 'activo',
+      role || 'worker',
+      has_smartphone !== undefined ? (has_smartphone ? 1 : 0) : 1,
+      phone_number || null
+    );
+
+    const created = db.prepare('SELECT * FROM workers WHERE id = ?').get(workerId);
+    console.log(`[WORKER CREATED] Beneficiario agregado: ${created.full_name} (${created.document_id})`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Beneficiario incorporado exitosamente al padrón institucional',
+      worker: created
+    });
+  } catch (err) {
+    console.error('[WORKER CREATE ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Carga masiva de nómina
+app.post('/api/v1/admin/workers/batch', (req, res) => {
+  const { workers } = req.body;
+  if (!workers || !Array.isArray(workers) || workers.length === 0) {
+    return res.status(400).json({ error: 'Se requiere una lista de trabajadores válida' });
+  }
+
+  let imported = 0;
+  let skipped = 0;
+  const errors = [];
+
+  const insertWorker = db.prepare(`
+    INSERT INTO workers (
+      id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, phone_number
+    ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, 'worker', ?, ?)
+  `);
+
+  const tx = db.transaction((list) => {
+    for (const w of list) {
+      if (!w.document_id || !w.full_name) {
+        skipped++;
+        continue;
+      }
+      const cleanDoc = w.document_id.trim().toUpperCase();
+      const existing = db.prepare('SELECT id FROM workers WHERE document_id = ?').get(cleanDoc);
+      if (existing) {
+        skipped++;
+        continue;
+      }
+
+      const email = w.email || `${cleanDoc.toLowerCase().replace(/[^a-z0-9]/g, '')}@institucion.gob.ve`;
+      try {
+        insertWorker.run(
+          crypto.randomUUID(),
+          cleanDoc,
+          w.full_name.trim(),
+          email,
+          w.department_id || null,
+          w.shift || 'jornada_continua',
+          w.worker_type || 'activo',
+          w.has_smartphone === false ? 0 : 1,
+          w.phone_number || null
+        );
+        imported++;
+      } catch (e) {
+        errors.push({ doc: cleanDoc, error: e.message });
+        skipped++;
+      }
+    }
+  });
+
+  try {
+    tx(workers);
+    res.json({
+      success: true,
+      message: `Importación completada: ${imported} beneficiarios registrados, ${skipped} omitidos o duplicados.`,
+      imported_count: imported,
+      skipped_count: skipped,
+      errors
+    });
+  } catch (err) {
+    console.error('[WORKER BATCH ERROR]', err);
+    res.status(500).json({ error: 'Error durante la importación masiva de nómina' });
+  }
+});
+
+// Actualizar o dar de baja a beneficiario
+app.put('/api/v1/admin/workers/:id', (req, res) => {
+  const { id } = req.params;
+  const { full_name, email, department_id, worker_type, role, has_smartphone, phone_number, status, shift } = req.body;
+
+  try {
+    const worker = db.prepare('SELECT * FROM workers WHERE id = ?').get(id);
+    if (!worker) {
+      return res.status(404).json({ error: 'Beneficiario no encontrado' });
+    }
+
+    db.prepare(`
+      UPDATE workers SET
+        full_name = COALESCE(?, full_name),
+        email = COALESCE(?, email),
+        department_id = COALESCE(?, department_id),
+        worker_type = COALESCE(?, worker_type),
+        role = COALESCE(?, role),
+        has_smartphone = COALESCE(?, has_smartphone),
+        phone_number = COALESCE(?, phone_number),
+        status = COALESCE(?, status),
+        shift = COALESCE(?, shift),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      full_name ? full_name.trim() : null,
+      email ? email.trim() : null,
+      department_id || null,
+      worker_type || null,
+      role || null,
+      has_smartphone !== undefined ? (has_smartphone ? 1 : 0) : null,
+      phone_number || null,
+      status || null,
+      shift || null,
+      id
+    );
+
+    const updated = db.prepare('SELECT * FROM workers WHERE id = ?').get(id);
+    res.json({ success: true, message: 'Datos del beneficiario actualizados', worker: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/v1/admin/workers/:id', (req, res) => {
+  const { id } = req.params;
+  try {
+    db.prepare("UPDATE workers SET status = 'terminated', updated_at = CURRENT_TIMESTAMP WHERE id = ?").run(id);
+    res.json({ success: true, message: 'Beneficiario dado de baja (marcado inactivo)' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 4.11 PLANIFICACIÓN Y CRONOGRAMA DE JORNADAS DE ENTREGA (CAMPAIGNS)
+// ----------------------------------------------------------------------------
+app.get('/api/v1/admin/campaigns', (req, res) => {
+  try {
+    const campaigns = db.prepare(`
+      SELECT 
+        c.id, c.name, c.description, c.start_date, c.end_date, c.target_group, c.status, c.notification_sent, c.created_at,
+        cb.name as combo_name, cb.category as combo_category, cb.icon as combo_icon, cb.items_detail as combo_items,
+        dp.name as point_name, dp.location_code as point_code
+      FROM delivery_campaigns c
+      LEFT JOIN combos cb ON c.combo_id = cb.id
+      LEFT JOIN distribution_points dp ON c.distribution_point_id = dp.id
+      ORDER BY c.start_date DESC, c.created_at DESC
+    `).all();
+
+    // Obtener estadísticas de cada jornada
+    const enriched = campaigns.map(camp => {
+      let workerCondition = "status = 'active'";
+      if (camp.target_group === 'activo') workerCondition += " AND worker_type = 'activo'";
+      else if (camp.target_group === 'jubilado') workerCondition += " AND worker_type IN ('jubilado', 'pensionado')";
+      else if (camp.target_group === 'contratado') workerCondition += " AND worker_type = 'contratado'";
+
+      const totalEligible = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${workerCondition}`).get().count;
+
+      // Asignaciones generadas para las fechas de esta jornada
+      const entitlements = db.prepare(`
+        SELECT 
+          COUNT(*) as total_entitlements,
+          SUM(CASE WHEN status = 'claimed' THEN 1 ELSE 0 END) as claimed_count,
+          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count
+        FROM daily_entitlements
+        WHERE valid_date >= ? AND valid_date <= ? AND combo_id = ?
+      `).get(camp.start_date, camp.end_date, camp.combo_id || '');
+
+      return {
+        ...camp,
+        total_eligible: totalEligible,
+        assigned_count: entitlements ? (entitlements.total_entitlements || 0) : 0,
+        claimed_count: entitlements ? (entitlements.claimed_count || 0) : 0,
+        pending_count: entitlements ? (entitlements.pending_count || 0) : 0
+      };
+    });
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('[CAMPAIGNS GET ERROR]', err);
+    res.status(500).json({ error: 'Error al obtener jornadas de entrega' });
+  }
+});
+
+app.post('/api/v1/admin/campaigns', (req, res) => {
+  const { name, description, start_date, end_date, combo_id, target_group, distribution_point_id, auto_generate_entitlements } = req.body;
+
+  if (!name || !start_date || !end_date) {
+    return res.status(400).json({ error: 'Nombre de jornada, fecha inicio y fecha fin son obligatorios' });
+  }
+
+  const campaignId = crypto.randomUUID();
+  const group = target_group || 'all';
+
+  try {
+    const tx = db.transaction(() => {
+      // 1. Insertar campaña
+      db.prepare(`
+        INSERT INTO delivery_campaigns (
+          id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'programada', 0)
+      `).run(
+        campaignId,
+        name.trim(),
+        description || '',
+        start_date,
+        end_date,
+        combo_id || null,
+        group,
+        distribution_point_id || null
+      );
+
+      let generatedCount = 0;
+
+      // 2. Si se solicitó autogenerar asignaciones para los beneficiarios
+      if (combo_id && (auto_generate_entitlements !== false)) {
+        let workerQuery = "SELECT id FROM workers WHERE status = 'active'";
+        if (group === 'activo') workerQuery += " AND worker_type = 'activo'";
+        else if (group === 'jubilado') workerQuery += " AND worker_type IN ('jubilado', 'pensionado')";
+        else if (group === 'contratado') workerQuery += " AND worker_type = 'contratado'";
+
+        const workers = db.prepare(workerQuery).all();
+        const insertEntitlement = db.prepare(`
+          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+        `);
+
+        for (const w of workers) {
+          insertEntitlement.run(crypto.randomUUID(), w.id, combo_id, start_date);
+          generatedCount++;
+        }
+      }
+
+      return generatedCount;
+    });
+
+    const generated = tx();
+    const created = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(campaignId);
+
+    console.log(`[CAMPAIGN CREATED] Jornada planificada: "${created.name}" para ${start_date} (${generated} asignaciones creadas)`);
+
+    res.status(201).json({
+      success: true,
+      message: `Jornada "${created.name}" planificada con éxito (${generated} asignaciones preparadas)`,
+      campaign: created,
+      generated_entitlements: generated
+    });
+  } catch (err) {
+    console.error('[CAMPAIGN CREATE ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Cambiar estado de la jornada ('programada', 'en_curso', 'finalizada', 'cancelada')
+app.put('/api/v1/admin/campaigns/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status) {
+    return res.status(400).json({ error: 'Estado requerido' });
+  }
+
+  try {
+    db.prepare('UPDATE delivery_campaigns SET status = ? WHERE id = ?').run(status, id);
+    res.json({ success: true, message: `Estado de la jornada actualizado a: ${status}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Activar Notificación Push & In-App para una Jornada
+app.post('/api/v1/admin/campaigns/:id/notify', (req, res) => {
+  const { id } = req.params;
+  const { custom_title, custom_message } = req.body;
+
+  try {
+    const camp = db.prepare(`
+      SELECT c.*, cb.name as combo_name, dp.name as point_name 
+      FROM delivery_campaigns c
+      LEFT JOIN combos cb ON c.combo_id = cb.id
+      LEFT JOIN distribution_points dp ON c.distribution_point_id = dp.id
+      WHERE c.id = ?
+    `).get(id);
+
+    if (!camp) {
+      return res.status(404).json({ error: 'Jornada no encontrada' });
+    }
+
+    const title = custom_title || `📢 ¡Jornada de Entrega: ${camp.name}!`;
+    const message = custom_message || `Se ha programado la entrega de ${camp.combo_name || 'beneficios'} desde el ${camp.start_date} hasta el ${camp.end_date} en ${camp.point_name || 'Sede Principal'}. ¡Consulta tu código en la App!`;
+
+    const notifId = crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO system_notifications (id, campaign_id, title, message, target_group, notification_type)
+      VALUES (?, ?, ?, ?, ?, 'jornada')
+    `).run(notifId, id, title, message, camp.target_group);
+
+    db.prepare('UPDATE delivery_campaigns SET notification_sent = 1 WHERE id = ?').run(id);
+
+    console.log(`[NOTIFICATION SENT] Aviso masivo emitido para jornada: ${camp.name}`);
+
+    res.json({
+      success: true,
+      message: 'Notificación activada y enviada a los beneficiarios de la jornada',
+      notification: {
+        id: notifId,
+        title,
+        message,
+        target_group: camp.target_group,
+        created_at: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    console.error('[NOTIFY ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 4.12 SISTEMA DE NOTIFICACIONES (IN-APP & WEB PUSH API)
+// ----------------------------------------------------------------------------
+app.get('/api/v1/notifications', (req, res) => {
+  const { worker_id } = req.query;
+
+  try {
+    let targetFilter = "n.target_group = 'all'";
+    if (worker_id) {
+      const worker = db.prepare('SELECT worker_type, department_id FROM workers WHERE id = ?').get(worker_id);
+      if (worker) {
+        targetFilter = `n.target_group IN ('all', '${worker.worker_type}', '${worker.department_id}')`;
+      }
+    }
+
+    const notifications = db.prepare(`
+      SELECT n.*, c.name as campaign_name, c.status as campaign_status
+      FROM system_notifications n
+      LEFT JOIN delivery_campaigns c ON n.campaign_id = c.id
+      WHERE ${targetFilter}
+      ORDER BY n.created_at DESC
+      LIMIT 20
+    `).all();
+
+    res.json(notifications);
+  } catch (err) {
+    console.error('[NOTIFICATIONS GET ERROR]', err);
+    res.status(500).json({ error: 'Error al obtener notificaciones' });
+  }
+});
+
+app.post('/api/v1/notifications', (req, res) => {
+  const { title, message, target_group, notification_type } = req.body;
+  if (!title || !message) {
+    return res.status(400).json({ error: 'Título y Mensaje son requeridos' });
+  }
+
+  const notifId = crypto.randomUUID();
+  try {
+    db.prepare(`
+      INSERT INTO system_notifications (id, title, message, target_group, notification_type)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(notifId, title.trim(), message.trim(), target_group || 'all', notification_type || 'alerta');
+
+    res.status(201).json({
+      success: true,
+      message: 'Aviso publicado exitosamente',
+      notification_id: notifId
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

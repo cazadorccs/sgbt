@@ -68,11 +68,15 @@ document.addEventListener('DOMContentLoaded', () => {
   checkSystemDbStatus();
   setupPwa();
   setupAuth();
+  setupUserMenuDropdown();
 
   // Cargar datos iniciales del portal
   refreshPortalData();
   // Precargar paquete diario inicial para el distribuidor
   downloadDailyPack();
+
+  // Inicializar características Enterprise B2G (Marca Blanca, Nómina, Jornadas y Notificaciones)
+  initEnterpriseFeatures();
 
   // Verificar si hay sesión activa o ir a Login
   checkAuthSession();
@@ -163,8 +167,150 @@ function setupGeneralSettings() {
     applyHighContrast(e.target.checked, true);
   });
 
-  // Apertura y Cierre del Modal
+  // Tabs internas del Modal de Configuración
+  const tabBrandingBtn = document.getElementById('btnSettingsTabBranding');
+  const tabPreferencesBtn = document.getElementById('btnSettingsTabPreferences');
+  const sectionBranding = document.getElementById('settingsSectionBranding');
+  const sectionPreferences = document.getElementById('settingsSectionPreferences');
+
+  tabBrandingBtn?.addEventListener('click', () => {
+    tabBrandingBtn.classList.add('active');
+    tabPreferencesBtn?.classList.remove('active');
+    if (sectionBranding) sectionBranding.style.display = 'block';
+    if (sectionPreferences) sectionPreferences.style.display = 'none';
+  });
+
+  tabPreferencesBtn?.addEventListener('click', () => {
+    tabPreferencesBtn.classList.add('active');
+    tabBrandingBtn?.classList.remove('active');
+    if (sectionPreferences) sectionPreferences.style.display = 'block';
+    if (sectionBranding) sectionBranding.style.display = 'none';
+  });
+
+  // Selector de Archivo de Logotipo en Modal de Configuración
+  const modalLogoBtn = document.getElementById('btnSettingsSelectLogo');
+  const modalLogoFileInput = document.getElementById('settingsLogoFileInput');
+  const modalLogoPreviewBox = document.getElementById('settingsLogoPreviewBox');
+  const modalLogoUrlInput = document.getElementById('settingsLogoUrlInput');
+  const modalPrimaryColorInput = document.getElementById('settingsPrimaryColorInput');
+  const modalSecondaryColorInput = document.getElementById('settingsSecondaryColorInput');
+  const modalBrandingForm = document.getElementById('settingsBrandingForm');
+  const modalBrandingAlertBox = document.getElementById('settingsBrandingAlertBox');
+  const modalBtnResetBranding = document.getElementById('btnSettingsResetBranding');
+
+  modalLogoBtn?.addEventListener('click', () => modalLogoFileInput?.click());
+
+  modalLogoFileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor seleccione un archivo de imagen válido (PNG, JPG, SVG).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result;
+      if (modalLogoPreviewBox) {
+        modalLogoPreviewBox.innerHTML = `<img src="${base64}" style="max-height: 70px; max-width: 100%; object-fit: contain;" alt="Logo Previa" />`;
+      }
+      modalLogoPreviewBox.dataset.base64 = base64;
+      if (modalLogoUrlInput) modalLogoUrlInput.value = '';
+    };
+    reader.readAsDataURL(file);
+  });
+
+  modalLogoUrlInput?.addEventListener('input', () => {
+    const url = modalLogoUrlInput.value.trim();
+    if (url && modalLogoPreviewBox) {
+      modalLogoPreviewBox.innerHTML = `<img src="${url}" style="max-height: 70px; max-width: 100%; object-fit: contain;" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='⚠️';" alt="Preview" />`;
+      delete modalLogoPreviewBox.dataset.base64;
+    }
+  });
+
+  modalPrimaryColorInput?.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--sea-pacific', modalPrimaryColorInput.value);
+    document.documentElement.style.setProperty('--accent-primary', modalPrimaryColorInput.value);
+  });
+
+  modalSecondaryColorInput?.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--sea-malibu', modalSecondaryColorInput.value);
+    document.documentElement.style.setProperty('--accent-secondary', modalSecondaryColorInput.value);
+  });
+
+  modalBtnResetBranding?.addEventListener('click', () => {
+    if (!confirm('¿Restablecer la identidad institucional a los valores estándar de MIPPCI?')) return;
+    document.getElementById('settingsEntityNameInput').value = 'Ministerio del Poder Popular para la Comunicación y la Información';
+    document.getElementById('settingsEntityShortInput').value = 'MIPPCI';
+    document.getElementById('settingsSloganInput').value = 'Bienestar y Soberanía Alimentaria Institucional';
+    document.getElementById('settingsLogoUrlInput').value = '';
+    if (modalPrimaryColorInput) modalPrimaryColorInput.value = '#0284c7';
+    if (modalSecondaryColorInput) modalSecondaryColorInput.value = '#0ea5e9';
+    if (modalLogoPreviewBox) {
+      modalLogoPreviewBox.innerHTML = '<svg class="icon-svg icon-lg" style="color: #94a3b8;" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>';
+      delete modalLogoPreviewBox.dataset.base64;
+    }
+    document.documentElement.style.setProperty('--sea-pacific', '#0284c7');
+    document.documentElement.style.setProperty('--accent-primary', '#0284c7');
+    document.documentElement.style.setProperty('--sea-malibu', '#0ea5e9');
+  });
+
+  modalBrandingForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!STATE.currentUser || STATE.currentUser.role !== 'admin') {
+      alert('Acceso no autorizado: Solo los administradores pueden modificar la marca y logotipos.');
+      return;
+    }
+
+    const entity_name = document.getElementById('settingsEntityNameInput')?.value.trim();
+    const entity_short_name = document.getElementById('settingsEntityShortInput')?.value.trim();
+    const slogan = document.getElementById('settingsSloganInput')?.value.trim();
+    const primary_color = modalPrimaryColorInput?.value;
+    const secondary_color = modalSecondaryColorInput?.value;
+    const logo_url = modalLogoPreviewBox?.dataset?.base64 || modalLogoUrlInput?.value.trim() || '';
+
+    try {
+      const res = await fetch('/api/v1/tenant/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_name,
+          entity_short_name,
+          slogan,
+          logo_url,
+          primary_color,
+          secondary_color
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar');
+
+      if (modalBrandingAlertBox) {
+        modalBrandingAlertBox.textContent = `Identidad institucional actualizada correctamente.`;
+        modalBrandingAlertBox.style.display = 'block';
+        setTimeout(() => { modalBrandingAlertBox.style.display = 'none'; }, 4000);
+      }
+
+      await loadTenantSettings();
+      playAudioFeedback('success');
+
+    } catch (err) {
+      alert('Error guardando configuración de marca: ' + err.message);
+    }
+  });
+
+  // Apertura y Cierre del Modal con verificación de rol de Administrador
   btnOpen?.addEventListener('click', () => {
+    if (typeof window.closeUserMenu === 'function') {
+      window.closeUserMenu();
+    }
+    if (!STATE.currentUser || (STATE.currentUser.role !== 'admin' && STATE.currentUser.role !== 'director')) {
+      alert('Acceso restringido: El panel de Configuración y Marca Institucional solo está disponible para Administradores del Sistema.');
+      return;
+    }
+    loadTenantSettings();
     if (modalBackdrop) {
       modalBackdrop.classList.add('active');
     }
@@ -291,17 +437,39 @@ function setupNetworkToggle() {
   const btn = document.getElementById('btnToggleNetwork');
   const pill = document.getElementById('connectionPill');
   const text = document.getElementById('connectionText');
+  const dropdownLabel = document.getElementById('networkToggleItemLabel');
 
-  btn.addEventListener('click', () => {
+  function toggle() {
     STATE.isOnline = !STATE.isOnline;
     if (STATE.isOnline) {
-      pill.className = 'status-pill online';
-      text.textContent = 'Modo Online (Sincronizado)';
-      btn.textContent = 'Simular Desconexión';
+      if (pill) {
+        pill.className = 'status-pill status-pill-compact online';
+        pill.title = 'Estado del entorno de red: Online (Clic para conmutar simulación)';
+      }
+      if (text) text.textContent = 'Online';
+      if (dropdownLabel) dropdownLabel.textContent = 'Simular Desconexión';
     } else {
-      pill.className = 'status-pill offline';
-      text.textContent = 'Modo 100% Offline (Comedor)';
-      btn.textContent = 'Restablecer Red';
+      if (pill) {
+        pill.className = 'status-pill status-pill-compact offline';
+        pill.title = 'Estado del entorno de red: Desconectado / Offline (Clic para reconectar)';
+      }
+      if (text) text.textContent = 'Offline';
+      if (dropdownLabel) dropdownLabel.textContent = 'Restablecer Red Online';
+    }
+  }
+
+  btn?.addEventListener('click', () => {
+    toggle();
+    if (typeof window.closeUserMenu === 'function') {
+      window.closeUserMenu();
+    }
+  });
+
+  pill?.addEventListener('click', toggle);
+  pill?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggle();
     }
   });
 }
@@ -361,7 +529,16 @@ async function refreshPortalData() {
     // 3. Catálogo de Combos
     await loadCombosCatalog();
 
-    // 4. Auditoría de Entregas
+    // 4. Planificación de Jornadas de Despacho
+    await loadCampaigns();
+
+    // 5. Configuración Institucional y Marca
+    await loadTenantSettings();
+
+    // 6. Notificaciones y Avisos de Jornadas
+    await loadNotifications();
+
+    // 7. Auditoría de Entregas
     await loadAuditDeliveries();
 
   } catch (err) {
@@ -1886,6 +2063,41 @@ async function executeLogin(rawDocId) {
   }
 }
 
+function setupUserMenuDropdown() {
+  const trigger = document.getElementById('btnUserMenuTrigger');
+  const dropdown = document.getElementById('userMenuDropdown');
+
+  if (!trigger || !dropdown) return;
+
+  function toggleDropdown(e) {
+    e.stopPropagation();
+    const isOpen = dropdown.style.display === 'block';
+    dropdown.style.display = isOpen ? 'none' : 'block';
+    trigger.setAttribute('aria-expanded', !isOpen);
+  }
+
+  function closeDropdown() {
+    if (dropdown) dropdown.style.display = 'none';
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  window.closeUserMenu = closeDropdown;
+
+  trigger.addEventListener('click', toggleDropdown);
+
+  // Cerrar al hacer clic fuera
+  document.addEventListener('click', (e) => {
+    if (!dropdown.contains(e.target) && !trigger.contains(e.target)) {
+      closeDropdown();
+    }
+  });
+
+  // Cerrar al pulsar Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDropdown();
+  });
+}
+
 function applyUserSession(user) {
   const masterNav = document.getElementById('masterNav');
   const userPill = document.getElementById('userSessionPill');
@@ -1895,28 +2107,72 @@ function applyUserSession(user) {
   const techPanel = document.getElementById('workerSecurityExplanationPanel');
   const workerHeaderId = document.getElementById('workerHeaderIdentity');
 
-  // Actualizar sesión en la cabecera
-  if (userPill && userName && userRole) {
-    userName.textContent = `👤 ${user.full_name}`;
-    userPill.style.display = 'flex';
+  // Elementos del Avatar y Dropdown
+  const avatarCircle = document.getElementById('userAvatarCircle');
+  const dropdownAvatar = document.getElementById('dropdownAvatarLarge');
+  const dropdownName = document.getElementById('dropdownUserName');
+  const dropdownDoc = document.getElementById('dropdownUserDoc');
+  const dropdownBadge = document.getElementById('dropdownUserBadge');
 
-    if (user.role === 'worker') {
-      const isJubilado = user.worker_type === 'jubilado';
-      userRole.className = isJubilado ? 'badge badge-jubilado' : 'badge badge-activo';
-      userRole.textContent = isJubilado ? '👴 Jubilado' : '🏢 Beneficiario';
-    } else if (user.role === 'operator') {
-      userRole.className = 'badge badge-passkey';
-      userRole.textContent = '📦 Operador Almacén';
-    } else {
-      userRole.className = 'badge badge-override';
-      userRole.textContent = '🏛️ Gestión Humana';
-    }
+  // Iniciales del usuario para avatar (ej: Juan Carlos Rivas -> JR)
+  const nameParts = (user.full_name || 'U').trim().split(/\s+/);
+  const initials = nameParts.length >= 2 
+    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+    : nameParts[0].substring(0, 2).toUpperCase();
+
+  if (avatarCircle) avatarCircle.textContent = initials;
+  if (dropdownAvatar) dropdownAvatar.textContent = initials;
+
+  let roleLabel = 'Beneficiario';
+  let badgeClass = 'badge badge-activo';
+
+  if (user.role === 'worker') {
+    const isJubilado = user.worker_type === 'jubilado';
+    badgeClass = isJubilado ? 'badge badge-jubilado' : 'badge badge-activo';
+    roleLabel = isJubilado ? 'Jubilado' : 'Beneficiario';
+  } else if (user.role === 'operator') {
+    badgeClass = 'badge badge-passkey';
+    roleLabel = 'Operador Almacén';
+  } else if (user.role === 'admin' || user.role === 'director') {
+    badgeClass = 'badge badge-override';
+    roleLabel = 'Administrador Sistema';
+  } else {
+    badgeClass = 'badge badge-override';
+    roleLabel = 'Gestión Humana';
+  }
+
+  // Actualizar sesión en la cabecera
+  if (userPill) userPill.style.display = 'inline-block';
+  if (userName) userName.textContent = user.full_name;
+  if (userRole) userRole.textContent = roleLabel;
+
+  if (dropdownName) dropdownName.textContent = user.full_name;
+  if (dropdownDoc) dropdownDoc.textContent = `C.I. ${user.document_id || ''}`;
+  if (dropdownBadge) {
+    dropdownBadge.className = badgeClass;
+    dropdownBadge.textContent = roleLabel;
+  }
+
+  // Control Estricto de Visibilidad de Configuración & Marca (Solo Administradores del Sistema)
+  const btnSettings = document.getElementById('btnOpenGeneralSettings');
+  const brandingSubtab = document.querySelector('.portal-subtab[data-subtab="subtab-branding"]');
+  const isAdmin = (user.role === 'admin' || user.role === 'director');
+
+  if (btnSettings) {
+    btnSettings.style.display = isAdmin ? 'flex' : 'none';
+  }
+  if (brandingSubtab) {
+    brandingSubtab.style.display = isAdmin ? 'inline-flex' : 'none';
+  }
+
+  // Cerrar dropdown al iniciar sesión
+  if (typeof window.closeUserMenu === 'function') {
+    window.closeUserMenu();
   }
 
   // Comportamiento estricto según Rol:
   if (user.role === 'worker') {
     // 1. EL TRABAJADOR / JUBILADO SOLO VE LA VISTA BENEFICIARIO
-    // La barra de navegación master-nav queda completamente OCULTA
     if (masterNav) masterNav.style.display = 'none';
     if (simSelector) simSelector.style.display = 'none';
     if (techPanel) techPanel.style.display = 'none';
@@ -1947,6 +2203,14 @@ function applyUserSession(user) {
 function handleLogout() {
   STATE.currentUser = null;
   localStorage.removeItem('sgbt_user');
+  
+  if (typeof window.closeUserMenu === 'function') {
+    window.closeUserMenu();
+  }
+
+  // Ocultar botón de configuración al cerrar sesión
+  const btnSettings = document.getElementById('btnOpenGeneralSettings');
+  if (btnSettings) btnSettings.style.display = 'none';
   
   const userPill = document.getElementById('userSessionPill');
   const masterNav = document.getElementById('masterNav');
@@ -1980,4 +2244,889 @@ function checkAuthSession() {
   // Si no hay sesión previa guardada, mostrar la vista de Login
   navigateTo('view-login');
 }
+
+// ============================================================================
+// CARACTERÍSTICAS ENTERPRISE MULTI-TENANT B2G, NÓMINA, JORNADAS Y AVISOS
+// ============================================================================
+
+let currentTenantData = null;
+let parsedCsvWorkers = [];
+
+function initEnterpriseFeatures() {
+  setupTenantBranding();
+  setupWorkerManagement();
+  setupCampaignsManagement();
+  setupNotificationsSystem();
+  loadTenantSettings();
+  loadNotifications();
+}
+
+// ----------------------------------------------------------------------------
+// 1. CONFIGURACIÓN DEL ENTE GUBERNAMENTAL / MARCA BLANCA & LOGO
+// ----------------------------------------------------------------------------
+async function loadTenantSettings() {
+  try {
+    const res = await fetch('/api/v1/tenant/settings');
+    const data = await res.json();
+    currentTenantData = data;
+    const { tenant, distributionPoints, departments } = data;
+
+    if (!tenant) return;
+
+    // 1. Actualizar títulos institucionales y cintillos
+    const titleH1 = document.getElementById('brandTitleH1');
+    const subtitleP = document.getElementById('brandSubtitleP');
+    const logoContainer = document.getElementById('brandLogoContainer');
+    const loginTitleH2 = document.querySelector('#view-login h2');
+    const loginSubtitleP = document.querySelector('#view-login p');
+    const loginLogoDiv = document.querySelector('#view-login div[style*="font-size: 3rem"]');
+    const workersDirTitle = document.getElementById('workersDirectoryTitle');
+
+    if (titleH1) titleH1.textContent = tenant.entity_name.toUpperCase();
+    if (subtitleP) subtitleP.textContent = `${tenant.slogan || 'Gestión y Despacho de Beneficios Institucionales'} (${tenant.entity_short_name || 'MIPPCI'})`;
+    if (loginTitleH2) loginTitleH2.textContent = `${tenant.entity_short_name} - ${tenant.entity_name}`;
+    if (loginSubtitleP) loginSubtitleP.innerHTML = `Acceso Institucional por Rol &middot; ${tenant.slogan || 'Beneficios y Despacho'}`;
+    if (workersDirTitle) workersDirTitle.textContent = `Directorio de Empleados y Padrón Institucional (${tenant.entity_short_name})`;
+
+    // 2. Actualizar Logotipo (Si existe URL o Base64 cargado)
+    if (tenant.logo_url && tenant.logo_url.trim()) {
+      if (logoContainer) {
+        logoContainer.innerHTML = `<img src="${tenant.logo_url}" class="brand-logo-img" alt="Logo ${tenant.entity_short_name}" />`;
+      }
+      if (loginLogoDiv) {
+        loginLogoDiv.innerHTML = `<img src="${tenant.logo_url}" style="max-height: 70px; max-width: 180px; object-fit: contain; filter: drop-shadow(0 4px 12px rgba(2, 132, 199, 0.25));" alt="Logo Institucional" />`;
+      }
+      const previewBox = document.getElementById('brandingLogoPreviewContainer');
+      if (previewBox) {
+        previewBox.innerHTML = `<img src="${tenant.logo_url}" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Vista Previa" />`;
+      }
+      const modalPreviewBox = document.getElementById('settingsLogoPreviewBox');
+      if (modalPreviewBox) {
+        modalPreviewBox.innerHTML = `<img src="${tenant.logo_url}" style="max-height: 70px; max-width: 100%; object-fit: contain;" alt="Vista Previa" />`;
+      }
+    } else {
+      if (logoContainer) {
+        logoContainer.innerHTML = '<svg class="icon-svg icon-md" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>';
+      }
+    }
+
+    // 3. Aplicar colores corporativos al documento
+    if (tenant.primary_color) {
+      document.documentElement.style.setProperty('--sea-pacific', tenant.primary_color);
+      document.documentElement.style.setProperty('--accent-primary', tenant.primary_color);
+    }
+    if (tenant.secondary_color) {
+      document.documentElement.style.setProperty('--sea-malibu', tenant.secondary_color);
+      document.documentElement.style.setProperty('--accent-secondary', tenant.secondary_color);
+    }
+
+    // 4. Llenar campos del formulario de branding (tanto en portal como en modal de configuración)
+    const nameInput = document.getElementById('brandingEntityNameInput');
+    const shortInput = document.getElementById('brandingEntityShortInput');
+    const sloganInput = document.getElementById('brandingSloganInput');
+    const urlInput = document.getElementById('brandingLogoUrlInput');
+    const primaryInput = document.getElementById('brandingPrimaryColorInput');
+    const secondaryInput = document.getElementById('brandingSecondaryColorInput');
+
+    const mNameInput = document.getElementById('settingsEntityNameInput');
+    const mShortInput = document.getElementById('settingsEntityShortInput');
+    const mSloganInput = document.getElementById('settingsSloganInput');
+    const mUrlInput = document.getElementById('settingsLogoUrlInput');
+    const mPrimaryInput = document.getElementById('settingsPrimaryColorInput');
+    const mSecondaryInput = document.getElementById('settingsSecondaryColorInput');
+
+    if (nameInput) nameInput.value = tenant.entity_name || '';
+    if (mNameInput) mNameInput.value = tenant.entity_name || '';
+
+    if (shortInput) shortInput.value = tenant.entity_short_name || '';
+    if (mShortInput) mShortInput.value = tenant.entity_short_name || '';
+
+    if (sloganInput) sloganInput.value = tenant.slogan || '';
+    if (mSloganInput) mSloganInput.value = tenant.slogan || '';
+
+    const cleanUrl = (tenant.logo_url && !tenant.logo_url.startsWith('data:')) ? tenant.logo_url : '';
+    if (urlInput) urlInput.value = cleanUrl;
+    if (mUrlInput) mUrlInput.value = cleanUrl;
+
+    if (primaryInput && tenant.primary_color) primaryInput.value = tenant.primary_color;
+    if (mPrimaryInput && tenant.primary_color) mPrimaryInput.value = tenant.primary_color;
+
+    if (secondaryInput && tenant.secondary_color) secondaryInput.value = tenant.secondary_color;
+    if (mSecondaryInput && tenant.secondary_color) mSecondaryInput.value = tenant.secondary_color;
+
+    // 5. Poblar selects dependientes (Departamentos y Puntos de Entrega)
+    const deptSelect = document.getElementById('newWorkerDepartment');
+    if (deptSelect && departments) {
+      deptSelect.innerHTML = '<option value="">-- Sin Departamento Asignado --</option>';
+      departments.forEach(d => {
+        deptSelect.innerHTML += `<option value="${d.id}">${d.name} (${d.code})</option>`;
+      });
+    }
+
+    const pointSelect = document.getElementById('campaignPointSelect');
+    if (pointSelect && distributionPoints) {
+      pointSelect.innerHTML = '';
+      distributionPoints.forEach(p => {
+        pointSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.location_code})</option>`;
+      });
+    }
+
+  } catch (err) {
+    console.warn('Error al cargar configuración del ente:', err);
+  }
+}
+
+function setupTenantBranding() {
+  const form = document.getElementById('brandingForm');
+  const btnSelectFile = document.getElementById('btnSelectLogoFile');
+  const fileInput = document.getElementById('brandingLogoFileInput');
+  const previewBox = document.getElementById('brandingLogoPreviewContainer');
+  const urlInput = document.getElementById('brandingLogoUrlInput');
+  const primaryInput = document.getElementById('brandingPrimaryColorInput');
+  const secondaryInput = document.getElementById('brandingSecondaryColorInput');
+  const alertBox = document.getElementById('brandingAlertBox');
+  const btnOpenBranding = document.getElementById('btnOpenBrandingModal');
+  const btnReset = document.getElementById('btnResetBrandingDefaults');
+
+  // Botón en Header para ir directo a la subpestaña de Marca Institucional
+  btnOpenBranding?.addEventListener('click', () => {
+    navigateTo('view-portal');
+    const brandingTabBtn = document.querySelector('.portal-subtab[data-subtab="subtab-branding"]');
+    if (brandingTabBtn) brandingTabBtn.click();
+  });
+
+  // Selector de archivo de logotipo con lectura Base64
+  btnSelectFile?.addEventListener('click', () => fileInput?.click());
+
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor seleccione un archivo de imagen válido (PNG, JPG, SVG).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result;
+      if (previewBox) {
+        previewBox.innerHTML = `<img src="${base64}" style="max-height: 80px; max-width: 100%; object-fit: contain;" alt="Vista Previa" />`;
+      }
+      previewBox.dataset.base64 = base64;
+      if (urlInput) urlInput.value = ''; // Limpiar URL si se subió archivo
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Previsualización de URL directa
+  urlInput?.addEventListener('input', () => {
+    const url = urlInput.value.trim();
+    if (url && previewBox) {
+      previewBox.innerHTML = `<img src="${url}" style="max-height: 80px; max-width: 100%; object-fit: contain;" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<span style=\\'font-size:2rem;\\'>⚠️</span>';" alt="Preview" />`;
+      delete previewBox.dataset.base64;
+    }
+  });
+
+  // Feedback en vivo al mover los colores
+  primaryInput?.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--sea-pacific', primaryInput.value);
+    document.documentElement.style.setProperty('--accent-primary', primaryInput.value);
+  });
+
+  secondaryInput?.addEventListener('input', () => {
+    document.documentElement.style.setProperty('--sea-malibu', secondaryInput.value);
+    document.documentElement.style.setProperty('--accent-secondary', secondaryInput.value);
+  });
+
+  // Restablecer por defecto
+  btnReset?.addEventListener('click', () => {
+    if (!confirm('¿Restablecer la identidad institucional a los valores estándar de MIPPCI?')) return;
+    document.getElementById('brandingEntityNameInput').value = 'Ministerio del Poder Popular para la Comunicación y la Información';
+    document.getElementById('brandingEntityShortInput').value = 'MIPPCI';
+    document.getElementById('brandingSloganInput').value = 'Bienestar y Soberanía Alimentaria Institucional';
+    document.getElementById('brandingLogoUrlInput').value = '';
+    primaryInput.value = '#0284c7';
+    secondaryInput.value = '#0ea5e9';
+    if (previewBox) {
+      previewBox.innerHTML = '<span style="font-size: 2.5rem;">🏛️</span>';
+      delete previewBox.dataset.base64;
+    }
+    document.documentElement.style.setProperty('--sea-pacific', '#0284c7');
+    document.documentElement.style.setProperty('--accent-primary', '#0284c7');
+    document.documentElement.style.setProperty('--sea-malibu', '#0ea5e9');
+  });
+
+  // Guardar configuración del Ente Gubernamental
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const entity_name = document.getElementById('brandingEntityNameInput').value.trim();
+    const entity_short_name = document.getElementById('brandingEntityShortInput').value.trim();
+    const slogan = document.getElementById('brandingSloganInput').value.trim();
+    const primary_color = primaryInput.value;
+    const secondary_color = secondaryInput.value;
+    const logo_url = previewBox?.dataset?.base64 || urlInput.value.trim() || '';
+
+    try {
+      const res = await fetch('/api/v1/tenant/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_name,
+          entity_short_name,
+          slogan,
+          logo_url,
+          primary_color,
+          secondary_color
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar');
+
+      if (alertBox) {
+        alertBox.textContent = `✅ ${data.message}`;
+        alertBox.style.display = 'block';
+        setTimeout(() => { alertBox.style.display = 'none'; }, 4000);
+      }
+
+      await loadTenantSettings();
+      playAudioFeedback('success');
+
+    } catch (err) {
+      alert('Error guardando configuración: ' + err.message);
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 2. GESTIÓN DE BENEFICIARIOS (REGISTRO INDIVIDUAL & CARGA MASIVA CSV)
+// ----------------------------------------------------------------------------
+function setupWorkerManagement() {
+  const modalCreate = document.getElementById('createWorkerModalBackdrop');
+  const btnOpenCreate = document.getElementById('btnOpenCreateWorkerModal');
+  const btnCloseCreate = document.getElementById('btnCloseCreateWorkerModal');
+  const btnCancelCreate = document.getElementById('btnCancelCreateWorker');
+  const formCreate = document.getElementById('createWorkerForm');
+  const alertCreate = document.getElementById('newWorkerAlertBox');
+
+  const modalImport = document.getElementById('importPayrollModalBackdrop');
+  const btnOpenImport = document.getElementById('btnOpenImportPayrollModal');
+  const btnCloseImport = document.getElementById('btnCloseImportPayrollModal');
+  const btnCancelImport = document.getElementById('btnCancelImportPayroll');
+  const fileDropzone = document.getElementById('csvFileDropzone');
+  const fileInput = document.getElementById('csvFileInput');
+  const statusText = document.getElementById('csvFileStatusText');
+  const previewContainer = document.getElementById('csvPreviewContainer');
+  const previewBody = document.getElementById('csvPreviewTableBody');
+  const btnExecuteImport = document.getElementById('btnExecuteBatchImport');
+  const btnDownloadSample = document.getElementById('btnDownloadCsvSample');
+  const alertCsv = document.getElementById('csvAlertBox');
+
+  // Modal Crear Beneficiario
+  btnOpenCreate?.addEventListener('click', () => {
+    formCreate?.reset();
+    if (alertCreate) alertCreate.style.display = 'none';
+    modalCreate?.classList.add('active');
+  });
+
+  const closeCreate = () => modalCreate?.classList.remove('active');
+  btnCloseCreate?.addEventListener('click', closeCreate);
+  btnCancelCreate?.addEventListener('click', closeCreate);
+
+  formCreate?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const docType = document.getElementById('newWorkerDocType').value;
+    const docNum = document.getElementById('newWorkerDocNumber').value.trim();
+    const document_id = `${docType}-${docNum}`;
+    const full_name = document.getElementById('newWorkerFullName').value.trim();
+    const worker_type = document.getElementById('newWorkerType').value;
+    const department_id = document.getElementById('newWorkerDepartment').value || null;
+    const phone_number = document.getElementById('newWorkerPhone').value.trim() || null;
+    const email = document.getElementById('newWorkerEmail').value.trim() || null;
+    const has_smartphone = document.getElementById('newWorkerHasSmartphone').checked;
+
+    try {
+      const res = await fetch('/api/v1/admin/workers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          document_id,
+          full_name,
+          worker_type,
+          department_id,
+          phone_number,
+          email,
+          has_smartphone
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrar beneficiario');
+
+      closeCreate();
+      await loadWorkersDirectory();
+      playAudioFeedback('success');
+      alert(`✅ Beneficiario "${full_name}" (${document_id}) incorporado exitosamente al padrón.`);
+
+    } catch (err) {
+      if (alertCreate) {
+        alertCreate.textContent = err.message;
+        alertCreate.style.display = 'block';
+      }
+    }
+  });
+
+  // Modal Importar Nómina CSV
+  btnOpenImport?.addEventListener('click', () => {
+    parsedCsvWorkers = [];
+    if (previewContainer) previewContainer.style.display = 'none';
+    if (alertCsv) alertCsv.style.display = 'none';
+    if (btnExecuteImport) btnExecuteImport.disabled = true;
+    if (statusText) statusText.textContent = 'Ningún archivo seleccionado';
+    modalImport?.classList.add('active');
+  });
+
+  const closeImport = () => modalImport?.classList.remove('active');
+  btnCloseImport?.addEventListener('click', closeImport);
+  btnCancelImport?.addEventListener('click', closeImport);
+
+  // Drag & drop y click para seleccionar CSV
+  fileDropzone?.addEventListener('click', () => fileInput?.click());
+  fileDropzone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    fileDropzone.classList.add('dragover');
+  });
+  fileDropzone?.addEventListener('dragleave', () => fileDropzone.classList.remove('dragover'));
+  fileDropzone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    fileDropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+      handleCsvFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput?.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleCsvFile(e.target.files[0]);
+    }
+  });
+
+  function handleCsvFile(file) {
+    if (!file) return;
+    statusText.textContent = `Archivo: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      parseCsvContent(e.target.result);
+    };
+    reader.readAsText(file);
+  }
+
+  function parseCsvContent(text) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      alert('El archivo CSV debe contener al menos la cabecera y una fila de datos.');
+      return;
+    }
+
+    const delimiter = lines[0].includes(';') ? ';' : ',';
+    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+
+    parsedCsvWorkers = [];
+    previewBody.innerHTML = '';
+
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
+      if (parts.length < 2) continue;
+
+      let doc = parts[0] || '';
+      if (!doc.startsWith('V-') && !doc.startsWith('E-')) {
+        doc = 'V-' + doc.replace(/\D/g, '');
+      }
+
+      const name = parts[1] || '';
+      const condition = parts[2] ? parts[2].toLowerCase() : 'activo';
+      const phone = parts[3] || '';
+      const email = parts[4] || '';
+
+      if (!name) continue;
+
+      parsedCsvWorkers.push({
+        document_id: doc,
+        full_name: name,
+        worker_type: condition.includes('jub') ? 'jubilado' : (condition.includes('cont') ? 'contratado' : 'activo'),
+        phone_number: phone,
+        email: email
+      });
+
+      if (parsedCsvWorkers.length <= 10) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${doc}</strong></td>
+          <td>${name}</td>
+          <td>${condition}</td>
+          <td>${phone || '--'}</td>
+        `;
+        previewBody.appendChild(tr);
+      }
+    }
+
+    if (parsedCsvWorkers.length > 0) {
+      previewContainer.style.display = 'block';
+      btnExecuteImport.disabled = false;
+      alertCsv.className = 'alert-box alert-info';
+      alertCsv.innerHTML = `📋 Se detectaron <strong>${parsedCsvWorkers.length} registros válidos</strong> listos para importar.`;
+      alertCsv.style.display = 'block';
+    } else {
+      alert('No se pudieron extraer registros válidos del archivo CSV.');
+    }
+  }
+
+  // Descargar plantilla CSV modelo
+  btnDownloadSample?.addEventListener('click', () => {
+    const sampleCsv = 
+`cedula,nombre_completo,condicion,telefono,correo
+V-19876543,Ana Beatriz Morales,activo,+584141112233,ana.morales@ente.gob.ve
+V-07654321,Pedro José Castillo,jubilado,+584129998877,pedro.castillo@ente.gob.ve
+V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@ente.gob.ve`;
+
+    const blob = new Blob([sampleCsv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_nomina_institucional.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+
+  // Ejecutar importación masiva
+  btnExecuteImport?.addEventListener('click', async () => {
+    if (parsedCsvWorkers.length === 0) return;
+
+    btnExecuteImport.disabled = true;
+    btnExecuteImport.textContent = '⏳ Procesando nómina...';
+
+    try {
+      const res = await fetch('/api/v1/admin/workers/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workers: parsedCsvWorkers })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error durante la importación');
+
+      alertCsv.className = 'alert-box alert-success';
+      alertCsv.innerHTML = `✅ ${data.message}`;
+      playAudioFeedback('success');
+
+      await loadWorkersDirectory();
+      setTimeout(closeImport, 2500);
+
+    } catch (err) {
+      alertCsv.className = 'alert-box alert-danger';
+      alertCsv.textContent = err.message;
+      btnExecuteImport.disabled = false;
+      btnExecuteImport.textContent = '🚀 Importar Beneficiarios';
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 3. PLANIFICACIÓN Y CRONOGRAMA DE JORNADAS DE DESPACHO
+// ----------------------------------------------------------------------------
+async function loadCampaigns() {
+  const grid = document.getElementById('campaignsGrid');
+  if (!grid) return;
+
+  try {
+    const res = await fetch('/api/v1/admin/campaigns');
+    const campaigns = await res.json();
+
+    grid.innerHTML = '';
+    if (campaigns.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: var(--radius-md);">
+          📅 No hay jornadas de entrega programadas. Haga clic en <strong>"+ Programar Nueva Jornada"</strong> para crear la primera.
+        </div>
+      `;
+      return;
+    }
+
+    // Actualizar select de combos en el modal de jornadas
+    const comboSelect = document.getElementById('campaignComboSelect');
+    if (comboSelect) {
+      const combosRes = await fetch('/api/v1/admin/combos');
+      const combosList = await combosRes.json();
+      comboSelect.innerHTML = '';
+      combosList.forEach(cb => {
+        comboSelect.innerHTML += `<option value="${cb.id}">${cb.icon || '🍱'} ${cb.name} (${cb.category})</option>`;
+      });
+    }
+
+    campaigns.forEach(c => {
+      const card = document.createElement('div');
+      card.className = `campaign-card status-${c.status}`;
+
+      const pct = c.assigned_count > 0 ? Math.round((c.claimed_count / c.assigned_count) * 100) : 0;
+
+      let statusBadge = '<span class="badge badge-activo">Programada</span>';
+      if (c.status === 'en_curso') {
+        statusBadge = '<span class="badge badge-passkey" style="background:#10b981; color:#fff;">● En Curso (Activa)</span>';
+      } else if (c.status === 'finalizada') {
+        statusBadge = '<span class="badge" style="background:#64748b; color:#fff;">Finalizada</span>';
+      }
+
+      let targetLabel = 'Universal (Todos)';
+      if (c.target_group === 'activo') targetLabel = 'Solo Personal Activo';
+      else if (c.target_group === 'jubilado') targetLabel = 'Solo Jubilados y Pensionados';
+      else if (c.target_group === 'contratado') targetLabel = 'Solo Personal Contratado';
+
+      card.innerHTML = `
+        <div>
+          <div class="campaign-header-row">
+            <div>
+              <div class="campaign-title-text">${c.name}</div>
+              <div class="campaign-dates-row">
+                <span>🗓️ ${c.start_date} al ${c.end_date}</span>
+                <span>&middot;</span>
+                <span>📍 ${c.point_name || 'Almacén Central'}</span>
+              </div>
+            </div>
+            <div>${statusBadge}</div>
+          </div>
+
+          <div style="margin: 0.85rem 0; font-size: 0.8rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+              <strong style="color: var(--sea-pacific);">${c.combo_icon || '🍱'} ${c.combo_name || 'Bolsa de Beneficios'}</strong>
+              <span class="badge" style="font-size: 0.68rem; background: #e0f2fe; color: #0369a1;">${targetLabel}</span>
+            </div>
+            <div style="font-size: 0.73rem; color: #64748b;">
+              ${c.combo_items ? `<strong>Artículos:</strong> ${c.combo_items.slice(0, 100)}...` : (c.description || 'Sin detalles adicionales')}
+            </div>
+          </div>
+
+          <!-- Métricas de Entrega -->
+          <div class="campaign-stats-grid">
+            <div class="campaign-stat-item">
+              <div class="stat-num">${c.total_eligible}</div>
+              <div class="stat-lbl">Convocados</div>
+            </div>
+            <div class="campaign-stat-item">
+              <div class="stat-num">${c.assigned_count}</div>
+              <div class="stat-lbl">Asignados</div>
+            </div>
+            <div class="campaign-stat-item">
+              <div class="stat-num" style="color: #10b981;">${c.claimed_count}</div>
+              <div class="stat-lbl">Despachados</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 0.75rem;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.72rem; margin-bottom: 0.2rem; color: #64748b;">
+              <span>Progreso de Entrega:</span>
+              <strong>${pct}% completado</strong>
+            </div>
+            <div class="progress-track" style="height: 6px;">
+              <div class="progress-fill fill-emerald" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 0.75rem; flex-wrap: wrap;">
+          <button class="btn btn-outline btn-notify-campaign" data-id="${c.id}" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #fff; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar notificación a la app de los beneficiarios">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            <span>${c.notification_sent ? 'Reenviar Aviso' : 'Notificar'}</span>
+          </button>
+          
+          <div style="display: flex; gap: 0.35rem;">
+            ${c.status === 'programada' ? `
+              <button class="btn btn-primary btn-status-campaign" data-id="${c.id}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+                Iniciar Jornada
+              </button>
+            ` : c.status === 'en_curso' ? `
+              <button class="btn btn-outline btn-status-campaign" data-id="${c.id}" data-status="finalizada" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; border-color: #64748b;">
+                Finalizar
+              </button>
+            ` : `
+              <button class="btn btn-outline btn-status-campaign" data-id="${c.id}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
+                Reabrir
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+
+    // Eventos para botones de notificar y cambiar estado
+    document.querySelectorAll('.btn-notify-campaign').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        btn.textContent = '⏳ Notificando...';
+
+        try {
+          const nRes = await fetch(`/api/v1/admin/campaigns/${id}/notify`, { method: 'POST' });
+          const nData = await nRes.json();
+          alert(`📢 ${nData.message}`);
+          playAudioFeedback('success');
+          sendBrowserNotification(nData.notification.title, nData.notification.message);
+          await loadNotifications();
+          await loadCampaigns();
+        } catch (err) {
+          alert('Error al emitir notificación: ' + err.message);
+          btn.disabled = false;
+          btn.textContent = '📢 Notificar Beneficiarios';
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-status-campaign').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const status = btn.getAttribute('data-status');
+
+        try {
+          await fetch(`/api/v1/admin/campaigns/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+          });
+          await loadCampaigns();
+        } catch (err) {
+          alert('Error actualizando estado: ' + err.message);
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error('Error cargando jornadas:', err);
+  }
+}
+
+function setupCampaignsManagement() {
+  const modal = document.getElementById('createCampaignModalBackdrop');
+  const btnOpen = document.getElementById('btnOpenCreateCampaignModal');
+  const btnClose = document.getElementById('btnCloseCreateCampaignModal');
+  const btnCancel = document.getElementById('btnCancelCreateCampaign');
+  const form = document.getElementById('createCampaignForm');
+  const alertBox = document.getElementById('campaignAlertBox');
+
+  // Fechas por defecto (Hoy a fin de mes)
+  const today = new Date().toISOString().split('T')[0];
+  const startInput = document.getElementById('campaignStartDateInput');
+  const endInput = document.getElementById('campaignEndDateInput');
+  if (startInput) startInput.value = today;
+  if (endInput) endInput.value = today;
+
+  btnOpen?.addEventListener('click', () => {
+    form?.reset();
+    if (startInput) startInput.value = today;
+    if (endInput) endInput.value = today;
+    if (alertBox) alertBox.style.display = 'none';
+    modal?.classList.add('active');
+  });
+
+  const closeModal = () => modal?.classList.remove('active');
+  btnClose?.addEventListener('click', closeModal);
+  btnCancel?.addEventListener('click', closeModal);
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('campaignNameInput').value.trim();
+    const start_date = startInput.value;
+    const end_date = endInput.value;
+    const combo_id = document.getElementById('campaignComboSelect').value;
+    const distribution_point_id = document.getElementById('campaignPointSelect').value;
+    const target_group = document.getElementById('campaignTargetSelect').value;
+    const description = document.getElementById('campaignDescriptionInput').value.trim();
+    const auto_generate_entitlements = document.getElementById('campaignAutoEntitlementsCheck').checked;
+    const notify_workers = document.getElementById('campaignNotifyCheck').checked;
+
+    try {
+      const res = await fetch('/api/v1/admin/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name,
+          start_date,
+          end_date,
+          combo_id,
+          distribution_point_id,
+          target_group,
+          description,
+          auto_generate_entitlements
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al programar la jornada');
+
+      if (notify_workers && data.campaign?.id) {
+        await fetch(`/api/v1/admin/campaigns/${data.campaign.id}/notify`, { method: 'POST' });
+        sendBrowserNotification(`📢 ¡Nueva Jornada Programada!`, `${name} para retiro de combos.`);
+      }
+
+      closeModal();
+      await loadCampaigns();
+      await loadNotifications();
+      playAudioFeedback('success');
+      alert(`✅ ${data.message}`);
+
+    } catch (err) {
+      if (alertBox) {
+        alertBox.textContent = err.message;
+        alertBox.style.display = 'block';
+      }
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 4. SISTEMA DE NOTIFICACIONES (IN-APP & WEB PUSH)
+// ----------------------------------------------------------------------------
+async function loadNotifications() {
+  const container = document.getElementById('notificationsListContainer');
+  const badge = document.getElementById('notifBadgeCount');
+
+  try {
+    const res = await fetch('/api/v1/notifications');
+    const notifs = await res.json();
+
+    if (badge) {
+      if (notifs.length > 0) {
+        badge.textContent = notifs.length;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (notifs.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: #64748b;">
+          <svg class="icon-svg icon-md" style="margin-bottom: 0.5rem; color: #94a3b8;" viewBox="0 0 24 24"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"></path></svg>
+          <div>No hay notificaciones o avisos recientes.</div>
+        </div>
+      `;
+      return;
+    }
+
+    notifs.forEach(n => {
+      const item = document.createElement('div');
+      item.className = 'notification-item-card is-new';
+
+      item.innerHTML = `
+        <div class="kpi-icon-bubble" style="background: #e0f2fe; color: #0284c7; flex-shrink: 0;">
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+        </div>
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+            <strong style="color: #0f172a; font-size: 0.88rem;">${n.title}</strong>
+            <span style="font-size: 0.68rem; color: #94a3b8; white-space: nowrap;">
+              ${new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          <p style="font-size: 0.78rem; color: #475569; margin-top: 0.25rem; line-height: 1.35;">${n.message}</p>
+        </div>
+      `;
+
+      container.appendChild(item);
+    });
+
+  } catch (err) {
+    console.warn('Error al cargar notificaciones:', err);
+  }
+}
+
+function setupNotificationsSystem() {
+  const modal = document.getElementById('notificationsModalBackdrop');
+  const btnOpen = document.getElementById('btnNotificationsBell');
+  const btnClose = document.getElementById('btnCloseNotificationsModal');
+  const btnCloseBtn = document.getElementById('btnCloseNotificationsModalBtn');
+  const btnToggleForm = document.getElementById('btnToggleNewAlertForm');
+  const formBlock = document.getElementById('newAlertFormBlock');
+  const btnSendAlert = document.getElementById('btnSendQuickAlert');
+  const btnCancelAlert = document.getElementById('btnCancelQuickAlert');
+
+  // Solicitar permiso de notificaciones push nativas al navegador
+  if ('Notification' in window && Notification.permission === 'default') {
+    setTimeout(() => {
+      Notification.requestPermission().catch(() => {});
+    }, 3000);
+  }
+
+  btnOpen?.addEventListener('click', () => {
+    loadNotifications();
+    modal?.classList.add('active');
+  });
+
+  const closeModal = () => modal?.classList.remove('active');
+  btnClose?.addEventListener('click', closeModal);
+  btnCloseBtn?.addEventListener('click', closeModal);
+
+  btnToggleForm?.addEventListener('click', () => {
+    if (formBlock) {
+      formBlock.style.display = formBlock.style.display === 'none' ? 'block' : 'none';
+    }
+  });
+
+  btnCancelAlert?.addEventListener('click', () => {
+    if (formBlock) formBlock.style.display = 'none';
+  });
+
+  btnSendAlert?.addEventListener('click', async () => {
+    const title = document.getElementById('quickAlertTitleInput')?.value.trim();
+    const message = document.getElementById('quickAlertMessageInput')?.value.trim();
+
+    if (!title || !message) {
+      alert('Por favor ingrese título y mensaje para el aviso.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, message, target_group: 'all' })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      document.getElementById('quickAlertTitleInput').value = '';
+      document.getElementById('quickAlertMessageInput').value = '';
+      if (formBlock) formBlock.style.display = 'none';
+
+      sendBrowserNotification(title, message);
+      playAudioFeedback('success');
+      await loadNotifications();
+
+    } catch (err) {
+      alert('Error enviando aviso: ' + err.message);
+    }
+  });
+}
+
+function sendBrowserNotification(title, body) {
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/icons/icon-192.png',
+        badge: '/icons/icon-192.png'
+      });
+    }
+  } catch (e) {
+    console.warn('Web notification error:', e);
+  }
+}
+
 

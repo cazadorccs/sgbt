@@ -17,61 +17,131 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=2.0">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=2.3">
 </head>
 <body>
 
   <!-- MASTER TOP HEADER -->
   <header class="master-header">
     <div class="brand-section">
-      <div class="brand-logo">🏛️</div>
+      <div id="brandLogoContainer" class="brand-logo" title="Plataforma de Despacho Institucional">
+        <svg class="icon-svg icon-md" viewBox="0 0 24 24">
+          <path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/>
+        </svg>
+      </div>
       <div class="brand-title">
-        <h1>BIENESTAR ALIMENTARIO INSTITUCIONAL</h1>
-        <p>Jornadas de Víveres y Proteína &middot; Passkeys FIDO2 / WebAuthn &middot; Arquitectura Offline-First (MIPPCI)</p>
+        <h1 id="brandTitleH1">BIENESTAR ALIMENTARIO INSTITUCIONAL</h1>
+        <p id="brandSubtitleP">Gestión y Despacho de Beneficios Institucionales</p>
       </div>
     </div>
 
-    <!-- SYSTEM INDICATOR PILLS -->
+    <!-- SYSTEM INDICATOR PILLS & UNIFIED PROFILE MENU -->
     <div class="system-pills">
-      <button id="btnOpenGeneralSettings" class="btn btn-outline" style="border-color: #cbd5e1; color: #334155; padding: 0.35rem 0.85rem; font-size: 0.8rem; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600;" title="Configuración General del Sistema">
-        ⚙️ Configuración
-      </button>
-
-      <div id="connectionPill" class="status-pill online" title="Control del entorno de red">
+      <!-- 1. ESTADO DE RED COMPACTO (Clic para simular desconexión) -->
+      <div id="connectionPill" class="status-pill status-pill-compact online" role="button" tabindex="0" title="Estado del entorno de red (Clic para conmutar simulación)">
         <span class="pulse-dot"></span>
-        <span id="connectionText">Modo Online (Sincronizado)</span>
-        <button id="btnToggleNetwork" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; margin-left: 0.4rem;">
-          Simular Desconexión
-        </button>
+        <span id="connectionText">Online</span>
       </div>
 
-      <div id="userSessionPill" class="status-pill" style="display: none; border-color: rgba(56, 189, 248, 0.4); color: #0284c7; align-items: center; gap: 0.5rem;" title="Usuario Conectado">
-        <span id="userSessionName" style="font-weight: 700;">👤 Usuario</span>
-        <span id="userSessionRole" class="badge badge-activo" style="font-size: 0.65rem;">Rol</span>
-        <button id="btnLogout" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.7rem; border-color: #ef4444; color: #fca5a5; margin-left: 0.3rem;">
-          🚪 Salir
-        </button>
-      </div>
-
-      <button id="btnInstallPwa" class="btn btn-primary" style="display: none; padding: 0.3rem 0.75rem; font-size: 0.75rem; border-radius: 9999px; box-shadow: 0 0 15px var(--sea-pacific);">
-        📲 Instalar App
+      <!-- 2. NOTIFICACIONES (Botón de icono minimalista) -->
+      <button id="btnNotificationsBell" class="btn-icon-header" title="Avisos y Notificaciones de Jornadas" aria-label="Notificaciones">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span id="notifBadgeCount" class="notif-badge-pill" style="display: none;">0</span>
       </button>
+
+      <!-- BOTÓN INSTALACIÓN PWA -->
+      <button id="btnInstallPwa" class="btn btn-primary" style="display: none; padding: 0.3rem 0.75rem; font-size: 0.75rem; border-radius: 9999px;">
+        Instalar PWA
+      </button>
+
+      <!-- 3. MENÚ DE USUARIO UNIFICADO (DROPDOWN B2G ENTERPRISE) -->
+      <div id="userSessionPill" class="user-profile-menu-container" style="display: none;">
+        <button id="btnUserMenuTrigger" class="user-menu-trigger" aria-haspopup="true" aria-expanded="false" title="Opciones de Cuenta y Sistema">
+          <div id="userAvatarCircle" class="user-avatar-circle">U</div>
+          <div class="user-menu-text">
+            <span id="userSessionName" class="user-menu-name">Usuario</span>
+            <span id="userSessionRole" class="user-menu-role">Rol</span>
+          </div>
+          <svg class="icon-svg icon-xs user-menu-chevron" viewBox="0 0 24 24">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+
+        <!-- DROPDOWN FLOTANTE -->
+        <div id="userMenuDropdown" class="user-menu-dropdown" style="display: none;">
+          <!-- Cabecera del Usuario en Dropdown -->
+          <div class="user-menu-dropdown-header">
+            <div id="dropdownAvatarLarge" class="user-avatar-circle avatar-lg">U</div>
+            <div class="dropdown-user-details">
+              <span id="dropdownUserName" class="dropdown-user-name">Usuario Conectado</span>
+              <span id="dropdownUserDoc" class="dropdown-user-doc">C.I. V-00000000</span>
+              <span id="dropdownUserBadge" class="badge badge-activo" style="margin-top: 0.25rem;">Rol</span>
+            </div>
+          </div>
+
+          <div class="dropdown-divider"></div>
+
+          <!-- Lista de Acciones del Sistema -->
+          <div class="dropdown-menu-list">
+            <!-- Configuración & Marca (Solo Administradores) -->
+            <button id="btnOpenGeneralSettings" class="dropdown-item" style="display: none;" title="Configuración del Sistema y Marca Institucional (Solo Administradores)">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+              <span>Configuración & Marca</span>
+            </button>
+
+            <!-- Simular Red / Offline -->
+            <button id="btnToggleNetwork" class="dropdown-item" title="Conmutar entre modo online y desconexión local">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                <line x1="12" y1="20" x2="12.01" y2="20"></line>
+              </svg>
+              <span id="networkToggleItemLabel">Simular Desconexión</span>
+            </button>
+          </div>
+
+          <div class="dropdown-divider"></div>
+
+          <!-- Salida / Logout -->
+          <div class="dropdown-menu-list">
+            <button id="btnLogout" class="dropdown-item dropdown-item-danger" title="Cerrar sesión activa">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+              <span>Cerrar Sesión</span>
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- MAIN NAVIGATION TABS (Visible únicamente para roles de Administración / Supervisión) -->
     <nav class="master-nav" id="masterNav" style="display: none;">
       <button class="nav-tab-btn" data-view="view-portal">
-        🏛️ Portal Gestión Humana
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
+        <span>Portal RRHH</span>
       </button>
       <button class="nav-tab-btn" data-view="view-worker">
-        📱 App Beneficiario
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        <span>App Beneficiario</span>
       </button>
       <button class="nav-tab-btn" data-view="view-distributor">
-        📦 Mesa de Despacho
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+        <span>Mesa de Despacho</span>
       </button>
       <button class="nav-tab-btn" data-view="view-payroll">
-        ⚡ Nómina SSOT / API
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+        <span>Nómina SSOT / API</span>
       </button>
     </nav>
   </header>
@@ -81,21 +151,29 @@
     <!-- ======================================================================
          VISTA 0: LOGIN INSTITUCIONAL SEGÚN ROL (BENEFICIARIO / OPERADOR / ADMIN)
          ====================================================================== -->
-    <section id="view-login" class="view-section active-view" style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 1rem 0;">
-      <div class="glass-panel" style="width: 100%; max-width: 480px; box-shadow: 0 10px 35px rgba(15, 23, 42, 0.08); border: 1px solid rgba(2, 132, 199, 0.18);">
+    <section id="view-login" class="view-section active-view" style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 1.5rem 0;">
+      <div class="glass-panel" style="width: 100%; max-width: 480px; box-shadow: var(--shadow-floating); border: 1px solid rgba(2, 132, 199, 0.2);">
         <div style="text-align: center; margin-bottom: 1.5rem;">
-          <div style="font-size: 3rem; margin-bottom: 0.5rem; filter: drop-shadow(0 4px 10px rgba(2, 132, 199, 0.3));">🏛️</div>
-          <h2 style="font-size: 1.4rem; color: #0f172a; font-weight: 800; margin-bottom: 0.35rem;">
+          <div style="width: 58px; height: 58px; margin: 0 auto 0.85rem; border-radius: 16px; background: linear-gradient(135deg, #0284c7, #0369a1); display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 8px 20px rgba(2, 132, 199, 0.25); border: 1px solid rgba(255, 255, 255, 0.2);">
+            <svg class="icon-svg icon-lg" viewBox="0 0 24 24">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="M9 12l2 2 4-4"></path>
+            </svg>
+          </div>
+          <div style="display: inline-block; padding: 0.2rem 0.65rem; background: #e0f2fe; color: #0284c7; font-size: 0.68rem; font-weight: 700; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+            Autenticación FIDO2 &middot; WebAuthn
+          </div>
+          <h2 style="font-size: 1.35rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
             BIENESTAR ALIMENTARIO MIPPCI
           </h2>
-          <p style="font-size: 0.85rem; color: #475569; line-height: 1.4;">
-            Acceso Institucional por Rol &middot; Beneficiarios, Almacén y Gestión Humana
+          <p style="font-size: 0.82rem; color: #64748b; line-height: 1.4;">
+            Acceso Institucional por Rol &middot; Beneficiarios, Almacén y Supervisión
           </p>
         </div>
 
         <form id="loginForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
-            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.4rem;">
+            <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
               Cédula de Identidad del Trabajador
             </label>
             <div style="display: flex; gap: 0.5rem;">
@@ -109,75 +187,92 @@
                 inputmode="numeric" 
                 class="form-input text-mono" 
                 placeholder="Ej: 18456123" 
-                style="flex: 1; font-size: 1.1rem; letter-spacing: 0.05em; font-weight: 700;"
+                style="flex: 1; font-size: 1.05rem; letter-spacing: 0.05em; font-weight: 700;"
                 required
                 autocomplete="username"
               >
             </div>
-            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.35rem;">
-              Ingrese solo números o seleccione uno de los perfiles rápidos abajo.
+            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;">
+              Ingrese el número de cédula o seleccione un perfil rápido de demostración abajo.
             </div>
           </div>
 
           <div id="loginAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
 
-          <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 700; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);">
-            🚀 Ingresar al Sistema
+          <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem; font-weight: 700; gap: 0.5rem;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+            <span>Ingresar al Sistema</span>
           </button>
         </form>
 
         <!-- ACCESO RÁPIDO PARA PRUEBAS Y DEMOSTRACIÓN DE ROLES -->
-        <div style="margin-top: 1.75rem; border-top: 1px solid #e2e8f0; padding-top: 1.25rem;">
-          <div style="font-size: 0.75rem; color: #0284c7; font-weight: 700; text-transform: uppercase; margin-bottom: 0.75rem; text-align: center;">
-            ⚡ Acceso Rápido por Rol (Demostración)
+        <div style="margin-top: 1.5rem; border-top: 1px solid #e2e8f0; padding-top: 1.25rem;">
+          <div style="font-size: 0.72rem; color: #0284c7; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; text-align: center;">
+            Perfiles Rápidos por Rol (Demostración)
           </div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             
-            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-18456123" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: #0f172a; font-size: 0.85rem;">🏢 Carlos Mendoza</strong>
-                <div style="font-size: 0.7rem; color: #64748b;">V-18.456.123 &middot; Telecomunicaciones</div>
+            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-18456123" style="text-align: left; padding: 0.55rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-color: #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span class="user-avatar-badge">CM</span>
+                <div>
+                  <strong style="color: #0f172a; font-size: 0.85rem;">Carlos Mendoza</strong>
+                  <div style="font-size: 0.7rem; color: #64748b;">V-18.456.123 &middot; Telecomunicaciones</div>
+                </div>
               </div>
-              <span class="badge badge-activo" style="font-size: 0.65rem;">Beneficiario Activo</span>
+              <span class="badge badge-activo" style="font-size: 0.65rem;">Activo</span>
             </button>
 
-            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-06894321" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: #0f172a; font-size: 0.85rem;">👴 Hilda Domínguez</strong>
-                <div style="font-size: 0.7rem; color: #64748b;">V-06.894.321 &middot; Prensa</div>
+            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-06894321" style="text-align: left; padding: 0.55rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-color: #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span class="user-avatar-badge" style="background: linear-gradient(135deg, #f3e8ff, #e9d5ff); color: #7e22ce;">HD</span>
+                <div>
+                  <strong style="color: #0f172a; font-size: 0.85rem;">Hilda Domínguez</strong>
+                  <div style="font-size: 0.7rem; color: #64748b;">V-06.894.321 &middot; Prensa</div>
+                </div>
               </div>
-              <span class="badge badge-jubilado" style="font-size: 0.65rem;">Beneficiaria Jubilada</span>
+              <span class="badge badge-jubilado" style="font-size: 0.65rem;">Jubilada</span>
             </button>
 
-            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-14111222" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: #0f172a; font-size: 0.85rem;">📦 Miguel Torres</strong>
-                <div style="font-size: 0.7rem; color: #64748b;">V-14.111.222 &middot; Logística y Almacén</div>
+            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-14111222" style="text-align: left; padding: 0.55rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-color: #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span class="user-avatar-badge" style="background: linear-gradient(135deg, #ecfdf5, #a7f3d0); color: #065f46;">MT</span>
+                <div>
+                  <strong style="color: #0f172a; font-size: 0.85rem;">Miguel Torres</strong>
+                  <div style="font-size: 0.7rem; color: #64748b;">V-14.111.222 &middot; Logística y Almacén</div>
+                </div>
               </div>
-              <span class="badge badge-passkey" style="font-size: 0.65rem;">Operador de Mesa</span>
+              <span class="badge badge-passkey" style="font-size: 0.65rem;">Operador Mesa</span>
             </button>
 
-            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-13222333" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: #0f172a; font-size: 0.85rem;">🏛️ Lic. Claudia Vega</strong>
-                <div style="font-size: 0.7rem; color: #64748b;">V-13.222.333 &middot; Supervisor RRHH</div>
+            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-13222333" style="text-align: left; padding: 0.55rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-color: #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span class="user-avatar-badge" style="background: linear-gradient(135deg, #fffbeb, #fde68a); color: #92400e;">CV</span>
+                <div>
+                  <strong style="color: #0f172a; font-size: 0.85rem;">Lic. Claudia Vega</strong>
+                  <div style="font-size: 0.7rem; color: #64748b;">V-13.222.333 &middot; Supervisor RRHH</div>
+                </div>
               </div>
               <span class="badge badge-override" style="font-size: 0.65rem;">Supervisor</span>
             </button>
 
-            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-11123987" style="text-align: left; padding: 0.6rem 0.8rem; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <strong style="color: #0f172a; font-size: 0.85rem;">👔 Ing. Juan Carlos Rivas</strong>
-                <div style="font-size: 0.7rem; color: #64748b;">V-11.123.987 &middot; Dirección General</div>
+            <button type="button" class="btn btn-outline quick-login-btn" data-doc="V-11123987" style="text-align: left; padding: 0.55rem 0.75rem; display: flex; justify-content: space-between; align-items: center; border-color: #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span class="user-avatar-badge" style="background: linear-gradient(135deg, #f1f5f9, #cbd5e1); color: #0f172a;">JR</span>
+                <div>
+                  <strong style="color: #0f172a; font-size: 0.85rem;">Ing. Juan Carlos Rivas</strong>
+                  <div style="font-size: 0.7rem; color: #64748b;">V-11.123.987 &middot; Dirección General</div>
+                </div>
               </div>
-              <span class="badge badge-activo" style="font-size: 0.65rem;">Director / Admin</span>
+              <span class="badge badge-activo" style="font-size: 0.65rem;">Admin</span>
             </button>
 
           </div>
         </div>
 
-        <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b;">
-          🔐 Protegido con Criptografía FIDO2 ES256 & Supabase Cloud SSOT
+        <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Protegido con Criptografía FIDO2 ES256 & Supabase SSOT</span>
         </div>
       </div>
     </section>
@@ -188,16 +283,42 @@
     <section id="view-portal" class="view-section">
       
       <!-- SUB-NAV DEL PORTAL -->
-      <div class="flex-between mb-md" style="margin-bottom: 1.25rem;">
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="btn btn-outline active portal-subtab" data-subtab="subtab-dashboard">📊 Dashboard KPIs</button>
-          <button class="btn btn-outline portal-subtab" data-subtab="subtab-workers">👥 Directorio de Nómina</button>
-          <button class="btn btn-outline portal-subtab" data-subtab="subtab-combos">🍱 Catálogo & Reglas</button>
-          <button class="btn btn-outline portal-subtab" data-subtab="subtab-audit">📜 Auditoría Inalterable</button>
+      <div class="flex-between mb-md" style="margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem;">
+        <div class="portal-subtab-bar">
+          <button class="portal-subtab active" data-subtab="subtab-dashboard">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Dashboard KPIs</span>
+          </button>
+          <button class="portal-subtab" data-subtab="subtab-campaigns">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>Planificación Jornadas</span>
+          </button>
+          <button class="portal-subtab" data-subtab="subtab-workers">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>Directorio Nómina</span>
+          </button>
+          <button class="portal-subtab" data-subtab="subtab-combos">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <span>Catálogo Combos</span>
+          </button>
+          <button class="portal-subtab" data-subtab="subtab-audit">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>Auditoría</span>
+          </button>
+          <button class="portal-subtab" data-subtab="subtab-branding">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
+            <span>Identidad & Marca</span>
+          </button>
         </div>
         <div style="display: flex; gap: 0.5rem;">
-          <button id="btnRefreshPortal" class="btn btn-outline">🔄 Actualizar Datos</button>
-          <button id="btnExportDeliveries" class="btn btn-cyan">📥 Exportar Reporte CSV</button>
+          <button id="btnRefreshPortal" class="btn btn-outline" style="font-size: 0.8rem;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            <span>Actualizar</span>
+          </button>
+          <button id="btnExportDeliveries" class="btn btn-cyan" style="font-size: 0.8rem;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Exportar CSV</span>
+          </button>
         </div>
       </div>
 
@@ -205,25 +326,45 @@
       <div id="subtab-dashboard" class="portal-content-block">
         <div class="kpis-grid">
           <div class="kpi-card">
-            <div class="kpi-label">Beneficiarios Activos <span>👥</span></div>
+            <div class="kpi-label">
+              <span>Beneficiarios Activos</span>
+              <div class="kpi-icon-bubble">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+              </div>
+            </div>
             <div id="kpiTotalWorkers" class="kpi-value">--</div>
-            <div class="kpi-subtext highlight-green">Padrón de nómina sincronizado</div>
+            <div class="kpi-subtext highlight-green">Padrón institucional verificado</div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-label">Combos Asignados Hoy <span>🍱</span></div>
+            <div class="kpi-label">
+              <span>Combos Programados</span>
+              <div class="kpi-icon-bubble" style="background: #ecfdf5; color: #10b981;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+              </div>
+            </div>
             <div id="kpiAssignedToday" class="kpi-value">--</div>
             <div id="kpiClaimedRatio" class="kpi-subtext">-- entregados</div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-label">Adopción Passkeys (FIDO2) <span>🛡️</span></div>
+            <div class="kpi-label">
+              <span>Adopción Passkeys</span>
+              <div class="kpi-icon-bubble" style="background: #f0f9ff; color: #0ea5e9;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              </div>
+            </div>
             <div id="kpiPasskeyAdoption" class="kpi-value">--%</div>
             <div id="kpiPasskeyCount" class="kpi-subtext highlight-green">-- credenciales activas</div>
           </div>
 
           <div class="kpi-card">
-            <div class="kpi-label">Operación Offline <span>📡</span></div>
+            <div class="kpi-label">
+              <span>Operación Offline</span>
+              <div class="kpi-icon-bubble" style="background: #fffbeb; color: #f59e0b;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path><path d="M10.71 5.05A16 16 0 0 1 22.56 9"></path><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+              </div>
+            </div>
             <div id="kpiOfflinePct" class="kpi-value">--%</div>
             <div class="kpi-subtext highlight-amber">Sincronización diferida por lote</div>
           </div>
@@ -243,7 +384,10 @@
             <div class="breakdown-bars">
               <div class="breakdown-item">
                 <div class="breakdown-header">
-                  <span>🟢 Passkey QR Criptográfico (FIDO2 ECDSA P-256)</span>
+                  <span style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
+                    Passkey QR Criptográfico (FIDO2 ES256)
+                  </span>
                   <strong id="barCountPasskey">0 entregas (0%)</strong>
                 </div>
                 <div class="progress-track">
@@ -253,7 +397,10 @@
 
               <div class="breakdown-item">
                 <div class="breakdown-header">
-                  <span>🔵 Tarjeta Física NFC / RFID (Contingencia Nivel 1)</span>
+                  <span style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #0284c7; display: inline-block;"></span>
+                    Tarjeta Física NFC / RFID (Contingencia N1)
+                  </span>
                   <strong id="barCountNfc">0 entregas (0%)</strong>
                 </div>
                 <div class="progress-track">
@@ -263,7 +410,10 @@
 
               <div class="breakdown-item">
                 <div class="breakdown-header">
-                  <span>🟡 Liberación Manual por Supervisor (Contingencia Nivel 2)</span>
+                  <span style="display: flex; align-items: center; gap: 0.4rem;">
+                    <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; display: inline-block;"></span>
+                    Liberación Supervisada (Contingencia N2)
+                  </span>
                   <strong id="barCountSupervisor">0 entregas (0%)</strong>
                 </div>
                 <div class="progress-track">
@@ -276,7 +426,10 @@
           <!-- PANEL DE ALERTAS OPERATIVAS & REPLAY SHIELD -->
           <div class="glass-panel">
             <div class="panel-header">
-              <div class="panel-title">🛡️ Escudo Anti-Fraude & Alertas</div>
+              <div class="panel-title">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span>Escudo Anti-Fraude & Trazabilidad</span>
+              </div>
             </div>
             <div id="dashboardAlertsList" style="display: flex; flex-direction: column; gap: 0.75rem;">
               <!-- Se inyecta dinámicamente -->
@@ -288,29 +441,45 @@
       <!-- SUBTAB 2: DIRECTORIO DE NÓMINA -->
       <div id="subtab-workers" class="portal-content-block" style="display: none;">
         <div class="glass-panel">
-          <div class="panel-header flex-between">
-            <div class="panel-title">Directorio de Empleados y Padrón Institucional (MIPPCI)</div>
-            <div class="input-group">
-              <input id="searchWorkerInput" type="text" class="form-input" placeholder="Buscar por Cédula o Nombre..." style="width: 220px;">
-              <select id="filterWorkerTypeSelect" class="form-select">
-                <option value="">Todas las Condiciones</option>
-                <option value="jubilado">Personal Jubilado / Pensionado</option>
-                <option value="activo">Funcionario Activo</option>
-                <option value="contratado">Personal Contratado</option>
-              </select>
-              <select id="filterShiftSelect" class="form-select">
-                <option value="">Todos los Turnos</option>
-                <option value="jornada_continua">Jornada Continua</option>
-                <option value="mañana">Mañana</option>
-                <option value="tarde">Tarde</option>
-                <option value="noche">Noche</option>
-              </select>
-              <select id="filterStatusSelect" class="form-select">
-                <option value="">Todos los Estados</option>
-                <option value="active">Activos</option>
-                <option value="terminated">Bajas de Nómina</option>
-              </select>
+          <div class="panel-header flex-between" style="flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <div class="panel-title" id="workersDirectoryTitle">Directorio de Empleados y Padrón Institucional</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.2rem;">
+                Administre beneficiarios según su modelo de despacho, asigne sedes y cargue nóminas institucionales.
+              </div>
             </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="btnOpenCreateWorkerModal" class="btn btn-primary" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                <span>Registrar Beneficiario</span>
+              </button>
+              <button id="btnOpenImportPayrollModal" class="btn btn-outline" style="font-size: 0.8rem; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <span>Importar Nómina CSV</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <input id="searchWorkerInput" type="text" class="form-input" placeholder="Buscar por Cédula o Nombre..." style="width: 240px;">
+            <select id="filterWorkerTypeSelect" class="form-select">
+              <option value="">Todas las Condiciones</option>
+              <option value="jubilado">Personal Jubilado / Pensionado</option>
+              <option value="activo">Funcionario Activo</option>
+              <option value="contratado">Personal Contratado</option>
+            </select>
+            <select id="filterShiftSelect" class="form-select">
+              <option value="">Todos los Turnos</option>
+              <option value="jornada_continua">Jornada Continua</option>
+              <option value="mañana">Mañana</option>
+              <option value="tarde">Tarde</option>
+              <option value="noche">Noche</option>
+            </select>
+            <select id="filterStatusSelect" class="form-select">
+              <option value="">Todos los Estados</option>
+              <option value="active">Activos</option>
+              <option value="terminated">Bajas de Nómina</option>
+            </select>
           </div>
 
           <div class="table-responsive">
@@ -340,28 +509,33 @@
         <div class="glass-panel">
           <div class="panel-header flex-between" style="flex-wrap: wrap; gap: 1rem;">
             <div>
-              <div class="panel-title" style="font-size: 1.15rem; color: var(--sea-tranquil);">
-                🍱 Catálogo y Configuración de Combos Institucionales
+              <div class="panel-title" style="font-size: 1.1rem; color: #0f172a;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                <span>Catálogo y Configuración de Combos Institucionales</span>
               </div>
-              <div style="font-size: 0.8rem; color: var(--sea-anakiwa); margin-top: 0.2rem;">
-                Administre y configure los tipos de beneficios a despachar: Víveres, Proteínas, Útiles Escolares, Kits de Aseo e Higiene, Dotación y Especiales.
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;">
+                Administre beneficios a despachar: Víveres, Proteínas, Útiles Escolares, Kits de Higiene y Dotación.
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button id="btnPresetEscolares" class="btn btn-outline" style="font-size: 0.78rem; border-color: rgba(102, 204, 255, 0.4); color: var(--sea-onahau);">
-                🎒 + Cargar Útiles Escolares
+              <button id="btnPresetEscolares" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span>+ Útiles Escolares</span>
               </button>
-              <button id="btnPresetHigienico" class="btn btn-outline" style="font-size: 0.78rem; border-color: rgba(102, 204, 255, 0.4); color: var(--sea-onahau);">
-                🧼 + Cargar Combo Higiénico
+              <button id="btnPresetHigienico" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M12 2v8"></path><path d="m4.93 10.93 1.41 1.41"></path><path d="M2 18h2"></path><path d="M20 18h2"></path><path d="m19.07 10.93-1.41 1.41"></path><path d="M22 22H2"></path><path d="m16 6-4 4-4-4"></path><path d="M16 18a4 4 0 0 0-8 0"></path></svg>
+                <span>+ Combo Higiene</span>
               </button>
               <button id="btnOpenCreateComboModal" class="btn btn-primary" style="font-size: 0.82rem;">
-                ⚙️ + Configurar Nuevo Beneficio
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Nuevo Beneficio</span>
               </button>
             </div>
           </div>
 
-          <div style="background: rgba(0, 153, 204, 0.08); border-left: 3px solid var(--sea-pacific); border-radius: 4px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: var(--sea-onahau);">
-            ℹ️ <strong>Gestión Flexible de Beneficios Institucionales:</strong> Todo combo registrado en este catálogo queda disponible para asignación en jornadas, generación de códigos QR biométricos con Passkeys y verificación física en los puntos de despacho del almacén.
+          <div style="background: #f0f9ff; border-left: 3px solid #0284c7; border-radius: var(--radius-xs); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #0369a1; display: flex; align-items: center; gap: 0.5rem;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div><strong>Gestión Flexible de Beneficios:</strong> Todo combo registrado en este catálogo queda disponible para asignación en jornadas, generación de QR biométricos con Passkeys y verificación física en los puntos de despacho.</div>
           </div>
 
           <div id="combosCatalogGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem;">
@@ -374,7 +548,10 @@
       <div id="subtab-audit" class="portal-content-block" style="display: none;">
         <div class="glass-panel">
           <div class="panel-header flex-between">
-            <div class="panel-title">Consola de Auditoría Inalterable de Entregas (Trazabilidad 100%)</div>
+            <div class="panel-title">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <span>Consola de Auditoría Inalterable de Entregas (Trazabilidad 100%)</span>
+            </div>
             <div class="input-group">
               <select id="auditMethodFilter" class="form-select">
                 <option value="">Todos los Métodos</option>
@@ -404,6 +581,137 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- SUBTAB 5: PLANIFICACIÓN DE JORNADAS DE ENTREGA -->
+      <div id="subtab-campaigns" class="portal-content-block" style="display: none;">
+        <div class="glass-panel">
+          <div class="panel-header flex-between" style="flex-wrap: wrap; gap: 1rem;">
+            <div>
+              <div class="panel-title" style="font-size: 1.1rem; color: #0f172a;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Cronograma y Gestión de Jornadas de Despacho</span>
+              </div>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;">
+                Planifique fechas de entrega, asigne combos del catálogo por sede y active notificaciones en tiempo real a los beneficiarios.
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="btnOpenCreateCampaignModal" class="btn btn-primary" style="font-size: 0.82rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                <span>Programar Nueva Jornada</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="background: #f0f9ff; border-left: 3px solid #0284c7; border-radius: var(--radius-xs); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #0369a1; display: flex; align-items: center; gap: 0.5rem;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div><strong>Modelo de Entrega B2G:</strong> Al programar una jornada puede seleccionar el universo objetivo (todos los trabajadores, activos, jubilados o por departamento), vincular un combo o paquete específico y disparar avisos directos a la aplicación de los beneficiarios.</div>
+          </div>
+
+          <!-- GRID DE JORNADAS ACTIVAS Y PROGRAMADAS -->
+          <div id="campaignsGrid" class="campaigns-grid">
+            <!-- Se inyecta dinámicamente con JavaScript -->
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBTAB 6: PERSONALIZACIÓN DE MARCA BLANCA (ENTE GUBERNAMENTAL) -->
+      <div id="subtab-branding" class="portal-content-block" style="display: none;">
+        <div class="glass-panel" style="max-width: 900px; margin: 0 auto;">
+          <div class="panel-header" style="margin-bottom: 1.25rem;">
+            <div>
+              <div class="panel-title" style="font-size: 1.15rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
+                <span>Configuración de Marca Blanca & Modelo B2G</span>
+              </div>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.25rem;">
+                Personalice la plataforma con el nombre, logotipo oficial, lema y paleta de colores de cualquier ministerio, gobernación, alcaldía o ente público.
+              </div>
+            </div>
+          </div>
+
+          <form id="brandingForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div>
+                <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+                  Nombre Oficial del Ente Gubernamental:
+                </label>
+                <input id="brandingEntityNameInput" type="text" class="form-input" placeholder="Ej: Ministerio del Poder Popular para la Alimentación" required />
+              </div>
+              <div>
+                <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+                  Siglas / Acrónimo Institucional:
+                </label>
+                <input id="brandingEntityShortInput" type="text" class="form-input" placeholder="Ej: MINAL / GOB-CAR / ALC-CCS" style="font-weight: 700; text-transform: uppercase;" required />
+              </div>
+            </div>
+
+            <div>
+              <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+                Lema o Cintillo Institucional:
+              </label>
+              <input id="brandingSloganInput" type="text" class="form-input" placeholder="Ej: Bienestar y Soberanía Alimentaria Institucional" />
+            </div>
+
+            <!-- LOGOTIPO INSTITUCIONAL -->
+            <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; background: #f8fafc;">
+              <label style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.5rem;">
+                🏛️ Logotipo Oficial del Ente (Personalizable):
+              </label>
+              <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+                <div id="brandingLogoPreviewContainer" style="width: 140px; height: 90px; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: #ffffff; overflow: hidden; padding: 0.5rem;">
+                  <span style="font-size: 2.5rem;">🏛️</span>
+                </div>
+                <div style="flex: 1; min-width: 260px;">
+                  <input type="file" id="brandingLogoFileInput" accept="image/*" style="display: none;" />
+                  <button type="button" id="btnSelectLogoFile" class="btn btn-primary" style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                    📁 Subir Imagen de Logo (PNG, JPG, SVG)
+                  </button>
+                  <div style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">
+                    O ingrese una URL directa de la imagen institucional:
+                  </div>
+                  <input id="brandingLogoUrlInput" type="url" class="form-input" placeholder="https://ejemplo.gob.ve/logo.png" style="font-size: 0.8rem;" />
+                </div>
+              </div>
+            </div>
+
+            <!-- PALETA DE COLORES INSTITUCIONALES -->
+            <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; background: #f8fafc;">
+              <label style="display: block; font-size: 0.8rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.75rem;">
+                🎨 Colores Corporativos de la Entidad:
+              </label>
+              <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                <div class="color-picker-group">
+                  <input type="color" id="brandingPrimaryColorInput" class="color-input-circle" value="#0284c7" />
+                  <div>
+                    <strong style="font-size: 0.85rem; color: #0f172a; display: block;">Color Principal</strong>
+                    <span style="font-size: 0.75rem; color: #64748b;">Botones primarios, encabezados y acentos</span>
+                  </div>
+                </div>
+
+                <div class="color-picker-group">
+                  <input type="color" id="brandingSecondaryColorInput" class="color-input-circle" value="#0ea5e9" />
+                  <div>
+                    <strong style="font-size: 0.85rem; color: #0f172a; display: block;">Color Secundario</strong>
+                    <span style="font-size: 0.75rem; color: #64748b;">Badges, bordes activos y degradados</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="brandingAlertBox" class="alert-box alert-success" style="display: none; padding: 0.75rem 1rem;"></div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+              <button type="button" id="btnResetBrandingDefaults" class="btn btn-outline" style="background: #fff;">
+                Restablecer Valores por Defecto
+              </button>
+              <button type="submit" id="btnSaveBranding" class="btn btn-primary" style="padding: 0.65rem 1.5rem; font-weight: 700;">
+                💾 Guardar Identidad Institucional
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -1058,71 +1366,482 @@ Listo para recibir transacciones de nómina SSOT...
   </div>
 
   <!-- ======================================================================
-       MODAL 4: CONFIGURACIÓN GENERAL DEL SISTEMA
+       MODAL 4: CONFIGURACIÓN GENERAL DEL SISTEMA & MARCA BLANCA (ADMINISTRADORES)
        ====================================================================== -->
   <div id="generalSettingsModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 540px;">
-      <div class="panel-header" style="margin-bottom: 1.25rem;">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <div class="panel-header" style="margin-bottom: 1rem;">
         <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          ⚙️ Configuración General
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <span>Configuración Institucional del Sistema</span>
         </div>
         <button id="btnCloseGeneralSettingsModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        <!-- Card 1: Accesibilidad / Alto Contraste -->
-        <div class="setting-item-card">
-          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-            <div style="font-size: 1.6rem; line-height: 1; padding: 0.2rem;">👁️</div>
+      <!-- TABS INTERNOS DEL MODAL DE CONFIGURACIÓN -->
+      <div class="portal-subtab-bar" style="margin-bottom: 1.25rem;">
+        <button type="button" id="btnSettingsTabBranding" class="portal-subtab active" style="flex: 1; justify-content: center;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
+          <span>Marca & Logos (B2G)</span>
+        </button>
+        <button type="button" id="btnSettingsTabPreferences" class="portal-subtab" style="flex: 1; justify-content: center;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+          <span>Preferencias Generales</span>
+        </button>
+      </div>
+
+      <!-- SECCIÓN 1: MARCA Y LOGOS (SOLO ADMIN) -->
+      <div id="settingsSectionBranding" style="display: block;">
+        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-xs); padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.78rem; color: #0369a1; display: flex; align-items: center; gap: 0.4rem;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span><strong>Módulo Reservado a Administradores:</strong> Configure la identidad de cualquier ente gubernamental, gobernación o ministerio.</span>
+        </div>
+
+        <form id="settingsBrandingForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div>
-              <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">Alto Contraste / Fuente Grande</div>
-              <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
-                Aumenta el tamaño tipográfico y refuerza los contrastes visuales para facilitar la lectura en adultos mayores o en almacenes de despacho.
-              </div>
+              <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+                Nombre Oficial del Ente: *
+              </label>
+              <input id="settingsEntityNameInput" type="text" class="form-input" placeholder="Ej: Ministerio del Poder Popular de Alimentación" required />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+                Siglas / Acrónimo: *
+              </label>
+              <input id="settingsEntityShortInput" type="text" class="form-input" placeholder="Ej: MINAL / GOB-BOLIVAR" style="font-weight: 700; text-transform: uppercase;" required />
             </div>
           </div>
-          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
-            <label class="toggle-switch">
-              <input type="checkbox" id="toggleHighContrastSetting" />
-              <span class="toggle-slider"></span>
+
+          <div>
+            <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+              Lema o Cintillo Institucional:
             </label>
-            <span id="labelHighContrastStatus" style="font-size: 0.7rem; font-weight: 700; color: #64748b;">Desactivado</span>
+            <input id="settingsSloganInput" type="text" class="form-input" placeholder="Ej: Bienestar y Soberanía Alimentaria Institucional" />
           </div>
-        </div>
 
-        <!-- Card 2: Entorno y Conectividad -->
-        <div class="setting-item-card">
-          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-            <div style="font-size: 1.6rem; line-height: 1; padding: 0.2rem;">🌐</div>
-            <div>
-              <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">Arquitectura Offline-First</div>
-              <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
-                Los registros biométricos y despachos se almacenan primero en IndexedDB local y se sincronizan automáticamente con Supabase Cloud.
+          <!-- LOGOTIPO INSTITUCIONAL -->
+          <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem; background: #f8fafc;">
+            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.5rem;">
+              Logotipo Oficial del Ente:
+            </label>
+            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+              <div id="settingsLogoPreviewBox" style="width: 120px; height: 80px; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: #ffffff; overflow: hidden; padding: 0.4rem;">
+                <svg class="icon-svg icon-lg" style="color: #94a3b8;" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
+              </div>
+              <div style="flex: 1; min-width: 220px;">
+                <input type="file" id="settingsLogoFileInput" accept="image/*" style="display: none;" />
+                <button type="button" id="btnSettingsSelectLogo" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; margin-bottom: 0.4rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  <span>Subir Imagen de Logo (PNG, SVG, JPG)</span>
+                </button>
+                <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.35rem;">O enlace URL directo del logo:</div>
+                <input id="settingsLogoUrlInput" type="url" class="form-input" placeholder="https://ejemplo.gob.ve/logo.png" style="font-size: 0.75rem;" />
               </div>
             </div>
           </div>
-          <div style="text-align: right;">
-            <span class="badge badge-activo" style="font-size: 0.7rem;">Sincronizado</span>
-          </div>
-        </div>
 
-        <!-- Card 3: Información de Plataforma -->
-        <div class="setting-item-card" style="background: #f1f5f9;">
-          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-            <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem;">ℹ️</div>
-            <div>
-              <div style="font-weight: 700; color: #334155; font-size: 0.85rem;">SGBT Bienestar Alimentario v2.0</div>
-              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
-                MIPPCI &middot; Autenticación FIDO2 WebAuthn &middot; PWA Instalable
+          <!-- COLORES INSTITUCIONALES -->
+          <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem; background: #f8fafc;">
+            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.6rem;">
+              Colores Corporativos:
+            </label>
+            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+              <div class="color-picker-group">
+                <input type="color" id="settingsPrimaryColorInput" class="color-input-circle" value="#0284c7" />
+                <div>
+                  <strong style="font-size: 0.8rem; color: #0f172a; display: block;">Color Principal</strong>
+                  <span style="font-size: 0.7rem; color: #64748b;">Botones, cabecera y acentos</span>
+                </div>
+              </div>
+              <div class="color-picker-group">
+                <input type="color" id="settingsSecondaryColorInput" class="color-input-circle" value="#0ea5e9" />
+                <div>
+                  <strong style="font-size: 0.8rem; color: #0f172a; display: block;">Color Secundario</strong>
+                  <span style="font-size: 0.7rem; color: #64748b;">Bordes y degradados</span>
+                </div>
               </div>
             </div>
           </div>
+
+          <div id="settingsBrandingAlertBox" class="alert-box alert-success" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+            <button type="button" id="btnSettingsResetBranding" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
+              Restablecer Valores
+            </button>
+            <button type="submit" id="btnSettingsSaveBranding" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.5rem 1.25rem; font-weight: 700;">
+              Guardar Identidad Institucional
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- SECCIÓN 2: PREFERENCIAS GENERALES -->
+      <div id="settingsSectionPreferences" style="display: none;">
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          <!-- Card 1: Accesibilidad / Alto Contraste -->
+          <div class="setting-item-card">
+            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #0284c7;">
+                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Alto Contraste / Fuente Grande</div>
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
+                  Aumenta el tamaño tipográfico y refuerza los contrastes visuales para adultos mayores o despachadores en almacén.
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+              <label class="toggle-switch">
+                <input type="checkbox" id="toggleHighContrastSetting" />
+                <span class="toggle-slider"></span>
+              </label>
+              <span id="labelHighContrastStatus" style="font-size: 0.7rem; font-weight: 700; color: #64748b;">Desactivado</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Entorno y Conectividad -->
+          <div class="setting-item-card">
+            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #10b981;">
+                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Arquitectura Offline-First</div>
+                <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
+                  Los registros biométricos y despachos se almacenan en IndexedDB local y se sincronizan automáticamente con Supabase Cloud.
+                </div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <span class="badge badge-activo" style="font-size: 0.7rem;">Sincronizado</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Información de Plataforma -->
+          <div class="setting-item-card" style="background: #f1f5f9;">
+            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #64748b;">
+                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              </div>
+              <div>
+                <div style="font-weight: 700; color: #334155; font-size: 0.85rem;">SGBT Bienestar Alimentario v2.2</div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                  Seguridad Criptográfica FIDO2 WebAuthn &middot; Soporte Multi-Tenant B2G
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+          <button type="button" id="btnApplyGeneralSettings" class="btn btn-primary" style="padding: 0.45rem 1.25rem; font-size: 0.8rem;">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 5: REGISTRAR NUEVO BENEFICIARIO (NÓMINA INDIVIDUAL)
+       ====================================================================== -->
+  <div id="createWorkerModalBackdrop" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="panel-header" style="margin-bottom: 1.25rem;">
+        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+          ➕ Registrar Nuevo Beneficiario
+        </div>
+        <button id="btnCloseCreateWorkerModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+      </div>
+
+      <form id="createWorkerForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.75rem;">
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Nacionalidad: *
+            </label>
+            <select id="newWorkerDocType" class="form-select" style="font-weight: 700;">
+              <option value="V">V- (Venezolano)</option>
+              <option value="E">E- (Extranjero)</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Cédula de Identidad: *
+            </label>
+            <input type="text" id="newWorkerDocNumber" class="form-input text-mono" placeholder="Ej: 19876543" required style="font-weight: 700;" />
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Nombres y Apellidos Completos: *
+          </label>
+          <input type="text" id="newWorkerFullName" class="form-input" placeholder="Ej: Carmen Teresa Rodríguez" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Condición Laboral: *
+            </label>
+            <select id="newWorkerType" class="form-select" required>
+              <option value="activo">🏢 Funcionario Activo</option>
+              <option value="jubilado">👴 Jubilado / Pensionado</option>
+              <option value="contratado">📄 Personal Contratado</option>
+              <option value="comision">💼 Comisión de Servicio</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Departamento / Dirección:
+            </label>
+            <select id="newWorkerDepartment" class="form-select">
+              <!-- Se puebla dinámicamente -->
+            </select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Teléfono Celular / WhatsApp:
+            </label>
+            <input type="tel" id="newWorkerPhone" class="form-input" placeholder="+58 412 1234567" />
+          </div>
+
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Correo Electrónico Institucional:
+            </label>
+            <input type="email" id="newWorkerEmail" class="form-input" placeholder="ejemplo@institucion.gob.ve" />
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
+          <input type="checkbox" id="newWorkerHasSmartphone" checked style="width: 18px; height: 18px; accent-color: var(--sea-pacific);" />
+          <label for="newWorkerHasSmartphone" style="font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
+            Posee Teléfono Inteligente (Habilitar Passkeys FIDO2 / Biometría WebAuthn)
+          </label>
+        </div>
+
+        <div id="newWorkerAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" id="btnCancelCreateWorker" class="btn btn-outline">Cancelar</button>
+          <button type="submit" id="btnSubmitCreateWorker" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700;">
+            💾 Registrar en el Padrón
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 6: IMPORTACIÓN MASIVA DE NÓMINA (CSV / EXCEL)
+       ====================================================================== -->
+  <div id="importPayrollModalBackdrop" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 650px;">
+      <div class="panel-header" style="margin-bottom: 1.25rem;">
+        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+          📂 Carga Masiva de Nómina Institucional (CSV)
+        </div>
+        <button id="btnCloseImportPayrollModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+      </div>
+
+      <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem; line-height: 1.4;">
+        Importe la nómina del ministerio o ente público en formato CSV. Los trabajadores quedarán habilitados de forma inmediata para el despacho con Passkeys o contingencia.
+      </div>
+
+      <div class="file-dropzone" id="csvFileDropzone">
+        <div class="file-dropzone-icon">📥</div>
+        <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">
+          Haga clic o arrastre su archivo CSV aquí
+        </div>
+        <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
+          Formatos compatibles: .csv, .txt con separación por comas o punto y coma
+        </div>
+        <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" style="display: none;" />
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+        <button type="button" id="btnDownloadCsvSample" class="btn btn-outline" style="font-size: 0.75rem; background: #fff;">
+          📄 Descargar Plantilla CSV de Ejemplo
+        </button>
+        <span id="csvFileStatusText" style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Ningún archivo seleccionado</span>
+      </div>
+
+      <!-- TABLA PREVIA DE IMPORTACIÓN -->
+      <div id="csvPreviewContainer" style="display: none; margin-top: 1rem; max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
+        <table class="modern-table" style="font-size: 0.78rem;">
+          <thead>
+            <tr>
+              <th>Cédula</th>
+              <th>Nombre</th>
+              <th>Condición</th>
+              <th>Teléfono</th>
+            </tr>
+          </thead>
+          <tbody id="csvPreviewTableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="csvAlertBox" class="alert-box alert-info" style="display: none; margin-top: 1rem; padding: 0.75rem; font-size: 0.8rem;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+        <button type="button" id="btnCancelImportPayroll" class="btn btn-outline">Cancelar</button>
+        <button type="button" id="btnExecuteBatchImport" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700;" disabled>
+          🚀 Importar Beneficiarios
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 7: PLANIFICACIÓN DE NUEVA JORNADA DE DESPACHO
+       ====================================================================== -->
+  <div id="createCampaignModalBackdrop" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 600px;">
+      <div class="panel-header" style="margin-bottom: 1.25rem;">
+        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+          📅 Programar Nueva Jornada de Despacho
+        </div>
+        <button id="btnCloseCreateCampaignModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+      </div>
+
+      <form id="createCampaignForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Título / Nombre de la Jornada: *
+          </label>
+          <input type="text" id="campaignNameInput" class="form-input" placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Fecha de Inicio: *
+            </label>
+            <input type="date" id="campaignStartDateInput" class="form-input" required />
+          </div>
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Fecha de Cierre: *
+            </label>
+            <input type="date" id="campaignEndDateInput" class="form-input" required />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Combo / Beneficio Asignado: *
+            </label>
+            <select id="campaignComboSelect" class="form-select" required>
+              <!-- Dinámico desde combos -->
+            </select>
+          </div>
+          <div class="input-group">
+            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+              Punto / Sede de Despacho: *
+            </label>
+            <select id="campaignPointSelect" class="form-select" required>
+              <!-- Dinámico desde distribution_points -->
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Población Objetivo / Criterio de Selección:
+          </label>
+          <select id="campaignTargetSelect" class="form-select">
+            <option value="all">Todo el Personal (Universal: Activos, Jubilados, Contratados)</option>
+            <option value="activo">Exclusivo Personal Activo</option>
+            <option value="jubilado">Exclusivo Jubilados y Pensionados</option>
+            <option value="contratado">Exclusivo Personal Contratado</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Descripción / Instrucciones de Retiro:
+          </label>
+          <textarea id="campaignDescriptionInput" class="form-input" rows="2" placeholder="Ej: Presentar documento de identidad o QR biométrico en la mesa central de 8:30 AM a 4:00 PM."></textarea>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.4rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="campaignAutoEntitlementsCheck" checked style="width: 16px; height: 16px; accent-color: var(--sea-pacific);" />
+            Generar asignaciones de beneficio automáticamente en el sistema para todos los trabajadores seleccionados.
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="campaignNotifyCheck" checked style="width: 16px; height: 16px; accent-color: var(--sea-pacific);" />
+            Activar notificación en la aplicación para convocar a los beneficiarios.
+          </label>
+        </div>
+
+        <div id="campaignAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+          <button type="button" id="btnCancelCreateCampaign" class="btn btn-outline">Cancelar</button>
+          <button type="submit" id="btnSubmitCreateCampaign" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>Publicar Jornada</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 8: BANDEJA DE NOTIFICACIONES Y AVISOS DE JORNADA
+       ====================================================================== -->
+  <div id="notificationsModalBackdrop" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 580px;">
+      <div class="panel-header" style="margin-bottom: 1.25rem;">
+        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <span>Avisos y Notificaciones del Sistema</span>
+        </div>
+        <button id="btnCloseNotificationsModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <span style="font-size: 0.8rem; color: #64748b;">Avisos institucionales sobre convocatorias y entregas:</span>
+        <button id="btnToggleNewAlertForm" class="btn btn-outline" style="font-size: 0.75rem; background: #fff; display: inline-flex; align-items: center; gap: 0.35rem;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Redactar Aviso</span>
+        </button>
+      </div>
+
+      <!-- FORMULARIO RÁPIDO PARA REDACTAR AVISO -->
+      <div id="newAlertFormBlock" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
+        <div style="font-weight: 700; color: #0f172a; font-size: 0.82rem; margin-bottom: 0.5rem;">
+          Enviar Nuevo Aviso a los Beneficiarios:
+        </div>
+        <input id="quickAlertTitleInput" type="text" class="form-input" placeholder="Título del aviso (ej: Extensión de horario de retiro)" style="margin-bottom: 0.5rem; font-size: 0.82rem;" />
+        <textarea id="quickAlertMessageInput" class="form-input" rows="2" placeholder="Detalle del aviso..." style="margin-bottom: 0.5rem; font-size: 0.82rem;"></textarea>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" id="btnCancelQuickAlert" class="btn btn-outline" style="font-size: 0.75rem;">Cancelar</button>
+          <button type="button" id="btnSendQuickAlert" class="btn btn-primary" style="font-size: 0.75rem;">Publicar Notificación</button>
         </div>
       </div>
 
-      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
-        <button type="button" id="btnApplyGeneralSettings" class="btn btn-primary" style="padding: 0.5rem 1.25rem;">
-          Listo
+      <!-- LISTA DE NOTIFICACIONES -->
+      <div id="notificationsListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 380px; overflow-y: auto;">
+        <!-- Se inyecta dinámicamente -->
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+        <button type="button" id="btnCloseNotificationsModalBtn" class="btn btn-primary" style="padding: 0.45rem 1.25rem;">
+          Cerrar
         </button>
       </div>
     </div>
@@ -1131,6 +1850,6 @@ Listo para recibir transacciones de nómina SSOT...
   <!-- SCRIPTS -->
   <script src="/js/qrcode.js"></script>
   <script src="/js/html5-qrcode.min.js"></script>
-  <script src="/js/app.js?v=2.1"></script>
+  <script src="/js/app.js?v=2.3"></script>
 </body>
 </html>
