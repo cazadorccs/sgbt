@@ -1,10 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.js": {
-      "includeFiles": "node_modules/better-sqlite3/**/*"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",

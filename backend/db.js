@@ -498,29 +498,28 @@ function seedDatabase() {
 // ----------------------------------------------------------------------------
 // INICIALIZACIÓN DEL MOTOR DE BASE DE DATOS (NATIVO O WEBASSEMBLY)
 // ----------------------------------------------------------------------------
+const isServerless = Boolean(
+  process.env.VERCEL || 
+  process.env.AWS_LAMBDA_FUNCTION_NAME || 
+  process.env.LAMBDA_TASK_ROOT || 
+  process.env.NOW_REGION
+);
+
 let Database = null;
-try {
-  Database = require('better-sqlite3');
-} catch (nativeErr) {
-  console.warn('[DB] better-sqlite3 nativo no disponible en este entorno:', nativeErr.message);
+// En Vercel / Serverless no intentar cargar better-sqlite3 nativo para evitar SIGABRT de binarios C++
+if (!isServerless) {
+  try {
+    Database = require('better-sqlite3');
+  } catch (nativeErr) {
+    console.warn('[DB] better-sqlite3 nativo no disponible en este entorno:', nativeErr.message);
+  }
 }
 
 if (Database) {
   try {
-    if (isVercel) {
-      const bundledDb = path.join(__dirname, 'combos_platform.sqlite');
-      if (fs.existsSync(bundledDb) && !fs.existsSync(DB_PATH)) {
-        try { fs.copyFileSync(bundledDb, DB_PATH); } catch (e) {}
-      }
-    }
-
     rawDb = new Database(DB_PATH);
     rawDb.pragma('foreign_keys = ON');
-    if (isVercel) {
-      rawDb.pragma('journal_mode = MEMORY');
-    } else {
-      rawDb.pragma('journal_mode = WAL');
-    }
+    rawDb.pragma('journal_mode = WAL');
 
     initializeDatabase();
     seedDatabase();
@@ -532,32 +531,22 @@ if (Database) {
   }
 }
 
-// Si better-sqlite3 no está disponible o falló (Vercel Serverless), activar sql.js (WebAssembly)
+// Si better-sqlite3 no está disponible o estamos en Vercel Serverless, activar sql.js (WebAssembly)
 if (!rawDb) {
   isWasmMode = true;
-  const initSqlJs = require('sql.js');
+  // Usar la versión inline de WebAssembly para garantizar 100% de compatibilidad sin dependencias externas
+  const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
 
   initSqlJs().then((SQL) => {
     try {
-      if (fs.existsSync(DB_PATH)) {
-        const fileBuffer = fs.readFileSync(DB_PATH);
-        rawDb = new SQL.Database(fileBuffer);
-        console.log('[DB] Base de datos SQLite cargada desde archivo existente en memoria WASM.');
-      } else {
-        rawDb = new SQL.Database();
-        console.log('[DB] Base de datos SQLite creada en memoria WASM (Zero-Config Serverless).');
-      }
+      rawDb = new SQL.Database();
+      console.log('[DB] Base de datos SQLite creada en memoria WASM (Zero-Config Serverless).');
 
       initializeDatabase();
       seedDatabase();
 
-      try {
-        const data = rawDb.export();
-        fs.writeFileSync(DB_PATH, Buffer.from(data));
-      } catch (saveErr) {}
-
       readyResolve(true);
-      console.log('[DB] Motor SQLite WebAssembly (sql.js) listo y operativo para Vercel.');
+      console.log('[DB] Motor SQLite WebAssembly (sql-wasm-inline) listo y operativo para Vercel.');
     } catch (wasmErr) {
       console.error('[DB FATAL] Fallo al inicializar sql.js:', wasmErr);
       readyResolve(false);
