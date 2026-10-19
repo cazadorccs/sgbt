@@ -267,6 +267,7 @@ function initializeDatabase() {
       logo_url TEXT,
       primary_color TEXT DEFAULT '#0284c7',
       secondary_color TEXT DEFAULT '#0ea5e9',
+      is_initialized INTEGER DEFAULT 1,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -300,13 +301,14 @@ function initializeDatabase() {
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes
   try { db.exec("ALTER TABLE combos ADD COLUMN items_detail TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN icon TEXT DEFAULT '🍱'"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
 
   // Inicializar tenant_settings por defecto si está vacío
   const tenantExists = db.prepare("SELECT COUNT(*) as count FROM tenant_settings WHERE id = 'current_tenant'").get();
   if (tenantExists.count === 0) {
     db.prepare(`
-      INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color)
-      VALUES ('current_tenant', 'Ministerio del Poder Popular para la Comunicación y la Información', 'MIPPCI', 'Bienestar y Soberanía Alimentaria Institucional', '', '#0284c7', '#0ea5e9')
+      INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color, is_initialized)
+      VALUES ('current_tenant', 'Ministerio del Poder Popular para la Comunicación y la Información', 'MIPPCI', 'Bienestar y Soberanía Alimentaria Institucional', '', '#0284c7', '#0ea5e9', 1)
     `).run();
   }
 
@@ -357,6 +359,15 @@ function seedDatabase() {
   if (rowCount.count > 0) {
     return; // Ya existen datos
   }
+
+  // Si el sistema fue puesto a cero (is_initialized = 0), no regenerar los seeds de prueba
+  try {
+    const tenant = db.prepare("SELECT is_initialized FROM tenant_settings WHERE id = 'current_tenant'").get();
+    if (tenant && tenant.is_initialized === 0) {
+      console.log('[DB] Sistema en estado no inicializado (is_initialized = 0). Omitiendo seeds para Asistente de Configuración.');
+      return;
+    }
+  } catch (e) {}
 
   console.log('[DB] Insertando datos maestros iniciales (Seeds)...');
 

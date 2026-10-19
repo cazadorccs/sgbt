@@ -171,6 +171,20 @@
           </p>
         </div>
 
+        <!-- BANNER DE CONFIGURACIÓN PENDIENTE (SI EL SISTEMA FUE PUESTO A CERO) -->
+        <div id="setupPendingBanner" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #b45309; text-align: left;">
+          <div style="font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span>Plataforma Pendiente por Configuración</span>
+          </div>
+          <div style="font-size: 0.76rem; color: #92400e; margin-bottom: 0.65rem;">
+            La base de datos se encuentra en blanco o fue puesta a cero. Debe completar el Asistente Inicial para registrar al Administrador Principal.
+          </div>
+          <button type="button" id="btnLaunchWizardFromLogin" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.4rem 0.85rem; font-weight: 700; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
+            <span>Iniciar Asistente de Configuración →</span>
+          </button>
+        </div>
+
         <form id="loginForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
           <div>
             <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
@@ -273,6 +287,283 @@
         <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
           <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           <span>Protegido con Criptografía FIDO2 ES256 & Supabase SSOT</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================================
+         VISTA ASISTENTE: PRIMERA CONFIGURACIÓN INSTITUCIONAL (SETUP WIZARD)
+         ====================================================================== -->
+    <section id="view-setup-wizard" class="view-section" style="display: none; max-width: 820px; margin: 0 auto; padding: 1.5rem 0.5rem;">
+      <div class="wizard-card">
+        <!-- HEADER DEL ASISTENTE -->
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <div style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.75rem; background: rgba(2, 132, 199, 0.1); color: var(--sea-pacific); font-size: 0.72rem; font-weight: 700; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            <span>Asistente de Activación Inicial</span>
+          </div>
+          <h2 style="font-size: 1.5rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
+            Configuración Inicial de la Plataforma
+          </h2>
+          <p style="font-size: 0.85rem; color: #64748b; line-height: 1.4; max-width: 580px; margin: 0 auto;">
+            Complete los 5 pasos guiados para registrar al administrador principal, personalizar la entidad e iniciar operaciones con datos reales.
+          </p>
+        </div>
+
+        <!-- STEPPER DE 5 PASOS -->
+        <div class="wizard-stepper">
+          <div class="wizard-step-item active" id="wizardStepIndicator-1">
+            <div class="wizard-step-circle">1</div>
+            <div class="wizard-step-label">Administrador</div>
+          </div>
+          <div class="wizard-step-item" id="wizardStepIndicator-2">
+            <div class="wizard-step-circle">2</div>
+            <div class="wizard-step-label">Identidad</div>
+          </div>
+          <div class="wizard-step-item" id="wizardStepIndicator-3">
+            <div class="wizard-step-circle">3</div>
+            <div class="wizard-step-label">Sede</div>
+          </div>
+          <div class="wizard-step-item" id="wizardStepIndicator-4">
+            <div class="wizard-step-circle">4</div>
+            <div class="wizard-step-label">Beneficio</div>
+          </div>
+          <div class="wizard-step-item" id="wizardStepIndicator-5">
+            <div class="wizard-step-circle">5</div>
+            <div class="wizard-step-label">Activación</div>
+          </div>
+        </div>
+
+        <!-- CONTENEDOR DE PASOS -->
+        <div id="wizardStepContentContainer">
+          
+          <!-- PASO 1: ADMINISTRADOR PRINCIPAL -->
+          <div class="wizard-step-content" id="wizardStepContent-1" style="display: block;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="icon-svg icon-sm" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Paso 1: Registro del Administrador Principal</span>
+              </h3>
+              <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                Este usuario tendrá los privilegios más altos para gestionar beneficiarios, jornadas y auditorías institucionales.
+              </p>
+              
+              <div class="form-grid-2">
+                <div class="input-group">
+                  <label>Cédula de Identidad: *</label>
+                  <input type="text" id="wAdminDocInput" class="form-input" placeholder="Ej: V-12345678" required />
+                </div>
+                <div class="input-group">
+                  <label>Nombre y Apellido Completo: *</label>
+                  <input type="text" id="wAdminNameInput" class="form-input" placeholder="Ej: Lcdo. Alejandro Ramírez" required />
+                </div>
+              </div>
+
+              <div class="form-grid-2" style="margin-top: 0.75rem;">
+                <div class="input-group">
+                  <label>Correo Electrónico Institucional: *</label>
+                  <input type="email" id="wAdminEmailInput" class="form-input" placeholder="Ej: alejandro.ramirez@institucion.gob.ve" required />
+                </div>
+                <div class="input-group">
+                  <label>Teléfono Celular / WhatsApp:</label>
+                  <input type="tel" id="wAdminPhoneInput" class="form-input" placeholder="Ej: +58 412 1234567" />
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end;">
+              <button type="button" id="btnWizardNext-1" class="btn btn-primary" style="padding: 0.65rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <span>Siguiente: Identidad del Ente</span>
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- PASO 2: IDENTIDAD INSTITUCIONAL -->
+          <div class="wizard-step-content" id="wizardStepContent-2" style="display: none;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="icon-svg icon-sm" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
+                <span>Paso 2: Identidad Institucional y Marca (B2G)</span>
+              </h3>
+              <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                Defina el nombre oficial, logotipo y colores corporativos para todo el sistema y las pantallas de los funcionarios.
+              </p>
+
+              <div class="form-grid-2">
+                <div class="input-group">
+                  <label>Nombre Oficial del Ente Gubernamental: *</label>
+                  <input type="text" id="wTenantNameInput" class="form-input" placeholder="Ej: Ministerio del Poder Popular para la Comunicación y la Información" required />
+                </div>
+                <div class="input-group">
+                  <label>Siglas / Acrónimo: *</label>
+                  <input type="text" id="wTenantShortInput" class="form-input" placeholder="Ej: MIPPCI" style="text-transform: uppercase;" required />
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-top: 0.75rem;">
+                <label>Lema o Cintillo Institucional:</label>
+                <input type="text" id="wTenantSloganInput" class="form-input" placeholder="Ej: Bienestar y Soberanía Alimentaria Institucional" />
+              </div>
+
+              <div class="form-grid-2" style="margin-top: 0.75rem;">
+                <div class="input-group">
+                  <label>Color Primario:</label>
+                  <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="color" id="wTenantPrimaryColor" value="#0284c7" style="width: 44px; height: 38px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; padding: 2px;" />
+                    <input type="text" id="wTenantPrimaryColorHex" class="form-input" value="#0284c7" style="font-family: monospace; font-size: 0.82rem;" />
+                  </div>
+                </div>
+                <div class="input-group">
+                  <label>Logotipo Oficial (URL o Archivo):</label>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="wTenantLogoUrl" class="form-input" placeholder="https://... o seleccione un archivo" />
+                    <label class="btn btn-outline" style="padding: 0.5rem 0.75rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0; font-size: 0.75rem;">
+                      <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                      <span>Subir</span>
+                      <input type="file" id="wTenantLogoFileInput" accept="image/*" style="display: none;" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between;">
+              <button type="button" id="btnWizardPrev-2" class="btn btn-outline" style="padding: 0.65rem 1.25rem;">← Anterior</button>
+              <button type="button" id="btnWizardNext-2" class="btn btn-primary" style="padding: 0.65rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <span>Siguiente: Sede de Despacho</span>
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- PASO 3: SEDE DE DESPACHO INICIAL -->
+          <div class="wizard-step-content" id="wizardStepContent-3" style="display: none;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="icon-svg icon-sm" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                <span>Paso 3: Sede o Punto de Despacho Inicial</span>
+              </h3>
+              <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                Configure el primer almacén físico o mesa de entrega donde los funcionarios retirarán sus beneficios.
+              </p>
+
+              <div class="form-grid-2">
+                <div class="input-group">
+                  <label>Nombre de la Sede / Punto: *</label>
+                  <input type="text" id="wPointNameInput" class="form-input" value="Almacén Central - Sede Principal" required />
+                </div>
+                <div class="input-group">
+                  <label>Código de Ubicación: *</label>
+                  <input type="text" id="wPointCodeInput" class="form-input" value="ALM-CENTRAL" style="text-transform: uppercase;" required />
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-top: 0.75rem;">
+                <label>Dirección Física / Referencia:</label>
+                <input type="text" id="wPointAddressInput" class="form-input" value="Edificio Sede Principal, Sótano 1" />
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between;">
+              <button type="button" id="btnWizardPrev-3" class="btn btn-outline" style="padding: 0.65rem 1.25rem;">← Anterior</button>
+              <button type="button" id="btnWizardNext-3" class="btn btn-primary" style="padding: 0.65rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <span>Siguiente: Beneficio Base</span>
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- PASO 4: BENEFICIO O COMBO BASE -->
+          <div class="wizard-step-content" id="wizardStepContent-4" style="display: none;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="icon-svg icon-sm" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><line x1="1" y1="3" x2="23" y2="3"></line><path d="M10 12h4"></path></svg>
+                <span>Paso 4: Catálogo de Beneficio Inicial</span>
+              </h3>
+              <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                Defina el primer tipo de beneficio asignable (podrá crear más combos posteriormente en el catálogo).
+              </p>
+
+              <div class="form-grid-2">
+                <div class="input-group">
+                  <label>Nombre del Beneficio o Combo: *</label>
+                  <input type="text" id="wComboNameInput" class="form-input" value="Bolsa de Víveres Secos (Canasta Básica)" required />
+                </div>
+                <div class="input-group">
+                  <label>Categoría: *</label>
+                  <select id="wComboCategorySelect" class="form-select" required>
+                    <option value="bolsa_viveres">📦 Bolsa de Víveres Secos</option>
+                    <option value="combo_proteico">🍗 Combo Proteico Fresco</option>
+                    <option value="combo_navideno">🎁 Combo Especial Navideño</option>
+                    <option value="utiles_escolares">🎒 Dotación Escolar</option>
+                    <option value="combo_higienico">🧼 Combo Higiénico</option>
+                    <option value="combo_especial">⭐ Beneficio Especial</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="input-group" style="margin-top: 0.75rem;">
+                <label>Detalle de Rubros Incluidos:</label>
+                <textarea id="wComboItemsInput" class="form-input" rows="2" placeholder="Ej: 4 kg Harina de Maíz, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite...">4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros</textarea>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between;">
+              <button type="button" id="btnWizardPrev-4" class="btn btn-outline" style="padding: 0.65rem 1.25rem;">← Anterior</button>
+              <button type="button" id="btnWizardNext-4" class="btn btn-primary" style="padding: 0.65rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <span>Siguiente: Nómina y Activación</span>
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- PASO 5: NÓMINA OFICIAL & ACTIVACIÓN -->
+          <div class="wizard-step-content" id="wizardStepContent-5" style="display: none;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h3 style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                <svg class="icon-svg icon-sm" style="color: #10b981;" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <span>Paso 5: Nómina y Activación Operacional</span>
+              </h3>
+              <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
+                Puede cargar la nómina oficial de trabajadores mediante archivo CSV ahora, o iniciar con la nómina en blanco para registrar funcionarios manualmente después.
+              </p>
+
+              <!-- CARGA OPCIONAL DE NÓMINA CSV -->
+              <div style="border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); padding: 1.25rem; text-align: center; background: #ffffff; margin-bottom: 1rem;">
+                <svg class="icon-svg icon-lg" style="color: #94a3b8; margin-bottom: 0.4rem;" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <div style="font-weight: 700; font-size: 0.85rem; color: #0f172a;">Carga Masiva de Nómina Oficial (Opcional)</div>
+                <div style="font-size: 0.75rem; color: #64748b; margin: 0.25rem 0 0.75rem;">Archivo CSV con columnas: cedula, nombre, email, telefono</div>
+                <label class="btn btn-outline" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.78rem;">
+                  <span>Seleccionar Archivo CSV</span>
+                  <input type="file" id="wPayrollCsvFileInput" accept=".csv" style="display: none;" />
+                </label>
+                <div id="wPayrollFileStatus" style="font-size: 0.75rem; color: #10b981; font-weight: 700; margin-top: 0.5rem; display: none;"></div>
+              </div>
+
+              <!-- RESUMEN FINAL -->
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem;">
+                <div style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.03em;">Resumen de Configuración Inicial:</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.82rem;">
+                  <div><span style="color: #64748b;">Ente:</span> <strong id="wSummaryTenant">-</strong></div>
+                  <div><span style="color: #64748b;">Administrador:</span> <strong id="wSummaryAdmin">-</strong></div>
+                  <div><span style="color: #64748b;">Sede Principal:</span> <strong id="wSummaryPoint">-</strong></div>
+                  <div><span style="color: #64748b;">Beneficio Base:</span> <strong id="wSummaryCombo">-</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="wSetupAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.65rem; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+
+            <div style="display: flex; justify-content: space-between;">
+              <button type="button" id="btnWizardPrev-5" class="btn btn-outline" style="padding: 0.65rem 1.25rem;">← Anterior</button>
+              <button type="button" id="btnExecuteSetupFinal" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-weight: 800; font-size: 0.92rem; background: #10b981; border-color: #10b981; color: #ffffff; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                <span>🚀 Iniciar Operaciones de la Plataforma</span>
+              </button>
+            </div>
+          </div>
+
         </div>
       </div>
     </section>
@@ -1388,6 +1679,10 @@ Listo para recibir transacciones de nómina SSOT...
           <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
           <span>Preferencias Generales</span>
         </button>
+        <button type="button" id="btnSettingsTabDanger" class="portal-subtab" style="flex: 1; justify-content: center; color: #dc2626;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <span>Zona de Peligro</span>
+        </button>
       </div>
 
       <!-- SECCIÓN 1: MARCA Y LOGOS (SOLO ADMIN) -->
@@ -1542,8 +1837,82 @@ Listo para recibir transacciones de nómina SSOT...
           </button>
         </div>
       </div>
+
+      <!-- SECCIÓN 3: PUESTA A CERO / ZONA DE PELIGRO (SOLO ADMIN) -->
+      <div id="settingsSectionDanger" style="display: none;">
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+            <div style="color: #dc2626; flex-shrink: 0; padding-top: 0.1rem;">
+              <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            </div>
+            <div>
+              <div style="font-weight: 800; color: #991b1b; font-size: 0.92rem;">Puesta a Cero de la Base de Datos (Modo Productivo)</div>
+              <p style="font-size: 0.8rem; color: #b91c1c; margin-top: 0.35rem; line-height: 1.45;">
+                Esta acción eliminará de forma irreversible <strong>todos los beneficiarios de muestra</strong>, registros biométricos, códigos QR, despachos, auditorías y jornadas planificadas. Se descargará automáticamente un archivo de respaldo (backup JSON) en su equipo antes de la ejecución.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
+          <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.82rem; color: #0f172a;">
+            <input type="checkbox" id="checkKeepTemplatesReset" checked style="width: 17px; height: 17px; accent-color: var(--sea-pacific); margin-top: 0.15rem;" />
+            <span>
+              <strong>Conservar combos y sedes como plantillas editables (Opción A.1 Recomendada)</strong><br />
+              <span style="color: #64748b; font-size: 0.76rem;">Mantiene el catálogo base de bolsas/víveres para que no tenga que crearlos desde cero en la nueva configuración.</span>
+            </span>
+          </label>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <span style="font-size: 0.78rem; font-weight: 700; color: #334155;">Descargar Respaldo Preventivo:</span>
+              <div style="font-size: 0.72rem; color: #64748b;">Descarga manual de la base de datos actual en formato JSON</div>
+            </div>
+            <button type="button" id="btnDownloadBackupManual" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.45rem 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span>Descargar Backup JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button type="button" id="btnOpenFactoryResetConfirmModal" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700; padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <span>Puesta a Cero y Configuración Inicial</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
+
+  <!-- MODAL DE CONFIRMACIÓN ESTRICTA: PUESTA A CERO -->
+  <div id="factoryResetConfirmModalBackdrop" class="modal-backdrop">
+    <div class="modal-dialog" style="max-width: 490px; border-top: 4px solid #dc2626;">
+      <div class="panel-header" style="margin-bottom: 1rem;">
+        <div class="panel-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700;">
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <span>Confirmar Puesta a Cero</span>
+        </div>
+        <button id="btnCloseFactoryResetConfirmModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
+      </div>
+
+      <div style="font-size: 0.85rem; color: #475569; line-height: 1.45; margin-bottom: 1rem;">
+        Esta acción es <strong>irreversible</strong>. Todos los datos de prueba serán purgados y el sistema entrará en modo de <strong>Primera Configuración (Asistente de Activación)</strong>.
+      </div>
+
+      <div class="input-group" style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.75rem; color: #0f172a; font-weight: 700;">Para confirmar, escriba exactamente: <span style="color: #dc2626; font-family: monospace; font-size: 0.85rem;">REINICIAR SISTEMA</span></label>
+        <input type="text" id="inputFactoryResetPhrase" class="form-input" placeholder="REINICIAR SISTEMA" autocomplete="off" />
+      </div>
+
+      <div id="factoryResetAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" id="btnCancelFactoryResetConfirm" class="btn btn-outline">Cancelar</button>
+        <button type="button" id="btnExecuteFactoryResetConfirm" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700;" disabled>
+          Proceder con la Puesta a Cero
+        </button>
+      </div>
     </div>
   </div>
 

@@ -3,7 +3,7 @@
 // Garantiza funcionamiento al 100% en sótanos y almacenes sin señal celular
 // ============================================================================
 
-const CACHE_NAME = 'mippci-bienestar-v2.3-locations';
+const CACHE_NAME = 'mippci-bienestar-v2.4-factory-reset';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

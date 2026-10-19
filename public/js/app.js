@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupPwa();
   setupAuth();
   setupUserMenuDropdown();
+  initSetupWizard();
 
   // Cargar datos iniciales del portal
   refreshPortalData();
@@ -82,23 +83,35 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAuthSession();
 });
 
-// Chequeo de Motor de Base de Datos (Supabase Cloud vs. SQLite Local)
+// Chequeo de Motor de Base de Datos (Supabase Cloud vs. SQLite Local) & Estado de Inicialización
 async function checkSystemDbStatus() {
   try {
     const res = await fetch('/api/v1/system/status');
     const data = await res.json();
     const pill = document.getElementById('dbStatusPill');
     const text = document.getElementById('dbStatusText');
-    if (!pill || !text) return;
+    if (pill && text) {
+      if (data.database_engine === 'supabase_cloud') {
+        text.textContent = `🟢 Supabase Cloud (${data.supabase_details?.latencyMs || 25}ms)`;
+        pill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
+        pill.style.color = '#34d399';
+      } else {
+        text.textContent = '💾 SQLite Local (Offline-Ready)';
+        pill.style.borderColor = 'rgba(102, 204, 255, 0.4)';
+        pill.style.color = 'var(--sea-onahau)';
+      }
+    }
 
-    if (data.database_engine === 'supabase_cloud') {
-      text.textContent = `🟢 Supabase Cloud (${data.supabase_details?.latencyMs || 25}ms)`;
-      pill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
-      pill.style.color = '#34d399';
+    // Comprobar si el sistema está pendiente de inicialización (Puesta a Cero)
+    const setupBanner = document.getElementById('setupPendingBanner');
+    if (data.is_initialized === false) {
+      if (setupBanner) setupBanner.style.display = 'block';
+      // Si no hay usuario activo, dirigir automáticamente al Asistente de Configuración
+      if (!STATE.currentUser) {
+        navigateTo('view-setup-wizard');
+      }
     } else {
-      text.textContent = '💾 SQLite Local (Offline-Ready)';
-      pill.style.borderColor = 'rgba(102, 204, 255, 0.4)';
-      pill.style.color = 'var(--sea-onahau)';
+      if (setupBanner) setupBanner.style.display = 'none';
     }
   } catch (e) {
     console.warn('No se pudo consultar estado de la BD:', e);
@@ -170,21 +183,36 @@ function setupGeneralSettings() {
   // Tabs internas del Modal de Configuración
   const tabBrandingBtn = document.getElementById('btnSettingsTabBranding');
   const tabPreferencesBtn = document.getElementById('btnSettingsTabPreferences');
+  const tabDangerBtn = document.getElementById('btnSettingsTabDanger');
   const sectionBranding = document.getElementById('settingsSectionBranding');
   const sectionPreferences = document.getElementById('settingsSectionPreferences');
+  const sectionDanger = document.getElementById('settingsSectionDanger');
 
   tabBrandingBtn?.addEventListener('click', () => {
     tabBrandingBtn.classList.add('active');
     tabPreferencesBtn?.classList.remove('active');
+    tabDangerBtn?.classList.remove('active');
     if (sectionBranding) sectionBranding.style.display = 'block';
     if (sectionPreferences) sectionPreferences.style.display = 'none';
+    if (sectionDanger) sectionDanger.style.display = 'none';
   });
 
   tabPreferencesBtn?.addEventListener('click', () => {
     tabPreferencesBtn.classList.add('active');
     tabBrandingBtn?.classList.remove('active');
+    tabDangerBtn?.classList.remove('active');
     if (sectionPreferences) sectionPreferences.style.display = 'block';
     if (sectionBranding) sectionBranding.style.display = 'none';
+    if (sectionDanger) sectionDanger.style.display = 'none';
+  });
+
+  tabDangerBtn?.addEventListener('click', () => {
+    tabDangerBtn.classList.add('active');
+    tabBrandingBtn?.classList.remove('active');
+    tabPreferencesBtn?.classList.remove('active');
+    if (sectionDanger) sectionDanger.style.display = 'block';
+    if (sectionBranding) sectionBranding.style.display = 'none';
+    if (sectionPreferences) sectionPreferences.style.display = 'none';
   });
 
   // Selector de Archivo de Logotipo en Modal de Configuración
@@ -344,6 +372,412 @@ function setupGeneralSettings() {
     const current = document.body.classList.contains('senior-accessible-mode');
     applyHighContrast(!current, true);
   });
+
+  // --------------------------------------------------------------------------
+  // ZONA DE PELIGRO: DESCARGA DE BACKUP Y PUESTA A CERO
+  // --------------------------------------------------------------------------
+  const btnDownloadBackupManual = document.getElementById('btnDownloadBackupManual');
+  btnDownloadBackupManual?.addEventListener('click', () => {
+    window.location.href = '/api/v1/admin/export-backup';
+  });
+
+  const modalResetConfirm = document.getElementById('factoryResetConfirmModalBackdrop');
+  const btnOpenResetConfirm = document.getElementById('btnOpenFactoryResetConfirmModal');
+  const btnCloseResetConfirm = document.getElementById('btnCloseFactoryResetConfirmModal');
+  const btnCancelResetConfirm = document.getElementById('btnCancelFactoryResetConfirm');
+  const inputResetPhrase = document.getElementById('inputFactoryResetPhrase');
+  const btnExecuteResetConfirm = document.getElementById('btnExecuteFactoryResetConfirm');
+  const alertResetBox = document.getElementById('factoryResetAlertBox');
+
+  const closeResetModal = () => {
+    if (modalResetConfirm) modalResetConfirm.classList.remove('active');
+  };
+
+  btnOpenResetConfirm?.addEventListener('click', () => {
+    if (inputResetPhrase) inputResetPhrase.value = '';
+    if (btnExecuteResetConfirm) {
+      btnExecuteResetConfirm.disabled = true;
+      btnExecuteResetConfirm.textContent = 'Proceder con la Puesta a Cero';
+    }
+    if (alertResetBox) alertResetBox.style.display = 'none';
+    if (modalResetConfirm) modalResetConfirm.classList.add('active');
+  });
+
+  btnCloseResetConfirm?.addEventListener('click', closeResetModal);
+  btnCancelResetConfirm?.addEventListener('click', closeResetModal);
+
+  modalResetConfirm?.addEventListener('click', (e) => {
+    if (e.target === modalResetConfirm) closeResetModal();
+  });
+
+  inputResetPhrase?.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    if (btnExecuteResetConfirm) {
+      btnExecuteResetConfirm.disabled = (val !== 'REINICIAR SISTEMA');
+    }
+  });
+
+  btnExecuteResetConfirm?.addEventListener('click', async () => {
+    if (inputResetPhrase?.value.trim() !== 'REINICIAR SISTEMA') return;
+
+    btnExecuteResetConfirm.disabled = true;
+    btnExecuteResetConfirm.textContent = 'Descargando backup y restableciendo...';
+
+    try {
+      // 1. Descarga automática preventiva del backup JSON
+      try {
+        const bkRes = await fetch('/api/v1/admin/export-backup');
+        if (bkRes.ok) {
+          const blob = await bkRes.blob();
+          const dUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = dUrl;
+          a.download = `sgbt_backup_preventivo_${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(dUrl);
+        }
+      } catch (errBk) {
+        console.warn('Advertencia en descarga preventiva:', errBk);
+      }
+
+      // 2. Ejecutar Factory Reset en backend
+      const keep_templates = document.getElementById('checkKeepTemplatesReset')?.checked ?? true;
+      const res = await fetch('/api/v1/admin/factory-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phrase: 'REINICIAR SISTEMA',
+          keep_templates
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al ejecutar puesta a cero.');
+
+      // 3. Cerrar modales y limpiar sesión activa
+      closeResetModal();
+      closeModal();
+      STATE.currentUser = null;
+      try {
+        localStorage.removeItem('sgbt_user');
+        sessionStorage.clear();
+      } catch (e) {}
+
+      // 4. Iniciar Asistente de Configuración Inicial
+      playAudioFeedback('success');
+      alert('✅ Sistema restablecido a cero exitosamente. Se ha descargado un respaldo JSON preventivo en su equipo.\n\nA continuación configure la plataforma paso a paso.');
+
+      initSetupWizard();
+      navigateTo('view-setup-wizard');
+
+    } catch (err) {
+      if (alertResetBox) {
+        alertResetBox.textContent = err.message;
+        alertResetBox.style.display = 'block';
+      }
+      btnExecuteResetConfirm.disabled = false;
+      btnExecuteResetConfirm.textContent = 'Proceder con la Puesta a Cero';
+    }
+  });
+}
+
+// ============================================================================
+// ASISTENTE DE PRIMERA CONFIGURACIÓN (SETUP WIZARD - PUESTA A CERO)
+// ============================================================================
+let wizardCurrentStep = 1;
+let wizardParsedWorkers = [];
+
+function initSetupWizard() {
+  wizardCurrentStep = 1;
+  wizardParsedWorkers = [];
+
+  const indicators = [1, 2, 3, 4, 5].map(i => document.getElementById(`wizardStepIndicator-${i}`));
+  const stepContents = [1, 2, 3, 4, 5].map(i => document.getElementById(`wizardStepContent-${i}`));
+  const alertBox = document.getElementById('wSetupAlertBox');
+
+  function renderWizardStep(step) {
+    wizardCurrentStep = step;
+    if (alertBox) alertBox.style.display = 'none';
+
+    indicators.forEach((ind, idx) => {
+      if (!ind) return;
+      const stepNum = idx + 1;
+      ind.classList.remove('active', 'completed');
+      if (stepNum === step) {
+        ind.classList.add('active');
+      } else if (stepNum < step) {
+        ind.classList.add('completed');
+      }
+    });
+
+    stepContents.forEach((sc, idx) => {
+      if (!sc) return;
+      sc.style.display = (idx + 1 === step) ? 'block' : 'none';
+    });
+
+    if (step === 5) {
+      updateWizardSummary();
+    }
+  }
+
+  function updateWizardSummary() {
+    const adminDoc = document.getElementById('wAdminDocInput')?.value.trim() || '-';
+    const adminName = document.getElementById('wAdminNameInput')?.value.trim() || '-';
+    const tenantName = document.getElementById('wTenantNameInput')?.value.trim() || '-';
+    const tenantShort = document.getElementById('wTenantShortInput')?.value.trim() || '-';
+    const pointName = document.getElementById('wPointNameInput')?.value.trim() || '-';
+    const pointCode = document.getElementById('wPointCodeInput')?.value.trim() || '-';
+    const comboName = document.getElementById('wComboNameInput')?.value.trim() || '-';
+
+    const sTenant = document.getElementById('wSummaryTenant');
+    const sAdmin = document.getElementById('wSummaryAdmin');
+    const sPoint = document.getElementById('wSummaryPoint');
+    const sCombo = document.getElementById('wSummaryCombo');
+
+    if (sTenant) sTenant.textContent = `${tenantName} (${tenantShort})`;
+    if (sAdmin) sAdmin.textContent = `${adminName} (${adminDoc})`;
+    if (sPoint) sPoint.textContent = `${pointName} (${pointCode})`;
+    if (sCombo) sCombo.textContent = comboName;
+  }
+
+  // Sincronizar colores en Paso 2
+  const colorPicker = document.getElementById('wTenantPrimaryColor');
+  const colorHex = document.getElementById('wTenantPrimaryColorHex');
+  colorPicker?.addEventListener('input', () => {
+    if (colorHex) colorHex.value = colorPicker.value;
+  });
+  colorHex?.addEventListener('input', () => {
+    if (colorPicker && /^#[0-9A-Fa-f]{6}$/.test(colorHex.value)) {
+      colorPicker.value = colorHex.value;
+    }
+  });
+
+  // Selector de Logo en Paso 2
+  const logoFileInput = document.getElementById('wTenantLogoFileInput');
+  const logoUrlInput = document.getElementById('wTenantLogoUrl');
+  logoFileInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      if (logoUrlInput) {
+        logoUrlInput.value = ev.target.result;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Botón desde Banner de Login
+  const btnBanner = document.getElementById('btnOpenWizardFromBanner');
+  btnBanner?.addEventListener('click', () => {
+    renderWizardStep(1);
+    navigateTo('view-setup-wizard');
+  });
+
+  // Validaciones y Navegación Paso 1
+  const btnNext1 = document.getElementById('btnWizardNext-1');
+  btnNext1?.addEventListener('click', () => {
+    const doc = document.getElementById('wAdminDocInput')?.value.trim();
+    const name = document.getElementById('wAdminNameInput')?.value.trim();
+    const email = document.getElementById('wAdminEmailInput')?.value.trim();
+
+    if (!doc || !name || !email) {
+      alert('Por favor complete todos los campos obligatorios del Administrador (*).');
+      return;
+    }
+    renderWizardStep(2);
+  });
+
+  // Navegación Paso 2
+  const btnPrev2 = document.getElementById('btnWizardPrev-2');
+  const btnNext2 = document.getElementById('btnWizardNext-2');
+  btnPrev2?.addEventListener('click', () => renderWizardStep(1));
+  btnNext2?.addEventListener('click', () => {
+    const name = document.getElementById('wTenantNameInput')?.value.trim();
+    const shortName = document.getElementById('wTenantShortInput')?.value.trim();
+    if (!name || !shortName) {
+      alert('Por favor complete el nombre oficial y siglas del Ente Gubernamental (*).');
+      return;
+    }
+    renderWizardStep(3);
+  });
+
+  // Navegación Paso 3
+  const btnPrev3 = document.getElementById('btnWizardPrev-3');
+  const btnNext3 = document.getElementById('btnWizardNext-3');
+  btnPrev3?.addEventListener('click', () => renderWizardStep(2));
+  btnNext3?.addEventListener('click', () => {
+    const name = document.getElementById('wPointNameInput')?.value.trim();
+    const code = document.getElementById('wPointCodeInput')?.value.trim();
+    if (!name || !code) {
+      alert('Por favor complete el nombre y código de la Sede de Despacho (*).');
+      return;
+    }
+    renderWizardStep(4);
+  });
+
+  // Navegación Paso 4
+  const btnPrev4 = document.getElementById('btnWizardPrev-4');
+  const btnNext4 = document.getElementById('btnWizardNext-4');
+  btnPrev4?.addEventListener('click', () => renderWizardStep(3));
+  btnNext4?.addEventListener('click', () => {
+    const name = document.getElementById('wComboNameInput')?.value.trim();
+    if (!name) {
+      alert('Por favor ingrese el nombre del Beneficio o Combo Inicial (*).');
+      return;
+    }
+    renderWizardStep(5);
+  });
+
+  // Navegación Paso 5 (Atrás)
+  const btnPrev5 = document.getElementById('btnWizardPrev-5');
+  btnPrev5?.addEventListener('click', () => renderWizardStep(4));
+
+  // Carga Masiva Opcional de Nómina CSV en Paso 5
+  const csvInput = document.getElementById('wPayrollCsvFileInput');
+  const csvStatus = document.getElementById('wPayrollFileStatus');
+  csvInput?.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const text = ev.target.result;
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        if (lines.length < 2) {
+          alert('El archivo CSV debe contener cabecera y registros.');
+          return;
+        }
+        const delimiter = lines[0].includes(';') ? ';' : ',';
+        const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/["']/g, ''));
+        
+        wizardParsedWorkers = [];
+        for (let i = 1; i < lines.length; i++) {
+          const parts = lines[i].split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
+          const row = {};
+          headers.forEach((h, idx) => { row[h] = parts[idx] || ''; });
+          
+          const docId = row.cedula || row.document_id || row.ci || parts[0];
+          const fullName = row.nombre || row.full_name || row.nombres || parts[1];
+          if (docId && fullName) {
+            wizardParsedWorkers.push({
+              document_id: docId.includes('-') ? docId : `V-${docId}`,
+              full_name: fullName,
+              email: row.email || row.correo || '',
+              phone_number: row.telefono || row.phone || ''
+            });
+          }
+        }
+
+        if (csvStatus) {
+          csvStatus.textContent = `✅ ${wizardParsedWorkers.length} beneficiarios detectados en el archivo CSV.`;
+          csvStatus.style.display = 'block';
+        }
+      } catch (err) {
+        alert('Error leyendo archivo CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  // Ejecución Final del Setup
+  const btnFinal = document.getElementById('btnExecuteSetupFinal');
+  btnFinal?.addEventListener('click', async () => {
+    const adminDoc = document.getElementById('wAdminDocInput')?.value.trim();
+    const adminName = document.getElementById('wAdminNameInput')?.value.trim();
+    const adminEmail = document.getElementById('wAdminEmailInput')?.value.trim();
+    const adminPhone = document.getElementById('wAdminPhoneInput')?.value.trim();
+
+    const tenantName = document.getElementById('wTenantNameInput')?.value.trim();
+    const tenantShort = document.getElementById('wTenantShortInput')?.value.trim();
+    const tenantSlogan = document.getElementById('wTenantSloganInput')?.value.trim();
+    const tenantColor = document.getElementById('wTenantPrimaryColor')?.value || '#0284c7';
+    const tenantLogo = document.getElementById('wTenantLogoUrl')?.value.trim() || '';
+
+    const pointName = document.getElementById('wPointNameInput')?.value.trim();
+    const pointCode = document.getElementById('wPointCodeInput')?.value.trim();
+    const pointAddress = document.getElementById('wPointAddressInput')?.value.trim();
+
+    const comboName = document.getElementById('wComboNameInput')?.value.trim();
+    const comboCat = document.getElementById('wComboCategorySelect')?.value || 'bolsa_viveres';
+    const comboItems = document.getElementById('wComboItemsInput')?.value.trim();
+
+    btnFinal.disabled = true;
+    btnFinal.textContent = 'Inicializando plataforma...';
+    if (alertBox) alertBox.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/v1/setup/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          admin: {
+            document_id: adminDoc,
+            full_name: adminName,
+            email: adminEmail,
+            phone_number: adminPhone
+          },
+          tenant: {
+            entity_name: tenantName,
+            entity_short_name: tenantShort,
+            slogan: tenantSlogan,
+            primary_color: tenantColor,
+            logo_url: tenantLogo
+          },
+          distribution_point: {
+            name: pointName,
+            location_code: pointCode,
+            address: pointAddress
+          },
+          combo: {
+            name: comboName,
+            category: comboCat,
+            items_detail: comboItems
+          },
+          workers: wizardParsedWorkers
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al inicializar la plataforma.');
+
+      // Ocultar banner de setup pendiente
+      const setupBanner = document.getElementById('setupPendingBanner');
+      if (setupBanner) setupBanner.style.display = 'none';
+
+      // Loguear al nuevo Superadmin
+      if (data.admin) {
+        localStorage.setItem('sgbt_user', JSON.stringify(data.admin));
+        STATE.currentUser = data.admin;
+        applyUserSession(data.admin);
+      }
+
+      await loadTenantSettings();
+      await loadWorkersDirectory();
+      await loadCombosCatalog();
+
+      playAudioFeedback('success');
+      alert(`🎉 ¡Plataforma Inicializada con Éxito!\n\nBienvenido Administrador ${data.admin.full_name}. El sistema está en marcha en modo productivo limpio.`);
+
+      navigateTo('view-portal');
+
+    } catch (err) {
+      if (alertBox) {
+        alertBox.textContent = err.message;
+        alertBox.style.display = 'block';
+      }
+      btnFinal.disabled = false;
+      btnFinal.innerHTML = `
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>🚀 Iniciar Operaciones de la Plataforma</span>
+      `;
+    }
+  });
+
+  renderWizardStep(1);
 }
 
 // ----------------------------------------------------------------------------
@@ -385,6 +819,11 @@ function navigateTo(viewId) {
   STATE.currentView = viewId;
 
   if (viewId === 'view-portal') {
+    const visibleSubtab = Array.from(document.querySelectorAll('.portal-content-block')).find(b => b.style.display !== 'none');
+    if (!visibleSubtab) {
+      const dashBtn = document.querySelector('.portal-subtab[data-subtab="subtab-dashboard"]');
+      if (dashBtn) dashBtn.click();
+    }
     refreshPortalData();
   }
 }

@@ -45,15 +45,38 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Estado del Sistema y Diagnóstico de Base de Datos (Supabase vs. SQLite)
+// Estado del Sistema y Diagnóstico de Base de Datos (Supabase vs. SQLite) & Inicialización
 app.get('/api/v1/system/status', async (req, res) => {
   try {
     const supabaseInfo = await testSupabaseConnection();
+    let isInitialized = true;
+    let hasAdmin = false;
+    let tenantInfo = null;
+
+    try {
+      const tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
+      if (tenant) {
+        isInitialized = tenant.is_initialized === 1 || tenant.is_initialized === '1';
+        tenantInfo = {
+          entity_name: tenant.entity_name,
+          entity_short_name: tenant.entity_short_name,
+          primary_color: tenant.primary_color
+        };
+      }
+      const adminCount = db.prepare("SELECT COUNT(*) as count FROM workers WHERE role = 'admin' OR role = 'director'").get();
+      hasAdmin = adminCount && adminCount.count > 0;
+    } catch (dbErr) {
+      console.warn('[SYSTEM STATUS] Error consultando estado inicialización:', dbErr.message);
+    }
+
     res.json({
       status: 'online',
       database_engine: supabaseInfo.connected ? 'supabase_cloud' : 'sqlite_local',
       supabase_configured: isSupabaseConfigured(),
       supabase_details: supabaseInfo,
+      is_initialized: isInitialized,
+      has_admin: hasAdmin,
+      tenant: tenantInfo,
       server_time: new Date().toISOString()
     });
   } catch (err) {
@@ -1112,6 +1135,253 @@ app.put('/api/v1/distribution-points/:id', (req, res) => {
   } catch (err) {
     console.error('[DISTRIBUTION POINT UPDATE ERROR]', err);
     res.status(500).json({ error: 'Error al actualizar la sede de despacho' });
+  }
+});
+
+// ----------------------------------------------------------------------------
+// 4.9.2 ESTADO DEL SISTEMA, PUESTA A CERO & ASISTENTE DE CONFIGURACIÓN INICIAL
+// ----------------------------------------------------------------------------
+app.get('/api/v1/system/status', (req, res) => {
+  try {
+    const tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
+    const adminCount = db.prepare("SELECT COUNT(*) as count FROM workers WHERE role = 'admin'").get().count;
+    const is_initialized = tenant ? (tenant.is_initialized === 1 && adminCount > 0) : false;
+
+    res.json({
+      success: true,
+      is_initialized: Boolean(is_initialized),
+      has_admin: adminCount > 0,
+      tenant: tenant || null
+    });
+  } catch (err) {
+    console.error('[SYSTEM STATUS ERROR]', err);
+    res.status(500).json({ error: 'Error al verificar estado del sistema' });
+  }
+});
+
+app.get('/api/v1/admin/export-backup', (req, res) => {
+  try {
+    const dateStr = new Date().toISOString().split('T')[0];
+    const backup = {
+      export_version: '2.3',
+      exported_at: new Date().toISOString(),
+      tenant: db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get() || {},
+      departments: db.prepare("SELECT * FROM departments").all(),
+      distribution_points: db.prepare("SELECT * FROM distribution_points").all(),
+      combos: db.prepare("SELECT * FROM combos").all(),
+      workers: db.prepare("SELECT id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, phone_number FROM workers").all(),
+      campaigns: db.prepare("SELECT * FROM delivery_campaigns").all(),
+      daily_entitlements: db.prepare("SELECT * FROM daily_entitlements").all(),
+      deliveries: db.prepare("SELECT * FROM deliveries").all(),
+      payroll_sync_logs: db.prepare("SELECT * FROM payroll_sync_logs").all()
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="sgbt_backup_${dateStr}.json"`);
+    res.send(JSON.stringify(backup, null, 2));
+  } catch (err) {
+    console.error('[EXPORT BACKUP ERROR]', err);
+    res.status(500).json({ error: 'Error al generar el respaldo de la base de datos' });
+  }
+});
+
+app.post('/api/v1/admin/factory-reset', (req, res) => {
+  const { phrase, keep_templates } = req.body;
+
+  if (!phrase || phrase.trim() !== 'REINICIAR SISTEMA') {
+    return res.status(400).json({ error: 'Debe ingresar exactamente la frase "REINICIAR SISTEMA" para autorizar la puesta a cero.' });
+  }
+
+  try {
+    // 1. Limpieza de datos transaccionales, auditorías, jornadas y beneficiarios
+    db.exec(`
+      DELETE FROM deliveries;
+      DELETE FROM daily_entitlements;
+      DELETE FROM delivery_campaigns;
+      DELETE FROM system_notifications;
+      DELETE FROM passkey_credentials;
+      DELETE FROM nfc_cards;
+      DELETE FROM workers;
+    `);
+
+    // 2. Si no se desea conservar plantillas, vaciar combos, sedes y departamentos
+    if (!keep_templates) {
+      db.exec(`
+        DELETE FROM combos;
+        DELETE FROM distribution_points;
+        DELETE FROM departments;
+      `);
+    }
+
+    // 3. Marcar el sistema como no inicializado
+    db.prepare(`
+      UPDATE tenant_settings
+      SET is_initialized = 0,
+          entity_name = 'Ente Institucional',
+          entity_short_name = 'INSTITUCIÓN',
+          slogan = 'Bienestar y Soberanía Alimentaria',
+          logo_url = '',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = 'current_tenant'
+    `).run();
+
+    // 4. Limpiar llaves de enclave simuladas en memoria
+    if (secureEnclaveSimulator && typeof secureEnclaveSimulator.clear === 'function') {
+      secureEnclaveSimulator.clear();
+    }
+
+    console.log('[FACTORY RESET] Base de datos puesta a cero exitosamente. is_initialized = 0.');
+
+    res.json({
+      success: true,
+      message: 'Base de datos puesta a cero exitosamente. El sistema está listo para la primera configuración.',
+      is_initialized: false
+    });
+  } catch (err) {
+    console.error('[FACTORY RESET ERROR]', err);
+    res.status(500).json({ error: 'Error al ejecutar la puesta a cero de la base de datos' });
+  }
+});
+
+app.post('/api/v1/setup/initialize', (req, res) => {
+  const { admin, tenant, distribution_point, combo, workers } = req.body;
+
+  if (!admin || !admin.document_id || !admin.full_name) {
+    return res.status(400).json({ error: 'Los datos del Administrador Principal (Cédula y Nombre) son obligatorios.' });
+  }
+
+  try {
+    const adminDoc = admin.document_id.trim().toUpperCase();
+    const adminEmail = (admin.email && admin.email.trim()) ? admin.email.trim() : `${adminDoc.toLowerCase().replace(/[^a-z0-9]/g, '')}@institucion.gob.ve`;
+
+    // 1. Departamento por defecto si no existe
+    let deptId = null;
+    const existingDept = db.prepare('SELECT id FROM departments LIMIT 1').get();
+    if (existingDept) {
+      deptId = existingDept.id;
+    } else {
+      deptId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO departments (id, code, name, cost_center)
+        VALUES (?, 'DGGH_01', 'Dirección General de Gestión Humana', 'CC-1010')
+      `).run(deptId);
+    }
+
+    // 2. Crear Administrador Principal
+    const adminId = crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO workers (
+        id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, phone_number
+      ) VALUES (?, ?, ?, ?, ?, 'jornada_continua', 'active', 'activo', 'admin', 1, ?)
+    `).run(
+      adminId,
+      adminDoc,
+      admin.full_name.trim(),
+      adminEmail,
+      deptId,
+      admin.phone_number || ''
+    );
+
+    // 3. Configurar Tenant / Identidad Institucional
+    if (tenant) {
+      db.prepare(`
+        UPDATE tenant_settings
+        SET entity_name = ?,
+            entity_short_name = ?,
+            slogan = ?,
+            logo_url = ?,
+            primary_color = ?,
+            secondary_color = ?,
+            is_initialized = 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = 'current_tenant'
+      `).run(
+        tenant.entity_name?.trim() || 'Ministerio del Poder Popular',
+        tenant.entity_short_name?.trim().toUpperCase() || 'ENTE',
+        tenant.slogan?.trim() || 'Bienestar Institucional',
+        tenant.logo_url || '',
+        tenant.primary_color || '#0284c7',
+        tenant.secondary_color || '#0ea5e9'
+      );
+    } else {
+      db.prepare("UPDATE tenant_settings SET is_initialized = 1 WHERE id = 'current_tenant'").run();
+    }
+
+    // 4. Crear Punto / Sede de Despacho si se especificó
+    let pointId = null;
+    if (distribution_point && distribution_point.name && distribution_point.name.trim()) {
+      pointId = crypto.randomUUID();
+      const pointCode = (distribution_point.location_code || distribution_point.name.substring(0, 6)).trim().toUpperCase().replace(/\s+/g, '-');
+      db.prepare(`
+        INSERT INTO distribution_points (id, name, location_code, address, is_active)
+        VALUES (?, ?, ?, ?, 1)
+      `).run(pointId, distribution_point.name.trim(), pointCode, (distribution_point.address || '').trim());
+    }
+
+    // 5. Crear Combo / Beneficio inicial si se especificó
+    let comboId = null;
+    if (combo && combo.name && combo.name.trim()) {
+      comboId = crypto.randomUUID();
+      db.prepare(`
+        INSERT INTO combos (id, name, description, category, calories, dietary_info, items_detail, icon, is_active)
+        VALUES (?, ?, ?, ?, ?, 'Estándar', ?, ?, 1)
+      `).run(
+        comboId,
+        combo.name.trim(),
+        combo.description || combo.name.trim(),
+        combo.category || 'bolsa_viveres',
+        parseInt(combo.calories) || 1200,
+        combo.items_detail || 'Rubros básicos de la canasta alimentaria',
+        combo.icon || '🍱'
+      );
+    }
+
+    // 6. Cargar trabajadores adicionales si se cargó nómina CSV
+    let importedWorkersCount = 0;
+    if (Array.isArray(workers) && workers.length > 0) {
+      const insertWorker = db.prepare(`
+        INSERT OR IGNORE INTO workers (
+          id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, phone_number
+        ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
+      `);
+
+      for (const w of workers) {
+        if (!w.document_id || !w.full_name) continue;
+        const wDoc = w.document_id.trim().toUpperCase();
+        if (wDoc === adminDoc) continue; // Ya es el admin
+
+        insertWorker.run(
+          crypto.randomUUID(),
+          wDoc,
+          w.full_name.trim(),
+          w.email || `${wDoc.toLowerCase().replace(/[^0-9a-z]/g, '')}@institucion.gob.ve`,
+          deptId,
+          w.shift || 'jornada_continua',
+          w.worker_type || 'activo',
+          w.role || 'worker',
+          1,
+          w.phone_number || ''
+        );
+        importedWorkersCount++;
+      }
+    }
+
+    console.log(`[SETUP COMPLETE] Inicialización completada para: ${tenant?.entity_name || 'Ente'}. Admin: ${admin.full_name}. Nómina cargada: ${importedWorkersCount}`);
+
+    const createdAdmin = db.prepare('SELECT id, document_id, full_name, email, role FROM workers WHERE id = ?').get(adminId);
+    const updatedTenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
+
+    res.status(201).json({
+      success: true,
+      message: '¡Plataforma inicializada y configurada exitosamente!',
+      admin: createdAdmin,
+      tenant: updatedTenant,
+      imported_workers: importedWorkersCount
+    });
+
+  } catch (err) {
+    console.error('[SETUP INITIALIZE ERROR]', err);
+    res.status(500).json({ error: 'Error durante la inicialización del sistema: ' + err.message });
   }
 });
 
