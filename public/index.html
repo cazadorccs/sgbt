@@ -1294,7 +1294,7 @@ Listo para recibir transacciones de nómina SSOT...
           <input type="text" id="comboNameInput" class="form-input" placeholder="Ej: Combo Escolar Paso a Clases 2026-2027" required />
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="input-group">
             <label style="font-size: 0.75rem; color: var(--sea-anakiwa); font-weight: 600; text-transform: uppercase;">
               Categoría del Beneficio: *
@@ -1334,7 +1334,7 @@ Listo para recibir transacciones de nómina SSOT...
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="input-group">
             <label style="font-size: 0.75rem; color: var(--sea-anakiwa); font-weight: 600; text-transform: uppercase;">
               Población Asignada Objetivo:
@@ -1585,7 +1585,7 @@ Listo para recibir transacciones de nómina SSOT...
           <input type="text" id="newWorkerFullName" class="form-input" placeholder="Ej: Carmen Teresa Rodríguez" required />
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="input-group">
             <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
               Condición Laboral: *
@@ -1608,7 +1608,7 @@ Listo para recibir transacciones de nómina SSOT...
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="input-group">
             <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
               Teléfono Celular / WhatsApp:
@@ -1707,50 +1707,43 @@ Listo para recibir transacciones de nómina SSOT...
        MODAL 7: PLANIFICACIÓN DE NUEVA JORNADA DE DESPACHO
        ====================================================================== -->
   <div id="createCampaignModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 600px;">
+    <div class="modal-dialog" style="max-width: 620px;">
       <div class="panel-header" style="margin-bottom: 1.25rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          📅 Programar Nueva Jornada de Despacho
+        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.6rem; font-size: 1.15rem; font-weight: 700;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(2, 132, 199, 0.1); color: var(--sea-pacific); flex-shrink: 0;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </div>
+          <span>Programar Nueva Jornada de Despacho</span>
         </div>
         <button id="btnCloseCreateCampaignModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
       </div>
 
       <form id="createCampaignForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
         <div class="input-group">
-          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Título / Nombre de la Jornada: *
-          </label>
+          <label>Título / Nombre de la Jornada: *</label>
           <input type="text" id="campaignNameInput" class="form-input" placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Fecha de Inicio: *
-            </label>
+            <label>Fecha de Inicio: *</label>
             <input type="date" id="campaignStartDateInput" class="form-input" required />
           </div>
           <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Fecha de Cierre: *
-            </label>
+            <label>Fecha de Cierre: *</label>
             <input type="date" id="campaignEndDateInput" class="form-input" required />
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="form-grid-2">
           <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Combo / Beneficio Asignado: *
-            </label>
+            <label>Combo / Beneficio Asignado: *</label>
             <select id="campaignComboSelect" class="form-select" required>
               <!-- Dinámico desde combos -->
             </select>
           </div>
           <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Punto / Sede de Despacho: *
-            </label>
+            <label>Punto / Sede de Despacho: *</label>
             <select id="campaignPointSelect" class="form-select" required>
               <!-- Dinámico desde distribution_points -->
             </select>
@@ -1758,9 +1751,7 @@ Listo para recibir transacciones de nómina SSOT...
         </div>
 
         <div class="input-group">
-          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Población Objetivo / Criterio de Selección:
-          </label>
+          <label>Población Objetivo / Criterio de Selección:</label>
           <select id="campaignTargetSelect" class="form-select">
             <option value="all">Todo el Personal (Universal: Activos, Jubilados, Contratados)</option>
             <option value="activo">Exclusivo Personal Activo</option>
@@ -1770,9 +1761,7 @@ Listo para recibir transacciones de nómina SSOT...
         </div>
 
         <div class="input-group">
-          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Descripción / Instrucciones de Retiro:
-          </label>
+          <label>Descripción / Instrucciones de Retiro:</label>
           <textarea id="campaignDescriptionInput" class="form-input" rows="2" placeholder="Ej: Presentar documento de identidad o QR biométrico en la mesa central de 8:30 AM a 4:00 PM."></textarea>
         </div>
 
