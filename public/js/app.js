@@ -2261,11 +2261,13 @@ function checkAuthSession() {
 
 let currentTenantData = null;
 let parsedCsvWorkers = [];
+let cachedDistributionPoints = [];
 
 function initEnterpriseFeatures() {
   setupTenantBranding();
   setupWorkerManagement();
   setupCampaignsManagement();
+  setupDistributionPointsManagement();
   setupNotificationsSystem();
   loadTenantSettings();
   loadNotifications();
@@ -2375,10 +2377,8 @@ async function loadTenantSettings() {
 
     const pointSelect = document.getElementById('campaignPointSelect');
     if (pointSelect && distributionPoints) {
-      pointSelect.innerHTML = '';
-      distributionPoints.forEach(p => {
-        pointSelect.innerHTML += `<option value="${p.id}">${p.name} (${p.location_code})</option>`;
-      });
+      cachedDistributionPoints = distributionPoints;
+      populateDistributionPointsSelect();
     }
 
   } catch (err) {
@@ -2935,13 +2935,19 @@ function setupCampaignsManagement() {
 
   btnOpen?.addEventListener('click', () => {
     form?.reset();
+    const panel = document.getElementById('distributionPointFormPanel');
+    if (panel) panel.style.display = 'none';
     if (startInput) startInput.value = today;
     if (endInput) endInput.value = today;
     if (alertBox) alertBox.style.display = 'none';
     modal?.classList.add('active');
   });
 
-  const closeModal = () => modal?.classList.remove('active');
+  const closeModal = () => {
+    const panel = document.getElementById('distributionPointFormPanel');
+    if (panel) panel.style.display = 'none';
+    modal?.classList.remove('active');
+  };
   btnClose?.addEventListener('click', closeModal);
   btnCancel?.addEventListener('click', closeModal);
 
@@ -2992,6 +2998,162 @@ function setupCampaignsManagement() {
         alertBox.textContent = err.message;
         alertBox.style.display = 'block';
       }
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 3.1 GESTIÓN DINÁMICA DE SEDES / PUNTOS DE DESPACHO (MODIFICAR & AGREGAR)
+// ----------------------------------------------------------------------------
+function populateDistributionPointsSelect(selectedId = null) {
+  const pointSelect = document.getElementById('campaignPointSelect');
+  if (!pointSelect) return;
+  pointSelect.innerHTML = '';
+  if (cachedDistributionPoints.length === 0) {
+    pointSelect.innerHTML = '<option value="">-- Sin Sedes Registradas --</option>';
+    return;
+  }
+  cachedDistributionPoints.forEach(p => {
+    const isSelected = selectedId ? (p.id === selectedId) : false;
+    pointSelect.innerHTML += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${p.name} (${p.location_code})</option>`;
+  });
+  if (selectedId) {
+    pointSelect.value = selectedId;
+  }
+}
+
+async function reloadDistributionPoints(selectedId = null) {
+  try {
+    const res = await fetch('/api/v1/distribution-points');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.distributionPoints)) {
+      cachedDistributionPoints = data.distributionPoints;
+      populateDistributionPointsSelect(selectedId);
+    }
+  } catch (err) {
+    console.warn('Error al recargar sedes de despacho:', err);
+  }
+}
+
+function setupDistributionPointsManagement() {
+  const btnAdd = document.getElementById('btnAddDistributionPoint');
+  const btnEdit = document.getElementById('btnEditDistributionPoint');
+  const panel = document.getElementById('distributionPointFormPanel');
+  const btnCancel = document.getElementById('btnCancelDistributionPointForm');
+  const btnClose = document.getElementById('btnClosePointPanel');
+  const btnSave = document.getElementById('btnSaveDistributionPoint');
+  const btnSaveText = document.getElementById('btnSavePointText');
+  const titleText = document.getElementById('distributionPointFormTitleText');
+  const alertBox = document.getElementById('pointFormAlert');
+  const select = document.getElementById('campaignPointSelect');
+
+  const idInput = document.getElementById('editPointId');
+  const nameInput = document.getElementById('pointNameInput');
+  const codeInput = document.getElementById('pointCodeInput');
+  const addressInput = document.getElementById('pointAddressInput');
+
+  const closePanel = () => {
+    if (panel) panel.style.display = 'none';
+    if (alertBox) alertBox.style.display = 'none';
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (codeInput) codeInput.value = '';
+    if (addressInput) addressInput.value = '';
+  };
+
+  btnCancel?.addEventListener('click', closePanel);
+  btnClose?.addEventListener('click', closePanel);
+
+  // Botón "Nueva" Sede
+  btnAdd?.addEventListener('click', () => {
+    closePanel();
+    if (titleText) titleText.textContent = 'Nueva Sede de Despacho';
+    if (btnSaveText) btnSaveText.textContent = 'Guardar y Asignar Sede';
+    if (panel) {
+      panel.style.display = 'block';
+      nameInput?.focus();
+    }
+  });
+
+  // Botón "Editar" Sede Seleccionada
+  btnEdit?.addEventListener('click', () => {
+    const currentId = select?.value;
+    if (!currentId) {
+      alert('Por favor seleccione una sede en la lista para modificar.');
+      return;
+    }
+    const current = cachedDistributionPoints.find(p => p.id === currentId);
+    if (!current) {
+      alert('No se encontraron los datos de la sede seleccionada.');
+      return;
+    }
+
+    if (idInput) idInput.value = current.id;
+    if (nameInput) nameInput.value = current.name || '';
+    if (codeInput) codeInput.value = current.location_code || '';
+    if (addressInput) addressInput.value = current.address || '';
+    if (titleText) titleText.textContent = 'Modificar Sede de Despacho';
+    if (btnSaveText) btnSaveText.textContent = 'Actualizar Sede';
+    if (alertBox) alertBox.style.display = 'none';
+    if (panel) {
+      panel.style.display = 'block';
+      nameInput?.focus();
+    }
+  });
+
+  // Guardar (POST o PUT)
+  btnSave?.addEventListener('click', async () => {
+    const editId = idInput?.value;
+    const name = nameInput?.value.trim();
+    const location_code = codeInput?.value.trim().toUpperCase();
+    const address = addressInput?.value.trim();
+
+    if (!name) {
+      if (alertBox) {
+        alertBox.textContent = 'El nombre de la sede es obligatorio.';
+        alertBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (!location_code) {
+      if (alertBox) {
+        alertBox.textContent = 'El código de ubicación es obligatorio (ej: COM-01).';
+        alertBox.style.display = 'block';
+      }
+      return;
+    }
+
+    btnSave.disabled = true;
+    const originalText = btnSaveText?.textContent;
+    if (btnSaveText) btnSaveText.textContent = 'Guardando...';
+
+    try {
+      const url = editId ? `/api/v1/distribution-points/${editId}` : '/api/v1/distribution-points';
+      const method = editId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, location_code, address })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'No se pudo guardar la sede de despacho.');
+      }
+
+      const savedPoint = data.point;
+      await reloadDistributionPoints(savedPoint.id);
+      closePanel();
+    } catch (err) {
+      if (alertBox) {
+        alertBox.textContent = err.message;
+        alertBox.style.display = 'block';
+      }
+    } finally {
+      btnSave.disabled = false;
+      if (btnSaveText) btnSaveText.textContent = originalText;
     }
   });
 }

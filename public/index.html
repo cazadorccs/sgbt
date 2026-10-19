@@ -1743,10 +1743,56 @@ Listo para recibir transacciones de nómina SSOT...
             </select>
           </div>
           <div class="input-group">
-            <label>Punto / Sede de Despacho: *</label>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.15rem;">
+              <label style="margin-bottom: 0;">Punto / Sede: *</label>
+              <div style="display: flex; gap: 0.35rem;">
+                <button type="button" id="btnEditDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;" title="Modificar la sede seleccionada">
+                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                  <span>Editar</span>
+                </button>
+                <button type="button" id="btnAddDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-color: #0284c7; color: #0284c7; background: rgba(2, 132, 199, 0.04); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;" title="Agregar nueva sede de despacho">
+                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <span>Nueva</span>
+                </button>
+              </div>
+            </div>
             <select id="campaignPointSelect" class="form-select" required>
               <!-- Dinámico desde distribution_points -->
             </select>
+          </div>
+        </div>
+
+        <!-- PANEL INLINE PARA AGREGAR O MODIFICAR SEDE DE DESPACHO -->
+        <div id="distributionPointFormPanel" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-sm); padding: 0.85rem; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05); animation: modalEnter 0.15s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+            <div id="distributionPointFormTitle" style="font-size: 0.82rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+              <svg class="icon-svg icon-xs" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <span id="distributionPointFormTitleText">Nueva Sede de Despacho</span>
+            </div>
+            <button type="button" id="btnCancelDistributionPointForm" class="btn btn-outline" style="padding: 0.1rem 0.4rem; font-size: 0.7rem; border-color: transparent; color: #64748b;" title="Cerrar">✕</button>
+          </div>
+          <input type="hidden" id="editPointId" value="" />
+          <div class="form-grid-2" style="margin-bottom: 0.5rem;">
+            <div class="input-group">
+              <label style="font-size: 0.7rem;">Nombre de la Sede / Punto: *</label>
+              <input type="text" id="pointNameInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Comedor Mezzanina Torre Este" />
+            </div>
+            <div class="input-group">
+              <label style="font-size: 0.7rem;">Código de Ubicación: *</label>
+              <input type="text" id="pointCodeInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem; text-transform: uppercase;" placeholder="Ej: COM-MTE" />
+            </div>
+          </div>
+          <div class="input-group" style="margin-bottom: 0.65rem;">
+            <label style="font-size: 0.7rem;">Dirección Física o Referencia:</label>
+            <input type="text" id="pointAddressInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Piso 1, frente a torniquetes y ascensores 3 y 4" />
+          </div>
+          <div id="pointFormAlert" class="alert-box alert-danger" style="display: none; padding: 0.45rem 0.65rem; font-size: 0.75rem; margin-bottom: 0.5rem;"></div>
+          <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+            <button type="button" id="btnClosePointPanel" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Cancelar</button>
+            <button type="button" id="btnSaveDistributionPoint" class="btn btn-primary" style="padding: 0.35rem 0.9rem; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span id="btnSavePointText">Guardar y Asignar Sede</span>
+            </button>
           </div>
         </div>
 

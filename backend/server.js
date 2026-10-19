@@ -1030,6 +1030,92 @@ app.post('/api/v1/tenant/settings', (req, res) => {
 });
 
 // ----------------------------------------------------------------------------
+// 4.9.1 GESTIÓN DINÁMICA DE PUNTOS / SEDES DE DESPACHO
+// ----------------------------------------------------------------------------
+app.get('/api/v1/distribution-points', (req, res) => {
+  try {
+    const points = db.prepare('SELECT id, name, location_code, address, is_active FROM distribution_points WHERE is_active = 1 ORDER BY name ASC').all();
+    res.json({ success: true, distributionPoints: points });
+  } catch (err) {
+    console.error('[DISTRIBUTION POINTS GET ERROR]', err);
+    res.status(500).json({ error: 'Error al listar sedes de despacho' });
+  }
+});
+
+app.post('/api/v1/distribution-points', (req, res) => {
+  const { name, location_code, address } = req.body;
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'El nombre de la sede es obligatorio' });
+  }
+  const cleanCode = (location_code || name.substring(0, 8)).trim().toUpperCase().replace(/\s+/g, '-');
+
+  try {
+    const existing = db.prepare('SELECT id FROM distribution_points WHERE location_code = ?').get(cleanCode);
+    if (existing) {
+      return res.status(409).json({ error: `Ya existe una sede con el código de ubicación "${cleanCode}"` });
+    }
+
+    const id = crypto.randomUUID();
+    db.prepare(`
+      INSERT INTO distribution_points (id, name, location_code, address, is_active, created_at)
+      VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+    `).run(id, name.trim(), cleanCode, (address || '').trim());
+
+    const created = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE id = ?').get(id);
+    console.log(`[DISTRIBUTION POINT] Nueva sede creada: ${created.name} (${created.location_code})`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Sede de despacho creada exitosamente',
+      point: created
+    });
+  } catch (err) {
+    console.error('[DISTRIBUTION POINT CREATE ERROR]', err);
+    res.status(500).json({ error: 'Error al crear la sede de despacho' });
+  }
+});
+
+app.put('/api/v1/distribution-points/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, location_code, address } = req.body;
+
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: 'El nombre de la sede es obligatorio' });
+  }
+  const cleanCode = (location_code || name.substring(0, 8)).trim().toUpperCase().replace(/\s+/g, '-');
+
+  try {
+    const current = db.prepare('SELECT id FROM distribution_points WHERE id = ?').get(id);
+    if (!current) {
+      return res.status(404).json({ error: 'Sede de despacho no encontrada' });
+    }
+
+    const duplicate = db.prepare('SELECT id FROM distribution_points WHERE location_code = ? AND id != ?').get(cleanCode, id);
+    if (duplicate) {
+      return res.status(409).json({ error: `El código "${cleanCode}" ya está en uso por otra sede` });
+    }
+
+    db.prepare(`
+      UPDATE distribution_points
+      SET name = ?, location_code = ?, address = ?
+      WHERE id = ?
+    `).run(name.trim(), cleanCode, (address || '').trim(), id);
+
+    const updated = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE id = ?').get(id);
+    console.log(`[DISTRIBUTION POINT] Sede actualizada: ${updated.name} (${updated.location_code})`);
+
+    res.json({
+      success: true,
+      message: 'Sede de despacho actualizada exitosamente',
+      point: updated
+    });
+  } catch (err) {
+    console.error('[DISTRIBUTION POINT UPDATE ERROR]', err);
+    res.status(500).json({ error: 'Error al actualizar la sede de despacho' });
+  }
+});
+
+// ----------------------------------------------------------------------------
 // 4.10 GESTIÓN DINÁMICA DE BENEFICIARIOS / NÓMINA FLEXIBLE
 // ----------------------------------------------------------------------------
 app.post('/api/v1/admin/workers', (req, res) => {
