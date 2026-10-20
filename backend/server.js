@@ -752,17 +752,38 @@ app.post('/api/v1/sync/batch-deliveries', (req, res) => {
   `);
 
   const tx = db.transaction(() => {
+    const defaultPoint = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+    const fallbackPointId = defaultPoint ? defaultPoint.id : null;
+    const defaultOperator = db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
+    const fallbackOperatorId = defaultOperator ? defaultOperator.id : null;
+
     for (const d of deliveries) {
       try {
         const deliveryId = d.id || crypto.randomUUID();
         const isOffline = d.is_offline_sync !== undefined ? (d.is_offline_sync ? 1 : 0) : 1;
 
+        let ptId = distribution_point_id || d.distribution_point_id;
+        if (ptId) {
+          const ptExists = db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(ptId);
+          if (!ptExists) ptId = fallbackPointId;
+        } else {
+          ptId = fallbackPointId;
+        }
+
+        let opId = d.delivered_by_user_id;
+        if (opId) {
+          const opExists = db.prepare("SELECT id FROM workers WHERE id = ?").get(opId);
+          if (!opExists) opId = fallbackOperatorId;
+        } else {
+          opId = fallbackOperatorId;
+        }
+
         insertDelivery.run(
           deliveryId,
           d.entitlement_id,
           d.worker_id,
-          distribution_point_id || d.distribution_point_id || '550e8400-e29b-41d4-a716-446655440000',
-          d.delivered_by_user_id || 'd1112222-3333-4444-5555-666677778888',
+          ptId,
+          opId,
           d.verification_method || 'passkey_qr',
           d.signature_proof || null,
           d.challenge_nonce || null,
@@ -2485,13 +2506,13 @@ app.post('/api/v1/verify/qr', (req, res) => {
 
   const { wid, ent, ts, nonce, sig } = qr_payload;
 
-  // 1. Verificar expiración de 60 segundos
+  // 1. Verificar expiración de 180 segundos (3 minutos para permitir verificación cómoda)
   const now = Math.floor(Date.now() / 1000);
-  if (Math.abs(now - ts) > 60) {
+  if (Math.abs(now - ts) > 180) {
     return res.status(400).json({
       valid: false,
       code: 'QR_EXPIRED',
-      message: 'Código QR expirado (Vigencia máxima 60 segundos para evitar capturas de pantalla)'
+      message: 'Código QR expirado (Vigencia máxima 180 segundos para evitar capturas de pantalla)'
     });
   }
 
@@ -2526,6 +2547,24 @@ app.post('/api/v1/verify/qr', (req, res) => {
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     const campId = activeCamp ? activeCamp.id : null;
 
+    // Resolver punto de entrega válido
+    let distPoint = distribution_point_id 
+      ? db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(distribution_point_id) 
+      : null;
+    if (!distPoint) {
+      distPoint = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+    }
+    const finalPointId = distPoint ? distPoint.id : null;
+
+    // Resolver usuario operador/supervisor válido
+    let operatorUser = delivered_by_user_id 
+      ? db.prepare("SELECT id FROM workers WHERE id = ?").get(delivered_by_user_id) 
+      : null;
+    if (!operatorUser) {
+      operatorUser = db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
+    }
+    const finalOperatorId = operatorUser ? operatorUser.id : null;
+
     db.prepare(`
       INSERT INTO deliveries (
         id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
@@ -2535,8 +2574,8 @@ app.post('/api/v1/verify/qr', (req, res) => {
       deliveryId,
       ent,
       wid,
-      distribution_point_id || '550e8400-e29b-41d4-a716-446655440000',
-      delivered_by_user_id || 'd1112222-3333-4444-5555-666677778888',
+      finalPointId,
+      finalOperatorId,
       sig,
       nonce,
       campId

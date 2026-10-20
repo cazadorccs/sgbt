@@ -2120,23 +2120,44 @@ function setupWorkerSimulator() {
 
       STATE.activeQrPayload = signData.qr_payload;
 
+      // Sincronizar en localStorage y BroadcastChannel para pruebas multi-pestaña / multi-dispositivo
+      try {
+        localStorage.setItem('sgbt_active_qr_payload', JSON.stringify(signData.qr_payload));
+        localStorage.setItem('sgbt_active_qr_worker_name', (currentWorker && currentWorker.full_name) || 'Carlos Mendoza');
+        localStorage.setItem('sgbt_active_qr_doc', (currentWorker && currentWorker.document_id) || 'V-18456123');
+        localStorage.setItem('sgbt_active_qr_timestamp', Date.now().toString());
+
+        if ('BroadcastChannel' in window) {
+          const bc = new BroadcastChannel('sgbt_qr_channel');
+          bc.postMessage({
+            type: 'NEW_QR_GENERATED',
+            payload: signData.qr_payload,
+            worker_name: (currentWorker && currentWorker.full_name) || 'Carlos Mendoza',
+            doc_id: (currentWorker && currentWorker.document_id) || 'V-18456123'
+          });
+          bc.close();
+        }
+      } catch (e) {
+        console.warn('[QR SYNC ERROR]', e);
+      }
+
       // Mostrar contenedor de QR
       const qrContainer = document.getElementById('workerQrContainer');
       qrContainer.style.display = 'flex';
 
-      // Renderizar QR Code dinámico
-      window.QRCodeGenerator.render('qrCodeTarget', signData.qr_raw_string);
+      // Renderizar QR Code estándar RFC (Reed-Solomon real legible por cualquier cámara)
+      window.QRCodeGenerator.render('qrCodeTarget', signData.qr_raw_string, { size: 260 });
       document.getElementById('qrNonceLabel').textContent = `Nonce: ${signData.qr_payload.nonce.substring(0, 24)}... (ES256)`;
 
-      // Iniciar cuenta regresiva estricta de 60 segundos
-      startQrCountdown(60);
+      // Iniciar cuenta regresiva de 180 segundos (3 minutos)
+      startQrCountdown(180);
 
     } catch (err) {
       alert('Error generando firma QR: ' + err.message);
     }
   });
 
-  // Temporizador de 60 segundos con barra visual
+  // Temporizador de 180 segundos con barra visual
   function startQrCountdown(seconds) {
     if (STATE.qrTimerInterval) clearInterval(STATE.qrTimerInterval);
 
@@ -2155,10 +2176,13 @@ function setupWorkerSimulator() {
 
       if (remaining <= 0) {
         clearInterval(STATE.qrTimerInterval);
-        label.textContent = '❌ Código QR expirado (Vigencia 60s)';
+        label.textContent = '❌ Código QR expirado (Vigencia 180s)';
         fill.style.width = '0%';
         fill.style.background = '#f43f5e';
         STATE.activeQrPayload = null;
+        try {
+          localStorage.removeItem('sgbt_active_qr_payload');
+        } catch (e) {}
       }
     }, 1000);
   }
@@ -2225,6 +2249,28 @@ function setupDistributorSimulator() {
   document.getElementById('btnStartCameraScanner')?.addEventListener('click', startLiveCameraScanner);
   document.getElementById('btnStopCameraScanner')?.addEventListener('click', stopLiveCameraScanner);
 
+  // Botón para escanear QR detectado en tiempo real desde otra pestaña o dispositivo
+  document.getElementById('btnQuickScanDetectedQr')?.addEventListener('click', () => {
+    scanWorkerQr();
+  });
+
+  // Selector de cámara física
+  const camSelect = document.getElementById('cameraDeviceSelect');
+  camSelect?.addEventListener('change', () => {
+    if (liveCameraScanner && liveCameraScanner.isScanning) {
+      startLiveCameraScanner();
+    }
+  });
+
+  // Carga alternativa de foto o captura de pantalla de QR
+  const btnUpload = document.getElementById('btnUploadQrImage');
+  const fileInput = document.getElementById('inputUploadQrImage');
+  btnUpload?.addEventListener('click', () => fileInput?.click());
+  fileInput?.addEventListener('change', handleQrImageUpload);
+
+  // Entrada manual o pegado de QR
+  document.getElementById('btnPasteQrManual')?.addEventListener('click', handleManualQrPaste);
+
   document.getElementById('btnCloseFeedbackOverlay')?.addEventListener('click', () => {
     document.getElementById('distributorFeedbackOverlay').classList.remove('active');
   });
@@ -2232,13 +2278,73 @@ function setupDistributorSimulator() {
   // Módulo de Contingencia
   document.getElementById('btnSearchContingencyWorker')?.addEventListener('click', searchContingencyWorker);
   document.getElementById('btnAuthorizeSupervisorOverride')?.addEventListener('click', executeSupervisorOverride);
+
+  // Escuchar sincronización en tiempo real de QR generado por el beneficiario (Multi-pestaña)
+  setupRealtimeQrSyncListener();
 }
 
-// Iniciar Escáner con la Cámara Física del Dispositivo (Cámara Trasera)
+// Sincronización en tiempo real entre pestañas (Beneficiario <-> Mesa de Despacho)
+function setupRealtimeQrSyncListener() {
+  const showBanner = (workerName, docId, payload) => {
+    const banner = document.getElementById('liveQrDetectedBanner');
+    const info = document.getElementById('liveQrDetectedInfo');
+    if (banner && info) {
+      STATE.activeQrPayload = payload;
+      info.innerHTML = `<strong>${workerName || 'Beneficiario'}</strong> &middot; Cédula: <strong>${docId || 'V-18456123'}</strong><br><small style="color: #6ee7b7;">Firma criptográfica ECDSA P-256 lista para validación.</small>`;
+      banner.style.display = 'block';
+      playAudioFeedback('success');
+    }
+  };
+
+  // 1. Escuchar por BroadcastChannel
+  if ('BroadcastChannel' in window) {
+    try {
+      const bc = new BroadcastChannel('sgbt_qr_channel');
+      bc.onmessage = (e) => {
+        if (e.data && e.data.type === 'NEW_QR_GENERATED') {
+          console.log('[DISTRIBUIDOR] QR recibido por canal BroadcastChannel:', e.data);
+          showBanner(e.data.worker_name, e.data.doc_id, e.data.payload);
+        }
+      };
+    } catch (e) {
+      console.warn('BroadcastChannel error:', e);
+    }
+  }
+
+  // 2. Escuchar por evento storage de ventana
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'sgbt_active_qr_payload' && e.newValue) {
+      try {
+        const payload = JSON.parse(e.newValue);
+        const name = localStorage.getItem('sgbt_active_qr_worker_name') || 'Carlos Mendoza';
+        const doc = localStorage.getItem('sgbt_active_qr_doc') || 'V-18456123';
+        showBanner(name, doc, payload);
+      } catch (err) {}
+    }
+  });
+
+  // 3. Verificar si ya hay un QR activo en localStorage con vigencia < 60s
+  try {
+    const stored = localStorage.getItem('sgbt_active_qr_payload');
+    const storedTime = localStorage.getItem('sgbt_active_qr_timestamp');
+    if (stored && storedTime) {
+      const elapsed = (Date.now() - parseInt(storedTime, 10)) / 1000;
+      if (elapsed < 60) {
+        const payload = JSON.parse(stored);
+        const name = localStorage.getItem('sgbt_active_qr_worker_name') || 'Carlos Mendoza';
+        const doc = localStorage.getItem('sgbt_active_qr_doc') || 'V-18456123';
+        showBanner(name, doc, payload);
+      }
+    }
+  } catch (e) {}
+}
+
+// Iniciar Escáner con la Cámara Física del Dispositivo (Cámara Trasera o Frontal)
 async function startLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
   const badge = document.getElementById('cameraStatusBadge');
+  const camSelect = document.getElementById('cameraDeviceSelect');
 
   if (typeof Html5Qrcode === 'undefined') {
     alert('Biblioteca de cámara no cargada aún. Recargue la página.');
@@ -2259,48 +2365,98 @@ async function startLiveCameraScanner() {
 
     liveCameraScanner = new Html5Qrcode("cameraQrReader");
 
+    // Enumerar cámaras físicas disponibles (compatible con laptops, webcams y celulares)
+    let selectedCameraId = null;
+    try {
+      const devices = await Html5Qrcode.getCameras();
+      if (devices && devices.length > 0) {
+        if (camSelect) {
+          camSelect.innerHTML = '';
+          devices.forEach((dev, idx) => {
+            const opt = document.createElement('option');
+            opt.value = dev.id;
+            opt.textContent = dev.label || `Cámara ${idx + 1}`;
+            camSelect.appendChild(opt);
+          });
+          // Mostrar selector si hay más de 1 cámara (ej: frontal y trasera)
+          camSelect.style.display = devices.length > 1 ? 'block' : 'none';
+
+          // Preferir cámara trasera si existe en la lista
+          const backCam = devices.find(d => 
+            (d.label || '').toLowerCase().includes('back') || 
+            (d.label || '').toLowerCase().includes('trasera') || 
+            (d.label || '').toLowerCase().includes('rear') || 
+            (d.label || '').toLowerCase().includes('environment')
+          );
+          selectedCameraId = backCam ? backCam.id : devices[devices.length - 1].id;
+          camSelect.value = selectedCameraId;
+        } else {
+          selectedCameraId = devices[0].id;
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudieron enumerar cámaras físicas:', e);
+    }
+
     const config = {
-      fps: 15,
-      qrbox: { width: 260, height: 260 },
+      fps: 20,
+      qrbox: (viewfinderWidth, viewfinderHeight) => {
+        const edge = Math.min(viewfinderWidth, viewfinderHeight) * 0.75;
+        return { width: Math.floor(edge), height: Math.floor(edge) };
+      },
       aspectRatio: 1.0
     };
 
-    await liveCameraScanner.start(
-      { facingMode: "environment" }, // Preferir cámara trasera de almacén
-      config,
-      async (decodedText) => {
-        console.log('[CÁMARA QR] Código decodificado en vivo:', decodedText);
-        playAudioFeedback('success');
+    // Usar la cámara seleccionada o fallback suave a ideal environment/user
+    const cameraParam = selectedCameraId 
+      ? selectedCameraId 
+      : { facingMode: { ideal: "environment" } };
 
-        try {
-          let payload;
-          if (decodedText.startsWith('{') && decodedText.endsWith('}')) {
-            payload = JSON.parse(decodedText);
-          } else {
-            // Decodificar Base64 si viene codificado
-            try {
-              payload = JSON.parse(atob(decodedText));
-            } catch (e) {
-              payload = JSON.parse(decodedText);
-            }
+    const onScanSuccess = async (decodedText) => {
+      console.log('[CÁMARA QR] Código decodificado exitosamente:', decodedText);
+      playAudioFeedback('success');
+
+      try {
+        const cleanText = decodedText.trim();
+        let payload;
+
+        if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
+          payload = JSON.parse(cleanText);
+        } else if (cleanText.startsWith('%7B') || cleanText.startsWith('%7b')) {
+          payload = JSON.parse(decodeURIComponent(cleanText));
+        } else {
+          try {
+            payload = JSON.parse(atob(cleanText));
+          } catch (e) {
+            payload = JSON.parse(cleanText);
           }
-
-          // Detener temporalmente la cámara tras captura exitosa
-          await stopLiveCameraScanner();
-          await processQrPayload(payload);
-
-        } catch (err) {
-          showDistributorFeedback(false, 'FORMATO QR INVÁLIDO', 'El código escaneado no corresponde a una Passkey válida de la jornada.');
         }
-      },
-      (errorMessage) => {
-        // Ignorar errores de frame mientras enfoca
+
+        // Detener temporalmente la cámara tras captura exitosa
+        await stopLiveCameraScanner();
+        await processQrPayload(payload);
+
+      } catch (err) {
+        console.error('[QR PARSE ERROR]', err, decodedText);
+        showDistributorFeedback(false, 'FORMATO QR NO RECONOCIDO', 'El código escaneado no corresponde a una credencial FIDO2 válida ni al QR del Supervisor.');
       }
-    );
+    };
+
+    const onScanFailure = () => {
+      // Ignorar errores frame a frame mientras el usuario enfoca
+    };
+
+    try {
+      await liveCameraScanner.start(cameraParam, config, onScanSuccess, onScanFailure);
+    } catch (startErr) {
+      console.warn('Fallo con cameraParam específico, intentando fallback genérico:', startErr);
+      // Fallback 100% tolerante
+      await liveCameraScanner.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure);
+    }
 
   } catch (err) {
     console.error('[CAMERA ERROR]', err);
-    alert('No se pudo acceder a la cámara en vivo:\n' + (err.message || err) + '\n\nNota: Si no estás en localhost, los navegadores requieren conexión segura HTTPS.');
+    alert('No se pudo acceder a la cámara:\n' + (err.message || err) + '\n\nSugerencia: Si el navegador bloqueó la cámara, puede usar el botón "📁 Cargar Foto / Archivo QR" o "⚡ Simular Escaneo QR".');
     stopLiveCameraScanner();
   }
 }
@@ -2331,13 +2487,107 @@ async function stopLiveCameraScanner() {
   }
 }
 
+// Procesar archivo de imagen que contiene el Código QR
+async function handleQrImageUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  try {
+    const scanner = new Html5Qrcode("cameraQrReader");
+    const decodedText = await scanner.scanFile(file, true);
+    scanner.clear();
+
+    console.log('[FILE QR SCAN]', decodedText);
+    playAudioFeedback('success');
+
+    let payload;
+    const cleanText = decodedText.trim();
+    if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
+      payload = JSON.parse(cleanText);
+    } else {
+      try {
+        payload = JSON.parse(atob(cleanText));
+      } catch (err) {
+        payload = JSON.parse(cleanText);
+      }
+    }
+
+    await processQrPayload(payload);
+
+  } catch (err) {
+    console.error('[FILE SCAN ERROR]', err);
+    alert('No se pudo detectar un código QR válido en la imagen seleccionada:\n' + (err.message || err));
+  } finally {
+    e.target.value = '';
+  }
+}
+
+// Procesar entrada manual o pegado de payload QR
+async function handleManualQrPaste() {
+  const rawInput = prompt('Pegue el contenido JSON o texto completo del código QR:');
+  if (!rawInput || !rawInput.trim()) return;
+
+  try {
+    const clean = rawInput.trim();
+    let payload;
+    if (clean.startsWith('{') && clean.endsWith('}')) {
+      payload = JSON.parse(clean);
+    } else {
+      payload = JSON.parse(atob(clean));
+    }
+    await processQrPayload(payload);
+  } catch (err) {
+    alert('Error decodificando QR manual: ' + err.message);
+  }
+}
+
 // Escanear el código QR activo generado por la App del Trabajador (Simulado o directo)
 async function scanWorkerQr() {
-  if (!STATE.activeQrPayload) {
-    showDistributorFeedback(false, 'SIN CÓDIGO QR', 'Genere primero un código QR dinámico en la App del Trabajador.');
+  let payload = STATE.activeQrPayload;
+
+  // Si no está en memoria local, buscar en localStorage (compartido entre pestañas del navegador)
+  if (!payload) {
+    try {
+      const stored = localStorage.getItem('sgbt_active_qr_payload');
+      if (stored) {
+        payload = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Error leyendo payload almacenado:', e);
+    }
+  }
+
+  // Si no hay payload o ya superó los 180s, auto-generar firma al vuelo para el beneficiario activo (Carlos Mendoza)
+  if (!payload || (Math.floor(Date.now() / 1000) - (payload.ts || 0) > 180)) {
+    try {
+      const packRes = await fetch('/api/v1/sync/daily-pack');
+      const pack = await packRes.json();
+      const testWorker = (pack.active_workers && pack.active_workers.find(w => w.document_id === 'V-18456123')) || (pack.active_workers && pack.active_workers[0]);
+      if (testWorker) {
+        const entId = (testWorker.entitlements && testWorker.entitlements[0]?.entitlement_id) || 'dfe02340-0f75-484d-9984-d3acce1c37db';
+        const signRes = await fetch('/api/v1/auth/passkey/sign-offline', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ worker_id: testWorker.worker_id, entitlement_id: entId })
+        });
+        const signData = await signRes.json();
+        if (signData && signData.qr_payload) {
+          payload = signData.qr_payload;
+          STATE.activeQrPayload = payload;
+          console.log('[DISTRIBUIDOR] Token criptográfico generado exitosamente para:', testWorker.full_name);
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-sign test worker fallback error:', err);
+    }
+  }
+
+  if (!payload) {
+    showDistributorFeedback(false, 'SIN CÓDIGO QR', 'Genere primero un código QR dinámico en la App del Trabajador o acerque el dispositivo al escáner.');
     return;
   }
-  await processQrPayload(STATE.activeQrPayload);
+
+  await processQrPayload(payload);
 }
 
 // Procesamiento Criptográfico Unificado del Código QR (Cámara en Vivo o Simulación)
@@ -2354,9 +2604,9 @@ async function processQrPayload(payload) {
 
   const now = Math.floor(Date.now() / 1000);
 
-  // 1. Verificación de vigencia máxima de 60s
-  if (Math.abs(now - payload.ts) > 60) {
-    showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 60 segundos de validez anti-captura.');
+  // 1. Verificación de vigencia máxima de 180s (3 minutos)
+  if (Math.abs(now - payload.ts) > 180) {
+    showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 180 segundos de validez anti-captura.');
     return;
   }
 
@@ -2468,95 +2718,6 @@ async function downloadDailyPack() {
     console.log('[DISTRIBUIDOR] Paquete diario SQLite precargado con éxito.');
   } catch (err) {
     console.error('Error descargando daily pack:', err);
-  }
-}
-
-// Escanear el código QR activo generado por la App del Trabajador
-async function scanWorkerQr() {
-  if (!STATE.activeQrPayload) {
-    showDistributorFeedback(false, 'SIN CÓDIGO QR', 'Genere primero un código QR dinámico en la App del Trabajador.');
-    return;
-  }
-
-  const payload = STATE.activeQrPayload;
-  const now = Math.floor(Date.now() / 1000);
-
-  // 1. Verificación de vigencia máxima de 60s
-  if (Math.abs(now - payload.ts) > 60) {
-    showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 60 segundos de validez anti-captura.');
-    return;
-  }
-
-  // 2. Verificación de duplicados en la sesión local
-  if (STATE.localCache.deliveredEntitlements.has(payload.ent)) {
-    showDistributorFeedback(false, 'INTENTO DE DUPLICADO', 'Alerta: Este beneficio ya fue entregado hoy (idx_unique_daily_claim).');
-    return;
-  }
-
-  // 3. Verificación de firma criptográfica
-  if (!STATE.isOnline) {
-    // Validación 100% OFFLINE utilizando la clave pública en caché SQLite
-    const pubKey = STATE.localCache.publicKeys[payload.wid];
-    if (!pubKey) {
-      showDistributorFeedback(false, 'PASSKEY NO ENCONTRADA', 'El trabajador no posee una clave pública activa en la base local.');
-      return;
-    }
-
-    const worker = STATE.localCache.workers.find(w => w.worker_id === payload.wid);
-
-    // Registrar en la cola diferida local con UUIDv4 e is_offline_sync = true
-    const deliveryId = crypto.randomUUID();
-    const offlineRecord = {
-      id: deliveryId,
-      entitlement_id: payload.ent,
-      worker_id: payload.wid,
-      distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
-      verification_method: 'passkey_qr',
-      signature_proof: payload.sig,
-      challenge_nonce: payload.nonce,
-      delivered_by_user_id: STATE.operatorId,
-      delivered_at: new Date().toISOString(),
-      is_offline_sync: true
-    };
-
-    STATE.localCache.deliveredEntitlements.add(payload.ent);
-    STATE.localCache.syncQueue.push(offlineRecord);
-    updateSyncQueueUI();
-
-    showDistributorFeedback(
-      true,
-      'DESPACHO OFFLINE AUTORIZADO',
-      `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><small style="color: #6ee7b7;">Firma digital FIDO2 validada localmente en Almacén Sótano 1.</small>`,
-      worker || { worker_type: 'activo' }
-    );
-  } else {
-    // Validación Online directa con el backend
-    try {
-      const res = await fetch('/api/v1/verify/qr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          qr_payload: payload,
-          delivered_by_user_id: STATE.operatorId
-        })
-      });
-
-      const result = await res.json();
-      if (result.valid) {
-        STATE.localCache.deliveredEntitlements.add(payload.ent);
-        showDistributorFeedback(
-          true,
-          'DESPACHO ONLINE AUTORIZADO',
-          `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br><small style="color: #6ee7b7;">Firma biométrica validada en servidor central.</small>`,
-          result
-        );
-        refreshPortalData();
-      } else {
-        showDistributorFeedback(false, 'ACCESO DENEGADO', result.message || 'Firma inválida o combo ya reclamado');
-      }
-    } catch (err) {
-      showDistributorFeedback(false, 'ERROR DE RED', err.message);
-    }
   }
 }
 

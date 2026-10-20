@@ -1558,12 +1558,29 @@
                   Enfoque el código QR dinámico del trabajador o acerque la tarjeta NFC física
                 </p>
 
+                <!-- Banner de QR Detectado en Tiempo Real (Cross-Tab o Remoto) -->
+                <div id="liveQrDetectedBanner" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: var(--radius-sm); padding: 0.6rem; margin-bottom: 0.5rem; text-align: left; animation: pulse 2s infinite;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.75rem; color: #6ee7b7; font-weight: 700;">⚡ QR Activo Recibido en Tiempo Real</span>
+                    <button type="button" id="btnQuickScanDetectedQr" class="btn btn-primary" style="font-size: 0.68rem; padding: 0.25rem 0.6rem; background: #059669; border-color: #10b981;">
+                      Validar QR Ahora
+                    </button>
+                  </div>
+                  <div id="liveQrDetectedInfo" style="font-size: 0.7rem; color: #e2e8f0; margin-top: 0.2rem;">
+                    Código generado por el beneficiario disponible para entrega.
+                  </div>
+                </div>
+
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  <!-- Selector de Cámara (si hay más de una) -->
+                  <select id="cameraDeviceSelect" class="form-input" style="display: none; font-size: 0.75rem; padding: 0.35rem; background: #040d16; color: #e2e8f0; border-color: rgba(56, 189, 248, 0.3);">
+                  </select>
+
                   <button type="button" id="btnStartCameraScanner" class="btn btn-primary" style="width: 100%; font-size: 0.82rem; font-weight: 700;">
                     📹 Iniciar Escáner con Cámara en Vivo
                   </button>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <button type="button" id="btnScanWorkerGeneratedQr" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.4rem;">
+                    <button type="button" id="btnScanWorkerGeneratedQr" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.4rem;" title="Lee el QR generado en la sesión activa o compartido entre pestañas">
                       ⚡ Simular Escaneo QR
                     </button>
                     <!-- BOTÓN NFC O BOTÓN QR DIARIO SUPERVISOR -->
@@ -1574,6 +1591,18 @@
                       🔑 Validar QR Supervisor
                     </button>
                   </div>
+
+                  <!-- Métodos de Captura Alternativa Directos -->
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <input type="file" id="inputUploadQrImage" accept="image/*" style="display: none;">
+                    <button type="button" id="btnUploadQrImage" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(148, 163, 184, 0.3);">
+                      📁 Cargar Foto / Archivo QR
+                    </button>
+                    <button type="button" id="btnPasteQrManual" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(148, 163, 184, 0.3);">
+                      📋 Pegar QR / Nonce
+                    </button>
+                  </div>
+
                   <button type="button" id="btnDistributorShowSupervisorQr" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: none; background: rgba(2, 132, 199, 0.1);">
                     📲 Ver Código QR Diario de Mesa del Supervisor
                   </button>
