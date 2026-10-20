@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node backend/server.js",
+    "db:dump": "node backend/generate_sql_dump.js",
     "test:supabase": "node backend/test-supabase.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

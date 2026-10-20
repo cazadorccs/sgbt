@@ -81,6 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Verificar si hay sesión activa o ir a Login
   checkAuthSession();
+
+  // Procesar deep links URL (?view=..., ?doc=..., ?tab=...)
+  handleUrlDeepLinks();
 });
 
 // Chequeo de Motor de Base de Datos (Supabase Cloud vs. SQLite Local) & Estado de Inicialización
@@ -102,16 +105,63 @@ async function checkSystemDbStatus() {
       }
     }
 
-    // Comprobar si el sistema está pendiente de inicialización (Puesta a Cero)
+    // Comprobar estado de Modo Demostración vs Modo Producción
+    const isDemo = data.is_demo_mode === true || data.is_demo_mode === 1;
+    STATE.is_demo_mode = isDemo;
+    STATE.is_initialized = data.is_initialized !== false;
+
+    const installBanner = document.getElementById('setupInstallBanner');
     const setupBanner = document.getElementById('setupPendingBanner');
-    if (data.is_initialized === false) {
-      if (setupBanner) setupBanner.style.display = 'block';
-      // Si no hay usuario activo, dirigir automáticamente al Asistente de Configuración
+    const demoContainer = document.getElementById('quickDemoProfilesContainer');
+    const docHint = document.getElementById('loginDocHint');
+    const demoToggleLabel = document.getElementById('demoModeToggleLabel');
+    const demoToggleIcon = document.getElementById('demoModeToggleIcon');
+
+    if (isDemo || data.is_initialized === false) {
+      // Modo Demostración / Instalación Habilitada
+      if (installBanner) installBanner.style.display = 'block';
+      if (demoContainer) demoContainer.style.display = 'block';
+      if (docHint) {
+        docHint.textContent = 'Ingrese el número de cédula o seleccione un perfil rápido de demostración abajo.';
+      }
+      if (demoToggleLabel) {
+        demoToggleLabel.textContent = '🛡️ Desactivar Demostración (Modo Producción)';
+      }
+      if (demoToggleIcon) {
+        demoToggleIcon.textContent = '🛡️';
+      }
+    } else {
+      // Modo Producción Oficial (Instalado y Oculta Demostración)
+      if (installBanner) installBanner.style.display = 'none';
+      if (setupBanner) setupBanner.style.display = 'none';
+      if (demoContainer) demoContainer.style.display = 'none';
+      if (docHint) {
+        docHint.textContent = 'Ingrese su número de Cédula de Identidad para verificar su beneficio o ingresar.';
+      }
+      if (demoToggleLabel) {
+        demoToggleLabel.textContent = '🧪 Activar Modo de Demostración';
+      }
+      if (demoToggleIcon) {
+        demoToggleIcon.textContent = '🧪';
+      }
+    }
+
+    const portalDemoBadge = document.getElementById('portalDemoModeBadge');
+    if (portalDemoBadge) {
+      if (isDemo) {
+        portalDemoBadge.textContent = 'Modo Demostración Activo';
+        portalDemoBadge.className = 'badge badge-jubilado';
+      } else {
+        portalDemoBadge.textContent = 'Producción Oficial (Activa)';
+        portalDemoBadge.className = 'badge badge-activo';
+      }
+    }
+
+    if (data.is_initialized === false && setupBanner) {
+      setupBanner.style.display = 'block';
       if (!STATE.currentUser) {
         navigateTo('view-setup-wizard');
       }
-    } else {
-      if (setupBanner) setupBanner.style.display = 'none';
     }
   } catch (e) {
     console.warn('No se pudo consultar estado de la BD:', e);
@@ -517,10 +567,248 @@ function initSetupWizard() {
       sc.style.display = (idx + 1 === step) ? 'block' : 'none';
     });
 
+    if (step === 4) {
+      renderWizardCombos();
+    }
     if (step === 5) {
       updateWizardSummary();
     }
   }
+
+  // Estado de Mesas y Combos Logísticos para la Configuración Inicial
+  let wizardCombosList = [
+    {
+      id: 'm1',
+      enabled: true,
+      mesa_number: 1,
+      mesa_name: 'Mesa 1 - Víveres Secos',
+      name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)',
+      category: 'bolsa_viveres',
+      conservation: 'Ambiente',
+      target_qty: '1 bolsa por funcionario',
+      calories: 1400,
+      icon: '📦',
+      items_detail: '4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros (Caraotas), 2 Latas de Sardinas en Aceite, 1 Paquete Café (250g)'
+    },
+    {
+      id: 'm2',
+      enabled: true,
+      mesa_number: 2,
+      mesa_name: 'Mesa 2 - Higiene y Aseo Personal',
+      name: 'Combo de Higiene Personal & Aseo del Hogar',
+      category: 'combo_higienico',
+      conservation: 'Ambiente',
+      target_qty: '1 combo por trabajador',
+      calories: 0,
+      icon: '🧼',
+      items_detail: '4 Jabones de Tocador, 1 Tubo Crema Dental (100ml), 1 Jabón Líquido Lavaplatos, 1 Paquete Detergente en Polvo (1kg), 1 Champú Familiar (400ml), 4 Rollos Papel Higiénico, 1 Paquete Toallas Sanitarias'
+    },
+    {
+      id: 'm3',
+      enabled: true,
+      mesa_number: 3,
+      mesa_name: 'Mesa 3 - Dotación Escolar',
+      name: 'Dotación de Útiles Escolares',
+      category: 'utiles_escolares',
+      conservation: 'Ambiente',
+      target_qty: '1 dotación por hijo escolarizado',
+      calories: 0,
+      icon: '🎒',
+      items_detail: '4 Cuadernos de una línea empastados, 1 Juego de Creyones de Madera (12 colores), 1 Caja de Lápices de Grafito, 1 Juego de Geometría y Reglas, 1 Cartuchera y Morral Escolar Institucional'
+    },
+    {
+      id: 'm4',
+      enabled: true,
+      mesa_number: 4,
+      mesa_name: 'Mesa 4 - Proteínas y Cadena de Frío',
+      name: 'Combo Proteico Fresco (Cadena de Frío)',
+      category: 'combo_proteico',
+      conservation: 'Cadena de Frío',
+      target_qty: '1 combo refrigerado por funcionario',
+      calories: 1800,
+      icon: '🍗',
+      items_detail: '2 Pollos Enteros Beneficiados (aprox. 4.2 kg), 1 Pieza de Carne de Res para Guisar (1.5 kg), 1 Cartón de Huevos Frescos (30 unidades), 1 Mortadela Especial (1 kg)'
+    }
+  ];
+
+  function renderWizardCombos() {
+    const container = document.getElementById('wizardCombosContainer');
+    if (!container) return;
+
+    container.innerHTML = wizardCombosList.map((m, idx) => {
+      const isCold = (m.conservation || '').includes('Frío');
+      return `
+        <div class="wizard-combo-card" data-index="${idx}" style="background: #ffffff; border: 1px solid ${m.enabled ? (isCold ? '#bae6fd' : '#cbd5e1') : '#e2e8f0'}; border-left: 5px solid ${m.enabled ? (isCold ? '#0284c7' : 'var(--sea-pacific)') : '#94a3b8'}; border-radius: var(--radius-sm); padding: 1rem 1.15rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04); opacity: ${m.enabled ? '1' : '0.6'}; transition: all 0.2s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px dashed #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.25rem;">${m.icon}</span>
+              <span style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">Estación N° ${m.mesa_number}</span>
+              <span style="font-size: 0.72rem; padding: 0.2rem 0.55rem; border-radius: 9999px; font-weight: 700; background: ${isCold ? '#e0f2fe' : '#f1f5f9'}; color: ${isCold ? '#0369a1' : '#475569'}; border: 1px solid ${isCold ? '#bae6fd' : '#cbd5e1'};">
+                ${isCold ? '❄️ Cadena de Frío (-4°C a 2°C)' : '🌡️ Temperatura Ambiente'}
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <label style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 600; cursor: pointer; color: #334155; margin: 0;">
+                <input type="checkbox" class="w-combo-toggle" data-index="${idx}" ${m.enabled ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px;" />
+                <span>${m.enabled ? 'Mesa Habilitada' : 'Deshabilitada'}</span>
+              </label>
+              ${wizardCombosList.length > 1 ? `
+                <button type="button" class="btn btn-sm btn-outline w-combo-delete" data-index="${idx}" title="Eliminar Mesa" style="padding: 0.25rem 0.5rem; font-size: 0.72rem; color: #ef4444; border-color: #fecaca; background: #fff5f5;">
+                  ✕ Quitar
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="input-group">
+              <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">Nombre de la Mesa / Puesto Físico: *</label>
+              <input type="text" class="form-input w-input-mesa-name" data-index="${idx}" value="${m.mesa_name}" placeholder="Ej: Mesa ${m.mesa_number} - Víveres" ${m.enabled ? '' : 'disabled'} />
+            </div>
+            <div class="input-group">
+              <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">Nombre del Combo / Beneficio Asignado: *</label>
+              <input type="text" class="form-input w-input-combo-name" data-index="${idx}" value="${m.name}" placeholder="Ej: Bolsa de Víveres Secos" ${m.enabled ? '' : 'disabled'} />
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="input-group">
+              <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">Categoría:</label>
+              <select class="form-select w-input-combo-cat" data-index="${idx}" ${m.enabled ? '' : 'disabled'}>
+                <option value="bolsa_viveres" ${m.category === 'bolsa_viveres' ? 'selected' : ''}>📦 Víveres Secos</option>
+                <option value="combo_higienico" ${m.category === 'combo_higienico' ? 'selected' : ''}>🧼 Higiene & Aseo</option>
+                <option value="utiles_escolares" ${m.category === 'utiles_escolares' ? 'selected' : ''}>🎒 Útiles Escolares</option>
+                <option value="combo_proteico" ${m.category === 'combo_proteico' ? 'selected' : ''}>🍗 Proteínas (Cadena de Frío)</option>
+                <option value="combo_navideno" ${m.category === 'combo_navideno' ? 'selected' : ''}>🎁 Especial Navideño</option>
+                <option value="combo_especial" ${m.category === 'combo_especial' ? 'selected' : ''}>⭐ Especial / Otro</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">Condición de Conservación:</label>
+              <select class="form-select w-input-combo-conservation" data-index="${idx}" ${m.enabled ? '' : 'disabled'}>
+                <option value="Ambiente" ${m.conservation === 'Ambiente' ? 'selected' : ''}>🌡️ Temp. Ambiente</option>
+                <option value="Cadena de Frío" ${m.conservation === 'Cadena de Frío' ? 'selected' : ''}>❄️ Cadena de Frío (Refrigerado / Congelado)</option>
+                <option value="Almacén Seco" ${m.conservation === 'Almacén Seco' ? 'selected' : ''}>📦 Almacén Seco Protegido</option>
+              </select>
+            </div>
+            <div class="input-group">
+              <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">Ración / Cuota a Entregar: *</label>
+              <input type="text" class="form-input w-input-combo-qty" data-index="${idx}" value="${m.target_qty}" placeholder="Ej: 1 por funcionario, 500 combos, etc." ${m.enabled ? '' : 'disabled'} />
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label style="font-size: 0.75rem; font-weight: 700; color: #475569;">Detalle de Rubros y Artículos Incluidos en esta Mesa:</label>
+            <textarea class="form-input w-input-combo-items" data-index="${idx}" rows="2" placeholder="Describa los artículos que se despacharán en esta estación..." ${m.enabled ? '' : 'disabled'}>${m.items_detail}</textarea>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Event listeners para los controles de las tarjetas
+    container.querySelectorAll('.w-combo-toggle').forEach(el => {
+      el.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) {
+          wizardCombosList[idx].enabled = e.target.checked;
+          renderWizardCombos();
+        }
+      });
+    });
+
+    container.querySelectorAll('.w-combo-delete').forEach(el => {
+      el.addEventListener('click', (e) => {
+        const idx = parseInt(e.target.closest('.w-combo-delete').dataset.index, 10);
+        if (wizardCombosList.length > 1) {
+          wizardCombosList.splice(idx, 1);
+          // Renumerar mesas
+          wizardCombosList.forEach((item, i) => {
+            item.mesa_number = i + 1;
+            if (item.mesa_name.startsWith('Mesa ')) {
+              item.mesa_name = item.mesa_name.replace(/^Mesa \d+/, `Mesa ${i + 1}`);
+            }
+          });
+          renderWizardCombos();
+        }
+      });
+    });
+
+    container.querySelectorAll('.w-input-mesa-name').forEach(el => {
+      el.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) wizardCombosList[idx].mesa_name = e.target.value;
+      });
+    });
+
+    container.querySelectorAll('.w-input-combo-name').forEach(el => {
+      el.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) wizardCombosList[idx].name = e.target.value;
+      });
+    });
+
+    container.querySelectorAll('.w-input-combo-cat').forEach(el => {
+      el.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) {
+          const cat = e.target.value;
+          wizardCombosList[idx].category = cat;
+          if (cat === 'combo_higienico') wizardCombosList[idx].icon = '🧼';
+          else if (cat === 'utiles_escolares') wizardCombosList[idx].icon = '🎒';
+          else if (cat === 'combo_proteico') {
+            wizardCombosList[idx].icon = '🍗';
+            wizardCombosList[idx].conservation = 'Cadena de Frío';
+          } else if (cat === 'combo_navideno') wizardCombosList[idx].icon = '🎁';
+          else wizardCombosList[idx].icon = '📦';
+          renderWizardCombos();
+        }
+      });
+    });
+
+    container.querySelectorAll('.w-input-combo-conservation').forEach(el => {
+      el.addEventListener('change', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) {
+          wizardCombosList[idx].conservation = e.target.value;
+          renderWizardCombos();
+        }
+      });
+    });
+
+    container.querySelectorAll('.w-input-combo-qty').forEach(el => {
+      el.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) wizardCombosList[idx].target_qty = e.target.value;
+      });
+    });
+
+    container.querySelectorAll('.w-input-combo-items').forEach(el => {
+      el.addEventListener('input', (e) => {
+        const idx = parseInt(e.target.dataset.index, 10);
+        if (wizardCombosList[idx]) wizardCombosList[idx].items_detail = e.target.value;
+      });
+    });
+  }
+
+  // Botón para agregar otra mesa / combo logístico
+  const btnAddMesa = document.getElementById('btnAddWizardMesa');
+  btnAddMesa?.addEventListener('click', () => {
+    const nextNum = wizardCombosList.length + 1;
+    wizardCombosList.push({
+      id: 'm_' + Date.now(),
+      enabled: true,
+      mesa_number: nextNum,
+      mesa_name: `Mesa ${nextNum} - Estación Adicional`,
+      name: `Combo Adicional Mesa ${nextNum}`,
+      category: 'combo_especial',
+      conservation: 'Ambiente',
+      target_qty: '1 por funcionario',
+      calories: 1000,
+      icon: '📦',
+      items_detail: 'Artículos y rubros asignados para la entrega en esta estación'
+    });
+    renderWizardCombos();
+  });
 
   function updateWizardSummary() {
     const adminDoc = document.getElementById('wAdminDocInput')?.value.trim() || '-';
@@ -529,17 +817,48 @@ function initSetupWizard() {
     const tenantShort = document.getElementById('wTenantShortInput')?.value.trim() || '-';
     const pointName = document.getElementById('wPointNameInput')?.value.trim() || '-';
     const pointCode = document.getElementById('wPointCodeInput')?.value.trim() || '-';
-    const comboName = document.getElementById('wComboNameInput')?.value.trim() || '-';
 
     const sTenant = document.getElementById('wSummaryTenant');
     const sAdmin = document.getElementById('wSummaryAdmin');
     const sPoint = document.getElementById('wSummaryPoint');
-    const sCombo = document.getElementById('wSummaryCombo');
+    const sComboCount = document.getElementById('wSummaryComboCount');
+    const sComboList = document.getElementById('wSummaryComboList');
 
     if (sTenant) sTenant.textContent = `${tenantName} (${tenantShort})`;
     if (sAdmin) sAdmin.textContent = `${adminName} (${adminDoc})`;
     if (sPoint) sPoint.textContent = `${pointName} (${pointCode})`;
-    if (sCombo) sCombo.textContent = comboName;
+
+    const activeCombos = wizardCombosList.filter(c => c.enabled);
+    if (sComboCount) {
+      sComboCount.textContent = `${activeCombos.length} mesa${activeCombos.length === 1 ? '' : 's'} activa${activeCombos.length === 1 ? '' : 's'}`;
+    }
+
+    if (sComboList) {
+      if (activeCombos.length === 0) {
+        sComboList.innerHTML = '<span style="color: #ef4444; font-size: 0.78rem;">⚠️ No hay mesas activas configuradas. Debe habilitar al menos una mesa.</span>';
+      } else {
+        sComboList.innerHTML = activeCombos.map(m => {
+          const isCold = (m.conservation || '').includes('Frío');
+          return `
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid ${isCold ? '#0284c7' : '#10b981'}; border-radius: 6px; padding: 0.4rem 0.65rem; font-size: 0.8rem;">
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span style="font-size: 1rem;">${m.icon || '📦'}</span>
+                <div>
+                  <strong style="color: #0f172a;">${m.mesa_name || ('Mesa ' + m.mesa_number)}:</strong>
+                  <span style="color: #334155; margin-left: 0.25rem;">${m.name}</span>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: ${isCold ? '#e0f2fe' : '#ecfdf5'}; color: ${isCold ? '#0369a1' : '#047857'};">
+                  ${isCold ? '❄️ Cadena de Frío' : '🌡️ Ambiente'}
+                </span>
+                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">(${m.target_qty || '1 por funcionario'})</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
   }
 
   // Sincronizar colores en Paso 2
@@ -569,11 +888,23 @@ function initSetupWizard() {
     reader.readAsDataURL(file);
   });
 
-  // Botón desde Banner de Login
+  // Botones para iniciar y cancelar el Asistente de Instalación
+  const btnLaunchInstall = document.getElementById('btnLaunchInstallWizard');
+  const btnLaunchWizardLogin = document.getElementById('btnLaunchWizardFromLogin');
   const btnBanner = document.getElementById('btnOpenWizardFromBanner');
-  btnBanner?.addEventListener('click', () => {
+  const btnCancelToLogin = document.getElementById('btnCancelWizardToLogin');
+
+  const openWizard = () => {
+    renderWizardCombos();
     renderWizardStep(1);
     navigateTo('view-setup-wizard');
+  };
+
+  btnLaunchInstall?.addEventListener('click', openWizard);
+  btnLaunchWizardLogin?.addEventListener('click', openWizard);
+  btnBanner?.addEventListener('click', openWizard);
+  btnCancelToLogin?.addEventListener('click', () => {
+    navigateTo('view-login');
   });
 
   // Validaciones y Navegación Paso 1
@@ -615,17 +946,23 @@ function initSetupWizard() {
       alert('Por favor complete el nombre y código de la Sede de Despacho (*).');
       return;
     }
+    renderWizardCombos();
     renderWizardStep(4);
   });
 
-  // Navegación Paso 4
+  // Navegación Paso 4: Disposición Logística de Mesas & Combos
   const btnPrev4 = document.getElementById('btnWizardPrev-4');
   const btnNext4 = document.getElementById('btnWizardNext-4');
   btnPrev4?.addEventListener('click', () => renderWizardStep(3));
   btnNext4?.addEventListener('click', () => {
-    const name = document.getElementById('wComboNameInput')?.value.trim();
-    if (!name) {
-      alert('Por favor ingrese el nombre del Beneficio o Combo Inicial (*).');
+    const activeMesas = wizardCombosList.filter(m => m.enabled);
+    if (activeMesas.length === 0) {
+      alert('Debe tener al menos una mesa de despacho habilitada para continuar.');
+      return;
+    }
+    const invalid = activeMesas.find(m => !m.name || !m.name.trim() || !m.mesa_name || !m.mesa_name.trim());
+    if (invalid) {
+      alert(`Por favor complete el nombre de la mesa y del combo en la Estación N° ${invalid.mesa_number}.`);
       return;
     }
     renderWizardStep(5);
@@ -634,6 +971,30 @@ function initSetupWizard() {
   // Navegación Paso 5 (Atrás)
   const btnPrev5 = document.getElementById('btnWizardPrev-5');
   btnPrev5?.addEventListener('click', () => renderWizardStep(4));
+
+  // Descarga de Nómina de Ejemplo CSV en Paso 5
+  const btnDownloadSample = document.getElementById('btnDownloadSamplePayrollCsv');
+  btnDownloadSample?.addEventListener('click', () => {
+    const csvContent = 
+`cedula,nombre,email,telefono
+V-18456123,Carlos Eduardo Mendoza,carlos.mendoza@mippci.gob.ve,+58 414 1234567
+V-12345678,Roberto Alexander Gomez,roberto.gomez@mippci.gob.ve,+58 412 5551234
+V-06894321,Hilda Teresa Dominguez,hilda.dominguez@mippci.gob.ve,+58 424 9876543
+V-21555666,Elena Sofia Morales,elena.morales@mippci.gob.ve,+58 416 7778899
+V-15888999,Andres David Silva,andres.silva@mippci.gob.ve,+58 426 3334455
+V-14111222,Miguel Angel Torres,miguel.torres@mippci.gob.ve,+58 414 0001122
+V-13222333,Claudia Patricia Vega,claudia.vega@mippci.gob.ve,+58 412 9998877`;
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'nomina_ejemplo_mippci.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
 
   // Carga Masiva Opcional de Nómina CSV en Paso 5
   const csvInput = document.getElementById('wPayrollCsvFileInput');
@@ -701,9 +1062,27 @@ function initSetupWizard() {
     const pointCode = document.getElementById('wPointCodeInput')?.value.trim();
     const pointAddress = document.getElementById('wPointAddressInput')?.value.trim();
 
-    const comboName = document.getElementById('wComboNameInput')?.value.trim();
-    const comboCat = document.getElementById('wComboCategorySelect')?.value || 'bolsa_viveres';
-    const comboItems = document.getElementById('wComboItemsInput')?.value.trim();
+    const activeCombos = wizardCombosList.filter(m => m.enabled).map(m => ({
+      mesa_number: m.mesa_number,
+      mesa_name: m.mesa_name,
+      name: m.name,
+      category: m.category,
+      conservation: m.conservation,
+      target_qty: m.target_qty,
+      calories: m.calories,
+      icon: m.icon,
+      items_detail: m.items_detail
+    }));
+
+    if (activeCombos.length === 0) {
+      alert('Debe tener al menos una mesa de entrega habilitada.');
+      btnFinal.disabled = false;
+      btnFinal.innerHTML = `
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span>🚀 Iniciar Operaciones de la Plataforma</span>
+      `;
+      return;
+    }
 
     btnFinal.disabled = true;
     btnFinal.textContent = 'Inicializando plataforma...';
@@ -732,16 +1111,21 @@ function initSetupWizard() {
             location_code: pointCode,
             address: pointAddress
           },
-          combo: {
-            name: comboName,
-            category: comboCat,
-            items_detail: comboItems
-          },
+          combo: activeCombos[0] || null,
+          combos: activeCombos,
           workers: wizardParsedWorkers
         })
       });
 
-      const data = await res.json();
+      let data;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const rawText = await res.text();
+        throw new Error(`Error en servidor (${res.status}): ${rawText.slice(0, 150)}`);
+      }
+
       if (!res.ok) throw new Error(data.error || 'Error al inicializar la plataforma.');
 
       // Ocultar banner de setup pendiente
@@ -758,9 +1142,10 @@ function initSetupWizard() {
       await loadTenantSettings();
       await loadWorkersDirectory();
       await loadCombosCatalog();
+      await checkDatabaseStatus();
 
       playAudioFeedback('success');
-      alert(`🎉 ¡Plataforma Inicializada con Éxito!\n\nBienvenido Administrador ${data.admin.full_name}. El sistema está en marcha en modo productivo limpio.`);
+      alert(`🎉 ¡Plataforma Instalada con Éxito!\n\nBienvenido Administrador ${data.admin.full_name}. El sistema ha sido configurado en Modo Producción Oficial para el Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI).\n\nSe han registrado ${activeCombos.length} mesas de entrega logística (Víveres Secos, Higiene y Aseo, Útiles Escolares y Cadena de Frío).`);
 
       navigateTo('view-portal');
 
@@ -977,7 +1362,8 @@ async function refreshPortalData() {
     // 6. Notificaciones y Avisos de Jornadas
     await loadNotifications();
 
-    // 7. Auditoría de Entregas
+    // 7. Auditoría de Entregas & Estadísticas por Jornada
+    await loadAuditStats();
     await loadAuditDeliveries();
 
   } catch (err) {
@@ -1045,9 +1431,14 @@ async function loadWorkersDirectory() {
       </td>
       <td>${entitlementBadge}</td>
       <td>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;" onclick="openSecurityDossier('${w.id}')">
-          🛡️ Expediente
-        </button>
+        <div style="display: flex; gap: 0.35rem; align-items: center;">
+          <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;" onclick="openSecurityDossier('${w.id}')" title="Ver Expediente de Seguridad FIDO2">
+            🛡️ Expediente
+          </button>
+          <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem; color: #16a34a; border-color: #86efac; background: #f0fdf4;" onclick="sendWhatsAppInviteToWorker('${w.id}')" title="Enviar enlace de instalación personalizado por WhatsApp">
+            📲 WhatsApp
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1127,7 +1518,8 @@ async function loadCombosCatalog() {
       }
 
       // Convertir rubros separados por comas o saltos de línea a viñetas si existen
-      const rubros = (c.description || '').split(/,|\n/).map(r => r.trim()).filter(Boolean);
+      const rubrosText = c.items_detail || c.description || '';
+      const rubros = rubrosText.split(/,|\n/).map(r => r.trim()).filter(Boolean);
       const rubrosHtml = rubros.length > 0 
         ? `<div style="margin: 0.6rem 0; font-size: 0.76rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem;">
              <strong style="color: #0284c7; display: block; margin-bottom: 0.25rem;">📋 Rubros Incluidos:</strong>
@@ -1138,16 +1530,27 @@ async function loadCombosCatalog() {
            </div>`
         : `<p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.6rem;">${c.description || 'Sin descripción'}</p>`;
 
+      const isCold = (c.conservation || '').includes('Frío');
+
       card.innerHTML = `
         <div class="package-card-header">
           <div class="package-card-title">
-            <span>${icon} ${c.name}</span>
+            <span>${c.icon || icon} ${c.name}</span>
           </div>
           <span class="package-card-badge ${tagClass}">${categoryLabel}</span>
         </div>
+        ${c.mesa_name ? `
+          <div style="display: flex; gap: 0.35rem; align-items: center; margin: 0.25rem 0 0.5rem 0; flex-wrap: wrap;">
+            <span style="font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #1e293b; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #cbd5e1;">📍 ${c.mesa_name}</span>
+            <span style="font-size: 0.72rem; font-weight: 700; background: ${isCold ? '#e0f2fe' : '#f0fdf4'}; color: ${isCold ? '#0369a1' : '#166534'}; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid ${isCold ? '#bae6fd' : '#bbf7d0'};">
+              ${isCold ? '❄️ Cadena de Frío' : '🌡️ Ambiente'}
+            </span>
+            ${c.target_qty ? `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">(Cuota: ${c.target_qty})</span>` : ''}
+          </div>
+        ` : ''}
         ${rubrosHtml}
         <div class="combo-meta" style="font-size: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 0.6rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
-          <span style="color: #475569;">📦 ${c.dietary_info || 'Almacén Estándar'}</span>
+          <span style="color: #475569;">📦 ${c.dietary_info || (c.conservation ? c.conservation : 'Almacén Estándar')}</span>
           <span style="color: ${c.is_active ? '#16a34a' : '#ef4444'}; font-weight: 600;">
             ${c.is_active ? '● Activo' : '○ Inactivo'}
           </span>
@@ -1267,12 +1670,140 @@ function initCombosManagement() {
   });
 }
 
+async function loadAuditStats() {
+  const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
+  try {
+    const res = await fetch(`/api/v1/admin/audit/stats?campaign_id=${encodeURIComponent(campaignId)}`);
+    const data = await res.json();
+    if (!data.success) return;
+
+    // 1. Actualizar KPIs principales
+    const elWorkers = document.getElementById('statAuditWorkersCount');
+    const elCoverage = document.getElementById('statAuditCoverageRate');
+    const elTons = document.getElementById('statAuditTonsCount');
+    const elKg = document.getElementById('statAuditKgCount');
+    const elCombos = document.getElementById('statAuditCombosCount');
+    const elCombosDetail = document.getElementById('statAuditCombosDetail');
+    const elSecurityRate = document.getElementById('statAuditSecurityRate');
+    const elSecurityBreakdown = document.getElementById('statAuditSecurityBreakdown');
+
+    if (elWorkers) elWorkers.textContent = (data.kpis.total_workers || 0).toLocaleString();
+    if (elCoverage) {
+      elCoverage.textContent = `Cobertura: ${data.kpis.coverage_pct}% (${data.kpis.total_workers} de ${data.kpis.total_eligible} en padrón)`;
+    }
+    if (elTons) elTons.textContent = `${data.kpis.total_weight_tons} t`;
+    if (elKg) {
+      elKg.textContent = `${(data.kpis.total_weight_kg || 0).toLocaleString()} kg totales (prom. ${data.kpis.avg_kg_per_worker} kg / beneficiario)`;
+    }
+    if (elCombos) elCombos.textContent = `${(data.kpis.total_combos || 0).toLocaleString()} combos`;
+    if (elCombosDetail) {
+      elCombosDetail.textContent = data.selected_campaign 
+        ? `Jornada: ${data.selected_campaign.name}` 
+        : `Histórico consolidado (${(data.campaigns_list || []).length} jornadas)`;
+    }
+
+    const totalMethods = data.methods_breakdown?.total || 1;
+    const passkeyPct = Math.round(((data.methods_breakdown?.passkey_qr || 0) / totalMethods) * 100);
+    const nfcPct = Math.round(((data.methods_breakdown?.nfc_card || 0) / totalMethods) * 100);
+    const supPct = Math.round((((data.methods_breakdown?.supervisor_daily_qr || 0) + (data.methods_breakdown?.supervisor_override || 0)) / totalMethods) * 100);
+
+    if (elSecurityRate) elSecurityRate.textContent = `${passkeyPct}% Passkey`;
+    if (elSecurityBreakdown) {
+      elSecurityBreakdown.textContent = `FIDO2: ${passkeyPct}% · NFC: ${nfcPct}% · QR Sup: ${supPct}% · 0% duplicados`;
+    }
+
+    // 2. Llenar el selector de jornadas si aún no tiene las opciones
+    const selectCampaign = document.getElementById('auditCampaignFilter');
+    if (selectCampaign && selectCampaign.options.length <= 1 && data.campaigns_list) {
+      data.campaigns_list.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        const statusBadge = c.status === 'en_curso' ? '🟢 [En Curso]' : (c.status === 'finalizada' ? '📁 [Finalizada]' : '📅 [Programada]');
+        opt.textContent = `${statusBadge} ${c.name} (${c.start_date})`;
+        selectCampaign.appendChild(opt);
+      });
+      if (campaignId !== 'all') {
+        selectCampaign.value = campaignId;
+      }
+    }
+
+    // 3. Renderizar desglose por combo
+    const combosContainer = document.getElementById('auditCombosBreakdownList');
+    if (combosContainer) {
+      combosContainer.innerHTML = '';
+      if (!data.combos_breakdown || data.combos_breakdown.length === 0) {
+        combosContainer.innerHTML = '<div style="color: #64748b; font-size: 0.8rem; text-align: center; padding: 1rem;">No hay entregas registradas en esta jornada.</div>';
+      } else {
+        data.combos_breakdown.forEach(c => {
+          const item = document.createElement('div');
+          item.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;';
+          item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; font-size: 0.82rem; color: #0f172a;">
+                <span>${c.combo_icon || '🍱'}</span>
+                <span>${c.combo_name}</span>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-weight: 800; color: #0284c7; font-size: 0.85rem;">${c.total_delivered.toLocaleString()} entregas</span>
+                <span style="font-size: 0.72rem; color: #16a34a; font-weight: 700; margin-left: 0.35rem;">(${c.total_tons} t)</span>
+              </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem;">
+              <span>Peso unitario: ${c.unit_weight_kg} kg · Total: ${c.total_kg.toLocaleString()} kg</span>
+              <span>${c.percentage}% del volumen</span>
+            </div>
+            <div style="height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+              <div style="width: ${c.percentage}%; height: 100%; background: linear-gradient(90deg, #0284c7, #10b981); border-radius: 9999px;"></div>
+            </div>
+          `;
+          combosContainer.appendChild(item);
+        });
+      }
+    }
+
+    // 4. Renderizar desglose por departamento
+    const deptContainer = document.getElementById('auditDepartmentsBreakdownList');
+    if (deptContainer) {
+      deptContainer.innerHTML = '';
+      if (!data.departments_breakdown || data.departments_breakdown.length === 0) {
+        deptContainer.innerHTML = '<div style="color: #64748b; font-size: 0.8rem; text-align: center; padding: 1rem;">No hay registros departamentales en esta selección.</div>';
+      } else {
+        data.departments_breakdown.forEach(d => {
+          const item = document.createElement('div');
+          item.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; justify-content: space-between; align-items: center;';
+          item.innerHTML = `
+            <div>
+              <div style="font-weight: 700; font-size: 0.8rem; color: #0f172a;">${d.department_name}</div>
+              <div style="font-size: 0.7rem; color: #64748b;">${d.workers_count} trabajadores · ${d.combos_count} combos despachados</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: 800; font-size: 0.85rem; color: #16a34a;">${d.total_tons} t</div>
+              <div style="font-size: 0.68rem; color: #64748b;">alimentos</div>
+            </div>
+          `;
+          deptContainer.appendChild(item);
+        });
+      }
+    }
+  } catch (err) {
+    console.error('Error cargando estadísticas de auditoría:', err);
+  }
+}
+
 async function loadAuditDeliveries() {
+  const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
   const method = document.getElementById('auditMethodFilter')?.value || '';
-  const res = await fetch(`/api/v1/admin/deliveries?method=${encodeURIComponent(method)}`);
+  const search = document.getElementById('auditSearchInput')?.value || '';
+
+  const res = await fetch(`/api/v1/admin/deliveries?campaign_id=${encodeURIComponent(campaignId)}&method=${encodeURIComponent(method)}&search=${encodeURIComponent(search)}`);
   const data = await res.json();
   const tbody = document.getElementById('auditTableBody');
   tbody.innerHTML = '';
+
+  if (!data.deliveries || data.deliveries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron registros de entregas para esta búsqueda o jornada.</td></tr>';
+    return;
+  }
 
   data.deliveries.forEach(d => {
     const tr = document.createElement('tr');
@@ -1282,6 +1813,8 @@ async function loadAuditDeliveries() {
       methodBadge = '<span class="badge badge-passkey">🔐 Passkey QR FIDO2</span>';
     } else if (d.verification_method === 'nfc_card') {
       methodBadge = '<span class="badge badge-nfc">💳 Tarjeta Física NFC</span>';
+    } else if (d.verification_method === 'supervisor_daily_qr') {
+      methodBadge = '<span class="badge" style="background:#0284c7; color:#fff;">🔑 QR Supervisor Diario</span>';
     } else {
       methodBadge = '<span class="badge badge-override">⚠️ Liberación Supervisor</span>';
     }
@@ -1291,21 +1824,33 @@ async function loadAuditDeliveries() {
       : '<span class="badge badge-passkey">Directo</span>';
 
     const authBy = d.supervisor_name 
-      ? `<strong style="color: #f59e0b;">${d.supervisor_name}</strong><br><small style="color: var(--text-dim);">${d.override_reason || ''}</small>`
-      : (d.operator_name || 'Operador de Comedor');
+      ? `<strong style="color: #f59e0b;">${d.supervisor_name}</strong><br><small style="color: var(--text-dim);">${d.override_reason || 'Supervisión'}</small>`
+      : (d.operator_name || 'Despachador Autorizado');
 
     const signatureSnippet = d.signature_proof 
-      ? `<span class="text-mono" style="font-size: 0.65rem; color: #34d399;" title="${d.signature_proof}">ECDSA: ${d.signature_proof.substring(0, 16)}...</span>`
+      ? `<span class="text-mono" style="font-size: 0.65rem; color: #10b981;" title="${d.signature_proof}">ES256: ${d.signature_proof.substring(0, 16)}...</span>`
       : '<span style="font-size: 0.7rem; color: var(--text-dim);">N/A (NFC/Manual)</span>';
 
+    const weightBadge = d.weight_kg ? `<span style="display:inline-block; font-size:0.7rem; font-weight:700; color:#15803d; background:#dcfce7; padding:1px 5px; border-radius:4px; margin-left:4px;">${d.weight_kg} kg</span>` : '';
+
+    const campName = d.campaign_name || 'Jornada Regular';
+
     tr.innerHTML = `
-      <td class="text-mono" style="font-size: 0.75rem;">${d.id.substring(0, 18)}...</td>
-      <td style="font-size: 0.8rem;">${new Date(d.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+      <td class="text-mono" style="font-size: 0.75rem;">${d.id.substring(0, 14)}...</td>
+      <td style="font-size: 0.78rem;">
+        <strong>${campName}</strong><br>
+        <span style="color: #64748b; font-size: 0.72rem;">${new Date(d.delivered_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</span>
+      </td>
       <td>
         <strong>${d.worker_name}</strong><br>
-        <span class="text-mono" style="font-size: 0.75rem; color: var(--text-dim);">${d.worker_document}</span>
+        <span class="text-mono" style="font-size: 0.72rem; color: #0284c7; font-weight: 600;">${d.worker_document}</span>
       </td>
-      <td>${d.combo_name}</td>
+      <td style="font-size: 0.78rem; color: #475569;">
+        ${d.department_name || 'Sede Principal'}
+      </td>
+      <td>
+        <strong>${d.combo_name}</strong> ${weightBadge}
+      </td>
       <td>${methodBadge}</td>
       <td>${offlineBadge}</td>
       <td>${authBy}</td>
@@ -1315,7 +1860,23 @@ async function loadAuditDeliveries() {
   });
 }
 
+document.getElementById('auditCampaignFilter')?.addEventListener('change', async () => {
+  await loadAuditStats();
+  await loadAuditDeliveries();
+});
+
 document.getElementById('auditMethodFilter')?.addEventListener('change', loadAuditDeliveries);
+
+let auditSearchTimeout;
+document.getElementById('auditSearchInput')?.addEventListener('input', () => {
+  clearTimeout(auditSearchTimeout);
+  auditSearchTimeout = setTimeout(loadAuditDeliveries, 300);
+});
+
+document.getElementById('btnExportAuditCsv')?.addEventListener('click', () => {
+  const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
+  window.location.href = `/api/v1/admin/export?format=csv&campaign_id=${encodeURIComponent(campaignId)}`;
+});
 
 // Expediente Digital de Seguridad
 window.openSecurityDossier = async function(workerId) {
@@ -1509,12 +2070,21 @@ function setupWorkerSimulator() {
       btnGenerate.disabled = false;
       btnGenerate.textContent = '⚡ Generar QR de Entrega (Firma Biométrica)';
     } else {
-      statusText.textContent = worker.worker_type === 'jubilado' 
-        ? 'Adulto Mayor en contingencia: Puede reclamar con Tarjeta NFC física en mesa.' 
-        : 'Sin Passkey activa. Por favor enrole este dispositivo.';
-      statusBox.className = 'alert-box alert-warning';
-      btnGenerate.disabled = true;
-      btnGenerate.textContent = worker.worker_type === 'jubilado' ? '💳 Beneficio por Tarjeta NFC' : '⚠️ Requiere Enrolar Passkey';
+      if (STATE.supervisor_qr_mode) {
+        statusText.textContent = worker.worker_type === 'jubilado' 
+          ? 'Adulto Mayor / Sin Smartphone: Despacho autorizado en mesa mediante Código QR Diario del Supervisor.' 
+          : 'Sin Passkey activa. Acérquese a la mesa de despacho para autorización con el QR Diario del Supervisor.';
+        statusBox.className = 'alert-box alert-info';
+        btnGenerate.disabled = true;
+        btnGenerate.textContent = '🔑 Aprobación por QR Supervisor';
+      } else {
+        statusText.textContent = worker.worker_type === 'jubilado' 
+          ? 'Adulto Mayor en contingencia: Puede reclamar con Tarjeta NFC física en mesa.' 
+          : 'Sin Passkey activa. Por favor enrole este dispositivo.';
+        statusBox.className = 'alert-box alert-warning';
+        btnGenerate.disabled = true;
+        btnGenerate.textContent = worker.worker_type === 'jubilado' ? '💳 Beneficio por Tarjeta NFC' : '⚠️ Requiere Enrolar Passkey';
+      }
     }
   }
 
@@ -1647,6 +2217,8 @@ function setupDistributorSimulator() {
   document.getElementById('btnDownloadDailyPack')?.addEventListener('click', downloadDailyPack);
   document.getElementById('btnScanWorkerGeneratedQr')?.addEventListener('click', scanWorkerQr);
   document.getElementById('btnSimulateNfcTap')?.addEventListener('click', simulateNfcTap);
+  document.getElementById('btnSimulateSupervisorDailyQr')?.addEventListener('click', simulateSupervisorDailyQrApproval);
+  document.getElementById('btnDistributorShowSupervisorQr')?.addEventListener('click', loadAndShowSupervisorDailyQrModal);
   document.getElementById('btnSyncDeferredQueue')?.addEventListener('click', syncDeferredQueue);
   
   // Controles de Cámara Real en Vivo
@@ -1770,6 +2342,11 @@ async function scanWorkerQr() {
 
 // Procesamiento Criptográfico Unificado del Código QR (Cámara en Vivo o Simulación)
 async function processQrPayload(payload) {
+  // Detección de Código QR Diario del Supervisor (para beneficiarios sin smartphone)
+  if (payload && payload.protocol === 'SGBT_SUPERVISOR_DAILY_QR_V1') {
+    return handleSupervisorDailyQrScan(payload);
+  }
+
   if (!payload || !payload.wid || !payload.ent) {
     showDistributorFeedback(false, 'ESTRUCTURA CORRUPTA', 'El payload QR no posee los identificadores requeridos.');
     return;
@@ -2049,6 +2626,118 @@ async function simulateNfcTap() {
   }
 }
 
+// Simular validación mediante Código QR Diario del Supervisor (para beneficiarios sin smartphone)
+async function simulateSupervisorDailyQrApproval() {
+  if (!STATE.supervisor_qr_mode) {
+    showDistributorFeedback(false, 'MODO QR SUPERVISOR DESACTIVADO', 'El sistema está en modo Tarjeta NFC física. Active el switch en Configuración para usar el QR Diario del Supervisor.');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/v1/supervisor/daily-qr');
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      showDistributorFeedback(false, 'ERROR QR SUPERVISOR', data.error || 'No se pudo obtener el QR diario del supervisor.');
+      return;
+    }
+
+    const payload = JSON.parse(data.qr_payload);
+    await handleSupervisorDailyQrScan(payload);
+  } catch (err) {
+    showDistributorFeedback(false, 'ERROR DE CONEXIÓN', err.message);
+  }
+}
+
+// Procesar escaneo de QR Diario de Supervisor (Cámara Real o Simulado)
+async function handleSupervisorDailyQrScan(payload) {
+  // 1. Validar modo
+  if (!STATE.supervisor_qr_mode) {
+    showDistributorFeedback(false, 'MODO QR SUPERVISOR DESACTIVADO', 'El sistema está configurado en modo Tarjeta NFC. Active el switch en Configuración para autorizar mediante el QR del supervisor.');
+    return;
+  }
+
+  // 2. Beneficiario a despachar: Si hay trabajador seleccionado en simulador o contingencia, usarlo; sino Hilda Domínguez (no smartphone)
+  let workerId = null;
+  if (pendingContingencyWorker) {
+    workerId = pendingContingencyWorker.worker_id || pendingContingencyWorker.id;
+  } else if (STATE.selectedWorkerId) {
+    const selWorker = STATE.localCache.workers.find(w => w.worker_id === STATE.selectedWorkerId);
+    if (selWorker) workerId = selWorker.worker_id;
+  }
+  
+  if (!workerId) {
+    // Por defecto Hilda Domínguez (Jubilada sin smartphone / no mobile)
+    const hilda = STATE.localCache.workers.find(w => w.document_id === 'V-06894321' || w.worker_type === 'jubilado');
+    workerId = hilda ? hilda.worker_id : '550e8400-e29b-41d4-a716-446655440003';
+  }
+
+  const worker = STATE.localCache.workers.find(w => w.worker_id === workerId) || {
+    worker_id: workerId,
+    full_name: 'Hilda Domínguez',
+    document_id: 'V-06894321',
+    worker_type: 'jubilado'
+  };
+
+  const entitlement = STATE.localCache.entitlements[workerId] || {
+    entitlement_id: '770e8400-e29b-41d4-a716-446655440003'
+  };
+
+  if (STATE.localCache.deliveredEntitlements.has(entitlement.entitlement_id)) {
+    showDistributorFeedback(false, 'BENEFICIO YA RECLAMADO', `Alerta anti-fraude: El beneficiario ${worker.full_name} (${worker.document_id}) ya recibió su beneficio hoy.`);
+    return;
+  }
+
+  const deliveryId = crypto.randomUUID();
+  const deliveryRecord = {
+    id: deliveryId,
+    entitlement_id: entitlement.entitlement_id,
+    worker_id: workerId,
+    distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
+    verification_method: 'supervisor_daily_qr',
+    supervisor_id: payload.supervisor_id || STATE.supervisorId,
+    override_reason: `Aprobación mediante Código QR Diario del Supervisor (${payload.auth_code}) para beneficiario sin smartphone`,
+    delivered_by_user_id: STATE.operatorId,
+    delivered_at: new Date().toISOString(),
+    is_offline_sync: !STATE.isOnline
+  };
+
+  STATE.localCache.deliveredEntitlements.add(entitlement.entitlement_id);
+
+  if (!STATE.isOnline) {
+    STATE.localCache.syncQueue.push(deliveryRecord);
+    updateSyncQueueUI();
+    showDistributorFeedback(
+      true,
+      'DESPACHO AUTORIZADO POR QR SUPERVISOR (OFFLINE)',
+      `Beneficiario sin móvil: <strong>${worker.full_name}</strong> &middot; Cédula: <strong>${worker.document_id}</strong><br><small style="color: #38bdf8;">Código QR del Supervisor <strong>${payload.auth_code}</strong> validado sin internet en mesa.</small>`,
+      worker
+    );
+  } else {
+    try {
+      await fetch('/api/v1/sync/batch-deliveries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
+          device_id: 'distributor_tablet_01',
+          deliveries: [deliveryRecord]
+        })
+      });
+
+      showDistributorFeedback(
+        true,
+        'DESPACHO AUTORIZADO (QR SUPERVISOR)',
+        `Beneficiario: <strong>${worker.full_name}</strong> &middot; Cédula: <strong>${worker.document_id}</strong><br><small style="color: #38bdf8;">Aprobado con el <strong>Código QR Diario del Supervisor</strong> (${payload.auth_code}). Válido para entrega del día sin smartphone.</small>`,
+        worker
+      );
+      pendingContingencyWorker = null;
+      refreshPortalData();
+    } catch (err) {
+      showDistributorFeedback(false, 'ERROR AL REGISTRAR', err.message);
+    }
+  }
+}
+
 // Búsqueda para Contingencia (Nivel 1 & Nivel 2)
 let pendingContingencyWorker = null;
 
@@ -2299,8 +2988,127 @@ function setupPayrollSimulator() {
     refreshPortalData();
   });
 
-  // 2. Batch Import
-  document.getElementById('btnSendBatchImport').addEventListener('click', async () => {
+  // 2. Tab switcher (CSV vs JSON)
+  const tabCsvBtn = document.getElementById('tabPayrollCsvBtn');
+  const tabJsonBtn = document.getElementById('tabPayrollJsonBtn');
+  const csvContainer = document.getElementById('payrollCsvContainer');
+  const jsonContainer = document.getElementById('payrollJsonContainer');
+
+  tabCsvBtn?.addEventListener('click', () => {
+    tabCsvBtn.style.background = '#0284c7';
+    tabCsvBtn.style.color = '#ffffff';
+    tabJsonBtn.style.background = 'transparent';
+    tabJsonBtn.style.color = '#94a3b8';
+    csvContainer.style.display = 'block';
+    jsonContainer.style.display = 'none';
+  });
+
+  tabJsonBtn?.addEventListener('click', () => {
+    tabJsonBtn.style.background = '#0284c7';
+    tabJsonBtn.style.color = '#ffffff';
+    tabCsvBtn.style.background = 'transparent';
+    tabCsvBtn.style.color = '#94a3b8';
+    jsonContainer.style.display = 'block';
+    csvContainer.style.display = 'none';
+  });
+
+  // Manejo de Carga CSV
+  const csvDropzone = document.getElementById('payrollCsvDropzone');
+  const csvFileInput = document.getElementById('payrollCsvFileInput');
+  const csvPreview = document.getElementById('payrollCsvPreviewSummary');
+  const csvStatsText = document.getElementById('payrollCsvStatsText');
+  const btnProcessCsv = document.getElementById('btnProcessCsvBatch');
+  let loadedCsvText = '';
+
+  csvDropzone?.addEventListener('click', () => csvFileInput?.click());
+
+  csvDropzone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    csvDropzone.style.borderColor = '#10b981';
+    csvDropzone.style.background = 'rgba(16, 185, 129, 0.08)';
+  });
+
+  csvDropzone?.addEventListener('dragleave', () => {
+    csvDropzone.style.borderColor = '#0284c7';
+    csvDropzone.style.background = 'rgba(2, 132, 199, 0.04)';
+  });
+
+  csvDropzone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    csvDropzone.style.borderColor = '#0284c7';
+    csvDropzone.style.background = 'rgba(2, 132, 199, 0.04)';
+    if (e.dataTransfer?.files?.length) {
+      handleCsvFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  csvFileInput?.addEventListener('change', (e) => {
+    if (e.target.files?.length) {
+      handleCsvFile(e.target.files[0]);
+    }
+  });
+
+  function handleCsvFile(file) {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      alert('Por favor seleccione un archivo con formato .CSV');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      loadedCsvText = event.target.result;
+      const lines = loadedCsvText.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
+      const rowCount = Math.max(0, lines.length - 1);
+      
+      csvPreview.style.display = 'block';
+      csvStatsText.innerHTML = `
+        <strong>Archivo:</strong> ${file.name} (${(file.size / 1024).toFixed(1)} KB)<br>
+        <strong>Registros detectados:</strong> ${rowCount} trabajadores listos para ingesta.<br>
+        <strong>Encabezado:</strong> <code style="font-size:0.68rem; color:#38bdf8;">${lines[0].substring(0, 70)}...</code>
+      `;
+      btnProcessCsv.style.display = 'block';
+      appendLog(`Archivo CSV "${file.name}" cargado en memoria (${rowCount} filas detectadas).`);
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  btnProcessCsv?.addEventListener('click', async () => {
+    if (!loadedCsvText) return;
+    btnProcessCsv.disabled = true;
+    btnProcessCsv.textContent = '⏳ Procesando e ingiriendo nómina...';
+    try {
+      const res = await fetch('/api/v1/payroll/batch-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batch_id: `batch_csv_${Date.now()}`,
+          source: 'csv_upload',
+          csvText: loadedCsvText
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        appendLog(`✓ INGESTA CSV EXITOSA: ${data.processed} procesados (${data.updated} actualizados en DB, ${data.failed} omitidos). Batch ID: ${data.batch_id}`);
+        alert(`¡Sincronización de nómina completada!\n\n${data.processed} trabajadores procesados.\n${data.updated} registros actualizados en base de datos.`);
+        csvPreview.style.display = 'none';
+        btnProcessCsv.style.display = 'none';
+        loadedCsvText = '';
+        csvFileInput.value = '';
+        refreshPortalData();
+      } else {
+        appendLog(`⚠️ Error en ingesta CSV: ${data.error || 'Respuesta no exitosa'}`);
+        alert('Error: ' + (data.error || 'No se pudo procesar la nómina'));
+      }
+    } catch (err) {
+      appendLog(`Error de red al procesar CSV: ${err.message}`);
+      alert('Error de conexión al servidor: ' + err.message);
+    } finally {
+      btnProcessCsv.disabled = false;
+      btnProcessCsv.textContent = '🚀 Ingerir Nómina desde CSV a Base de Datos';
+    }
+  });
+
+  // 2.2 JSON Batch Import (SFTP Simulator)
+  document.getElementById('btnSendBatchImport')?.addEventListener('click', async () => {
     try {
       const workers = JSON.parse(document.getElementById('batchJsonInput').value);
       const res = await fetch('/api/v1/payroll/batch-import', {
@@ -2314,7 +3122,7 @@ function setupPayrollSimulator() {
       });
 
       const data = await res.json();
-      appendLog(`Carga masiva completada: ${data.processed} procesados, ${data.failed} fallidos.`);
+      appendLog(`Carga masiva JSON completada: ${data.processed} procesados, ${data.failed} fallidos.`);
       refreshPortalData();
     } catch (e) {
       alert('Error en formato JSON: ' + e.message);
@@ -2450,6 +3258,42 @@ function setupAuth() {
   // Logout
   btnLogout?.addEventListener('click', handleLogout);
   btnWorkerMobileLogout?.addEventListener('click', handleLogout);
+
+  // Conmutador de Modo de Demostración vs Producción
+  const btnToggleDemo = document.getElementById('btnToggleDemoMode');
+  btnToggleDemo?.addEventListener('click', async () => {
+    const isCurrentlyDemo = STATE.is_demo_mode === true;
+    const confirmMsg = isCurrentlyDemo
+      ? '¿Desea cambiar la plataforma a Modo Producción Oficial?\n\nSe ocultarán los perfiles de demostración y el botón de instalación, dejando la plataforma lista para la operación institucional real.'
+      : '¿Desea activar el Modo de Demostración?\n\nEsto restaurará los perfiles rápidos de prueba (Carlos Mendoza, Hilda Domínguez, etc.) y volverá a mostrar el botón de instalación.';
+
+    if (!confirm(confirmMsg)) return;
+
+    try {
+      btnToggleDemo.disabled = true;
+      const res = await fetch('/api/v1/system/demo-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enable: !isCurrentlyDemo })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al cambiar modo de operación.');
+
+      alert(data.message);
+      await checkDatabaseStatus();
+      await loadWorkersDirectory();
+      await loadCombosCatalog();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btnToggleDemo.disabled = false;
+    }
+  });
+
+  const btnPortalToggleDemo = document.getElementById('btnPortalToggleDemo');
+  btnPortalToggleDemo?.addEventListener('click', () => {
+    btnToggleDemo?.click();
+  });
 }
 
 function showLoginAlert(msg) {
@@ -2704,10 +3548,13 @@ let cachedDistributionPoints = [];
 
 function initEnterpriseFeatures() {
   setupTenantBranding();
+  setupValidationModeToggle();
+  setupSupervisorDailyQrModal();
   setupWorkerManagement();
   setupCampaignsManagement();
   setupDistributionPointsManagement();
   setupNotificationsSystem();
+  setupWhatsAppShareSystem();
   loadTenantSettings();
   loadNotifications();
 }
@@ -2756,7 +3603,7 @@ async function loadTenantSettings() {
         modalPreviewBox.innerHTML = `<img src="${tenant.logo_url}" style="max-height: 70px; max-width: 100%; object-fit: contain;" alt="Vista Previa" />`;
       }
     } else {
-      if (logoContainer) {
+      if (logoContainer && !logoContainer.querySelector('img')) {
         logoContainer.innerHTML = '<svg class="icon-svg icon-md" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>';
       }
     }
@@ -2820,9 +3667,212 @@ async function loadTenantSettings() {
       populateDistributionPointsSelect();
     }
 
+    // 6. Configurar Modo de Validación: Tarjeta NFC vs QR Diario del Supervisor
+    const isSupervisorQr = Boolean(tenant.supervisor_qr_mode === 1 || tenant.supervisor_qr_mode === true);
+    updateValidationModeUI(isSupervisorQr);
+
   } catch (err) {
     console.warn('Error al cargar configuración del ente:', err);
   }
+}
+
+// ----------------------------------------------------------------------------
+// 1.1 MODO DE VALIDACIÓN: TARJETAS NFC VS CÓDIGO QR DIARIO DEL SUPERVISOR
+// ----------------------------------------------------------------------------
+function updateValidationModeUI(isSupervisorQrMode) {
+  STATE.supervisor_qr_mode = Boolean(isSupervisorQrMode);
+
+  const switchEl = document.getElementById('switchSupervisorQrMode');
+  const track = document.getElementById('toggleTrack');
+  const knob = document.getElementById('toggleKnob');
+  const badge = document.getElementById('validationModeBadge');
+  const explanation = document.getElementById('validationModeExplanation');
+
+  const distBadge = document.getElementById('distributorValidationModeBadge');
+  const distText = document.getElementById('distributorStandbyText');
+  const btnNfc = document.getElementById('btnSimulateNfcTap');
+  const btnSupQr = document.getElementById('btnSimulateSupervisorDailyQr');
+  const btnDistSupModal = document.getElementById('btnDistributorShowSupervisorQr');
+
+  if (switchEl) switchEl.checked = STATE.supervisor_qr_mode;
+
+  if (STATE.supervisor_qr_mode) {
+    if (track) track.style.backgroundColor = '#0284c7';
+    if (knob) knob.style.transform = 'translateX(20px)';
+    if (badge) {
+      badge.textContent = '🔑 QR Diario Supervisor ACTIVO';
+      badge.style.background = '#e0f2fe';
+      badge.style.color = '#0284c7';
+      badge.style.border = '1px solid #bae6fd';
+    }
+    if (explanation) {
+      explanation.innerHTML = '🔑 <strong>Modo Actual:</strong> Validación mediante <strong>Código QR Diario del Supervisor</strong> en posesión de mesa para beneficiarios sin smartphone. (Tarjetas NFC desactivadas).';
+      explanation.style.background = '#f0fdf4';
+      explanation.style.borderColor = '#bbf7d0';
+      explanation.style.color = '#15803d';
+    }
+    if (distBadge) {
+      distBadge.textContent = '🔑 Modo: QR Supervisor Diario';
+      distBadge.style.background = 'rgba(2, 132, 199, 0.2)';
+      distBadge.style.color = '#38bdf8';
+      distBadge.style.border = '1px solid rgba(56, 189, 248, 0.4)';
+    }
+    if (distText) {
+      distText.textContent = 'Enfoque el QR del trabajador o valide con el Código QR Diario del Supervisor para beneficiarios sin smartphone.';
+    }
+    if (btnNfc) btnNfc.style.display = 'none';
+    if (btnSupQr) btnSupQr.style.display = 'inline-block';
+    if (btnDistSupModal) btnDistSupModal.style.display = 'block';
+  } else {
+    if (track) track.style.backgroundColor = '#cbd5e1';
+    if (knob) knob.style.transform = 'translateX(0px)';
+    if (badge) {
+      badge.textContent = '💳 Modo NFC Físico ACTIVO';
+      badge.style.background = '#f1f5f9';
+      badge.style.color = '#475569';
+      badge.style.border = '1px solid #cbd5e1';
+    }
+    if (explanation) {
+      explanation.innerHTML = 'ℹ️ <strong>Modo Actual:</strong> Se requiere tarjeta NFC física asignada al beneficiario para retirar en mesa.';
+      explanation.style.background = '#f0f9ff';
+      explanation.style.borderColor = '#bae6fd';
+      explanation.style.color = '#0369a1';
+    }
+    if (distBadge) {
+      distBadge.textContent = '💳 Modo: Tarjetas NFC';
+      distBadge.style.background = 'rgba(56, 189, 248, 0.15)';
+      distBadge.style.color = '#38bdf8';
+      distBadge.style.border = '1px solid rgba(56, 189, 248, 0.3)';
+    }
+    if (distText) {
+      distText.textContent = 'Enfoque el código QR dinámico del trabajador o acerque la tarjeta NFC física.';
+    }
+    if (btnNfc) btnNfc.style.display = 'inline-block';
+    if (btnSupQr) btnSupQr.style.display = 'none';
+    if (btnDistSupModal) btnDistSupModal.style.display = 'none';
+  }
+
+  // Actualizar también la vista del trabajador si está abierta
+  if (STATE.selectedWorkerId) {
+    const selWorker = STATE.localCache.workers.find(w => w.worker_id === STATE.selectedWorkerId);
+    if (selWorker && selWorker.worker_type === 'jubilado') {
+      const statusText = document.getElementById('workerPasskeyStatusText');
+      const btnGenerate = document.getElementById('btnGenerateWorkerQr');
+      if (statusText && btnGenerate) {
+        if (STATE.supervisor_qr_mode) {
+          statusText.textContent = 'Adulto Mayor / Sin Smartphone: Despacho autorizado en mesa mediante Código QR Diario del Supervisor.';
+          btnGenerate.textContent = '🔑 Aprobación por QR Supervisor';
+        } else {
+          statusText.textContent = 'Adulto Mayor en contingencia: Puede reclamar con Tarjeta NFC física en mesa.';
+          btnGenerate.textContent = '💳 Beneficio por Tarjeta NFC';
+        }
+      }
+    }
+  }
+}
+
+function setupValidationModeToggle() {
+  const switchEl = document.getElementById('switchSupervisorQrMode');
+  if (!switchEl) return;
+
+  switchEl.addEventListener('change', async (e) => {
+    const isChecked = e.target.checked;
+    updateValidationModeUI(isChecked);
+
+    try {
+      const res = await fetch('/api/v1/tenant/settings/validation-mode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ supervisor_qr_mode: isChecked })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al actualizar modo de validación');
+
+      STATE.supervisor_qr_mode = Boolean(data.supervisor_qr_mode);
+      updateValidationModeUI(STATE.supervisor_qr_mode);
+      playAudioFeedback('success');
+      alert(`⚙️ Configuración del Ministerio:\n${data.message}`);
+    } catch (err) {
+      alert('Error cambiando modo de validación: ' + err.message);
+      updateValidationModeUI(!isChecked);
+    }
+  });
+}
+
+// ----------------------------------------------------------------------------
+// 1.2 MODAL Y GENERACIÓN DEL CÓDIGO QR DIARIO DEL SUPERVISOR DE ENTREGAS
+// ----------------------------------------------------------------------------
+async function loadAndShowSupervisorDailyQrModal() {
+  const modal = document.getElementById('supervisorDailyQrModalBackdrop');
+  if (!modal) return;
+
+  try {
+    const res = await fetch('/api/v1/supervisor/daily-qr');
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'No se pudo obtener el QR diario del supervisor');
+    }
+
+    const qrContainer = document.getElementById('targetSupervisorDailyQr');
+    const authCodeEl = document.getElementById('supervisorAuthCodeDisplay');
+    const nameEl = document.getElementById('supervisorNameDisplay');
+    const docEl = document.getElementById('supervisorDocDisplay');
+    const dateEl = document.getElementById('supervisorDailyQrDate');
+    const expiryEl = document.getElementById('supervisorExpiryDisplay');
+
+    if (authCodeEl) authCodeEl.textContent = data.auth_code;
+    if (nameEl) nameEl.textContent = data.supervisor.full_name;
+    if (docEl) docEl.textContent = data.supervisor.document_id;
+    if (dateEl) dateEl.textContent = `Fecha de Operación: ${data.date}`;
+    if (expiryEl) expiryEl.textContent = `Válido hoy hasta las 23:59:59 (${data.date})`;
+
+    STATE.activeSupervisorQrPayload = data.qr_payload;
+
+    if (qrContainer) {
+      qrContainer.innerHTML = '';
+      if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+        window.QRCodeGenerator.render('targetSupervisorDailyQr', data.qr_payload);
+      } else if (window.QRCodeGenerator && typeof window.QRCodeGenerator.generateQRCodeDataURL === 'function') {
+        const url = window.QRCodeGenerator.generateQRCodeDataURL(data.qr_payload, { size: 220 });
+        qrContainer.innerHTML = `<img src="${url}" style="width: 220px; height: 220px;" alt="QR Diario Supervisor" />`;
+      } else {
+        qrContainer.innerHTML = `<div style="padding: 1rem; color: #0284c7; font-size: 0.8rem; word-break: break-all;"><code>${data.auth_code}</code><br><br>${data.qr_payload}</div>`;
+      }
+    }
+
+    modal.classList.add('active');
+  } catch (err) {
+    alert('Error al generar el Código QR Diario del Supervisor: ' + err.message);
+  }
+}
+
+function setupSupervisorDailyQrModal() {
+  const modal = document.getElementById('supervisorDailyQrModalBackdrop');
+  const btnOpen = document.getElementById('btnOpenSupervisorDailyQrModal');
+  const btnClose = document.getElementById('btnCloseSupervisorDailyQrModal');
+  const btnCloseBtn = document.getElementById('btnCloseSupervisorDailyQrModalBtn');
+  const btnCopy = document.getElementById('btnCopySupervisorDailyQrToken');
+  const btnPrint = document.getElementById('btnPrintSupervisorDailyQr');
+
+  btnOpen?.addEventListener('click', loadAndShowSupervisorDailyQrModal);
+
+  const closeModal = () => modal?.classList.remove('active');
+  btnClose?.addEventListener('click', closeModal);
+  btnCloseBtn?.addEventListener('click', closeModal);
+
+  btnCopy?.addEventListener('click', () => {
+    if (STATE.activeSupervisorQrPayload) {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(STATE.activeSupervisorQrPayload);
+      }
+      alert('📋 Token Criptográfico del Supervisor copiado al portapapeles.');
+    }
+  });
+
+  btnPrint?.addEventListener('click', () => {
+    window.print();
+  });
 }
 
 function setupTenantBranding() {
@@ -3150,25 +4200,44 @@ V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@ente.gob
     document.body.removeChild(a);
   });
 
-  // Ejecutar importación masiva
+  // Ejecutar importación masiva con soporte de lotes y progreso en tiempo real
   btnExecuteImport?.addEventListener('click', async () => {
     if (parsedCsvWorkers.length === 0) return;
 
     btnExecuteImport.disabled = true;
-    btnExecuteImport.textContent = '⏳ Procesando nómina...';
+    const CHUNK_SIZE = 250;
+    const totalBatches = Math.ceil(parsedCsvWorkers.length / CHUNK_SIZE);
+    let totalImported = 0;
+    let totalSkipped = 0;
 
     try {
-      const res = await fetch('/api/v1/admin/workers/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workers: parsedCsvWorkers })
-      });
+      for (let b = 0; b < totalBatches; b++) {
+        const chunk = parsedCsvWorkers.slice(b * CHUNK_SIZE, (b + 1) * CHUNK_SIZE);
+        btnExecuteImport.textContent = `⏳ Procesando lote ${b + 1} de ${totalBatches}... (${totalImported} registrados)`;
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error durante la importación');
+        const res = await fetch('/api/v1/admin/workers/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ workers: chunk })
+        });
+
+        let data;
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          const rawText = await res.text();
+          throw new Error(`Error en servidor (${res.status}): ${rawText.slice(0, 150)}`);
+        }
+
+        if (!res.ok) throw new Error(data.error || 'Error durante la importación');
+
+        totalImported += (data.imported_count || 0);
+        totalSkipped += (data.skipped_count || 0);
+      }
 
       alertCsv.className = 'alert-box alert-success';
-      alertCsv.innerHTML = `✅ ${data.message}`;
+      alertCsv.innerHTML = `✅ Importación completada: <strong>${totalImported} beneficiarios nuevos registrados</strong> (${totalSkipped} ya existían o fueron omitidos).`;
       playAudioFeedback('success');
 
       await loadWorkersDirectory();
@@ -3737,6 +4806,344 @@ function sendBrowserNotification(title, body) {
     }
   } catch (e) {
     console.warn('Web notification error:', e);
+  }
+}
+
+// ============================================================================
+// CENTRO DE DIFUSIÓN Y ENLACES WHATSAPP (BENEFICIARIOS, DESPACHO Y SUPERVISOR)
+// ============================================================================
+
+let activeWaShareRole = 'worker';
+let activeWaCustomWorker = null;
+
+function sanitizeWhatsAppPhone(rawPhone) {
+  if (!rawPhone) return '';
+  let cleaned = rawPhone.trim().replace(/\D/g, '');
+  if (cleaned.startsWith('0') && cleaned.length === 11) {
+    cleaned = '58' + cleaned.substring(1);
+  } else if (cleaned.length === 10 && (cleaned.startsWith('414') || cleaned.startsWith('424') || cleaned.startsWith('412') || cleaned.startsWith('416') || cleaned.startsWith('426'))) {
+    cleaned = '58' + cleaned;
+  }
+  return cleaned;
+}
+
+function getWhatsAppShareTemplates() {
+  const origin = window.location.origin || `${window.location.protocol}//${window.location.host}`;
+  const entityName = currentTenantData?.tenant?.entity_name || 'Ministerio del Poder Popular para la Comunicación y la Información';
+  const entityShort = currentTenantData?.tenant?.entity_short_name || 'MIPPCI';
+
+  // 1. Plantilla para Beneficiarios (PWA Móvil)
+  let workerGreeting = 'Estimado(a) trabajador(a):';
+  let workerDeepUrl = `${origin}/?view=worker`;
+  if (activeWaCustomWorker) {
+    workerGreeting = `Estimado(a) *${activeWaCustomWorker.full_name}* (C.I. *${activeWaCustomWorker.document_id}*):`;
+    workerDeepUrl = `${origin}/?view=worker&doc=${encodeURIComponent(activeWaCustomWorker.document_id)}`;
+  }
+
+  const workerMsg = 
+`🏛️ *${entityName.toUpperCase()} (${entityShort})*
+📦 *SISTEMA DE GESTIÓN Y DESPACHO DE BENEFICIOS INSTITUCIONALES*
+
+${workerGreeting}
+Le informamos que está disponible la plataforma oficial para la jornada de asignación y retiro de combos de alimentación y beneficios institucionales.
+
+📲 *Enlace de Instalación y Acceso:*
+${workerDeepUrl}
+
+📋 *Pasos rápidos para instalar y activar en su teléfono:*
+1️⃣ Abra el enlace arriba en el navegador de su teléfono (Google Chrome, Safari, etc.).
+2️⃣ Toque el menú del navegador y elija *"Agregar a Pantalla Principal"* o *"Instalar Aplicación"* para tener el icono oficial en su pantalla.
+3️⃣ Ingrese con su número de Cédula y active su *huella o reconocimiento facial (Passkey Biométrica)* para generar su Código QR de retiro seguro.
+
+ℹ️ *Nota de Contingencia:* Si no posee teléfono inteligente o presenta fallas de conexión el día de la jornada, no se preocupe: su beneficio será validado y entregado directamente en mesa por el Supervisor mediante el *Código QR Diario de Entrega*.
+
+_Mensaje oficial emitido por la Dirección de Gestión Humana y Tecnología - ${entityShort}._`;
+
+  // 2. Plantilla para Mesa de Despacho (Operadores)
+  const distributorDeepUrl = `${origin}/?view=distributor`;
+  const distributorMsg = 
+`🏛️ *${entityName.toUpperCase()} (${entityShort})*
+📦 *MESA DE DESPACHO & CONTROL DE ENTREGA DE BENEFICIOS*
+
+Atención Operador(a) de Mesa de Despacho:
+Se remite el enlace directo a la estación de escaneo y entrega para la jornada activa:
+
+💻 *Enlace a la Mesa de Despacho:*
+${distributorDeepUrl}
+
+⚙️ *Instrucciones de Operación:*
+1️⃣ Ingrese desde la tablet, laptop o smartphone de la mesa con sus credenciales de Operador.
+2️⃣ Active el lector de cámara para escanear el Código QR dinámico presentado por el beneficiario.
+3️⃣ Verifique la asignación del combo (Alimentos, Higiene, Proteínas / Cadena de Frío, Útiles).
+4️⃣ En caso de contingencia o beneficiario sin smartphone, utilice la validación por *Código QR Diario del Supervisor* o token criptográfico offline.
+
+_Coordinación de Almacén y Logística - ${entityShort}._`;
+
+  // 3. Plantilla para Supervisor de Jornada
+  const supervisorDeepUrl = `${origin}/?view=portal&tab=supervisor`;
+  const supervisorMsg = 
+`🏛️ *${entityName.toUpperCase()} (${entityShort})*
+🔑 *SUPERVISIÓN DE JORNADA, AUDITORÍA & QR DIARIO*
+
+Atención Supervisor(a) de Jornada:
+Se remite el enlace de acceso a la consola de supervisión y control oficial:
+
+🛡️ *Enlace Consola de Supervisión:*
+${supervisorDeepUrl}
+
+📋 *Responsabilidades del Supervisor:*
+1️⃣ Ingrese con su perfil de Supervisor y genere el *Código QR Diario de Entrega* (válido por 24 horas).
+2️⃣ El Código QR Diario es el instrumento oficial para autorizar las entregas a beneficiarios sin teléfono inteligente.
+3️⃣ Atienda incidencias, desbloquee excepciones justificadas y supervise el flujo de despacho en tiempo real.
+
+_Dirección General de Despacho y Gestión Humana - ${entityShort}._`;
+
+  return {
+    worker: {
+      title: 'App Beneficiario (PWA)',
+      description: 'Enlace dirigido a trabajadores y jubilados del ministerio para instalar la aplicación en su smartphone, enrolar su Passkey biométrica y generar su código QR de retiro.',
+      url: workerDeepUrl,
+      message: workerMsg
+    },
+    distributor: {
+      title: 'Mesa de Despacho',
+      description: 'Enlace para operadores de almacén en las mesas de entrega. Permite escanear códigos QR con la cámara del dispositivo y verificar combos asignados.',
+      url: distributorDeepUrl,
+      message: distributorMsg
+    },
+    supervisor: {
+      title: 'Supervisor de Jornada',
+      description: 'Enlace para supervisores y fiscales de entrega. Permite generar el Código QR Diario para beneficiarios sin smartphone y auditar despachos.',
+      url: supervisorDeepUrl,
+      message: supervisorMsg
+    }
+  };
+}
+
+function updateWhatsAppModalContent() {
+  const templates = getWhatsAppShareTemplates();
+  const current = templates[activeWaShareRole] || templates.worker;
+
+  const descEl = document.getElementById('waRoleDescriptionText');
+  const previewEl = document.getElementById('waMessagePreviewContainer');
+  const directUrlInput = document.getElementById('waDirectUrlDisplay');
+
+  if (descEl) descEl.textContent = current.description;
+  if (previewEl) previewEl.textContent = current.message;
+  if (directUrlInput) directUrlInput.value = current.url;
+
+  // Actualizar estado activo en botones de pestañas
+  const tabBtns = document.querySelectorAll('.wa-role-tab');
+  tabBtns.forEach(btn => {
+    if (btn.dataset.tab === activeWaShareRole) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+function setupWhatsAppShareSystem() {
+  const modal = document.getElementById('whatsappShareModalBackdrop');
+  if (!modal) return;
+
+  const btnOpenHeader = document.getElementById('btnHeaderWhatsAppShare');
+  const btnOpenMenu = document.getElementById('btnUserMenuWhatsAppShare');
+  const btnOpenWorkers = document.getElementById('btnOpenWhatsAppShareModal');
+  const btnClose = document.getElementById('btnCloseWhatsAppShareModal');
+  const phoneInput = document.getElementById('waRecipientPhoneInput');
+  const btnClearPhone = document.getElementById('btnClearWaPhone');
+  const btnCopyFullMsg = document.getElementById('btnCopyWaFullMessage');
+  const btnCopyUrl = document.getElementById('btnCopyWaDirectUrl');
+  const btnLaunch = document.getElementById('btnLaunchWhatsApp');
+  const tabBtns = document.querySelectorAll('.wa-role-tab');
+
+  const openModal = (defaultRole = 'worker', workerData = null) => {
+    activeWaShareRole = defaultRole;
+    activeWaCustomWorker = workerData;
+    if (phoneInput) {
+      phoneInput.value = (workerData && workerData.phone_number) ? workerData.phone_number : '';
+    }
+    updateWhatsAppModalContent();
+    modal.classList.add('active');
+  };
+
+  const closeModal = () => {
+    modal.classList.remove('active');
+    activeWaCustomWorker = null;
+  };
+
+  window.openWhatsAppShareModal = openModal;
+  window.closeWhatsAppShareModal = closeModal;
+
+  btnOpenHeader?.addEventListener('click', () => openModal('worker'));
+  btnOpenMenu?.addEventListener('click', () => openModal('worker'));
+  btnOpenWorkers?.addEventListener('click', () => openModal('worker'));
+
+  btnClose?.addEventListener('click', closeModal);
+
+  // Selector de rol en tabs
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeWaShareRole = btn.dataset.tab;
+      activeWaCustomWorker = null; // Reset custom worker si cambia pestaña manualmente
+      updateWhatsAppModalContent();
+    });
+  });
+
+  // Limpiar campo de teléfono
+  btnClearPhone?.addEventListener('click', () => {
+    if (phoneInput) {
+      phoneInput.value = '';
+      phoneInput.focus();
+    }
+  });
+
+  // Copiar Enlace Directo
+  btnCopyUrl?.addEventListener('click', async () => {
+    const templates = getWhatsAppShareTemplates();
+    const current = templates[activeWaShareRole] || templates.worker;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(current.url);
+      } else {
+        const dummy = document.createElement('textarea');
+        dummy.value = current.url;
+        document.body.appendChild(dummy);
+        dummy.select();
+        document.execCommand('copy');
+        document.body.removeChild(dummy);
+      }
+      const prevText = btnCopyUrl.textContent;
+      btnCopyUrl.textContent = '✅ Enlace Copiado';
+      playAudioFeedback('success');
+      setTimeout(() => { btnCopyUrl.textContent = prevText; }, 2000);
+    } catch (e) {
+      alert('Enlace: ' + current.url);
+    }
+  });
+
+  // Copiar Mensaje Completo
+  btnCopyFullMsg?.addEventListener('click', async () => {
+    const templates = getWhatsAppShareTemplates();
+    const current = templates[activeWaShareRole] || templates.worker;
+    try {
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(current.message);
+      } else {
+        const dummy = document.createElement('textarea');
+        dummy.value = current.message;
+        document.body.appendChild(dummy);
+        dummy.select();
+        document.execCommand('copy');
+        document.body.removeChild(dummy);
+      }
+      const prevText = btnCopyFullMsg.textContent;
+      btnCopyFullMsg.textContent = '✅ Mensaje Copiado al Portapapeles';
+      playAudioFeedback('success');
+      setTimeout(() => { btnCopyFullMsg.textContent = prevText; }, 2500);
+    } catch (e) {
+      alert('No se pudo copiar automáticamente. Puede seleccionarlo desde la vista previa.');
+    }
+  });
+
+  // Lanzar y compartir por WhatsApp
+  btnLaunch?.addEventListener('click', () => {
+    const templates = getWhatsAppShareTemplates();
+    const current = templates[activeWaShareRole] || templates.worker;
+    const phoneVal = phoneInput ? phoneInput.value : '';
+    const cleanPhone = sanitizeWhatsAppPhone(phoneVal);
+    const encodedText = encodeURIComponent(current.message);
+
+    let waUrl = '';
+    if (cleanPhone) {
+      waUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedText}`;
+    } else {
+      waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+    }
+
+    playAudioFeedback('success');
+    window.open(waUrl, '_blank');
+  });
+
+  // Exponer función para enviar invitación directa a un trabajador desde la tabla
+  window.sendWhatsAppInviteToWorker = async function(workerId) {
+    try {
+      const res = await fetch(`/api/v1/admin/workers/${workerId}/security-dossier`);
+      const data = await res.json();
+      if (!res.ok || !data.worker) throw new Error(data.error || 'Beneficiario no encontrado');
+      
+      openModal('worker', data.worker);
+    } catch (err) {
+      alert('Error cargando datos del beneficiario para WhatsApp: ' + err.message);
+    }
+  };
+}
+
+// ----------------------------------------------------------------------------
+// GESTOR DE ENLACES PROFUNDOS (DEEP-LINKS EN URL)
+// ----------------------------------------------------------------------------
+function handleUrlDeepLinks() {
+  const params = new URLSearchParams(window.location.search);
+  const viewParam = params.get('view');
+  const docParam = params.get('doc');
+  const tabParam = params.get('tab');
+
+  if (docParam) {
+    const docInput = document.getElementById('loginDocNumber');
+    const docType = document.getElementById('loginDocType');
+    if (docInput) {
+      let cleanDoc = docParam.trim();
+      if (cleanDoc.toUpperCase().startsWith('V-') || cleanDoc.toUpperCase().startsWith('E-')) {
+        if (docType) docType.value = cleanDoc.substring(0, 1).toUpperCase();
+        cleanDoc = cleanDoc.substring(2);
+      }
+      docInput.value = cleanDoc;
+    }
+  }
+
+  if (viewParam) {
+    if (viewParam === 'worker') {
+      if (STATE.currentUser && STATE.currentUser.role === 'worker') {
+        navigateTo('view-worker');
+      } else if (!STATE.currentUser) {
+        navigateTo('view-login');
+        const alertBox = document.getElementById('loginAlertBox');
+        if (alertBox) {
+          alertBox.className = 'alert-box alert-info';
+          alertBox.innerHTML = `📲 <strong>Bienvenido al Portal del Beneficiario (MIPPCI):</strong><br>Ingrese su Cédula abajo para enrolar su huella/rostro y generar su QR de retiro.`;
+          alertBox.style.display = 'block';
+        }
+      } else {
+        navigateTo('view-worker');
+      }
+    } else if (viewParam === 'distributor') {
+      if (STATE.currentUser && STATE.currentUser.role === 'operator') {
+        navigateTo('view-distributor');
+      } else if (!STATE.currentUser) {
+        navigateTo('view-login');
+        const alertBox = document.getElementById('loginAlertBox');
+        if (alertBox) {
+          alertBox.className = 'alert-box alert-info';
+          alertBox.innerHTML = `📦 <strong>Acceso a Mesa de Despacho (MIPPCI):</strong><br>Inicie sesión con su usuario de Operador de Almacén para escanear y entregar beneficios.`;
+          alertBox.style.display = 'block';
+        }
+      } else {
+        navigateTo('view-distributor');
+      }
+    } else if (viewParam === 'portal') {
+      if (STATE.currentUser && (STATE.currentUser.role === 'admin' || STATE.currentUser.role === 'director' || STATE.currentUser.role === 'supervisor')) {
+        navigateTo('view-portal');
+        if (tabParam) {
+          const subtabBtn = document.querySelector(`.portal-subtab[data-subtab="subtab-${tabParam}"]`);
+          if (subtabBtn) subtabBtn.click();
+        }
+      } else if (!STATE.currentUser) {
+        navigateTo('view-login');
+      } else {
+        navigateTo('view-portal');
+      }
+    }
   }
 }
 

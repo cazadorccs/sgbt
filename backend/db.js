@@ -268,6 +268,8 @@ function initializeDatabase() {
       primary_color TEXT DEFAULT '#0284c7',
       secondary_color TEXT DEFAULT '#0ea5e9',
       is_initialized INTEGER DEFAULT 1,
+      is_demo_mode INTEGER DEFAULT 1,
+      supervisor_qr_mode INTEGER DEFAULT 0,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -301,14 +303,31 @@ function initializeDatabase() {
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes
   try { db.exec("ALTER TABLE combos ADD COLUMN items_detail TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN icon TEXT DEFAULT '🍱'"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN mesa_number INTEGER DEFAULT 1"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN mesa_name TEXT DEFAULT ''"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN conservation TEXT DEFAULT 'Ambiente'"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN target_qty TEXT DEFAULT '1'"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN weight_kg REAL DEFAULT 14.0"); } catch (e) {}
+  try { db.exec("ALTER TABLE deliveries ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
+  try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 1"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
+
+  // Actualizar pesos estimados de combos por categoría
+  try {
+    db.prepare("UPDATE combos SET weight_kg = 14.5 WHERE (category = 'almuerzo' OR category = 'bolsa_viveres') AND (weight_kg IS NULL OR weight_kg = 0 OR weight_kg = 14.0)").run();
+    db.prepare("UPDATE combos SET weight_kg = 5.2 WHERE category = 'combo_higienico' AND (weight_kg IS NULL OR weight_kg = 0 OR weight_kg = 14.0)").run();
+    db.prepare("UPDATE combos SET weight_kg = 8.0 WHERE category = 'proteico' AND (weight_kg IS NULL OR weight_kg = 0 OR weight_kg = 14.0)").run();
+    db.prepare("UPDATE combos SET weight_kg = 3.5 WHERE category = 'utiles_escolares' AND (weight_kg IS NULL OR weight_kg = 0 OR weight_kg = 14.0)").run();
+  } catch (e) {}
 
   // Inicializar tenant_settings por defecto si está vacío
   const tenantExists = db.prepare("SELECT COUNT(*) as count FROM tenant_settings WHERE id = 'current_tenant'").get();
   if (tenantExists.count === 0) {
     db.prepare(`
-      INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color, is_initialized)
-      VALUES ('current_tenant', 'Ministerio del Poder Popular para la Comunicación y la Información', 'MIPPCI', 'Bienestar y Soberanía Alimentaria Institucional', '', '#0284c7', '#0ea5e9', 1)
+      INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color, is_initialized, is_demo_mode)
+      VALUES ('current_tenant', 'Ministerio del Poder Popular para la Comunicación y la Información', 'MIPPCI', 'Bienestar y Soberanía Alimentaria Institucional', '', '#0284c7', '#0ea5e9', 1, 1)
     `).run();
   }
 
@@ -354,52 +373,77 @@ function initializeDatabase() {
 // Almacén seguro en memoria para simulación de llaves privadas (Secure Enclave simulado)
 // (declarado al inicio del archivo)
 
-function seedDatabase() {
-  const rowCount = db.prepare('SELECT COUNT(*) as count FROM workers').get();
-  if (rowCount.count > 0) {
-    return; // Ya existen datos
-  }
-
-  // Si el sistema fue puesto a cero (is_initialized = 0), no regenerar los seeds de prueba
-  try {
-    const tenant = db.prepare("SELECT is_initialized FROM tenant_settings WHERE id = 'current_tenant'").get();
-    if (tenant && tenant.is_initialized === 0) {
-      console.log('[DB] Sistema en estado no inicializado (is_initialized = 0). Omitiendo seeds para Asistente de Configuración.');
-      return;
+function seedDatabase(force = false) {
+  if (force) {
+    try {
+      db.exec(`
+        DELETE FROM deliveries;
+        DELETE FROM daily_entitlements;
+        DELETE FROM passkey_credentials;
+        DELETE FROM nfc_cards;
+        DELETE FROM workers;
+      `);
+      if (secureEnclaveSimulator && typeof secureEnclaveSimulator.clear === 'function') {
+        secureEnclaveSimulator.clear();
+      }
+    } catch (e) {
+      console.warn('[DB SEED] Error limpiando datos previos:', e.message);
     }
-  } catch (e) {}
+  } else {
+    const rowCount = db.prepare('SELECT COUNT(*) as count FROM workers').get();
+    if (rowCount.count > 0) {
+      return; // Ya existen datos
+    }
+
+    // Si el sistema fue puesto a cero (is_initialized = 0), no regenerar los seeds de prueba
+    try {
+      const tenant = db.prepare("SELECT is_initialized, is_demo_mode FROM tenant_settings WHERE id = 'current_tenant'").get();
+      if (tenant && (tenant.is_initialized === 0 || tenant.is_demo_mode === 0)) {
+        console.log('[DB] Sistema en producción o pendiente por configurar. Omitiendo seeds.');
+        return;
+      }
+    } catch (e) {}
+  }
 
   console.log('[DB] Insertando datos maestros iniciales (Seeds)...');
 
-  // Departamentos
-  const deptGestionHumana = crypto.randomUUID();
-  const deptComunicacion = crypto.randomUUID();
-  const deptJubilados = crypto.randomUUID();
+  // Departamentos (reutilizar o insertar si no existen)
+  let deptGestionHumana = db.prepare("SELECT id FROM departments WHERE code = 'DGGH_01'").get()?.id;
+  if (!deptGestionHumana) {
+    deptGestionHumana = crypto.randomUUID();
+    db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'DGGH_01', 'Dirección General de Gestión Humana', 'CC-1010')").run(deptGestionHumana);
+  }
 
-  const insertDept = db.prepare(`
-    INSERT INTO departments (id, code, name, cost_center) VALUES (?, ?, ?, ?)
-  `);
-  insertDept.run(deptGestionHumana, 'DGGH_01', 'Dirección General de Gestión Humana', 'CC-1010');
-  insertDept.run(deptComunicacion, 'DGCD_02', 'Dirección General de Comunicación Digital', 'CC-2020');
-  insertDept.run(deptJubilados, 'CJP_03', 'Coordinación de Jubilados y Pensionados (MIPPCI)', 'CC-3030');
+  let deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
+  if (!deptComunicacion) {
+    deptComunicacion = crypto.randomUUID();
+    db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'DGCD_02', 'Dirección General de Comunicación Digital', 'CC-2020')").run(deptComunicacion);
+  }
+
+  let deptJubilados = db.prepare("SELECT id FROM departments WHERE code = 'CJP_03'").get()?.id;
+  if (!deptJubilados) {
+    deptJubilados = crypto.randomUUID();
+    db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'CJP_03', 'Coordinación de Jubilados y Pensionados (MIPPCI)', 'CC-3030')").run(deptJubilados);
+  }
 
   // Puntos de Distribución (Almacenes y Mesas de Entrega)
   const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000'; // ID canónico del contrato
-  const pointPlantaB = crypto.randomUUID();
-  const insertPoint = db.prepare(`
-    INSERT INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)
-  `);
-  insertPoint.run(pointPlantaA, 'Almacén Central - Sótano 1 (Sede Principal)', 'ALM-S1', 'Edificio Principal MIPPCI, Sótano 1');
-  insertPoint.run(pointPlantaB, 'Mesa de Despacho 2 (Auditorio Central)', 'MESA-AUD', 'Planta Baja, Auditorio Principal');
+  const pointPlantaB = '550e8400-e29b-41d4-a716-446655440001';
+  db.prepare(`
+    INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)
+  `).run(pointPlantaA, 'Almacén Central - Sótano 1 (Sede Principal)', 'ALM-S1', 'Edificio Principal MIPPCI, Sótano 1');
+  db.prepare(`
+    INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)
+  `).run(pointPlantaB, 'Mesa de Despacho 2 (Auditorio Central)', 'MESA-AUD', 'Planta Baja, Auditorio Principal');
 
   // Catálogo de Combos (Víveres, Proteínas, Especiales)
   const comboViveres = 'c1a2b3c4-1111-2222-3333-444455556666'; // ID canónico del contrato
-  const comboProteico = crypto.randomUUID();
-  const comboNavideno = crypto.randomUUID();
-  const comboComplementario = crypto.randomUUID();
+  const comboProteico = 'c1a2b3c4-1111-2222-3333-444455557777';
+  const comboNavideno = 'c1a2b3c4-1111-2222-3333-444455558888';
+  const comboComplementario = 'c1a2b3c4-1111-2222-3333-444455559999';
 
   const insertCombo = db.prepare(`
-    INSERT INTO combos (id, name, description, category, calories, dietary_info, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
   insertCombo.run(comboViveres, 'Bolsa de Víveres Secos (12 rubros)', 'Harina de maíz, arroz, pasta, caraotas negras, aceite comestible, azúcar, leche en polvo', 'bolsa_viveres', 12000, 'Alimentos no perecederos', 1);
   insertCombo.run(comboProteico, 'Combo Proteico Fresco', 'Pollo beneficiado entero, carne de res molida y mortadela especial', 'combo_proteico', 6500, 'Cadena de frío / Consumo familiar', 1);
@@ -424,24 +468,24 @@ function seedDatabase() {
   `);
 
   // 1. Carlos Mendoza: Funcionario activo con Passkey enrolada
-  insertWorker.run(workerCarlos, 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@ministerio.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 414 1234567');
+  insertWorker.run(workerCarlos, 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 414 1234567');
   
   // 2. Hilda Domínguez: Jubilada sin smartphone (contingencia NFC activa)
-  insertWorker.run(workerHilda, 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@jubilados.gob.ve', deptJubilados, 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 424 9876543');
+  insertWorker.run(workerHilda, 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@mippci.gob.ve', deptJubilados, 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 424 9876543');
 
   // 3. Roberto Gómez: Funcionario activo con celular extraviado/dañado
-  insertWorker.run(workerRoberto, 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@ministerio.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 5551234');
+  insertWorker.run(workerRoberto, 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 5551234');
 
   // 4. Elena Morales: Funcionaria activa pendiente de enrolar Passkey
-  insertWorker.run(workerElena, 'V-21555666', 'Elena Sofía Morales', 'elena.morales@ministerio.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 416 7778899');
+  insertWorker.run(workerElena, 'V-21555666', 'Elena Sofía Morales', 'elena.morales@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 416 7778899');
 
   // 5. Andrés Silva: Egresado / Desincorporado de nómina (Kill-Switch)
-  insertWorker.run(workerAndres, 'V-15888999', 'Andrés David Silva', 'andres.silva@ministerio.gob.ve', deptComunicacion, 'jornada_continua', 'terminated', 'contratado', 'worker', 1, null, '+58 426 3334455');
+  insertWorker.run(workerAndres, 'V-15888999', 'Andrés David Silva', 'andres.silva@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'terminated', 'contratado', 'worker', 1, null, '+58 426 3334455');
 
   // Personal operativo y directivo
-  insertWorker.run(operatorMiguel, 'V-14111222', 'Miguel Ángel Torres (Despacho Almacén)', 'miguel.torres@ministerio.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'operator', 1, null, '+58 414 0001122');
-  insertWorker.run(supervisorClaudia, 'V-13222333', 'Lic. Claudia Patricia Vega (Supervisor RRHH)', 'claudia.vega@ministerio.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'supervisor', 1, null, '+58 412 9998877');
-  insertWorker.run(adminJuan, 'V-11123987', 'Ing. Juan Carlos Rivas (Director Gestión Humana)', 'juan.rivas@ministerio.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+58 414 7776655');
+  insertWorker.run(operatorMiguel, 'V-14111222', 'Miguel Ángel Torres (Despacho Almacén)', 'miguel.torres@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'operator', 1, null, '+58 414 0001122');
+  insertWorker.run(supervisorClaudia, 'V-13222333', 'Lic. Claudia Patricia Vega (Supervisor RRHH)', 'claudia.vega@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'supervisor', 1, null, '+58 412 9998877');
+  insertWorker.run(adminJuan, 'V-11123987', 'Ing. Juan Carlos Rivas (Director Gestión Humana)', 'juan.rivas@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+58 414 7776655');
 
   // Generar llaves criptográficas reales ECDSA P-256 para Carlos Mendoza
   const carlosKeyPair = generateP256KeyPair();
@@ -571,5 +615,6 @@ if (!rawDb) {
 module.exports = {
   db,
   readyPromise,
-  secureEnclaveSimulator
+  secureEnclaveSimulator,
+  seedDatabase
 };
