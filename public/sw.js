@@ -3,14 +3,29 @@
 // Garantiza funcionamiento al 100% en sótanos y almacenes sin señal celular
 // ============================================================================
 
-const CACHE_NAME = 'mippci-bienestar-v2.4-factory-reset';
+const CACHE_NAME = 'mippci-bienestar-v2.6-templates';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/templates/modals.html',
   '/css/styles.css',
-  '/js/app.js',
   '/js/qrcode.js',
   '/js/html5-qrcode.min.js',
+  '/js/core/templates.js',
+  '/js/core/state.js',
+  '/js/core/audio.js',
+  '/js/core/toast.js',
+  '/js/core/api.js',
+  '/js/modules/auth.js',
+  '/js/modules/beneficiary.js',
+  '/js/modules/distributor.js',
+  '/js/modules/admin.js',
+  '/js/modules/payroll.js',
+  '/js/modules/combos.js',
+  '/js/modules/notifications.js',
+  '/js/modules/share.js',
+  '/js/modules/settings.js',
+  '/js/app.js',
   '/manifest.json',
   '/icons/icon.svg',
   '/icons/icon-192.png',
