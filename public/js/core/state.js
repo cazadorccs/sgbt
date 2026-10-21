@@ -53,9 +53,22 @@ window.STATE = {
   setCurrentUser(user) {
     this.currentUser = user;
     if (user) {
-      localStorage.setItem('sgbt_user', JSON.stringify(user));
+      try {
+        sessionStorage.setItem('sgbt_user', JSON.stringify(user));
+        localStorage.removeItem('sgbt_user');
+      } catch (e) {}
+      if (window.SessionManager && typeof window.SessionManager.startSession === 'function') {
+        window.SessionManager.startSession(user);
+      }
     } else {
-      localStorage.removeItem('sgbt_user');
+      try {
+        sessionStorage.removeItem('sgbt_user');
+        sessionStorage.removeItem('sgbt_session_meta');
+        localStorage.removeItem('sgbt_user');
+      } catch (e) {}
+      if (window.SessionManager && typeof window.SessionManager.stopWatchdog === 'function') {
+        window.SessionManager.stopWatchdog();
+      }
     }
     this.emit('user:changed', user);
   },
@@ -76,11 +89,13 @@ window.STATE = {
       }
     }
 
-    // 2. Si el usuario actual es el trabajador modificado, actualizarlo en memoria y localStorage
+    // 2. Si el usuario actual es el trabajador modificado, actualizarlo en memoria y sessionStorage
     if (this.currentUser && this.currentUser.id === workerId) {
       this.currentUser.has_passkey = hasPasskey;
       this.currentUser.has_smartphone = 1;
-      localStorage.setItem('sgbt_user', JSON.stringify(this.currentUser));
+      try {
+        sessionStorage.setItem('sgbt_user', JSON.stringify(this.currentUser));
+      } catch (e) {}
     }
 
     // 3. Emitir evento reactivo para repintado instantáneo de la interfaz (0ms)

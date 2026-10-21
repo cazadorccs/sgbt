@@ -248,12 +248,27 @@ window.applyUserSession = function(user) {
   }
 };
 
-window.handleLogout = function() {
+window.handleLogout = function(reason) {
+  if (window.SessionManager && typeof window.SessionManager.stopWatchdog === 'function') {
+    window.SessionManager.stopWatchdog();
+  }
+
   STATE.setCurrentUser(null);
   
   if (typeof window.closeUserMenu === 'function') {
     window.closeUserMenu();
   }
+
+  // Limpiar temporizadores de QR activos
+  if (STATE.qrTimerInterval) {
+    clearInterval(STATE.qrTimerInterval);
+    STATE.qrTimerInterval = null;
+  }
+  STATE.activeQrPayload = null;
+  try {
+    localStorage.removeItem('sgbt_active_qr_payload');
+    sessionStorage.clear();
+  } catch (e) {}
 
   const btnSettings = document.getElementById('btnOpenGeneralSettings');
   if (btnSettings) btnSettings.style.display = 'none';
@@ -267,22 +282,46 @@ window.handleLogout = function() {
   if (docInput) docInput.value = '';
 
   const alertBox = document.getElementById('loginAlertBox');
-  if (alertBox) alertBox.style.display = 'none';
+  if (alertBox) {
+    if (reason && typeof reason === 'string') {
+      alertBox.textContent = reason;
+      alertBox.className = 'alert-box alert-warning';
+      alertBox.style.display = 'block';
+    } else {
+      alertBox.style.display = 'none';
+    }
+  }
 
   navigateTo('view-login');
 };
 
 window.checkAuthSession = function() {
   try {
-    const saved = localStorage.getItem('sgbt_user');
+    // Inicializar listeners del watchdog de sesión bancario
+    if (window.SessionManager && typeof window.SessionManager.init === 'function') {
+      window.SessionManager.init();
+    }
+
+    // En arquitectura bancaria, la sesión activa reside en sessionStorage
+    const saved = sessionStorage.getItem('sgbt_user');
     if (saved) {
-      const user = JSON.parse(saved);
-      if (user && user.id) {
-        STATE.currentUser = user;
-        applyUserSession(user);
-        return;
+      // Validar que la sesión no haya caducado por inactividad
+      const isValid = window.SessionManager ? window.SessionManager.validateSessionOnBoot() : true;
+      if (isValid) {
+        const user = JSON.parse(saved);
+        if (user && user.id) {
+          STATE.currentUser = user;
+          applyUserSession(user);
+          if (window.SessionManager) {
+            window.SessionManager.startWatchdog();
+          }
+          return;
+        }
       }
     }
+
+    // Limpieza proactiva de sesiones persistentes viejas en localStorage
+    localStorage.removeItem('sgbt_user');
   } catch (e) {
     console.warn('Error al leer sesión guardada:', e);
   }

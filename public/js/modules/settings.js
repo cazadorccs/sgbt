@@ -53,6 +53,21 @@ window.setupGeneralSettings = function() {
     applyHighContrast(e.target.checked, true);
   });
 
+  // Selector de expiración de sesión bancaria
+  const selectSessionTimeout = document.getElementById('selectSessionTimeoutSetting');
+  if (selectSessionTimeout && window.SessionManager) {
+    const currentConfig = window.SessionManager.getConfig();
+    selectSessionTimeout.value = currentConfig.inactivityMinutes.toString();
+
+    selectSessionTimeout.addEventListener('change', (e) => {
+      const mins = parseInt(e.target.value, 10);
+      window.SessionManager.saveConfig(mins);
+      if (typeof window.showToast === 'function') {
+        window.showToast(`Seguridad bancaria: Sesión configurada a ${mins} minutos de inactividad.`, 'info');
+      }
+    });
+  }
+
   const tabBrandingBtn = document.getElementById('btnSettingsTabBranding');
   const tabPreferencesBtn = document.getElementById('btnSettingsTabPreferences');
   const tabDangerBtn = document.getElementById('btnSettingsTabDanger');

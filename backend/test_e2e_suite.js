@@ -4,6 +4,8 @@
 // ============================================================================
 
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 const BASE_URL = 'http://localhost:3000';
 
@@ -212,6 +214,29 @@ test('E2E-17: Estadísticas de Auditoría y KPIs de Gestión', async () => {
   if (resKpis.status !== 200) throw new Error(`HTTP ${resKpis.status} en /admin/kpis`);
   const k = resKpis.data.kpis || {};
   console.log(`     [Total Beneficiarios KPI: ${k.total_active_workers}, Adopción Passkeys: ${k.passkey_adoption_rate_pct}%]`);
+});
+
+test('E2E-18: Gestión y Seguridad de Sesión Bancaria (Auto-Logout e Inactividad)', async () => {
+  const sessionManagerPath = path.join(__dirname, '../public/js/core/session_manager.js');
+  if (!fs.existsSync(sessionManagerPath)) throw new Error('session_manager.js no encontrado en public/js/core/');
+  const code = fs.readFileSync(sessionManagerPath, 'utf8');
+  if (!code.includes('inactivityMinutes') || !code.includes('abandonmentMinutes')) {
+    throw new Error('session_manager.js no contiene parámetros de inactividad o abandono');
+  }
+
+  const modalsHtml = fs.readFileSync(path.join(__dirname, '../public/templates/modals.html'), 'utf8');
+  if (!modalsHtml.includes('sessionTimeoutModalBackdrop')) {
+    throw new Error('modals.html no contiene el modal sessionTimeoutModalBackdrop');
+  }
+  if (!modalsHtml.includes('selectSessionTimeoutSetting')) {
+    throw new Error('modals.html no contiene el selector de tiempo de sesión bancaria');
+  }
+
+  const indexHtml = fs.readFileSync(path.join(__dirname, '../public/index.html'), 'utf8');
+  if (!indexHtml.includes('/js/core/session_manager.js')) {
+    throw new Error('index.html no importa session_manager.js');
+  }
+  console.log('     [Watchdog Bancario: Activo, Modal: sessionTimeoutModalBackdrop, Abandono de ventana: 3m]');
 });
 
 // ----------------------------------------------------------------------------

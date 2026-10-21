@@ -291,7 +291,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   await checkSystemDbStatus();
   setupPwa();
 
-  // 4. Autenticación y RBAC
+  // 4. Autenticación, Seguridad Bancaria de Sesión y RBAC
+  if (window.SessionManager && typeof window.SessionManager.init === 'function') {
+    window.SessionManager.init();
+  }
   if (typeof setupAuth === 'function') setupAuth();
   if (typeof setupUserMenuDropdown === 'function') setupUserMenuDropdown();
   if (typeof initSetupWizard === 'function') initSetupWizard();
