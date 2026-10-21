@@ -601,7 +601,20 @@ function seedDatabase(force = false) {
   insertEntitlement.run(crypto.randomUUID(), workerRoberto, comboViveres, today, 'jornada_continua', 'pending');
   insertEntitlement.run(crypto.randomUUID(), adminSahib, comboViveres, today, 'jornada_continua', 'pending');
 
-  console.log('[DB] Seeds oficiales cargados exitosamente (16 Funcionarios, Super Admin Msc. Sahib A Franco).');
+  // Asegurar asignación para TODOS los trabajadores activos de la institución
+  try {
+    const allActiveWorkers = db.prepare("SELECT id, shift FROM workers WHERE status = 'active'").all();
+    for (const w of allActiveWorkers) {
+      const existing = db.prepare("SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").get(w.id, today);
+      if (!existing) {
+        insertEntitlement.run(crypto.randomUUID(), w.id, comboViveres, today, w.shift || 'jornada_continua', 'pending');
+      }
+    }
+  } catch (entErr) {
+    console.warn('[DB SEED] Aviso asignando derechos diarios a todos los funcionarios:', entErr.message);
+  }
+
+  console.log('[DB] Seeds oficiales cargados exitosamente (16 Funcionarios con Asignación Diaria activa, Super Admin Msc. Sahib A Franco).');
 }
 
 // ----------------------------------------------------------------------------
@@ -630,12 +643,34 @@ async function syncFromSupabase() {
     const { supabase, isSupabaseConfigured } = require('./supabase');
     if (!isSupabaseConfigured() || !supabase) return;
 
+    // Asegurar que el combo canónico exista para satisfacer llaves foráneas
+    try {
+      db.prepare(`
+        INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg)
+        VALUES ('c1a2b3c4-1111-2222-3333-444455556666', 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)', '12 rubros esenciales', 'bolsa_viveres', 12000, 'Estándar', 1, '4 kg Harina, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, 1 kg Granos, 2 Latas Sardinas', '🌾', 1, 'Mesa 1', 'Ambiente', '1', 14.0)
+      `).run();
+    } catch (e) {}
+
     const { data: remoteWorkers, error: wErr } = await supabase.from('workers').select('*');
     if (!wErr && Array.isArray(remoteWorkers) && remoteWorkers.length > 0) {
       const insertWorker = db.prepare(`
-        INSERT OR REPLACE INTO workers (
+        INSERT INTO workers (
           id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          document_id = excluded.document_id,
+          full_name = excluded.full_name,
+          email = excluded.email,
+          department_id = excluded.department_id,
+          shift = excluded.shift,
+          status = excluded.status,
+          worker_type = excluded.worker_type,
+          role = excluded.role,
+          has_smartphone = excluded.has_smartphone,
+          contingency_reason = excluded.contingency_reason,
+          phone_number = excluded.phone_number,
+          avatar_url = excluded.avatar_url,
+          updated_at = excluded.updated_at
       `);
       for (const w of remoteWorkers) {
         insertWorker.run(
@@ -657,6 +692,61 @@ async function syncFromSupabase() {
         );
       }
       console.log(`[SUPABASE HYDRATION] ${remoteWorkers.length} funcionarios sincronizados desde Supabase Cloud.`);
+    }
+
+    // Hidratar credenciales Passkey (FIDO2) registradas en la nube
+    const { data: remotePasskeys, error: pkErr } = await supabase.from('passkey_credentials').select('*');
+    if (!pkErr && Array.isArray(remotePasskeys) && remotePasskeys.length > 0) {
+      const insertRemotePasskey = db.prepare(`
+        INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          worker_id = excluded.worker_id,
+          credential_id = excluded.credential_id,
+          public_key = excluded.public_key,
+          sign_count = excluded.sign_count,
+          device_name = excluded.device_name,
+          status = excluded.status
+      `);
+      for (const pk of remotePasskeys) {
+        insertRemotePasskey.run(
+          pk.id,
+          pk.worker_id,
+          pk.credential_id,
+          pk.public_key,
+          pk.sign_count || 0,
+          pk.device_name || 'Dispositivo Móvil',
+          pk.status || 'active'
+        );
+      }
+      console.log(`[SUPABASE HYDRATION] ${remotePasskeys.length} passkeys sincronizadas desde Supabase Cloud.`);
+    }
+
+    // Hidratar asignaciones de la jornada (daily_entitlements) de hoy
+    const today = new Date().toISOString().split('T')[0];
+    const { data: remoteEntitlements, error: entErr } = await supabase.from('daily_entitlements').select('*').eq('valid_date', today);
+    if (!entErr && Array.isArray(remoteEntitlements) && remoteEntitlements.length > 0) {
+      const insertRemoteEnt = db.prepare(`
+        INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          worker_id = excluded.worker_id,
+          combo_id = excluded.combo_id,
+          valid_date = excluded.valid_date,
+          shift = excluded.shift,
+          status = excluded.status
+      `);
+      for (const ent of remoteEntitlements) {
+        insertRemoteEnt.run(
+          ent.id,
+          ent.worker_id,
+          ent.combo_id,
+          ent.valid_date,
+          ent.shift || 'jornada_continua',
+          ent.status || 'pending'
+        );
+      }
+      console.log(`[SUPABASE HYDRATION] ${remoteEntitlements.length} asignaciones de hoy sincronizadas desde Supabase Cloud.`);
     }
   } catch (err) {
     console.warn('[SUPABASE HYDRATION WARNING] Error sincronizando con Supabase:', err.message);

@@ -89,6 +89,26 @@ const getWorkers = (req, res) => {
   const { search, shift, status, worker_type } = req.query;
   const today = new Date().toISOString().split('T')[0];
 
+  // Garantizar que todo funcionario activo tenga su asignación para la jornada de hoy
+  try {
+    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+    const unassignedWorkers = db.prepare(`
+      SELECT id, shift FROM workers 
+      WHERE status = 'active' 
+        AND id NOT IN (SELECT worker_id FROM daily_entitlements WHERE valid_date = ?)
+    `).all(today);
+
+    if (unassignedWorkers.length > 0) {
+      const insEnt = db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+      `);
+      for (const uw of unassignedWorkers) {
+        insEnt.run(crypto.randomUUID(), uw.id, defaultCombo, today, uw.shift || 'jornada_continua');
+      }
+    }
+  } catch (e) {}
+
   let sql = `
     SELECT 
       w.id, w.document_id, w.full_name, w.email, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason,

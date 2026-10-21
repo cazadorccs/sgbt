@@ -89,13 +89,36 @@ const login = async (req, res) => {
       LIMIT 1
     `).get(worker.id);
 
-    const entitlement = db.prepare(`
+    const today = new Date().toISOString().split('T')[0];
+    let entitlement = db.prepare(`
       SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description
       FROM daily_entitlements de
       JOIN combos c ON de.combo_id = c.id
-      WHERE de.worker_id = ?
-      ORDER BY de.valid_date DESC LIMIT 1
-    `).get(worker.id);
+      WHERE de.worker_id = ? AND de.valid_date = ?
+      LIMIT 1
+    `).get(worker.id, today);
+
+    // Auto-asignación en jornada activa para trabajadores activos/jubilados
+    if (!entitlement && worker.status === 'active') {
+      try {
+        const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+        const newEntId = crypto.randomUUID();
+        db.prepare(`
+          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+          VALUES (?, ?, ?, ?, ?, 'pending')
+        `).run(newEntId, worker.id, defaultCombo, today, worker.shift || 'jornada_continua');
+
+        entitlement = db.prepare(`
+          SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description
+          FROM daily_entitlements de
+          JOIN combos c ON de.combo_id = c.id
+          WHERE de.worker_id = ? AND de.valid_date = ?
+          LIMIT 1
+        `).get(worker.id, today);
+      } catch (autoEntErr) {
+        console.warn('[LOGIN AUTO-ENTITLEMENT WARNING]', autoEntErr.message);
+      }
+    }
 
     res.json({
       success: true,
@@ -205,18 +228,79 @@ const registerVerify = (req, res) => {
   });
 
   const result = tx();
+
+  // Asignar beneficio para la jornada de hoy de forma automática si no posee
+  const today = new Date().toISOString().split('T')[0];
+  let ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker_id, today);
+  if (!ent) {
+    try {
+      const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+      const wShift = db.prepare('SELECT shift FROM workers WHERE id = ?').get(worker_id)?.shift || 'jornada_continua';
+      const newEntId = crypto.randomUUID();
+      db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+      `).run(newEntId, worker_id, defaultCombo, today, wShift);
+      ent = { id: newEntId };
+    } catch (e) {}
+  }
+
+  // Respaldo asíncrono en Supabase Cloud
+  try {
+    const { supabase, isSupabaseConfigured } = require('../supabase');
+    if (isSupabaseConfigured() && supabase) {
+      supabase.from('passkey_credentials').upsert([{
+        id: result.newId,
+        worker_id,
+        credential_id: result.credentialId,
+        public_key: result.publicKeyPem,
+        sign_count: 0,
+        device_name: device_name || 'Smartphone Corporativo',
+        status: 'active'
+      }], { onConflict: 'credential_id' }).catch(e => console.warn('[SUPABASE PASSKEY SYNC WARN]', e.message));
+
+      if (ent && ent.id) {
+        supabase.from('daily_entitlements').upsert([{
+          id: ent.id,
+          worker_id,
+          combo_id: 'c1a2b3c4-1111-2222-3333-444455556666',
+          valid_date: today,
+          status: 'pending'
+        }], { onConflict: 'worker_id,valid_date,shift,combo_id' }).catch(() => {});
+      }
+    }
+  } catch (e) {}
+
   res.json({
     status: 'success',
     message: 'Passkey enrolada exitosamente en Secure Enclave / TEE',
     credential_id: result.credentialId,
-    public_key: result.publicKeyPem
+    public_key: result.publicKeyPem,
+    entitlement_id: ent ? ent.id : null
   });
 };
 
 const signOffline = (req, res) => {
   const { worker_id, entitlement_id } = req.body;
-  if (!worker_id || !entitlement_id) {
-    return res.status(400).json({ error: 'worker_id y entitlement_id requeridos' });
+  if (!worker_id) {
+    return res.status(400).json({ error: 'worker_id requerido' });
+  }
+
+  // Resolver derecho del trabajador para la jornada actual
+  const today = new Date().toISOString().split('T')[0];
+  let finalEntId = entitlement_id;
+  const userEnt = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker_id, today);
+  if (userEnt) {
+    finalEntId = userEnt.id;
+  } else if (!finalEntId) {
+    try {
+      const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+      finalEntId = crypto.randomUUID();
+      db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+      `).run(finalEntId, worker_id, defaultCombo, today);
+    } catch (e) {}
   }
 
   const cred = db.prepare(`
@@ -389,6 +473,26 @@ const verifyQr = (req, res) => {
       nonce,
       campId
     );
+
+    // Respaldo asíncrono del despacho en Supabase Cloud
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('deliveries').insert([{
+          id: deliveryId,
+          entitlement_id: ent,
+          worker_id: wid,
+          distribution_point_id: finalPointId,
+          delivered_by_user_id: finalOperatorId,
+          verification_method: 'passkey_qr',
+          signature_proof: sig,
+          challenge_nonce: nonce,
+          is_offline_sync: false
+        }]).catch(e => console.warn('[DELIVERY SUPABASE SYNC ERROR]', e.message));
+
+        supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', ent).catch(() => {});
+      }
+    } catch (e) {}
 
     const worker = db.prepare('SELECT full_name, document_id, worker_type FROM workers WHERE id = ?').get(wid);
     const combo = db.prepare(`

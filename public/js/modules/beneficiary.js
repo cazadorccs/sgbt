@@ -89,6 +89,7 @@ window.setupWorkerSimulator = function() {
         if (statusBox) statusBox.className = 'alert-box alert-info';
         if (btnGenerate) {
           btnGenerate.disabled = false;
+          btnGenerate.dataset.needsEnroll = 'false';
           btnGenerate.textContent = '⚡ Generar QR de Entrega (Firma Biométrica)';
         }
       } else {
@@ -98,17 +99,19 @@ window.setupWorkerSimulator = function() {
             : 'Sin Passkey activa. Acérquese a la mesa de despacho para autorización con el QR Diario del Supervisor.';
           if (statusBox) statusBox.className = 'alert-box alert-info';
           if (btnGenerate) {
-            btnGenerate.disabled = true;
-            btnGenerate.textContent = '🔑 Aprobación por QR Supervisor';
+            btnGenerate.disabled = false;
+            btnGenerate.dataset.needsEnroll = 'true';
+            btnGenerate.textContent = '⚡ Enrolar Passkey y Generar mi QR (1 Clic)';
           }
         } else {
           if (statusText) statusText.textContent = worker.worker_type === 'jubilado' 
-            ? 'Adulto Mayor en contingencia: Puede reclamar con Tarjeta NFC física en mesa.' 
-            : 'Sin Passkey activa. Por favor enrole este dispositivo.';
+            ? 'Adulto Mayor en contingencia: Puede enrolar Passkey en 1 clic o retirar con Tarjeta NFC.' 
+            : 'Sin Passkey activa en este equipo. Presione el botón para enrolar y generar su QR en 1 Clic.';
           if (statusBox) statusBox.className = 'alert-box alert-warning';
           if (btnGenerate) {
-            btnGenerate.disabled = true;
-            btnGenerate.textContent = worker.worker_type === 'jubilado' ? '💳 Beneficio por Tarjeta NFC' : '⚠️ Requiere Enrolar Passkey';
+            btnGenerate.disabled = false;
+            btnGenerate.dataset.needsEnroll = 'true';
+            btnGenerate.textContent = '⚡ Enrolar Passkey y Generar mi QR (1 Clic)';
           }
         }
       }
@@ -117,22 +120,47 @@ window.setupWorkerSimulator = function() {
     }
   }
 
-  // Generar QR firmado offline
+  // Generar QR firmado offline (o Enrolar + Generar en 1 Clic si no tiene passkey)
   btnGenerate?.addEventListener('click', async () => {
     if (!STATE.selectedWorkerId) return;
 
-    const originalBtnText = btnGenerate.textContent;
     btnGenerate.disabled = true;
-    btnGenerate.textContent = '⏳ Firmando criptográficamente (ECDSA P-256)...';
 
     try {
+      // 0. Si el trabajador NO tiene passkey enrolada aún, enrolar automáticamente en este mismo clic
+      if (btnGenerate.dataset.needsEnroll === 'true') {
+        btnGenerate.textContent = '🔐 1/2 Enrolando Passkey biométrica (FIDO2)...';
+        
+        // Desafío FIDO2
+        await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
+
+        // Registro biométrico simulado o nativo
+        const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone (Secure Enclave)' : 'Dispositivo Móvil (TEE / WebAuthn)';
+        await API.post('/api/v1/auth/passkey/register-verify', {
+          worker_id: STATE.selectedWorkerId,
+          device_name: deviceName,
+          credential: { credential_id: 'Cred_' + Date.now() }
+        });
+
+        // Actualizar estado reactivo sin recargar la página
+        STATE.updateWorkerPasskeyStatus(STATE.selectedWorkerId, true, deviceName);
+        btnGenerate.dataset.needsEnroll = 'false';
+        
+        const statusText = document.getElementById('workerPasskeyStatusText');
+        const statusBox = document.getElementById('workerPasskeyStatusBox');
+        if (statusText) statusText.textContent = `Enrolada en ${deviceName} (Activa)`;
+        if (statusBox) statusBox.className = 'alert-box alert-info';
+      }
+
+      btnGenerate.textContent = '⏳ 2/2 Firmando criptográficamente (ECDSA P-256)...';
+
       // 1. Obtener derecho de hoy
       const pack = await API.get('/api/v1/sync/daily-pack');
       const currentWorker = pack.active_workers.find(w => w.worker_id === STATE.selectedWorkerId);
       
-      const entitlementId = currentWorker && currentWorker.entitlements.length > 0 
+      const entitlementId = currentWorker && currentWorker.entitlements && currentWorker.entitlements.length > 0 
         ? currentWorker.entitlements[0].entitlement_id 
-        : '770e8400-e29b-41d4-a716-446655440001';
+        : null;
 
       // 2. Firmar mediante enclave biométrico
       const signData = await API.post('/api/v1/auth/passkey/sign-offline', {
@@ -145,8 +173,8 @@ window.setupWorkerSimulator = function() {
       // Sincronizar en localStorage y BroadcastChannel para pruebas multi-pestaña
       try {
         localStorage.setItem('sgbt_active_qr_payload', JSON.stringify(signData.qr_payload));
-        localStorage.setItem('sgbt_active_qr_worker_name', (currentWorker && currentWorker.full_name) || 'Carlos Mendoza');
-        localStorage.setItem('sgbt_active_qr_doc', (currentWorker && currentWorker.document_id) || 'V-18456123');
+        localStorage.setItem('sgbt_active_qr_worker_name', (currentWorker && currentWorker.full_name) || 'Funcionario MIPPCI');
+        localStorage.setItem('sgbt_active_qr_doc', (currentWorker && currentWorker.document_id) || '');
         localStorage.setItem('sgbt_active_qr_timestamp', Date.now().toString());
 
         if ('BroadcastChannel' in window) {
@@ -154,8 +182,8 @@ window.setupWorkerSimulator = function() {
           bc.postMessage({
             type: 'NEW_QR_GENERATED',
             payload: signData.qr_payload,
-            worker_name: (currentWorker && currentWorker.full_name) || 'Carlos Mendoza',
-            doc_id: (currentWorker && currentWorker.document_id) || 'V-18456123'
+            worker_name: (currentWorker && currentWorker.full_name) || 'Funcionario MIPPCI',
+            doc_id: (currentWorker && currentWorker.document_id) || ''
           });
           bc.close();
         }
@@ -163,9 +191,12 @@ window.setupWorkerSimulator = function() {
         console.warn('[QR SYNC ERROR]', e);
       }
 
-      // Mostrar contenedor de QR
+      // Mostrar contenedor de QR y enfocar suavemente
       const qrContainer = document.getElementById('workerQrContainer');
-      if (qrContainer) qrContainer.style.display = 'flex';
+      if (qrContainer) {
+        qrContainer.style.display = 'flex';
+        qrContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
 
       // Renderizar QR Code estándar RFC (Reed-Solomon real legible por cualquier cámara)
       if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
@@ -178,17 +209,19 @@ window.setupWorkerSimulator = function() {
       }
 
       playAudioFeedback('success');
-      window.showToast('Código QR firmado generado exitosamente', 'success');
+      window.showToast('¡Passkey activada y Código QR generado exitosamente en 1 Clic!', 'success');
 
       // Iniciar cuenta regresiva de 180 segundos (3 minutos)
       startQrCountdown(180);
 
+      btnGenerate.textContent = '⚡ Generar Nuevo Código QR (Firma Biométrica)';
+
     } catch (err) {
       window.showToast('Error generando firma QR: ' + err.message, 'error');
       playAudioFeedback('error');
+      btnGenerate.textContent = '⚡ Intentar Nuevamente';
     } finally {
       btnGenerate.disabled = false;
-      btnGenerate.textContent = originalBtnText;
     }
   });
 
@@ -299,6 +332,7 @@ window.setupWorkerSimulator = function() {
       if (statusBox) statusBox.className = 'alert-box alert-info';
       if (btnGenerate) {
         btnGenerate.disabled = false;
+        btnGenerate.dataset.needsEnroll = 'false';
         btnGenerate.textContent = '⚡ Generar QR de Entrega (Firma Biométrica)';
       }
     }

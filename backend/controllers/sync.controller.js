@@ -34,7 +34,22 @@ const getDailyPack = (req, res) => {
     WHERE e.worker_id = ? AND e.valid_date = ?
   `);
 
+  const defaultComboId = 'c1a2b3c4-1111-2222-3333-444455556666';
+  const insertAutoEntitlement = db.prepare(`
+    INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+    VALUES (?, ?, ?, ?, ?, 'pending')
+  `);
+
   const active_workers = workers.map(w => {
+    let entitlements = getEntitlements.all(w.worker_id, targetDate);
+    if (!entitlements || entitlements.length === 0) {
+      const newEntId = crypto.randomUUID();
+      try {
+        insertAutoEntitlement.run(newEntId, w.worker_id, defaultComboId, targetDate, w.shift || 'jornada_continua');
+        entitlements = getEntitlements.all(w.worker_id, targetDate);
+      } catch (e) {}
+    }
+
     return {
       worker_id: w.worker_id,
       document_id: w.document_id,
@@ -45,7 +60,7 @@ const getDailyPack = (req, res) => {
       worker_type: w.worker_type || 'activo',
       public_keys: getPasskeys.all(w.worker_id),
       nfc_cards: getNfc.all(w.worker_id),
-      entitlements: getEntitlements.all(w.worker_id, targetDate)
+      entitlements: entitlements || []
     };
   });
 
