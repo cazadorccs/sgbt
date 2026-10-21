@@ -118,13 +118,26 @@ const db = {
       return rawDb.transaction(fn);
     }
     return (...args) => {
-      rawDb.run('BEGIN TRANSACTION;');
+      let inTx = false;
+      try {
+        rawDb.run('BEGIN TRANSACTION;');
+        inTx = true;
+      } catch (e) {}
+
       try {
         const res = fn(...args);
-        rawDb.run('COMMIT;');
+        if (inTx) {
+          try {
+            rawDb.run('COMMIT;');
+          } catch (commitErr) {
+            console.warn('[DB WASM TRANSACTION WARNING]', commitErr.message);
+          }
+        }
         return res;
       } catch (err) {
-        try { rawDb.run('ROLLBACK;'); } catch (rbErr) {}
+        if (inTx) {
+          try { rawDb.run('ROLLBACK;'); } catch (rbErr) {}
+        }
         throw err;
       }
     };
