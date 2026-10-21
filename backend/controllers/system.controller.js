@@ -21,7 +21,10 @@ const getStatus = async (req, res) => {
         tenantInfo = {
           entity_name: tenant.entity_name,
           entity_short_name: tenant.entity_short_name,
+          slogan: tenant.slogan,
+          logo_url: tenant.logo_url,
           primary_color: tenant.primary_color,
+          secondary_color: tenant.secondary_color,
           is_demo_mode: isDemoMode
         };
       }
@@ -283,6 +286,25 @@ const initializeSetup = (req, res) => {
     }
 
     console.log(`[SETUP COMPLETE] Instalación completada para: ${tenant?.entity_name || 'Ente'}. Admin: ${admin.full_name}. Modo producción activado. Nómina cargada: ${importedWorkersCount}`);
+
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('workers').upsert([{
+          id: adminId,
+          document_id: adminDoc,
+          full_name: admin.full_name.trim(),
+          email: adminEmail,
+          role: 'admin',
+          worker_type: 'activo',
+          status: 'active',
+          has_smartphone: true,
+          phone_number: admin.phone_number || '+58 412 0000000'
+        }], { onConflict: 'document_id' }).then(() => {
+          console.log('[SETUP] Administrador respaldado en Supabase Cloud.');
+        }).catch(e => console.warn('[SETUP SUPABASE SYNC ERROR]', e.message));
+      }
+    } catch (e) {}
 
     const createdAdmin = db.prepare('SELECT id, document_id, full_name, email, role FROM workers WHERE id = ?').get(adminId);
     const updatedTenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();

@@ -11,7 +11,7 @@ const {
   verifyOfflineSignature
 } = require('../crypto-utils');
 
-const login = (req, res) => {
+const login = async (req, res) => {
   const { document_id } = req.body;
 
   if (!document_id || !document_id.trim()) {
@@ -19,14 +19,63 @@ const login = (req, res) => {
   }
 
   const cleanDoc = document_id.trim().toUpperCase();
+  const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
 
   try {
-    const worker = db.prepare(`
+    let worker = db.prepare(`
       SELECT w.*, d.name as department_name, d.code as department_code
       FROM workers w
       LEFT JOIN departments d ON w.department_id = d.id
-      WHERE UPPER(w.document_id) = ? OR w.id = ? OR UPPER(w.document_id) LIKE ?
-    `).get(cleanDoc, cleanDoc, `%${cleanDoc.replace(/[^0-9]/g, '')}%`);
+      WHERE UPPER(w.document_id) = ? 
+         OR w.id = ? 
+         OR UPPER(w.document_id) LIKE ?
+         OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(w.document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
+    `).get(cleanDoc, cleanDoc, `%${digitsOnly}%`, digitsOnly, digitsOnly);
+
+    // Fallback de consulta en tiempo real a Supabase si no se encuentra en memoria
+    if (!worker && digitsOnly.length >= 5) {
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const { data: remoteWorkers } = await supabase
+            .from('workers')
+            .select('*')
+            .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.${digitsOnly}`);
+
+          if (remoteWorkers && remoteWorkers.length > 0) {
+            const rw = remoteWorkers[0];
+            db.prepare(`
+              INSERT OR REPLACE INTO workers (
+                id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              rw.id,
+              rw.document_id,
+              rw.full_name,
+              rw.email,
+              rw.department_id,
+              rw.shift || 'jornada_continua',
+              rw.status || 'active',
+              rw.worker_type || 'activo',
+              rw.role || 'worker',
+              rw.has_smartphone ? 1 : 0,
+              rw.contingency_reason,
+              rw.phone_number,
+              rw.avatar_url
+            );
+
+            worker = db.prepare(`
+              SELECT w.*, d.name as department_name, d.code as department_code
+              FROM workers w
+              LEFT JOIN departments d ON w.department_id = d.id
+              WHERE w.id = ?
+            `).get(rw.id);
+          }
+        }
+      } catch (sbErr) {
+        console.warn('[LOGIN SUPABASE FALLBACK WARNING]', sbErr.message);
+      }
+    }
 
     if (!worker) {
       return res.status(404).json({

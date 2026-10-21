@@ -9,6 +9,13 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { generateP256KeyPair } = require('./crypto-utils');
 
+let productionSeed = null;
+try {
+  productionSeed = require('./production_seed.json');
+} catch (e) {
+  console.warn('[DB] production_seed.json no disponible:', e.message);
+}
+
 const isVercel = Boolean(process.env.VERCEL);
 const DB_PATH = isVercel 
   ? path.join('/tmp', 'combos_platform.sqlite') 
@@ -325,10 +332,29 @@ function initializeDatabase() {
   // Inicializar tenant_settings por defecto si está vacío
   const tenantExists = db.prepare("SELECT COUNT(*) as count FROM tenant_settings WHERE id = 'current_tenant'").get();
   if (tenantExists.count === 0) {
+    const defaultTenant = (productionSeed && productionSeed.tenant_settings && productionSeed.tenant_settings[0]) || {
+      entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+      entity_short_name: 'MIPPCI',
+      slogan: 'Bienestar y Soberanía Alimentaria Institucional',
+      logo_url: '',
+      primary_color: '#0284c7',
+      secondary_color: '#0ea5e9',
+      is_initialized: 1,
+      is_demo_mode: 0
+    };
     db.prepare(`
       INSERT INTO tenant_settings (id, entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color, is_initialized, is_demo_mode)
-      VALUES ('current_tenant', 'Ministerio del Poder Popular para la Comunicación y la Información', 'MIPPCI', 'Bienestar y Soberanía Alimentaria Institucional', '', '#0284c7', '#0ea5e9', 1, 1)
-    `).run();
+      VALUES ('current_tenant', ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      defaultTenant.entity_name,
+      defaultTenant.entity_short_name,
+      defaultTenant.slogan,
+      defaultTenant.logo_url || '',
+      defaultTenant.primary_color || '#0284c7',
+      defaultTenant.secondary_color || '#0ea5e9',
+      defaultTenant.is_initialized !== undefined ? defaultTenant.is_initialized : 1,
+      defaultTenant.is_demo_mode !== undefined ? defaultTenant.is_demo_mode : 0
+    );
   }
 
   // Inicializar una campaña de demostración si la tabla está vacía
@@ -391,120 +417,156 @@ function seedDatabase(force = false) {
     }
   } else {
     const rowCount = db.prepare('SELECT COUNT(*) as count FROM workers').get();
-    if (rowCount.count > 0) {
+    if (rowCount && rowCount.count > 0) {
       return; // Ya existen datos
     }
 
-    // Si el sistema fue puesto a cero (is_initialized = 0), no regenerar los seeds de prueba
+    // Si el sistema fue puesto a cero explícitamente (is_initialized = 0), no regenerar
     try {
-      const tenant = db.prepare("SELECT is_initialized, is_demo_mode FROM tenant_settings WHERE id = 'current_tenant'").get();
-      if (tenant && (tenant.is_initialized === 0 || tenant.is_demo_mode === 0)) {
-        console.log('[DB] Sistema en producción o pendiente por configurar. Omitiendo seeds.');
+      const tenant = db.prepare("SELECT is_initialized FROM tenant_settings WHERE id = 'current_tenant'").get();
+      if (tenant && tenant.is_initialized === 0) {
+        console.log('[DB] Sistema pendiente por configuración inicial tras puesta a cero. Omitiendo seeds.');
         return;
       }
     } catch (e) {}
   }
 
-  console.log('[DB] Insertando datos maestros iniciales (Seeds)...');
+  console.log('[DB] Insertando datos maestros iniciales (Seeds Oficiales MIPPCI)...');
 
-  // Departamentos (reutilizar o insertar si no existen)
-  let deptGestionHumana = db.prepare("SELECT id FROM departments WHERE code = 'DGGH_01'").get()?.id;
-  if (!deptGestionHumana) {
-    deptGestionHumana = crypto.randomUUID();
-    db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'DGGH_01', 'Dirección General de Gestión Humana', 'CC-1010')").run(deptGestionHumana);
+  // 1. Departamentos
+  if (productionSeed && Array.isArray(productionSeed.departments)) {
+    const insertDept = db.prepare('INSERT OR IGNORE INTO departments (id, code, name, cost_center) VALUES (?, ?, ?, ?)');
+    for (const d of productionSeed.departments) {
+      insertDept.run(d.id, d.code, d.name, d.cost_center || null);
+    }
+  } else {
+    let deptGestionHumana = db.prepare("SELECT id FROM departments WHERE code = 'DGGH_01'").get()?.id;
+    if (!deptGestionHumana) {
+      deptGestionHumana = crypto.randomUUID();
+      db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'DGGH_01', 'Dirección General de Gestión Humana', 'CC-1010')").run(deptGestionHumana);
+    }
+    let deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
+    if (!deptComunicacion) {
+      deptComunicacion = crypto.randomUUID();
+      db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'DGCD_02', 'Dirección General de Comunicación Digital', 'CC-2020')").run(deptComunicacion);
+    }
+    let deptJubilados = db.prepare("SELECT id FROM departments WHERE code = 'CJP_03'").get()?.id;
+    if (!deptJubilados) {
+      deptJubilados = crypto.randomUUID();
+      db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'CJP_03', 'Coordinación de Jubilados y Pensionados (MIPPCI)', 'CC-3030')").run(deptJubilados);
+    }
   }
 
-  let deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
-  if (!deptComunicacion) {
-    deptComunicacion = crypto.randomUUID();
-    db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'DGCD_02', 'Dirección General de Comunicación Digital', 'CC-2020')").run(deptComunicacion);
+  // 2. Puntos de Distribución
+  if (productionSeed && Array.isArray(productionSeed.distribution_points)) {
+    const insertPoint = db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address, is_active) VALUES (?, ?, ?, ?, ?)');
+    for (const p of productionSeed.distribution_points) {
+      insertPoint.run(p.id, p.name, p.location_code, p.address, p.is_active ?? 1);
+    }
+  } else {
+    const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000';
+    const pointPlantaB = '550e8400-e29b-41d4-a716-446655440001';
+    db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run(pointPlantaA, 'Almacén Central - Sótano 1 (Sede Principal)', 'ALM-S1', 'Edificio Principal MIPPCI, Sótano 1');
+    db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run(pointPlantaB, 'Mesa de Despacho 2 (Auditorio Central)', 'MESA-AUD', 'Planta Baja, Auditorio Principal');
   }
 
-  let deptJubilados = db.prepare("SELECT id FROM departments WHERE code = 'CJP_03'").get()?.id;
-  if (!deptJubilados) {
-    deptJubilados = crypto.randomUUID();
-    db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, 'CJP_03', 'Coordinación de Jubilados y Pensionados (MIPPCI)', 'CC-3030')").run(deptJubilados);
-  }
-
-  // Puntos de Distribución (Almacenes y Mesas de Entrega)
-  const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000'; // ID canónico del contrato
-  const pointPlantaB = '550e8400-e29b-41d4-a716-446655440001';
-  db.prepare(`
-    INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)
-  `).run(pointPlantaA, 'Almacén Central - Sótano 1 (Sede Principal)', 'ALM-S1', 'Edificio Principal MIPPCI, Sótano 1');
-  db.prepare(`
-    INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)
-  `).run(pointPlantaB, 'Mesa de Despacho 2 (Auditorio Central)', 'MESA-AUD', 'Planta Baja, Auditorio Principal');
-
-  // Catálogo de Combos (Víveres, Proteínas, Especiales)
-  const comboViveres = 'c1a2b3c4-1111-2222-3333-444455556666'; // ID canónico del contrato
+  // 3. Catálogo de Combos
+  const comboViveres = 'c1a2b3c4-1111-2222-3333-444455556666';
   const comboProteico = 'c1a2b3c4-1111-2222-3333-444455557777';
   const comboNavideno = 'c1a2b3c4-1111-2222-3333-444455558888';
   const comboComplementario = 'c1a2b3c4-1111-2222-3333-444455559999';
 
-  const insertCombo = db.prepare(`
-    INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)
-  `);
-  insertCombo.run(comboViveres, 'Bolsa de Víveres Secos (12 rubros)', 'Harina de maíz, arroz, pasta, caraotas negras, aceite comestible, azúcar, leche en polvo', 'bolsa_viveres', 12000, 'Alimentos no perecederos', 1);
-  insertCombo.run(comboProteico, 'Combo Proteico Fresco', 'Pollo beneficiado entero, carne de res molida y mortadela especial', 'combo_proteico', 6500, 'Cadena de frío / Consumo familiar', 1);
-  insertCombo.run(comboNavideno, 'Combo Navideño Especial', 'Pernil navideño deshuesado, jamón planchado, aceitunas y alcaparras', 'combo_navideno', 9000, 'Edición decembrina', 1);
-  insertCombo.run(comboComplementario, 'Combo Complementario Especial', 'Granos variados (lentejas, arvejas) y sardina enlatada', 'combo_especial', 4000, 'Refuerzo nutricional', 1);
+  if (productionSeed && Array.isArray(productionSeed.combos)) {
+    const insertCombo = db.prepare('INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const c of productionSeed.combos) {
+      insertCombo.run(
+        c.id, c.name, c.description, c.category || 'bolsa_viveres', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ?? 1,
+        c.items_detail || '', c.icon || '🍱', c.mesa_number || 1, c.mesa_name || '', c.conservation || 'Ambiente', c.target_qty || '1', c.weight_kg || 14.0
+      );
+    }
+  } else {
+    const insertCombo = db.prepare('INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    insertCombo.run(comboViveres, 'Bolsa de Víveres Secos (12 rubros)', 'Harina de maíz, arroz, pasta, caraotas negras, aceite comestible, azúcar, leche en polvo', 'bolsa_viveres', 12000, 'Alimentos no perecederos', 1);
+    insertCombo.run(comboProteico, 'Combo Proteico Fresco', 'Pollo beneficiado entero, carne de res molida y mortadela especial', 'combo_proteico', 6500, 'Cadena de frío / Consumo familiar', 1);
+    insertCombo.run(comboNavideno, 'Combo Navideño Especial', 'Pernil navideño deshuesado, jamón planchado, aceitunas y alcaparras', 'combo_navideno', 9000, 'Edición decembrina', 1);
+    insertCombo.run(comboComplementario, 'Combo Complementario Especial', 'Granos variados (lentejas, arvejas) y sardina enlatada', 'combo_especial', 4000, 'Refuerzo nutricional', 1);
+  }
 
-  // Beneficiarios (Activos, Jubilados, Contratados)
-  const workerCarlos = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'; // Canónico de PRD
-  const workerHilda = 'b1ffcd00-0d1c-5fg9-cc7e-7cc0ce491b22'; // Jubilada
-  const workerRoberto = crypto.randomUUID();
-  const workerElena = crypto.randomUUID();
-  const workerAndres = crypto.randomUUID();
-
-  // Personal operativo y supervisores de Gestión Humana
-  const operatorMiguel = 'd1112222-3333-4444-5555-666677778888'; // Operador del contrato
-  const supervisorClaudia = crypto.randomUUID();
-  const adminJuan = crypto.randomUUID();
-
+  // 4. Beneficiarios y Personal Oficial (16 Funcionarios)
   const insertWorker = db.prepare(`
-    INSERT INTO workers (id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO workers (
+      id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  // 1. Carlos Mendoza: Funcionario activo con Passkey enrolada
-  insertWorker.run(workerCarlos, 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 414 1234567');
-  
-  // 2. Hilda Domínguez: Jubilada sin smartphone (contingencia NFC activa)
-  insertWorker.run(workerHilda, 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@mippci.gob.ve', deptJubilados, 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 424 9876543');
+  if (productionSeed && Array.isArray(productionSeed.workers) && productionSeed.workers.length > 0) {
+    for (const w of productionSeed.workers) {
+      insertWorker.run(
+        w.id,
+        w.document_id,
+        w.full_name,
+        w.email,
+        w.department_id,
+        w.shift || 'jornada_continua',
+        w.status || 'active',
+        w.worker_type || 'activo',
+        w.role || 'worker',
+        w.has_smartphone ? 1 : 0,
+        w.contingency_reason || null,
+        w.phone_number || null,
+        w.avatar_url || null
+      );
+    }
+  } else {
+    const deptGestionHumana = db.prepare("SELECT id FROM departments WHERE code = 'DGGH_01'").get()?.id;
+    const deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
+    const deptJubilados = db.prepare("SELECT id FROM departments WHERE code = 'CJP_03'").get()?.id;
 
-  // 3. Roberto Gómez: Funcionario activo con celular extraviado/dañado
-  insertWorker.run(workerRoberto, 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 5551234');
+    insertWorker.run('a8b19654-8d50-4c60-a99a-259d6960a62f', '13537582', 'Msc. Sahib A Franco', 'Sfranco@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+584129743120', null);
+    insertWorker.run('fdb4d82c-e11f-4d44-998d-b3cc0fa57d90', 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null);
+    insertWorker.run('594a7451-f3b9-4c58-9a26-78eb132d5300', 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@mippci.gob.ve', deptJubilados, 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 412 1112233', null);
+    insertWorker.run('23eb7b65-d7f0-4281-a940-63db5302fdf7', 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 1112233', null);
+    insertWorker.run('d1794f4a-7dfa-47d6-97ed-0aee326a3aa4', 'V-21555666', 'Elena Sofía Morales', 'elena.morales@mippci.gob.ve', deptGestionHumana, 'mañana', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null);
+    insertWorker.run('d8e1ab71-354c-409d-977a-f7fa510ca31e', 'V-15888999', 'Andrés David Silva', 'andres.silva@mippci.gob.ve', deptComunicacion, 'tarde', 'active', 'contratado', 'worker', 1, null, '+58 412 1112233', null);
+    insertWorker.run('03ff49f9-70c7-4177-9d28-ad833563d6f1', 'V-14111222', 'Miguel Ángel Torres', 'miguel.torres@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'operator', 1, null, '+58 412 1112233', null);
+    insertWorker.run('d1388f41-9015-430f-891a-55ebee18fd5c', 'V-13222333', 'Claudia Patricia Vega', 'claudia.vega@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'supervisor', 1, null, '+58 412 1112233', null);
+    insertWorker.run('0149e33b-892d-43e3-92e8-f635e7a1d001', 'V-11123987', 'Juan Carlos Rivas', 'juan.rivas@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+58 412 1112233', null);
+  }
 
-  // 4. Elena Morales: Funcionaria activa pendiente de enrolar Passkey
-  insertWorker.run(workerElena, 'V-21555666', 'Elena Sofía Morales', 'elena.morales@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 416 7778899');
+  // 5. Enrolamiento y llaves criptográficas reales ECDSA P-256
+  const workerCarlos = db.prepare("SELECT id FROM workers WHERE UPPER(document_id) LIKE '%18456123%'").get()?.id || 'fdb4d82c-e11f-4d44-998d-b3cc0fa57d90';
+  const supervisorClaudia = db.prepare("SELECT id FROM workers WHERE UPPER(document_id) LIKE '%13222333%'").get()?.id || 'd1388f41-9015-430f-891a-55ebee18fd5c';
+  const workerRoberto = db.prepare("SELECT id FROM workers WHERE UPPER(document_id) LIKE '%12345678%'").get()?.id || '23eb7b65-d7f0-4281-a940-63db5302fdf7';
+  const workerHilda = db.prepare("SELECT id FROM workers WHERE UPPER(document_id) LIKE '%06894321%'").get()?.id || '594a7451-f3b9-4c58-9a26-78eb132d5300';
+  const operatorMiguel = db.prepare("SELECT id FROM workers WHERE UPPER(document_id) LIKE '%14111222%'").get()?.id || '03ff49f9-70c7-4177-9d28-ad833563d6f1';
+  const adminSahib = db.prepare("SELECT id FROM workers WHERE UPPER(document_id) LIKE '%13537582%'").get()?.id || 'a8b19654-8d50-4c60-a99a-259d6960a62f';
 
-  // 5. Andrés Silva: Egresado / Desincorporado de nómina (Kill-Switch)
-  insertWorker.run(workerAndres, 'V-15888999', 'Andrés David Silva', 'andres.silva@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'terminated', 'contratado', 'worker', 1, null, '+58 426 3334455');
-
-  // Personal operativo y directivo
-  insertWorker.run(operatorMiguel, 'V-14111222', 'Miguel Ángel Torres (Despacho Almacén)', 'miguel.torres@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'operator', 1, null, '+58 414 0001122');
-  insertWorker.run(supervisorClaudia, 'V-13222333', 'Lic. Claudia Patricia Vega (Supervisor RRHH)', 'claudia.vega@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'supervisor', 1, null, '+58 412 9998877');
-  insertWorker.run(adminJuan, 'V-11123987', 'Ing. Juan Carlos Rivas (Director Gestión Humana)', 'juan.rivas@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+58 414 7776655');
-
-  // Generar llaves criptográficas reales ECDSA P-256 para Carlos Mendoza
+  // Llaves para Carlos Mendoza
   const carlosKeyPair = generateP256KeyPair();
   const carlosCredId = 'K38aXm_SecureEnclave_' + crypto.randomBytes(8).toString('base64url');
-  
-  // Guardar clave privada en el simulador de chip seguro
   secureEnclaveSimulator.set(workerCarlos, {
+    credentialId: carlosCredId,
+    privateKeyPem: carlosKeyPair.privateKey,
+    publicKeyPem: carlosKeyPair.publicKey
+  });
+  secureEnclaveSimulator.set('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', {
+    credentialId: carlosCredId,
+    privateKeyPem: carlosKeyPair.privateKey,
+    publicKeyPem: carlosKeyPair.publicKey
+  });
+  secureEnclaveSimulator.set('V-18456123', {
     credentialId: carlosCredId,
     privateKeyPem: carlosKeyPair.privateKey,
     publicKeyPem: carlosKeyPair.publicKey
   });
 
   const insertPasskey = db.prepare(`
-    INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status)
+    INSERT OR REPLACE INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
   insertPasskey.run(crypto.randomUUID(), workerCarlos, carlosCredId, carlosKeyPair.publicKey, 42, 'iPhone 15 Pro (Secure Enclave)', 'active');
 
-  // Credencial para la Supervisora Claudia (Firma biométrica supervisor)
+  // Llaves para Supervisora Claudia Vega
   const claudiaKeyPair = generateP256KeyPair();
   const claudiaCredId = 'Supervisor_Passkey_' + crypto.randomBytes(8).toString('base64url');
   secureEnclaveSimulator.set(supervisorClaudia, {
@@ -514,40 +576,32 @@ function seedDatabase(force = false) {
   });
   insertPasskey.run(crypto.randomUUID(), supervisorClaudia, claudiaCredId, claudiaKeyPair.publicKey, 15, 'Pixel 8 (Titan M2 TEE)', 'active');
 
-  // Credencial revocada para Roberto Gómez (Simulando celular perdido)
+  // Credencial revocada para Roberto Gómez
   const robertoKeyPair = generateP256KeyPair();
   const robertoCredId = 'Lost_Device_Credential_' + crypto.randomBytes(8).toString('base64url');
   insertPasskey.run(crypto.randomUUID(), workerRoberto, robertoCredId, robertoKeyPair.publicKey, 7, 'Samsung Galaxy S22 (Extraviado)', 'revoked');
 
-  // Tarjeta NFC para Hilda Domínguez (Jubilada)
+  // Tarjeta NFC para Hilda Domínguez (Jubilada) y Roberto Gómez
   const insertNfc = db.prepare(`
-    INSERT INTO nfc_cards (id, worker_id, card_uid, status, issued_by)
+    INSERT OR REPLACE INTO nfc_cards (id, worker_id, card_uid, status, issued_by)
     VALUES (?, ?, ?, ?, ?)
   `);
   insertNfc.run(crypto.randomUUID(), workerHilda, '04A1B2C3D4E5F6', 'active', operatorMiguel);
-
-  // Tarjeta NFC temporal para Roberto Gómez
   insertNfc.run(crypto.randomUUID(), workerRoberto, '04F9E8D7C6B5A4', 'active', supervisorClaudia);
 
-  // Asignaciones de la Jornada (Víveres y Proteína) para hoy
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  // 6. Asignaciones de la Jornada (Víveres y Proteína) para hoy
+  const today = new Date().toISOString().split('T')[0];
   const insertEntitlement = db.prepare(`
-    INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+    INSERT OR REPLACE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  const entCarlos = '770e8400-e29b-41d4-a716-446655440001'; // Canónico del contrato
-  const entHilda = '880e8400-e29b-41d4-a716-446655440002';
-  const entRoberto = crypto.randomUUID();
-  const entElena = crypto.randomUUID();
+  insertEntitlement.run('770e8400-e29b-41d4-a716-446655440001', workerCarlos, comboViveres, today, 'jornada_continua', 'pending');
+  insertEntitlement.run('880e8400-e29b-41d4-a716-446655440002', workerHilda, comboViveres, today, 'jornada_continua', 'pending');
+  insertEntitlement.run(crypto.randomUUID(), workerRoberto, comboViveres, today, 'jornada_continua', 'pending');
+  insertEntitlement.run(crypto.randomUUID(), adminSahib, comboViveres, today, 'jornada_continua', 'pending');
 
-  // Se asigna la Bolsa de Víveres Secos como beneficio principal de la jornada
-  insertEntitlement.run(entCarlos, workerCarlos, comboViveres, today, 'jornada_continua', 'pending');
-  insertEntitlement.run(entHilda, workerHilda, comboViveres, today, 'jornada_continua', 'pending');
-  insertEntitlement.run(entRoberto, workerRoberto, comboViveres, today, 'jornada_continua', 'pending');
-  insertEntitlement.run(entElena, workerElena, comboViveres, today, 'jornada_continua', 'pending');
-
-  console.log('[DB] Seeds iniciales cargados exitosamente.');
+  console.log('[DB] Seeds oficiales cargados exitosamente (16 Funcionarios, Super Admin Msc. Sahib A Franco).');
 }
 
 // ----------------------------------------------------------------------------
@@ -570,6 +624,45 @@ if (!isServerless) {
   }
 }
 
+// Función de sincronización bidireccional / hidratación con Supabase Cloud
+async function syncFromSupabase() {
+  try {
+    const { supabase, isSupabaseConfigured } = require('./supabase');
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    const { data: remoteWorkers, error: wErr } = await supabase.from('workers').select('*');
+    if (!wErr && Array.isArray(remoteWorkers) && remoteWorkers.length > 0) {
+      const insertWorker = db.prepare(`
+        INSERT OR REPLACE INTO workers (
+          id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const w of remoteWorkers) {
+        insertWorker.run(
+          w.id,
+          w.document_id,
+          w.full_name,
+          w.email,
+          w.department_id,
+          w.shift || 'jornada_continua',
+          w.status || 'active',
+          w.worker_type || 'activo',
+          w.role || 'worker',
+          w.has_smartphone ? 1 : 0,
+          w.contingency_reason,
+          w.phone_number,
+          w.avatar_url,
+          w.created_at || new Date().toISOString(),
+          w.updated_at || new Date().toISOString()
+        );
+      }
+      console.log(`[SUPABASE HYDRATION] ${remoteWorkers.length} funcionarios sincronizados desde Supabase Cloud.`);
+    }
+  } catch (err) {
+    console.warn('[SUPABASE HYDRATION WARNING] Error sincronizando con Supabase:', err.message);
+  }
+}
+
 if (Database) {
   try {
     rawDb = new Database(DB_PATH);
@@ -578,7 +671,9 @@ if (Database) {
 
     initializeDatabase();
     seedDatabase();
-    readyResolve(true);
+    syncFromSupabase().catch(() => {}).finally(() => {
+      readyResolve(true);
+    });
     console.log('[DB] Motor better-sqlite3 nativo activo exitosamente.');
   } catch (err) {
     console.warn('[DB] Fallo al iniciar better-sqlite3, pasando a motor WebAssembly:', err.message);
@@ -592,13 +687,16 @@ if (!rawDb) {
   // Usar la versión inline de WebAssembly para garantizar 100% de compatibilidad sin dependencias externas
   const initSqlJs = require('sql.js/dist/sql-wasm-inline.js');
 
-  initSqlJs().then((SQL) => {
+  initSqlJs().then(async (SQL) => {
     try {
       rawDb = new SQL.Database();
       console.log('[DB] Base de datos SQLite creada en memoria WASM (Zero-Config Serverless).');
 
       initializeDatabase();
       seedDatabase();
+
+      // Sincronizar funcionarios desde Supabase Cloud si está conectado
+      await syncFromSupabase().catch(() => {});
 
       readyResolve(true);
       console.log('[DB] Motor SQLite WebAssembly (sql-wasm-inline) listo y operativo para Vercel.');
@@ -616,5 +714,6 @@ module.exports = {
   db,
   readyPromise,
   secureEnclaveSimulator,
-  seedDatabase
+  seedDatabase,
+  syncFromSupabase
 };
