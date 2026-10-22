@@ -29,6 +29,18 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Servidor de estáticos (PWA, CSS, JS, Assets)
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Middleware de auditoría y traza de peticiones HTTP
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    const t0 = Date.now();
+    res.on('finish', () => {
+      const dur = Date.now() - t0;
+      console.log(`[HTTP ${res.statusCode}] ${req.method} ${req.originalUrl} - ${dur}ms`);
+    });
+  }
+  next();
+});
+
 // Middleware de sincronización para Vercel Serverless / SQLite en frío
 app.use(async (req, res, next) => {
   try {

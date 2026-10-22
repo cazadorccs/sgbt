@@ -84,13 +84,22 @@ const deliveryStream = (req, res) => {
 
 const login = async (req, res) => {
   const { document_id } = req.body;
+  const startTime = Date.now();
 
   if (!document_id || !document_id.trim()) {
+    console.warn(`[AUTH] Intento de login rechazado: documento vacío`);
     return res.status(400).json({ error: 'La Cédula de Identidad es requerida' });
   }
 
   const cleanDoc = document_id.trim().toUpperCase();
   const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
+
+  console.log(`\n================================================================`);
+  console.log(`🔑 [AUTH LOGIN ATTEMPT]`);
+  console.log(`   Hora        : ${new Date().toLocaleTimeString()} (${new Date().toISOString()})`);
+  console.log(`   Doc Entrada : "${document_id}"`);
+  console.log(`   Doc Limpio  : "${cleanDoc}" (Dígitos: "${digitsOnly}")`);
+  console.log(`   IP Origen   : ${req.ip || req.socket?.remoteAddress || '127.0.0.1'}`);
 
   try {
     // 1. Búsqueda indexada ultra-rápida directa (<1ms)
@@ -164,6 +173,11 @@ const login = async (req, res) => {
     }
 
     if (!worker) {
+      console.warn(`❌ [AUTH LOGIN FAILED]`);
+      console.warn(`   Motivo    : Cédula no registrada en nómina institucional`);
+      console.warn(`   Documento : "${cleanDoc}"`);
+      console.warn(`   Latencia  : ${Date.now() - startTime}ms`);
+      console.log(`================================================================\n`);
       return res.status(404).json({
         error: 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.'
       });
@@ -211,6 +225,19 @@ const login = async (req, res) => {
       workerId: worker.id,
       documentId: worker.document_id
     }, 15);
+
+    const elapsed = Date.now() - startTime;
+    const isSuperAdmin = worker.role === 'admin' || worker.role === 'director';
+
+    console.log(`✅ [AUTH LOGIN SUCCESS]`);
+    console.log(`   Funcionario : ${worker.full_name}`);
+    console.log(`   Cédula      : ${worker.document_id}`);
+    console.log(`   Rol         : ${worker.role || 'worker'} ${isSuperAdmin ? '🛡️ [SUPER ADMINISTRADOR / DIRECTOR]' : ''}`);
+    console.log(`   Tipo        : ${worker.worker_type}`);
+    console.log(`   Departamento: ${worker.department_name || 'N/A'}`);
+    console.log(`   Passkeys    : ${Boolean(passkey) ? 'Registrada' : 'Sin passkey'}`);
+    console.log(`   Latencia DB : ${elapsed}ms`);
+    console.log(`================================================================\n`);
 
     res.json({
       success: true,

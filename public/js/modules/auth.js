@@ -124,9 +124,12 @@ async function executeLogin(rawDocId) {
   }
 
   try {
+    console.log(`[CLIENT AUTH] ⏳ Iniciando verificación de identidad para:`, rawDocId);
     const data = await API.post('/api/v1/auth/login', { document_id: rawDocId });
+    console.log(`[CLIENT AUTH] 📥 Respuesta recibida del servidor:`, data);
 
     if (!data.success) {
+      console.warn(`[CLIENT AUTH] ❌ Acceso denegado:`, data.error);
       showLoginAlert(data.error || 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.');
       playAudioFeedback('error');
       return;
@@ -134,6 +137,7 @@ async function executeLogin(rawDocId) {
 
     playAudioFeedback('success');
     const user = data.user;
+    console.log(`[CLIENT AUTH] ✅ Sesión iniciada: ${user.full_name} | Rol: ${user.role}`);
     STATE.setCurrentUser(user);
     applyUserSession(user);
     window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
