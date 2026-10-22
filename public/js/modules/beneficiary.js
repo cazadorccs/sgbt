@@ -86,6 +86,7 @@ window.setupWorkerSimulator = function() {
         if (statusRes && statusRes.delivered) {
           const qrContainer = document.getElementById('workerQrContainer');
           if (qrContainer) qrContainer.style.display = 'flex';
+          STATE.activeStation = (statusRes.station_1_delivered && !statusRes.station_2_delivered) ? '1' : null;
           handleDeliveryApproved(statusRes);
           if (statusRes.all_completed) {
             return;
@@ -94,6 +95,7 @@ window.setupWorkerSimulator = function() {
             startDeliveryMonitoring({ wid: STATE.selectedWorkerId });
           }
         } else {
+          STATE.activeStation = '1';
           STATE.deliveredStations = new Set();
           STATE._lastShownToast = null;
           // Si no ha retirado hoy, restaurar la vista para generación de QR
@@ -175,6 +177,7 @@ window.setupWorkerSimulator = function() {
   // Manejador del botón de transición para autorizar y desplegar el 2do QR (Estación 2)
   document.getElementById('btnProceedToStation2')?.addEventListener('click', () => {
     playAudioFeedback('success');
+    STATE.activeStation = '2';
     generateWorkerStationQr('2');
   });
 
@@ -182,8 +185,10 @@ window.setupWorkerSimulator = function() {
   btnGenerate?.addEventListener('click', async () => {
     if (!STATE.selectedWorkerId) return;
     if (STATE.deliveredStations && STATE.deliveredStations.has(1) && !STATE.deliveredStations.has(2)) {
+      STATE.activeStation = '2';
       generateWorkerStationQr('2');
     } else {
+      STATE.activeStation = '1';
       generateWorkerStationQr('1');
     }
   });
@@ -191,6 +196,7 @@ window.setupWorkerSimulator = function() {
   async function generateWorkerStationQr(targetStation = '1') {
     if (!STATE.selectedWorkerId) return;
 
+    STATE.activeStation = targetStation;
     if (btnGenerate) btnGenerate.disabled = true;
 
     try {
@@ -374,7 +380,14 @@ window.setupWorkerSimulator = function() {
           try {
             const data = JSON.parse(e.data);
             console.log('[SSE EVENT] Notificación de entrega en tiempo real recibida:', data);
-            handleDeliveryApproved(data);
+            const isStation2 = (data.station === 2) || (data.delivery && data.delivery.station === 2) || data.station_2_delivered || data.all_completed;
+            if (STATE.activeStation === '2') {
+              if (isStation2) {
+                handleDeliveryApproved(data);
+              }
+            } else {
+              handleDeliveryApproved(data);
+            }
           } catch (err) {
             console.warn('[SSE PARSE ERROR]', err);
           }
@@ -395,7 +408,13 @@ window.setupWorkerSimulator = function() {
       try {
         const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}`);
         if (res && res.delivered) {
-          handleDeliveryApproved(res);
+          if (STATE.activeStation === '2') {
+            if (res.station_2_delivered || res.all_completed) {
+              handleDeliveryApproved(res);
+            }
+          } else {
+            handleDeliveryApproved(res);
+          }
         }
       } catch (e) {}
     };
@@ -408,7 +427,14 @@ window.setupWorkerSimulator = function() {
         bc.onmessage = (e) => {
           if (e.data && e.data.type === 'DELIVERY_APPROVED') {
             if (e.data.worker_id === wid) {
-              handleDeliveryApproved(e.data);
+              const isStation2 = (e.data.station === 2) || (e.data.delivery && e.data.delivery.station === 2) || e.data.station_2_delivered || e.data.all_completed;
+              if (STATE.activeStation === '2') {
+                if (isStation2) {
+                  handleDeliveryApproved(e.data);
+                }
+              } else {
+                handleDeliveryApproved(e.data);
+              }
             }
           }
         };
@@ -422,7 +448,14 @@ window.setupWorkerSimulator = function() {
         try {
           const data = JSON.parse(e.newValue);
           if (data.worker_id === wid) {
-            handleDeliveryApproved(data);
+            const isStation2 = (data.station === 2) || (data.delivery && data.delivery.station === 2) || data.station_2_delivered || data.all_completed;
+            if (STATE.activeStation === '2') {
+              if (isStation2) {
+                handleDeliveryApproved(data);
+              }
+            } else {
+              handleDeliveryApproved(data);
+            }
           }
         } catch (err) {}
       }
@@ -458,6 +491,7 @@ window.setupWorkerSimulator = function() {
       (delivery.combo_category === 'bolsa_viveres') || 
       (delivery.combo_name && delivery.combo_name.toLowerCase().includes('víveres'));
     const isStation2Event = (data.station === 2) || (delivery.station === 2) || 
+      (data.latest_station === 2) ||
       (delivery.combo_category === 'proteico' || delivery.combo_category === 'combo_proteico') || 
       (delivery.combo_name && delivery.combo_name.toLowerCase().includes('prote'));
 
@@ -485,7 +519,7 @@ window.setupWorkerSimulator = function() {
     // Determinar mensaje Toast exacto requerido por el usuario
     let targetToastMsg = data.latest_toast || data.toast_message || delivery.toast_message;
     if (!targetToastMsg) {
-      if (isStation2Event || (station2Done && !station1Done)) {
+      if (isStation2Event || (station2Done && STATE.activeStation === '2')) {
         targetToastMsg = '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.';
       } else {
         targetToastMsg = '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.';
@@ -545,6 +579,7 @@ window.setupWorkerSimulator = function() {
     // 4. LÓGICA DE TRANSICIÓN Y FINALIZACIÓN INSTANTÁNEA (0 RECARGAS / 0 F5)
     if (allDone) {
       // AMBAS ESTACIONES COMPLETADAS (2/2): FINALIZACIÓN TOTAL INSTANTÁNEA
+      STATE.activeStation = null;
       stopDeliveryMonitoring();
       if (STATE.qrTimerInterval) {
         clearInterval(STATE.qrTimerInterval);
@@ -613,6 +648,15 @@ window.setupWorkerSimulator = function() {
       receiptBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     } else if (station1Done && !station2Done) {
+      // Si el usuario ya autorizó y está visualizando activamente el QR de la Estación 2:
+      // NO ocultar el QR, NO mostrar la tarjeta de transición y NO reiniciar el temporizador de expiración.
+      if (STATE.activeStation === '2') {
+        if (qrDisplayBox) qrDisplayBox.style.display = 'block';
+        if (receiptBox) receiptBox.style.display = 'none';
+        if (transitionCard) transitionCard.style.display = 'none';
+        return;
+      }
+
       // PASO 1 COMPLETADO: OCULTAR QR 1 Y MOSTRAR TARJETA CON BOTÓN PARA GENERAR QR 2
       if (STATE.qrTimerInterval) {
         clearInterval(STATE.qrTimerInterval);
