@@ -359,27 +359,69 @@ const registerVerify = (req, res) => {
 };
 
 const signOffline = (req, res) => {
-  const { worker_id, entitlement_id } = req.body;
+  const { worker_id, entitlement_id, station } = req.body;
   if (!worker_id) {
     return res.status(400).json({ error: 'worker_id requerido' });
   }
 
-  // Resolver derecho del trabajador para la jornada actual
+  // Resolver derecho del trabajador para la jornada actual según la estación solicitada
   const today = new Date().toISOString().split('T')[0];
-  let finalEntId = entitlement_id;
-  const userEnt = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker_id, today);
-  if (userEnt) {
-    finalEntId = userEnt.id;
-  } else if (!finalEntId) {
-    try {
-      const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
-      finalEntId = crypto.randomUUID();
-      db.prepare(`
-        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
-      `).run(finalEntId, worker_id, defaultCombo, today);
-    } catch (e) {}
+  const isStation2 = String(station) === '2' || String(station) === 'estacion_2' || String(station) === 'proteina';
+  let targetEnt = null;
+
+  if (entitlement_id) {
+    targetEnt = db.prepare('SELECT id, shift, combo_id FROM daily_entitlements WHERE id = ?').get(entitlement_id);
   }
+
+  if (!targetEnt) {
+    if (isStation2) {
+      targetEnt = db.prepare(`
+        SELECT e.id, e.shift FROM daily_entitlements e
+        JOIN combos c ON e.combo_id = c.id
+        WHERE e.worker_id = ? AND date(e.valid_date) = date(?)
+        AND (e.shift = 'estacion_2' OR c.category IN ('combo_proteico', 'proteico') OR c.name LIKE '%Prote%')
+        LIMIT 1
+      `).get(worker_id, today);
+
+      if (!targetEnt) {
+        const pCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
+        if (pCombo) {
+          const newEntId = crypto.randomUUID();
+          try {
+            db.prepare(`
+              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+              VALUES (?, ?, ?, ?, 'estacion_2', 'pending')
+            `).run(newEntId, worker_id, pCombo.id, today);
+            targetEnt = { id: newEntId };
+          } catch (e) {}
+        }
+      }
+    } else {
+      targetEnt = db.prepare(`
+        SELECT e.id, e.shift FROM daily_entitlements e
+        JOIN combos c ON e.combo_id = c.id
+        WHERE e.worker_id = ? AND date(e.valid_date) = date(?)
+        AND (e.shift = 'estacion_1' OR c.category IN ('bolsa_viveres', 'almuerzo') OR c.name LIKE '%Víveres%')
+        LIMIT 1
+      `).get(worker_id, today);
+
+      if (!targetEnt) {
+        const vCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
+        if (vCombo) {
+          const newEntId = crypto.randomUUID();
+          try {
+            db.prepare(`
+              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+              VALUES (?, ?, ?, ?, 'estacion_1', 'pending')
+            `).run(newEntId, worker_id, vCombo.id, today);
+            targetEnt = { id: newEntId };
+          } catch (e) {}
+        }
+      }
+    }
+  }
+
+  const finalEntId = (targetEnt && targetEnt.id) || entitlement_id || crypto.randomUUID();
 
   const cred = db.prepare(`
     SELECT credential_id, public_key, status
@@ -410,7 +452,8 @@ const signOffline = (req, res) => {
 
   const payload = {
     wid: worker_id,
-    ent: entitlement_id,
+    ent: finalEntId,
+    station: isStation2 ? '2' : '1',
     ts,
     nonce
   };
@@ -427,6 +470,7 @@ const signOffline = (req, res) => {
     created_at: new Date(ts * 1000).toISOString()
   });
 };
+
 
 const getSupervisorDailyQr = (req, res) => {
   try {
@@ -719,7 +763,9 @@ const verifyQr = (req, res) => {
     let targetToastMsg = '';
     let targetComboTitle = '';
 
-    const reqStation = station ? String(station).toLowerCase() : 'all';
+    const reqStation = (station && station !== 'all') 
+      ? String(station).toLowerCase() 
+      : (qr_payload && qr_payload.station ? String(qr_payload.station).toLowerCase() : 'all');
 
     if (reqStation === '1' || reqStation === 'estacion_1' || reqStation === 'viveres') {
       targetStationNum = 1;
@@ -735,7 +781,7 @@ const verifyQr = (req, res) => {
           message: '¡ATENCIÓN! Su Bulto de Víveres Secos ya fue retirado previamente en la Estación 1.'
         });
       }
-      targetEnt = entViveres || entitlements[0];
+      targetEnt = entViveres || entitlements.find(e => !entProteico || e.id !== entProteico.id) || entitlements[0];
 
     } else if (reqStation === '2' || reqStation === 'estacion_2' || reqStation === 'proteina') {
       targetStationNum = 2;
@@ -751,7 +797,19 @@ const verifyQr = (req, res) => {
           message: '¡ATENCIÓN! Su 🍗 Combo Proteico Fresco ya fue retirado previamente en la Estación 2.'
         });
       }
-      targetEnt = entProteico || entitlements.find(e => e.id !== (entViveres && entViveres.id)) || entitlements[0];
+
+      targetEnt = entProteico;
+      if (!targetEnt || (entViveres && targetEnt.id === entViveres.id)) {
+        const pCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
+        const newEntId = crypto.randomUUID();
+        try {
+          db.prepare(`
+            INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+            VALUES (?, ?, ?, ?, 'estacion_2', 'pending')
+          `).run(newEntId, wid, (pCombo && pCombo.id) || 'ae65fee7-79f6-48a3-bc41-a61c928876b5', today);
+          targetEnt = { id: newEntId, combo_id: (pCombo && pCombo.id), shift: 'estacion_2', status: 'pending', combo_name: targetComboTitle, combo_category: 'proteico' };
+        } catch (e) {}
+      }
 
     } else {
       // Modo Despacho Unificado / General:
@@ -784,6 +842,7 @@ const verifyQr = (req, res) => {
     if (!targetEnt) {
       targetEnt = { id: ent, combo_name: targetComboTitle };
     }
+
 
     const deliveryId = crypto.randomUUID();
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();

@@ -34,7 +34,11 @@ const getDailyPack = (req, res) => {
     WHERE e.worker_id = ? AND e.valid_date = ?
   `);
 
-  const defaultComboId = 'c1a2b3c4-1111-2222-3333-444455556666';
+  const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
+  const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
+  const defaultViveresId = vCombo ? vCombo.id : 'c1a2b3c4-1111-2222-3333-444455556666';
+  const defaultProteicoId = pCombo ? pCombo.id : 'ae65fee7-79f6-48a3-bc41-a61c928876b5';
+
   const insertAutoEntitlement = db.prepare(`
     INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
     VALUES (?, ?, ?, ?, ?, 'pending')
@@ -42,13 +46,22 @@ const getDailyPack = (req, res) => {
 
   const active_workers = workers.map(w => {
     let entitlements = getEntitlements.all(w.worker_id, targetDate);
-    if (!entitlements || entitlements.length === 0) {
-      const newEntId = crypto.randomUUID();
+    const hasS1 = entitlements && entitlements.some(e => e.shift === 'estacion_1' || (e.combo_name && e.combo_name.toLowerCase().includes('víveres')));
+    const hasS2 = entitlements && entitlements.some(e => e.shift === 'estacion_2' || (e.combo_name && e.combo_name.toLowerCase().includes('prote')));
+
+    if (!hasS1) {
       try {
-        insertAutoEntitlement.run(newEntId, w.worker_id, defaultComboId, targetDate, w.shift || 'jornada_continua');
-        entitlements = getEntitlements.all(w.worker_id, targetDate);
+        insertAutoEntitlement.run(crypto.randomUUID(), w.worker_id, defaultViveresId, targetDate, 'estacion_1');
       } catch (e) {}
     }
+    if (!hasS2) {
+      try {
+        insertAutoEntitlement.run(crypto.randomUUID(), w.worker_id, defaultProteicoId, targetDate, 'estacion_2');
+      } catch (e) {}
+    }
+
+    entitlements = getEntitlements.all(w.worker_id, targetDate);
+
 
     return {
       worker_id: w.worker_id,

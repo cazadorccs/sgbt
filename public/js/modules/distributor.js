@@ -103,6 +103,8 @@ function setupStationTabs() {
     }
   }
 
+  window.updateDistributorStationUI = updateStationUI;
+
   tab1?.addEventListener('click', () => updateStationUI('1'));
   tab2?.addEventListener('click', () => updateStationUI('2'));
   tabAll?.addEventListener('click', () => updateStationUI('all'));
@@ -113,13 +115,24 @@ function setupStationTabs() {
 window.downloadDailyPack = downloadDailyPack;
 
 function setupRealtimeQrSyncListener() {
-  const showBanner = (workerName, docId, payload) => {
+  const showBanner = (workerName, docId, payload, station) => {
     const banner = document.getElementById('liveQrDetectedBanner');
     const info = document.getElementById('liveQrDetectedInfo');
     if (banner && info) {
       STATE.activeQrPayload = payload;
-      info.innerHTML = `<strong>${workerName || 'Beneficiario'}</strong> &middot; Cédula: <strong>${docId || 'V-18456123'}</strong><br><small style="color: #6ee7b7;">Firma criptográfica ECDSA P-256 lista para validación.</small>`;
+      const targetStation = station || (payload && payload.station) || '1';
+      STATE.activeStation = targetStation;
+      const isS2 = String(targetStation) === '2';
+      const stationBadge = isS2 
+        ? '<span class="badge badge-proteina" style="background:#059669; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">🍗 Estación 2: Combo Proteico (Cadena de Frío)</span>' 
+        : '<span class="badge badge-viveres" style="background:#0284c7; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">📦 Estación 1: Bulto Víveres Secos</span>';
+
+      info.innerHTML = `<strong>${workerName || 'Beneficiario'}</strong> &middot; Cédula: <strong>${docId || 'V-18456123'}</strong><br>${stationBadge} &middot; <small style="color: #6ee7b7;">Firma criptográfica ECDSA P-256 lista para validación.</small>`;
       banner.style.display = 'block';
+
+      if (typeof window.updateDistributorStationUI === 'function') {
+        window.updateDistributorStationUI(targetStation);
+      }
       playAudioFeedback('success');
     }
   };
@@ -130,7 +143,7 @@ function setupRealtimeQrSyncListener() {
       bc.onmessage = (e) => {
         if (e.data && e.data.type === 'NEW_QR_GENERATED') {
           console.log('[DISTRIBUIDOR] QR recibido por canal BroadcastChannel:', e.data);
-          showBanner(e.data.worker_name, e.data.doc_id, e.data.payload);
+          showBanner(e.data.worker_name, e.data.doc_id, e.data.payload, e.data.station);
         }
       };
     } catch (e) {
@@ -144,7 +157,8 @@ function setupRealtimeQrSyncListener() {
         const payload = JSON.parse(e.newValue);
         const name = localStorage.getItem('sgbt_active_qr_worker_name') || 'Carlos Mendoza';
         const doc = localStorage.getItem('sgbt_active_qr_doc') || 'V-18456123';
-        showBanner(name, doc, payload);
+        const st = localStorage.getItem('sgbt_active_station') || (payload && payload.station) || '1';
+        showBanner(name, doc, payload, st);
       } catch (err) {}
     }
   });
@@ -158,7 +172,8 @@ function setupRealtimeQrSyncListener() {
         const payload = JSON.parse(stored);
         const name = localStorage.getItem('sgbt_active_qr_worker_name') || 'Carlos Mendoza';
         const doc = localStorage.getItem('sgbt_active_qr_doc') || 'V-18456123';
-        showBanner(name, doc, payload);
+        const st = localStorage.getItem('sgbt_active_station') || (payload && payload.station) || '1';
+        showBanner(name, doc, payload, st);
       }
     }
   } catch (e) {}
@@ -433,10 +448,17 @@ async function scanWorkerQr() {
       const pack = await API.get('/api/v1/sync/daily-pack');
       const testWorker = (pack.active_workers && pack.active_workers.find(w => w.document_id === 'V-18456123')) || (pack.active_workers && pack.active_workers[0]);
       if (testWorker) {
-        const entId = (testWorker.entitlements && testWorker.entitlements[0]?.entitlement_id) || 'dfe02340-0f75-484d-9984-d3acce1c37db';
+        const activeSt = STATE.activeStation || '1';
+        const isS2 = activeSt === '2';
+        const ent = testWorker.entitlements && testWorker.entitlements.find(e => isS2 
+          ? (e.shift === 'estacion_2' || (e.combo_name && e.combo_name.toLowerCase().includes('prote')))
+          : (e.shift === 'estacion_1' || (e.combo_name && e.combo_name.toLowerCase().includes('víveres')))
+        );
+        const entId = ent ? ent.entitlement_id : (testWorker.entitlements && testWorker.entitlements[0]?.entitlement_id);
         const signData = await API.post('/api/v1/auth/passkey/sign-offline', {
           worker_id: testWorker.worker_id,
-          entitlement_id: entId
+          entitlement_id: entId,
+          station: activeSt
         });
         if (signData && signData.qr_payload) {
           payload = signData.qr_payload;
@@ -524,11 +546,16 @@ async function processQrPayload(payload, isLiveCamera = false) {
     return;
   }
 
-  if (STATE.localCache.deliveredEntitlements.has(payload.ent)) {
+  const qrStation = (payload && payload.station) ? String(payload.station) : (STATE.activeStation || '1');
+  const stationCacheKey = payload.wid + '_station_' + qrStation;
+
+  if (STATE.localCache.deliveredEntitlements.has(payload.ent) || STATE.localCache.deliveredEntitlements.has(stationCacheKey)) {
+    const isStation2 = qrStation === '2';
+    const comboLabel = isStation2 ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto de Víveres Secos';
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-      showCameraScanHUD(false, 'INTENTO DE DUPLICADO', 'Beneficio ya entregado hoy');
+      showCameraScanHUD(false, 'INTENTO DE DUPLICADO', `${comboLabel} ya entregado hoy`);
     } else {
-      showDistributorFeedback(false, 'INTENTO DE DUPLICADO', 'Alerta de Seguridad: Este beneficio ya fue entregado hoy (idx_unique_daily_claim).');
+      showDistributorFeedback(false, 'INTENTO DE DUPLICADO', `Alerta de Seguridad: El ${comboLabel} de este titular ya fue retirado hoy en la Estación ${qrStation} (idx_unique_daily_claim).`);
     }
     return;
   }
@@ -550,7 +577,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
       id: deliveryId,
       entitlement_id: payload.ent,
       worker_id: payload.wid,
-      distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
+      distribution_point_id: qrStation === '2' ? '550e8400-e29b-41d4-a716-446655440001' : '550e8400-e29b-41d4-a716-446655440000',
       verification_method: 'passkey_qr',
       signature_proof: payload.sig,
       challenge_nonce: payload.nonce,
@@ -560,27 +587,31 @@ async function processQrPayload(payload, isLiveCamera = false) {
     };
 
     STATE.localCache.deliveredEntitlements.add(payload.ent);
+    STATE.localCache.deliveredEntitlements.add(stationCacheKey);
     STATE.localCache.syncQueue.push(offlineRecord);
     updateSyncQueueUI();
+
+    const isStation2Offline = qrStation === '2';
+    const offlineComboTitle = isStation2Offline ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto Víveres Secos';
 
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
       showCameraScanHUD(
         true,
         'DESPACHO OFFLINE VÁLIDO',
-        `${worker ? worker.full_name : 'Beneficiario'} &middot; Bolsa + Proteína`
+        `${worker ? worker.full_name : 'Beneficiario'} &middot; ${offlineComboTitle}`
       );
     } else {
       showDistributorFeedback(
         true,
         'DESPACHO OFFLINE AUTORIZADO',
-        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><small style="color: #6ee7b7;">Firma digital FIDO2 validada localmente en Almacén Sótano 1.</small>`,
+        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br>Estación: <strong>Estación ${qrStation}</strong> &middot; <strong>${offlineComboTitle}</strong><br><small style="color: #6ee7b7;">Firma digital FIDO2 validada localmente en Almacén Sótano 1.</small>`,
         worker || { worker_type: 'activo' }
       );
     }
-    broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: 'Bolsa de Víveres Secos + Combo Proteico' }, payload);
+    broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: offlineComboTitle, station: parseInt(qrStation, 10) }, payload);
   } else {
     try {
-      const activeStation = STATE.activeStation || '1';
+      const activeStation = qrStation;
       const result = await API.post('/api/v1/verify/qr', {
         qr_payload: payload,
         delivered_by_user_id: STATE.operatorId,
@@ -589,6 +620,9 @@ async function processQrPayload(payload, isLiveCamera = false) {
 
       if (result.valid) {
         STATE.localCache.deliveredEntitlements.add(payload.ent);
+        STATE.localCache.deliveredEntitlements.add(stationCacheKey);
+        STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_' + (result.station || activeStation));
+
 
         // Notificación Toast exacta por estación
         const toastMsg = result.toast_message || (result.station === 2 
