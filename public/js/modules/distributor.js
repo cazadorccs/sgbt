@@ -3,6 +3,9 @@
 // ============================================================================
 
 let liveCameraScanner = null;
+let currentFacingMode = 'environment'; // 'environment' (cámara trasera/posterior por defecto) o 'user' (frontal)
+let availableCameraDevices = [];
+let selectedCameraDeviceId = null;
 let pendingContingencyWorker = null;
 
 window.toggleChecklistItem = function(cardEl) {
@@ -24,6 +27,9 @@ window.setupDistributorSimulator = function() {
   // Controles de Cámara Real en Vivo
   document.getElementById('btnStartCameraScanner')?.addEventListener('click', startLiveCameraScanner);
   document.getElementById('btnStopCameraScanner')?.addEventListener('click', stopLiveCameraScanner);
+  document.getElementById('btnFlipCameraLive')?.addEventListener('click', toggleCameraFacing);
+  document.getElementById('btnFlipCameraStandby')?.addEventListener('click', toggleCameraFacing);
+  document.getElementById('btnFlipCameraGlobal')?.addEventListener('click', toggleCameraFacing);
 
   // Botón para escanear QR detectado en tiempo real desde otra pestaña o dispositivo
   document.getElementById('btnQuickScanDetectedQr')?.addEventListener('click', () => {
@@ -32,11 +38,25 @@ window.setupDistributorSimulator = function() {
 
   // Selector de cámara física
   const camSelect = document.getElementById('cameraDeviceSelect');
-  camSelect?.addEventListener('change', () => {
+  camSelect?.addEventListener('change', async (e) => {
+    selectedCameraDeviceId = e.target.value;
+    const dev = availableCameraDevices.find(d => d.id === selectedCameraDeviceId);
+    if (dev) {
+      const lbl = (dev.label || '').toLowerCase();
+      if (lbl.includes('front') || lbl.includes('user') || lbl.includes('delantera') || lbl.includes('selfie')) {
+        currentFacingMode = 'user';
+      } else {
+        currentFacingMode = 'environment';
+      }
+    }
     if (liveCameraScanner && liveCameraScanner.isScanning) {
-      startLiveCameraScanner();
+      await stopLiveCameraScanner();
+      await startLiveCameraScanner();
     }
   });
+
+  // Intenta listar cámaras en background si ya hay permisos
+  refreshCameraDevicesList();
 
   // Carga alternativa de foto o captura de pantalla de QR
   const btnUpload = document.getElementById('btnUploadQrImage');
@@ -204,6 +224,86 @@ function broadcastDeliveryApproval(deliveryResult, payload = {}) {
 }
 window.broadcastDeliveryApproval = broadcastDeliveryApproval;
 
+async function refreshCameraDevicesList() {
+  if (typeof Html5Qrcode === 'undefined') return;
+  try {
+    const devices = await Html5Qrcode.getCameras();
+    if (devices && devices.length > 0) {
+      availableCameraDevices = devices;
+      const camSelect = document.getElementById('cameraDeviceSelect');
+      const selectWrapper = document.getElementById('cameraSelectWrapper');
+      if (camSelect) {
+        camSelect.innerHTML = '';
+        devices.forEach((dev, idx) => {
+          const opt = document.createElement('option');
+          opt.value = dev.id;
+          let label = dev.label || `Cámara ${idx + 1}`;
+          opt.textContent = label;
+          camSelect.appendChild(opt);
+        });
+        if (selectedCameraDeviceId) {
+          camSelect.value = selectedCameraDeviceId;
+        }
+        if (selectWrapper) {
+          selectWrapper.style.display = devices.length > 1 ? 'flex' : 'none';
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[CAMERA] Enumeración pasiva de cámaras no permitida todavía:', e);
+  }
+}
+
+async function toggleCameraFacing() {
+  if (availableCameraDevices && availableCameraDevices.length > 1) {
+    // Si tenemos una lista de múltiples cámaras físicas
+    const currentId = selectedCameraDeviceId || (document.getElementById('cameraDeviceSelect')?.value);
+    let nextIdx = 0;
+    if (currentId) {
+      const idx = availableCameraDevices.findIndex(d => d.id === currentId);
+      if (idx !== -1) {
+        nextIdx = (idx + 1) % availableCameraDevices.length;
+      }
+    } else {
+      nextIdx = 1;
+    }
+    const nextDev = availableCameraDevices[nextIdx];
+    selectedCameraDeviceId = nextDev.id;
+    const camSelect = document.getElementById('cameraDeviceSelect');
+    if (camSelect) camSelect.value = nextDev.id;
+
+    const lbl = (nextDev.label || '').toLowerCase();
+    if (lbl.includes('front') || lbl.includes('user') || lbl.includes('delantera') || lbl.includes('selfie')) {
+      currentFacingMode = 'user';
+    } else {
+      currentFacingMode = 'environment';
+    }
+  } else {
+    // Alternar facingMode entre posterior y frontal
+    selectedCameraDeviceId = null;
+    currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+  }
+
+  const isBack = currentFacingMode === 'environment';
+  window.showToast(`Cámara cambiada: ${isBack ? '📷 Posterior / Trasera' : '🤳 Frontal'}`, 'info');
+
+  const btnStart = document.getElementById('btnStartCameraScanner');
+  if (btnStart) {
+    btnStart.textContent = `📹 Iniciar Escáner (Cámara ${isBack ? 'Trasera' : 'Frontal'})`;
+  }
+
+  const badge = document.getElementById('cameraStatusBadge');
+  if (badge && liveCameraScanner && liveCameraScanner.isScanning) {
+    badge.textContent = `🟢 Cámara Activa (${isBack ? 'Trasera' : 'Frontal'})`;
+  }
+
+  if (liveCameraScanner && liveCameraScanner.isScanning) {
+    await stopLiveCameraScanner();
+    await startLiveCameraScanner();
+  }
+}
+window.toggleCameraFacing = toggleCameraFacing;
+
 async function startLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
@@ -218,20 +318,26 @@ async function startLiveCameraScanner() {
   try {
     if (liveCameraScanner && liveCameraScanner.isScanning) {
       await liveCameraScanner.stop();
+      liveCameraScanner.clear();
+      liveCameraScanner = null;
     }
 
     if (standbyBox) standbyBox.style.display = 'none';
     if (liveContainer) liveContainer.style.display = 'block';
+
+    const isInitialBack = currentFacingMode === 'environment';
     if (badge) {
-      badge.textContent = '🟢 Cámara Activa (Enfocando)';
+      badge.textContent = `🟢 Cámara Activa (${isInitialBack ? 'Trasera' : 'Frontal'})`;
       badge.className = 'badge badge-proteina';
     }
 
     liveCameraScanner = new Html5Qrcode("cameraQrReader");
-    let selectedCameraId = null;
+
+    // Intentar enumerar dispositivos por si ya se tienen permisos previos
     try {
       const devices = await Html5Qrcode.getCameras();
       if (devices && devices.length > 0) {
+        availableCameraDevices = devices;
         if (camSelect) {
           camSelect.innerHTML = '';
           devices.forEach((dev, idx) => {
@@ -240,21 +346,38 @@ async function startLiveCameraScanner() {
             opt.textContent = dev.label || `Cámara ${idx + 1}`;
             camSelect.appendChild(opt);
           });
-          camSelect.style.display = devices.length > 1 ? 'block' : 'none';
-          const backCam = devices.find(d => 
-            (d.label || '').toLowerCase().includes('back') || 
-            (d.label || '').toLowerCase().includes('trasera') || 
-            (d.label || '').toLowerCase().includes('rear') || 
-            (d.label || '').toLowerCase().includes('environment')
-          );
-          selectedCameraId = backCam ? backCam.id : devices[devices.length - 1].id;
-          camSelect.value = selectedCameraId;
-        } else {
-          selectedCameraId = devices[0].id;
+          const selectWrapper = document.getElementById('cameraSelectWrapper');
+          if (selectWrapper) selectWrapper.style.display = devices.length > 1 ? 'flex' : 'none';
+
+          // Si no hay cámara forzada por el usuario y se busca cámara trasera, identificarla
+          if (!selectedCameraDeviceId && currentFacingMode === 'environment') {
+            const backCam = devices.find(d => 
+              (d.label || '').toLowerCase().includes('back') || 
+              (d.label || '').toLowerCase().includes('trasera') || 
+              (d.label || '').toLowerCase().includes('rear') || 
+              (d.label || '').toLowerCase().includes('environment')
+            );
+            if (backCam) {
+              selectedCameraDeviceId = backCam.id;
+            }
+          }
+          if (selectedCameraDeviceId) {
+            camSelect.value = selectedCameraDeviceId;
+          }
         }
       }
     } catch (e) {
-      console.warn('No se pudieron enumerar cámaras físicas:', e);
+      console.warn('[CAMERA] Enumeración previa de dispositivos:', e);
+    }
+
+    // Configuración de la cámara a iniciar:
+    // Si hay un selectedCameraDeviceId explícito, usarlo.
+    // De lo contrario, usar { facingMode: currentFacingMode } ("environment" por defecto para posterior).
+    let cameraParam;
+    if (selectedCameraDeviceId) {
+      cameraParam = selectedCameraDeviceId;
+    } else {
+      cameraParam = { facingMode: currentFacingMode };
     }
 
     const config = {
@@ -343,9 +466,27 @@ async function startLiveCameraScanner() {
     try {
       await liveCameraScanner.start(cameraParam, config, onScanSuccess, onScanFailure);
     } catch (startErr) {
-      console.warn('Fallo con cameraParam específico, intentando fallback genérico:', startErr);
-      await liveCameraScanner.start({ facingMode: "user" }, config, onScanSuccess, onScanFailure);
+      console.warn('[CAMERA] Falló inicio con cameraParam:', cameraParam, startErr);
+      // Fallback 1: Intentar con facingMode directo
+      try {
+        await liveCameraScanner.start({ facingMode: currentFacingMode }, config, onScanSuccess, onScanFailure);
+      } catch (fallbackErr) {
+        // Fallback 2: Intentar con la cámara opuesta (por si el teléfono solo expone una lente o permisos limitados)
+        const altMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+        console.warn('[CAMERA] Intentando fallback con modo opuesto:', altMode, fallbackErr);
+        await liveCameraScanner.start({ facingMode: altMode }, config, onScanSuccess, onScanFailure);
+        currentFacingMode = altMode;
+      }
     }
+
+    if (badge) {
+      const activeBack = currentFacingMode === 'environment';
+      badge.textContent = `🟢 Cámara ${activeBack ? 'Trasera' : 'Frontal'}`;
+      badge.className = 'badge badge-proteina';
+    }
+
+    // Refrescar lista de cámaras ahora con permisos otorgados
+    refreshCameraDevicesList();
 
   } catch (err) {
     console.error('[CAMERA ERROR]', err);
@@ -378,6 +519,8 @@ async function stopLiveCameraScanner() {
     badge.className = 'badge badge-viveres';
   }
 }
+window.startLiveCameraScanner = startLiveCameraScanner;
+window.stopLiveCameraScanner = stopLiveCameraScanner;
 
 async function handleQrImageUpload(e) {
   const file = e.target.files && e.target.files[0];
