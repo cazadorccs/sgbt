@@ -351,7 +351,7 @@ const registerVerify = (req, res) => {
 
   res.json({
     status: 'success',
-    message: 'Passkey enrolada exitosamente en Secure Enclave / TEE',
+    message: 'Validación en celular activada exitosamente',
     credential_id: result.credentialId,
     public_key: result.publicKeyPem,
     entitlement_id: ent ? ent.id : null
@@ -431,7 +431,7 @@ const signOffline = (req, res) => {
   `).get(worker_id);
 
   if (!cred) {
-    return res.status(403).json({ error: 'El trabajador no posee una Passkey activa enrolada' });
+    return res.status(403).json({ error: 'El trabajador no tiene activada la validación en su celular' });
   }
 
   let enclaveData = secureEnclaveSimulator.get(worker_id);
@@ -659,7 +659,7 @@ const verifyQr = (req, res) => {
     return res.status(403).json({
       valid: false,
       code: 'NO_ACTIVE_PASSKEY',
-      message: 'El trabajador no posee una Passkey activa o su dispositivo fue revocado'
+      message: 'El beneficiario no tiene validación activa en su celular o el dispositivo fue desvinculado'
     });
   }
 
@@ -668,7 +668,7 @@ const verifyQr = (req, res) => {
     return res.status(401).json({
       valid: false,
       code: 'INVALID_CRYPTOGRAPHIC_SIGNATURE',
-      message: 'Firma digital ECDSA P-256 inválida o adulterada'
+      message: 'Código de seguridad no válido o expirado. Por favor genere un nuevo código.'
     });
   }
 
@@ -1069,7 +1069,7 @@ const createDelegation = (req, res) => {
     qr_payload: qrPayload,
     qr_string: JSON.stringify(qrPayload),
     expires_in_hours: hours,
-    message: `Delegación criptográfica generada exitosamente. Válida por ${hours} horas para ${delegateName}.`
+    message: `Autorización de retiro generada exitosamente. Válida por ${hours} horas para ${delegateName}.`
   });
 };
 

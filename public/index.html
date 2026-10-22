@@ -172,7 +172,7 @@
             </svg>
           </div>
           <div style="display: inline-block; padding: 0.2rem 0.65rem; background: #e0f2fe; color: #0284c7; font-size: 0.68rem; font-weight: 700; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-            Autenticación FIDO2 &middot; WebAuthn
+            Validación Segura &middot; Huella o FaceID
           </div>
           <h2 style="font-size: 1.35rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
             BIENESTAR ALIMENTARIO MIPPCI
@@ -326,7 +326,7 @@
 
         <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
           <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <span>Protegido con Criptografía FIDO2 ES256 & Supabase SSOT</span>
+          <span>Sistema Oficial Protegido &middot; Ministerio del Poder Popular para la Comunicación y la Información</span>
         </div>
 
         <!-- CONTROL DE CONMUTACIÓN DE MODO DEMOSTRACIÓN -->
@@ -745,7 +745,7 @@
                 <div class="breakdown-header">
                   <span style="display: flex; align-items: center; gap: 0.4rem;">
                     <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span>
-                    Passkey QR Criptográfico (FIDO2 ES256)
+                    Código QR Seguro (Huella o FaceID)
                   </span>
                   <strong id="barCountPasskey">0 entregas (0%)</strong>
                 </div>
@@ -862,7 +862,7 @@
                   <th>Condición Laboral</th>
                   <th>Departamento</th>
                   <th>Turno</th>
-                  <th>Autenticación FIDO2 / NFC</th>
+                  <th>Método de Validación</th>
                   <th>Derecho de Hoy</th>
                   <th>Acciones</th>
                 </tr>
@@ -947,7 +947,7 @@
                 <label style="font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 0.15rem;">Método de Validación:</label>
                 <select id="auditMethodFilter" class="form-select" style="font-size: 0.8rem;">
                   <option value="">Todos los Métodos</option>
-                  <option value="passkey_qr">🔐 Passkey QR FIDO2</option>
+                  <option value="passkey_qr">🔐 Código QR Celular</option>
                   <option value="nfc_card">💳 Tarjeta Física NFC</option>
                   <option value="supervisor_daily_qr">🔑 QR Supervisor Diario</option>
                   <option value="supervisor_override">⚠️ Liberación Contingencia</option>
@@ -1007,12 +1007,12 @@
           <!-- Card 4: Seguridad & Criptografía -->
           <div class="glass-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-md); padding: 1.25rem; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-              <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b;">Anti-Fraude Criptográfico</span>
-              <span style="background: #f1f5f9; color: #334155; padding: 0.2rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700;">FIDO2 / ES256</span>
+              <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b;">Control de Entregas</span>
+              <span style="background: #f1f5f9; color: #334155; padding: 0.2rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700;">100% Auditado</span>
             </div>
             <div id="statAuditSecurityRate" style="font-size: 2rem; font-weight: 800; color: #0284c7; line-height: 1.1;">100%</div>
             <div id="statAuditSecurityBreakdown" style="font-size: 0.75rem; color: #64748b; margin-top: 0.4rem; font-weight: 600;">
-              0 duplicados &middot; Firma biométrica irrefutable
+              0 duplicados &middot; Entregas verificadas
             </div>
           </div>
 
@@ -1072,7 +1072,7 @@
                   <th>Validación</th>
                   <th>Sync</th>
                   <th>Autorizado Por</th>
-                  <th>Firma Criptográfica</th>
+                  <th>Comprobante</th>
                 </tr>
               </thead>
               <tbody id="auditTableBody">
@@ -1396,15 +1396,15 @@
             <!-- ESTADO DE LA PASSKEY Y ACCIONES -->
             <div id="workerPasskeyStatusBox" class="alert-box alert-info" style="margin-bottom: 1rem;">
               <div>
-                <strong>Passkey FIDO2: </strong>
-                <span id="workerPasskeyStatusText">Verificando hardware seguro...</span>
+                <strong>Validación en tu celular: </strong>
+                <span id="workerPasskeyStatusText">Verificando estado...</span>
               </div>
             </div>
 
-            <!-- VISOR DE QR DINÁMICO FIRMADO CRIPTOGRÁFICAMENTE -->
+            <!-- VISOR DE QR DINÁMICO DE RETIRO SEGURO -->
             <div id="workerQrContainer" style="display: none; flex-direction: column; align-items: center;">
               <div class="flex-between" style="width: 100%; margin-bottom: 0.5rem;">
-                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">CÓDIGO QR FIRMADO (ECDSA P-256)</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">CÓDIGO QR DE RETIRO SEGURO</span>
                 <button id="btnToggleBrightness" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.65rem;">
                   💡 Brillo 100%
                 </button>
@@ -1430,7 +1430,7 @@
                   Expira en: 60s
                 </div>
                 <div class="qr-nonce-text" id="qrNonceLabel">
-                  Nonce: Generando desafío seguro...
+                  Código de seguridad activo
                 </div>
               </div>
 
@@ -1504,47 +1504,46 @@
                   </div>
                   <div class="delivery-receipt-row">
                     <span class="label">Método de Validación:</span>
-                    <span class="val" id="receiptMethod" style="color: #a7f3d0; font-size: 0.72rem;">Firma Hardware (FIDO2)</span>
+                    <span class="val" id="receiptMethod" style="color: #a7f3d0; font-size: 0.72rem;">Validación Segura con Celular</span>
                   </div>
                 </div>
 
                 <div class="delivery-receipt-stamp">
-                  🛡️ Transacción Criptográfica Verificada e Irrefutable
+                  🛡️ Entrega Verificada con Éxito
                 </div>
               </div>
 
               <p id="workerQrHelpText" style="font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
-                Presente este código en el escáner del comedor. Funciona sin internet mediante criptografía asimétrica local.
+                Presente este código en la taquilla de entrega. Funciona incluso sin internet.
               </p>
             </div>
 
             <!-- BOTONES DE ACCIÓN MÓVIL -->
             <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-top: 1rem;">
               <button id="btnGenerateQr" class="btn btn-primary" style="width: 100%;">
-                ⚡ Generar QR de Entrega (Firma Biométrica)
+                ⚡ Generar mi Código QR de Entrega
               </button>
               <button id="btnEnrollPasskey" class="btn btn-cyan" style="width: 100%;">
-                🔐 Enrolar Nueva Passkey en este Dispositivo
+                🔐 Activar Validación en este Teléfono
               </button>
             </div>
           </div>
         </div>
 
-        <!-- EXPLICACIÓN TÉCNICA LATERAL (Visible solo para administradores / demostración) -->
+        <!-- EXPLICACIÓN SENCILLA LATERAL -->
         <div id="workerSecurityExplanationPanel" class="glass-panel" style="max-width: 480px; align-self: center;">
           <div class="panel-header">
-            <div class="panel-title">🛡️ Mecanismo de Seguridad Biométrica (FIDO2)</div>
+            <div class="panel-title">🛡️ Cómo Protegemos su Entrega</div>
           </div>
           <div style="font-size: 0.85rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.85rem;">
             <p>
-              <strong>1. Hardware Aislado:</strong> Al enrolar la Passkey, el chip seguro (Secure Enclave o Titan TEE) crea un par de claves asimétricas <code>ECDSA P-256 (ES256)</code>. La clave privada <em>jamás abandona el chip seguro</em>.
+              <strong>1. Privacidad de tus Datos:</strong> Tu huella o reconocimiento facial protegen tu beneficio para que nadie más pueda retirarlo. Tus datos biométricos permanecen privados en tu propio teléfono.
             </p>
             <p>
-              <strong>2. Firma Criptográfica Offline:</strong> Cada vez que el trabajador genera un QR, autoriza con su Face ID / Huella y el chip firma localmente un paquete inalterable con:
-              <br><code class="text-mono" style="font-size: 0.75rem;">wid (UUID) + ent (UUID) + ts (Timestamp) + nonce (32 bytes)</code>
+              <strong>2. Funciona Sin Conexión:</strong> Puedes generar tu código QR en el almacén o sótano aunque no haya señal telefónica o conexión a internet.
             </p>
             <p>
-              <strong>3. Ventana Anti-Capturas:</strong> El código QR expira de forma estricta en 60 segundos y se regenera automáticamente con un nuevo nonce aleatorio para evitar fraudes por captura de pantalla compartida.
+              <strong>3. Códigos Temporales Seguros:</strong> Cada código QR es temporal y de un solo uso para evitar que sea copiado o compartido por capturas de pantalla.
             </p>
           </div>
         </div>
@@ -1570,7 +1569,7 @@
             <div id="distributorFeedbackOverlay" class="distributor-feedback-overlay">
               <div id="feedbackIcon" class="feedback-icon">✅</div>
               <h2 id="feedbackTitle" class="feedback-title">ENTREGA AUTORIZADA</h2>
-              <p id="feedbackSubtitle" class="feedback-subtitle">Firma FIDO2 verificada localmente</p>
+              <p id="feedbackSubtitle" class="feedback-subtitle">Beneficiario verificado correctamente</p>
               <div id="feedbackDetails" style="background: rgba(0,0,0,0.4); padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1.5rem; width: 100%;">
                 --
               </div>
@@ -1662,7 +1661,7 @@
             <div style="margin-bottom: 1rem;">
               <div class="flex-between">
                 <label style="font-size: 0.7rem; color: var(--sea-anakiwa); text-transform: uppercase; font-weight: 700;">
-                  Escáner Criptográfico Local (Sin Internet):
+                  Lector de Código QR (Funciona sin internet):
                 </label>
                 <div style="display: flex; gap: 0.4rem; align-items: center;">
                   <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.6rem; border: 1px solid rgba(16, 185, 129, 0.4);">⚡ Modo Ráfaga</span>
@@ -1744,7 +1743,7 @@
                       📁 Cargar Foto / Archivo QR
                     </button>
                     <button type="button" id="btnPasteQrManual" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(148, 163, 184, 0.3);">
-                      📋 Pegar QR / Nonce
+                      📋 Pegar Código Manual
                     </button>
                   </div>
 
@@ -1789,27 +1788,27 @@
         <!-- PANEL LATERAL DE AUDITORÍA LOCAL DE LA APP DEL DISTRIBUIDOR -->
         <div class="glass-panel" style="max-width: 500px; flex: 1;">
           <div class="panel-header">
-            <div class="panel-title">💾 Base de Datos Local SQLite (Edge Cache)</div>
-            <span class="badge badge-offline">Offline-First Engine</span>
+            <div class="panel-title">💾 Respaldo Local (Funciona Sin Conexión)</div>
+            <span class="badge badge-offline">Listo para Almacén</span>
           </div>
           
           <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Estado de los registros precargados y cola de transacciones pendientes por transmitir al servidor PostgreSQL central:
+            Listado de trabajadores cargados en este equipo y entregas listas para enviar al sistema central:
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
             <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--bg-card-border);">
-              <div style="font-size: 0.7rem; color: var(--text-dim);">TRABAJADORES EN CACHÉ</div>
+              <div style="font-size: 0.7rem; color: var(--text-dim);">TRABAJADORES REGISTRADOS</div>
               <div id="localDbWorkersCount" style="font-size: 1.25rem; font-weight: 700; color: #fff;">0</div>
             </div>
             <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--bg-card-border);">
-              <div style="font-size: 0.7rem; color: var(--text-dim);">LLAVES PÚBLICAS FIDO2</div>
+              <div style="font-size: 0.7rem; color: var(--text-dim);">DISPOSITIVOS ACTIVOS</div>
               <div id="localDbKeysCount" style="font-size: 1.25rem; font-weight: 700; color: #10b981;">0</div>
             </div>
           </div>
 
           <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">
-            Cola de Sincronización Diferida (Sync Queue):
+            Entregas Pendientes por Sincronizar:
           </div>
           
           <div id="localSyncQueueList" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">

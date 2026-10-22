@@ -85,7 +85,7 @@ window.STATE = {
       if (cached) {
         cached.has_passkey = hasPasskey;
         cached.has_smartphone = 1;
-        cached.auth_label = hasPasskey ? '🔐 Passkey Activa (FIDO2)' : '⚠️ Sin Dispositivo';
+        cached.auth_label = hasPasskey ? '📱 Celular / Huella Activo' : '⚠️ Sin Dispositivo';
       }
     }
 

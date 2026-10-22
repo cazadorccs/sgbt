@@ -43,12 +43,12 @@
       </div>
 
       <p style="font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-bottom: 1.25rem;">
-        La firma del supervisor se estampa criptográficamente en el registro y queda auditada de forma inalterable.
+        La autorización del supervisor queda registrada de forma segura e inalterable en el sistema.
       </p>
 
       <div style="display: flex; gap: 0.5rem;">
         <button id="btnAuthorizeSupervisorOverride" class="btn btn-primary" style="flex: 1;">
-          🔐 Autorizar con Huella / Passkey de Supervisor
+          🔐 Autorizar con Huella / Clave de Supervisor
         </button>
       </div>
     </div>
@@ -334,9 +334,9 @@
                 <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
               </div>
               <div>
-                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Arquitectura Offline-First</div>
+                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Funcionamiento Sin Conexión</div>
                 <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
-                  Los registros biométricos y despachos se almacenan en IndexedDB local y se sincronizan automáticamente con Supabase Cloud.
+                  Las entregas se registran de forma segura en este equipo y se actualizan automáticamente cuando hay conexión.
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@
               <div>
                 <div style="font-weight: 700; color: #334155; font-size: 0.85rem;">SGBT Bienestar Alimentario v2.2</div>
                 <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
-                  Seguridad Criptográfica FIDO2 WebAuthn &middot; Soporte Multi-Tenant B2G
+                  Protección Biométrica y Control de Entregas Institucionales
                 </div>
               </div>
             </div>
@@ -538,7 +538,7 @@
         <div style="display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
           <input type="checkbox" id="newWorkerHasSmartphone" checked style="width: 18px; height: 18px; accent-color: var(--sea-pacific);" />
           <label for="newWorkerHasSmartphone" style="font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
-            Posee Teléfono Inteligente (Habilitar Passkeys FIDO2 / Biometría WebAuthn)
+            Posee Teléfono Inteligente (Habilitar retiro con Huella / FaceID)
           </label>
         </div>
 
@@ -567,7 +567,7 @@
       </div>
 
       <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem; line-height: 1.4;">
-        Importe la nómina del ministerio o ente público en formato CSV. Los trabajadores quedarán habilitados de forma inmediata para el despacho con Passkeys o contingencia.
+        Importe la nómina del ministerio o ente público en formato CSV. Los trabajadores quedarán habilitados de forma inmediata para retirar sus beneficios.
       </div>
 
       <div class="file-dropzone" id="csvFileDropzone">
@@ -844,7 +844,7 @@
 
       <div style="display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
         <button type="button" id="btnCopySupervisorDailyQrToken" class="btn btn-outline" style="font-size: 0.78rem; flex: 1;">
-          📋 Copiar Token Criptográfico
+          📋 Copiar Código de Autorización
         </button>
         <button type="button" id="btnPrintSupervisorDailyQr" class="btn btn-outline" style="font-size: 0.78rem; flex: 1;">
           🖨️ Imprimir Ficha de Mesa
@@ -1002,8 +1002,8 @@
         <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
           <span>🤝</span>
           <div>
-            <div>Delegación Criptográfica Temporal</div>
-            <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Retiro autorizado para reposo médico o jubilados sin móvil</div>
+            <div>Autorización de Retiro por Terceros</div>
+            <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Permiso para compañeros de trabajo de personal en reposo o adultos mayores</div>
           </div>
         </div>
         <button id="btnCloseDelegationModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
@@ -1011,7 +1011,7 @@
 
       <div id="delegationFormSection">
         <p style="font-size: 0.8rem; color: #475569; margin-bottom: 1rem; line-height: 1.45;">
-          El supervisor avala la entrega de víveres a un compañero autorizado, emitiendo un token QR firmado con validez de 24 a 48 horas sin anular el control anti-duplicados.
+          El supervisor autoriza la entrega del beneficio a un compañero asignado, generando un código QR válido por 24 a 48 horas de forma segura.
         </p>
 
         <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.25rem;">
@@ -1062,14 +1062,14 @@
         </div>
 
         <button type="button" id="btnGenerateDelegationQr" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; font-weight: 700; padding: 0.65rem; background: linear-gradient(135deg, #0284c7, #0369a1);">
-          ⚡ Emitir Autorización con QR Firmado (Supervisor)
+          ⚡ Emitir Autorización con Código QR (Supervisor)
         </button>
       </div>
 
       <!-- RESULTADO QR DE DELEGACIÓN -->
       <div id="delegationResultSection" style="display: none; text-align: center; padding-top: 0.5rem;">
         <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.82rem; color: #166534;">
-          <strong>✅ Permiso Criptográfico Emitido Exitosamente</strong>
+          <strong>✅ Autorización de Retiro Emitida Exitosamente</strong>
           <div id="delegationResultSummary" style="font-size: 0.75rem; color: #334155; margin-top: 0.25rem;"></div>
         </div>
 

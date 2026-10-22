@@ -248,7 +248,7 @@ window.setupSupervisorDailyQrModal = function() {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(STATE.activeSupervisorQrPayload);
       }
-      window.showToast('📋 Token Criptográfico del Supervisor copiado al portapapeles.', 'success');
+      window.showToast('📋 Código de autorización copiado al portapapeles.', 'success');
     }
   });
 
@@ -665,7 +665,7 @@ window.setupDelegationModal = function() {
     }
 
     btnGenerate.disabled = true;
-    btnGenerate.textContent = '⏳ Emitiendo y firmando autorización FIDO2...';
+    btnGenerate.textContent = '⏳ Emitiendo autorización segura...';
 
     try {
       const data = await API.post('/api/v1/auth/supervisor/delegate', {

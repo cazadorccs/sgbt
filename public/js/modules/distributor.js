@@ -127,7 +127,7 @@ function setupRealtimeQrSyncListener() {
         ? '<span class="badge badge-proteina" style="background:#059669; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">🍗 Estación 2: Combo Proteico (Cadena de Frío)</span>' 
         : '<span class="badge badge-viveres" style="background:#0284c7; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">📦 Estación 1: Bulto Víveres Secos</span>';
 
-      info.innerHTML = `<strong>${workerName || 'Beneficiario'}</strong> &middot; Cédula: <strong>${docId || 'V-18456123'}</strong><br>${stationBadge} &middot; <small style="color: #6ee7b7;">Firma criptográfica ECDSA P-256 lista para validación.</small>`;
+      info.innerHTML = `<strong>${workerName || 'Beneficiario'}</strong> &middot; Cédula: <strong>${docId || 'V-18456123'}</strong><br>${stationBadge} &middot; <small style="color: #6ee7b7;">Código QR válido listo para entregar.</small>`;
       banner.style.display = 'block';
 
       if (typeof window.updateDistributorStationUI === 'function') {
@@ -503,7 +503,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
           showDistributorFeedback(
             true,
             'DESPACHO POR DELEGACIÓN AUTORIZADO',
-            `Titular: <strong>${result.worker_name}</strong> (${result.document_id})<br>Compañero que retira: <strong>${result.delegate_name}</strong> (${result.delegate_doc})<br><small style="color: #6ee7b7;">Autorizado mediante firma criptográfica del Supervisor.</small>`,
+            `Titular: <strong>${result.worker_name}</strong> (${result.document_id})<br>Compañero que retira: <strong>${result.delegate_name}</strong> (${result.delegate_doc})<br><small style="color: #6ee7b7;">Autorizado mediante permiso del Supervisor.</small>`,
             result
           );
         }
@@ -564,9 +564,9 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const pubKey = STATE.localCache.publicKeys[payload.wid];
     if (!pubKey) {
       if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-        showCameraScanHUD(false, 'SIN LLAVE FIDO2', 'Trabajador sin passkey local');
+        showCameraScanHUD(false, 'SIN REGISTRO PREVIO', 'El beneficiario no tiene dispositivo activo');
       } else {
-        showDistributorFeedback(false, 'PASSKEY NO ENCONTRADA', 'El trabajador no posee una clave pública activa en la base local.');
+        showDistributorFeedback(false, 'DISPOSITIVO NO REGISTRADO', 'El trabajador no posee un teléfono o método activo registrado en la base de datos.');
       }
       return;
     }
@@ -597,14 +597,14 @@ async function processQrPayload(payload, isLiveCamera = false) {
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
       showCameraScanHUD(
         true,
-        'DESPACHO OFFLINE VÁLIDO',
+        'DESPACHO VÁLIDO',
         `${worker ? worker.full_name : 'Beneficiario'} &middot; ${offlineComboTitle}`
       );
     } else {
       showDistributorFeedback(
         true,
-        'DESPACHO OFFLINE AUTORIZADO',
-        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br>Estación: <strong>Estación ${qrStation}</strong> &middot; <strong>${offlineComboTitle}</strong><br><small style="color: #6ee7b7;">Firma digital FIDO2 validada localmente en Almacén Sótano 1.</small>`,
+        'DESPACHO AUTORIZADO',
+        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br>Estación: <strong>Estación ${qrStation}</strong> &middot; <strong>${offlineComboTitle}</strong><br><small style="color: #6ee7b7;">Entrega validada correctamente en Almacén Sótano 1.</small>`,
         worker || { worker_type: 'activo' }
       );
     }

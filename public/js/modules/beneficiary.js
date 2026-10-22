@@ -121,7 +121,7 @@ window.setupWorkerSimulator = function() {
 
           const helpText = document.getElementById('workerQrHelpText');
           if (helpText) {
-            helpText.textContent = 'Presente este código en el escáner del comedor. Funciona sin internet mediante criptografía asimétrica local.';
+            helpText.textContent = 'Presente este código en la taquilla de entrega. Funciona incluso sin internet.';
             helpText.style.color = '';
           }
         }
@@ -133,37 +133,37 @@ window.setupWorkerSimulator = function() {
       const statusBox = document.getElementById('workerPasskeyStatusBox');
 
       if (activePasskey) {
-        if (statusText) statusText.textContent = `Enrolada en ${activePasskey.device_name} (Sign count: ${activePasskey.sign_count})`;
+        if (statusText) statusText.textContent = `Activo en ${activePasskey.device_name}`;
         if (statusBox) statusBox.className = 'alert-box alert-info';
         if (btnGenerate) {
           btnGenerate.disabled = false;
           btnGenerate.dataset.needsEnroll = 'false';
-          btnGenerate.textContent = '⚡ Generar QR de Entrega (Firma Biométrica)';
+          btnGenerate.textContent = '⚡ Generar mi Código QR de Entrega';
           btnGenerate.style.background = '';
           btnGenerate.style.borderColor = '';
         }
       } else {
         if (STATE.supervisor_qr_mode) {
           if (statusText) statusText.textContent = worker.worker_type === 'jubilado' 
-            ? 'Adulto Mayor / Sin Smartphone: Despacho autorizado en mesa mediante Código QR Diario del Supervisor.' 
-            : 'Sin Passkey activa. Acérquese a la mesa de despacho para autorización con el QR Diario del Supervisor.';
+            ? 'Adulto Mayor: Puede retirar directamente en la mesa de despacho con su Cédula.' 
+            : 'Sin teléfono activo. Acérquese a la mesa de despacho con su Cédula de Identidad.';
           if (statusBox) statusBox.className = 'alert-box alert-info';
           if (btnGenerate) {
             btnGenerate.disabled = false;
             btnGenerate.dataset.needsEnroll = 'true';
-            btnGenerate.textContent = '⚡ Enrolar Passkey y Generar mi QR (1 Clic)';
+            btnGenerate.textContent = '⚡ Activar y Generar mi Código QR';
             btnGenerate.style.background = '';
             btnGenerate.style.borderColor = '';
           }
         } else {
           if (statusText) statusText.textContent = worker.worker_type === 'jubilado' 
-            ? 'Adulto Mayor en contingencia: Puede enrolar Passkey en 1 clic o retirar con Tarjeta NFC.' 
-            : 'Sin Passkey activa en este equipo. Presione el botón para enrolar y generar su QR en 1 Clic.';
+            ? 'Adulto Mayor: Puede generar su código QR o retirar con su Cédula en mesa de despacho.' 
+            : 'Sin validación activa en este teléfono. Presione el botón para activar y generar su QR.';
           if (statusBox) statusBox.className = 'alert-box alert-warning';
           if (btnGenerate) {
             btnGenerate.disabled = false;
             btnGenerate.dataset.needsEnroll = 'true';
-            btnGenerate.textContent = '⚡ Enrolar Passkey y Generar mi QR (1 Clic)';
+            btnGenerate.textContent = '⚡ Activar y Generar mi Código QR';
             btnGenerate.style.background = '';
             btnGenerate.style.borderColor = '';
           }
@@ -202,11 +202,11 @@ window.setupWorkerSimulator = function() {
     try {
       // 0. Si el trabajador NO tiene passkey enrolada aún, enrolar automáticamente en este mismo clic
       if (btnGenerate && btnGenerate.dataset.needsEnroll === 'true') {
-        btnGenerate.textContent = '🔐 1/2 Enrolando Passkey biométrica (FIDO2)...';
+        btnGenerate.textContent = '🔐 1/2 Configurando acceso seguro...';
         
         await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
 
-        const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone (Secure Enclave)' : 'Dispositivo Móvil (TEE / WebAuthn)';
+        const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Teléfono Móvil';
         await API.post('/api/v1/auth/passkey/register-verify', {
           worker_id: STATE.selectedWorkerId,
           device_name: deviceName,
@@ -218,14 +218,14 @@ window.setupWorkerSimulator = function() {
         
         const statusText = document.getElementById('workerPasskeyStatusText');
         const statusBox = document.getElementById('workerPasskeyStatusBox');
-        if (statusText) statusText.textContent = `Enrolada en ${deviceName} (Activa)`;
+        if (statusText) statusText.textContent = `Activo en ${deviceName}`;
         if (statusBox) statusBox.className = 'alert-box alert-info';
       }
 
       if (btnGenerate) {
         btnGenerate.textContent = targetStation === '2' 
-          ? '⏳ 2/2 Firmando QR Estación 2: Combo Proteico (ECDSA P-256)...'
-          : '⏳ 2/2 Firmando QR Estación 1: Víveres Secos (ECDSA P-256)...';
+          ? '⏳ 2/2 Generando QR Estación 2: Combo Proteico...'
+          : '⏳ 2/2 Generando QR Estación 1: Víveres Secos...';
       }
 
       // 1. Obtener derecho de hoy correspondiente a la estación
@@ -333,7 +333,7 @@ window.setupWorkerSimulator = function() {
       
       const nonceEl = document.getElementById('qrNonceLabel');
       if (nonceEl) {
-        nonceEl.textContent = `Nonce: ${signData.qr_payload.nonce.substring(0, 20)}... (ES256)`;
+        nonceEl.textContent = 'Código de seguridad activo';
       }
 
       playAudioFeedback('success');
@@ -618,7 +618,7 @@ window.setupWorkerSimulator = function() {
       
       const shortId = delivery.delivery_id ? delivery.delivery_id.substring(0, 8).toUpperCase() : 'OK-' + Date.now().toString().slice(-6);
       if (idEl) idEl.textContent = `#DEL-${shortId}`;
-      if (methodEl) methodEl.textContent = 'Firma Hardware FIDO2 (ES256)';
+      if (methodEl) methodEl.textContent = 'Validación Segura con Celular';
 
       const pill1 = document.getElementById('receiptPillStation1');
       const s1 = document.getElementById('receiptPillStation1Status');
@@ -724,14 +724,14 @@ window.setupWorkerSimulator = function() {
 
     const originalEnrollText = btnEnroll.textContent;
     btnEnroll.disabled = true;
-    btnEnroll.textContent = '🔐 Comunicando con enclave seguro (TEE / WebAuthn)...';
+    btnEnroll.textContent = '🔐 Configurando acceso seguro...';
 
     try {
-      // 1. Obtener desafío FIDO2
+      // 1. Obtener desafío de registro
       const options = await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
 
       // 2. Simular o invocar autenticación biométrica nativa
-      const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone 15 Pro (Secure Enclave)' : 'Pixel 8 (Titan M2 TEE)';
+      const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Teléfono Móvil';
       
       const verifyData = await API.post('/api/v1/auth/passkey/register-verify', {
         worker_id: STATE.selectedWorkerId,
@@ -748,7 +748,7 @@ window.setupWorkerSimulator = function() {
 
       // 5. Notificación no bloqueante y sonido institucional
       playAudioFeedback('success');
-      window.showToast('🎉 ¡Passkey FIDO2 enrolada exitosamente!\nLlave pública registrada en el servidor central.', 'success');
+      window.showToast('🎉 ¡Acceso seguro activado con éxito!\nYa puede generar sus códigos de retiro.', 'success');
 
       // 6. Refrescar portal administrativo en segundo plano sin bloquear la UI
       if (typeof refreshPortalData === 'function') {

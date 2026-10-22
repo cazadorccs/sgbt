@@ -13,11 +13,11 @@ async function checkSystemDbStatus() {
     const text = document.getElementById('dbStatusText');
     if (pill && text) {
       if (data.database_engine === 'supabase_cloud') {
-        text.textContent = `🟢 Supabase Cloud (${data.supabase_details?.latencyMs || 25}ms)`;
+        text.textContent = '🟢 Sistema en Línea';
         pill.style.borderColor = 'rgba(16, 185, 129, 0.6)';
         pill.style.color = '#34d399';
       } else {
-        text.textContent = '💾 SQLite Local (Offline-Ready)';
+        text.textContent = '💾 Modo Local (Sin Conexión)';
         pill.style.borderColor = 'rgba(102, 204, 255, 0.4)';
         pill.style.color = 'var(--sea-onahau)';
       }

@@ -168,7 +168,7 @@ window.loadWorkersDirectory = async function() {
         <td>${entitlementBadge}</td>
         <td>
           <div style="display: flex; gap: 0.35rem; align-items: center;">
-            <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;" onclick="openSecurityDossier('${w.id}')" title="Ver Expediente de Seguridad FIDO2">
+            <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;" onclick="openSecurityDossier('${w.id}')" title="Ver Dispositivos y Tarjetas">
               🛡️ Expediente
             </button>
             <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem; color: #16a34a; border-color: #86efac; background: #f0fdf4;" onclick="sendWhatsAppInviteToWorker('${w.id}')" title="Enviar enlace de instalación personalizado por WhatsApp">
@@ -236,9 +236,9 @@ window.loadAuditStats = async function() {
     const nfcPct = Math.round(((data.methods_breakdown?.nfc_card || 0) / totalMethods) * 100);
     const supPct = Math.round((((data.methods_breakdown?.supervisor_daily_qr || 0) + (data.methods_breakdown?.supervisor_override || 0)) / totalMethods) * 100);
 
-    if (elSecurityRate) elSecurityRate.textContent = `${passkeyPct}% Passkey`;
+    if (elSecurityRate) elSecurityRate.textContent = `${passkeyPct}% QR Celular`;
     if (elSecurityBreakdown) {
-      elSecurityBreakdown.textContent = `FIDO2: ${passkeyPct}% · NFC: ${nfcPct}% · QR Sup: ${supPct}% · 0% duplicados`;
+      elSecurityBreakdown.textContent = `Celular: ${passkeyPct}% · Tarjeta: ${nfcPct}% · Mesa: ${supPct}% · 0% duplicados`;
     }
 
     const selectCampaign = document.getElementById('auditCampaignFilter');
@@ -338,7 +338,7 @@ window.loadAuditDeliveries = async function() {
       
       let methodBadge = '';
       if (d.verification_method === 'passkey_qr') {
-        methodBadge = '<span class="badge badge-passkey">🔐 Passkey QR FIDO2</span>';
+        methodBadge = '<span class="badge badge-passkey">📱 QR Celular</span>';
       } else if (d.verification_method === 'nfc_card') {
         methodBadge = '<span class="badge badge-nfc">💳 Tarjeta Física NFC</span>';
       } else if (d.verification_method === 'supervisor_daily_qr') {
@@ -356,7 +356,7 @@ window.loadAuditDeliveries = async function() {
         : (d.operator_name || 'Despachador Autorizado');
 
       const signatureSnippet = d.signature_proof 
-        ? `<span class="text-mono" style="font-size: 0.65rem; color: #10b981;" title="${d.signature_proof}">ES256: ${d.signature_proof.substring(0, 16)}...</span>`
+        ? `<span class="text-mono" style="font-size: 0.65rem; color: #10b981;" title="${d.signature_proof}">Verificado: #${d.delivery_id ? d.delivery_id.substring(0, 8).toUpperCase() : 'OK'}</span>`
         : '<span style="font-size: 0.7rem; color: var(--text-dim);">N/A (NFC/Manual)</span>';
 
       const weightBadge = d.weight_kg ? `<span style="display:inline-block; font-size:0.7rem; font-weight:700; color:#15803d; background:#dcfce7; padding:1px 5px; border-radius:4px; margin-left:4px;">${d.weight_kg} kg</span>` : '';

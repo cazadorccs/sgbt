@@ -156,13 +156,13 @@ const getWorkers = (req, res) => {
       auth_label = 'Baja de Nómina';
     } else if (r.active_passkeys > 0) {
       auth_badge = 'passkey_active';
-      auth_label = 'Passkey Activa (FIDO2)';
+      auth_label = 'Celular / Huella Activo';
     } else if (r.nfc_uid) {
       auth_badge = 'nfc_active';
       auth_label = 'Tarjeta NFC de Respaldo';
     } else if (!r.has_smartphone) {
       auth_badge = 'exemption';
-      auth_label = 'Exención Sin Smartphone';
+      auth_label = 'Atención en Mesa / Sin Celular';
     }
 
     return {
@@ -340,7 +340,7 @@ const revokeCredential = (req, res) => {
 
   res.json({
     status: 'success',
-    message: 'Credencial Passkey revocada permanentemente',
+    message: 'Dispositivo desvinculado permanentemente',
     credential_id,
     reason: reason || 'Reporte de extravío'
   });
