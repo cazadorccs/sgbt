@@ -713,25 +713,29 @@ async function syncFromSupabase() {
           updated_at = excluded.updated_at
       `);
       for (const w of remoteWorkers) {
-        insertWorker.run(
-          w.id,
-          w.document_id,
-          w.full_name,
-          w.email,
-          w.department_id,
-          w.shift || 'jornada_continua',
-          w.status || 'active',
-          w.worker_type || 'activo',
-          w.role || 'worker',
-          w.has_smartphone ? 1 : 0,
-          w.contingency_reason,
-          w.phone_number,
-          w.avatar_url,
-          w.created_at || new Date().toISOString(),
-          w.updated_at || new Date().toISOString()
-        );
+        try {
+          insertWorker.run(
+            w.id,
+            w.document_id,
+            w.full_name,
+            w.email,
+            w.department_id,
+            w.shift || 'jornada_continua',
+            w.status || 'active',
+            w.worker_type || 'activo',
+            w.role || 'worker',
+            w.has_smartphone ? 1 : 0,
+            w.contingency_reason,
+            w.phone_number,
+            w.avatar_url,
+            w.created_at || new Date().toISOString(),
+            w.updated_at || new Date().toISOString()
+          );
+        } catch (singleErr) {
+          // Si hay conflicto de email o document_id con ID distinto, no detener la sincronización
+        }
       }
-      console.log(`[SUPABASE HYDRATION] ${remoteWorkers.length} funcionarios sincronizados desde Supabase Cloud.`);
+      console.log(`[SUPABASE HYDRATION] ${remoteWorkers.length} funcionarios procesados desde Supabase Cloud.`);
     }
 
     // Hidratar credenciales Passkey (FIDO2) registradas en la nube
