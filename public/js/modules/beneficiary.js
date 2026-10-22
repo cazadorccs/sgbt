@@ -83,17 +83,32 @@ window.setupWorkerSimulator = function() {
       // Verificar si el trabajador ya retiró sus combos hoy
       try {
         const statusRes = await API.get(`/api/v1/auth/delivery-status?worker_id=${STATE.selectedWorkerId}`);
-        if (statusRes && statusRes.delivered && statusRes.delivery) {
+        if (statusRes && statusRes.delivered) {
           const qrContainer = document.getElementById('workerQrContainer');
           if (qrContainer) qrContainer.style.display = 'flex';
-          handleDeliveryApproved(statusRes.delivery);
-          return;
+          handleDeliveryApproved(statusRes);
+          if (statusRes.all_completed) return;
         } else {
+          STATE.deliveredStations = new Set();
+          STATE._lastShownToast = null;
           // Si no ha retirado hoy, restaurar la vista para generación de QR
           const qrDisplayBox = document.getElementById('qrDisplayBox');
           const receiptBox = document.getElementById('workerDeliveryReceiptBox');
           if (receiptBox) receiptBox.style.display = 'none';
           if (qrDisplayBox) qrDisplayBox.style.display = 'block';
+
+          const b1 = document.getElementById('badgeViveresSecos');
+          if (b1) {
+            b1.className = 'package-card-badge badge-viveres';
+            b1.textContent = '12 Rubros';
+            b1.style = '';
+          }
+          const b2 = document.getElementById('badgeComboProteico');
+          if (b2) {
+            b2.className = 'package-card-badge badge-proteina';
+            b2.textContent = 'Cadena de Frío';
+            b2.style = '';
+          }
 
           const helpText = document.getElementById('workerQrHelpText');
           if (helpText) {
@@ -277,8 +292,8 @@ window.setupWorkerSimulator = function() {
         const wid = qrPayload.wid || STATE.selectedWorkerId;
         const nonce = qrPayload.nonce;
         const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}&nonce=${encodeURIComponent(nonce)}`);
-        if (res && res.delivered && res.delivery) {
-          handleDeliveryApproved(res.delivery);
+        if (res && res.delivered) {
+          handleDeliveryApproved(res);
         }
       } catch (e) {}
     };
@@ -294,7 +309,7 @@ window.setupWorkerSimulator = function() {
           if (e.data && e.data.type === 'DELIVERY_APPROVED') {
             const wid = qrPayload.wid || STATE.selectedWorkerId;
             if (e.data.worker_id === wid || (e.data.nonce && e.data.nonce === qrPayload.nonce)) {
-              handleDeliveryApproved(e.data.delivery);
+              handleDeliveryApproved(e.data);
             }
           }
         };
@@ -309,7 +324,7 @@ window.setupWorkerSimulator = function() {
           const data = JSON.parse(e.newValue);
           const wid = qrPayload.wid || STATE.selectedWorkerId;
           if (data.worker_id === wid || (data.nonce && data.nonce === qrPayload.nonce)) {
-            handleDeliveryApproved(data.delivery);
+            handleDeliveryApproved(data);
           }
         } catch (err) {}
       }
@@ -333,25 +348,94 @@ window.setupWorkerSimulator = function() {
     }
   }
 
-  function handleDeliveryApproved(delivery) {
-    stopDeliveryMonitoring();
-    if (STATE.qrTimerInterval) {
-      clearInterval(STATE.qrTimerInterval);
-      STATE.qrTimerInterval = null;
+  function handleDeliveryApproved(data) {
+    if (!data) return;
+
+    const delivery = data.delivery || data;
+    const isStation1Event = (data.station === 1) || (delivery.station === 1) || 
+      (delivery.combo_category === 'bolsa_viveres') || 
+      (delivery.combo_name && delivery.combo_name.toLowerCase().includes('víveres'));
+    const isStation2Event = (data.station === 2) || (delivery.station === 2) || 
+      (delivery.combo_category === 'proteico' || delivery.combo_category === 'combo_proteico') || 
+      (delivery.combo_name && delivery.combo_name.toLowerCase().includes('prote'));
+
+    if (!STATE.deliveredStations) {
+      STATE.deliveredStations = new Set();
     }
 
-    // 1. Notificación acústica de éxito y vibración háptica de doble confirmación
-    playAudioFeedback('success');
-    if (navigator.vibrate) {
-      navigator.vibrate([120, 80, 150, 80, 300]);
+    if (data.station_1_delivered || isStation1Event) {
+      STATE.deliveredStations.add(1);
+    }
+    if (data.station_2_delivered || isStation2Event) {
+      STATE.deliveredStations.add(2);
+    }
+    if (data.deliveries && Array.isArray(data.deliveries)) {
+      data.deliveries.forEach(d => {
+        if (d.station === 1) STATE.deliveredStations.add(1);
+        if (d.station === 2) STATE.deliveredStations.add(2);
+      });
     }
 
-    // 2. Ocultar caja de código QR y desplegar tarjeta de comprobante
+    const station1Done = STATE.deliveredStations.has(1);
+    const station2Done = STATE.deliveredStations.has(2);
+    const allDone = Boolean(data.all_completed || (station1Done && station2Done));
+
+    // Determinar mensaje Toast específico requerido por el usuario
+    let targetToastMsg = data.latest_toast || data.toast_message || delivery.toast_message;
+    if (!targetToastMsg) {
+      if (isStation2Event || (station2Done && !station1Done)) {
+        targetToastMsg = '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.';
+      } else {
+        targetToastMsg = '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.';
+      }
+    }
+
+    // 1. Mostrar Toast en Pantalla y feedback háptico/sonoro (sin repetir el mismo toast en bucle)
+    if (targetToastMsg && STATE._lastShownToast !== targetToastMsg) {
+      STATE._lastShownToast = targetToastMsg;
+      window.showToast(targetToastMsg, 'success');
+      playAudioFeedback('success');
+      if (navigator.vibrate) {
+        navigator.vibrate([120, 80, 150, 80, 300]);
+      }
+    }
+
+    // 2. Actualizar insignias de bultos individualmente
+    const badgeViveres = document.getElementById('badgeViveresSecos');
+    if (badgeViveres) {
+      if (station1Done) {
+        badgeViveres.className = 'package-card-badge';
+        badgeViveres.style.background = '#047857';
+        badgeViveres.style.color = '#ffffff';
+        badgeViveres.innerHTML = '✅ Retirado en Estación 1';
+      } else {
+        badgeViveres.className = 'package-card-badge badge-viveres';
+        badgeViveres.style.background = '#0284c7';
+        badgeViveres.style.color = '#ffffff';
+        badgeViveres.innerHTML = '⏳ Pendiente Estación 1';
+      }
+    }
+
+    const badgeProteico = document.getElementById('badgeComboProteico');
+    if (badgeProteico) {
+      if (station2Done) {
+        badgeProteico.className = 'package-card-badge';
+        badgeProteico.style.background = '#047857';
+        badgeProteico.style.color = '#ffffff';
+        badgeProteico.innerHTML = '✅ Retirado en Estación 2';
+      } else {
+        badgeProteico.className = 'package-card-badge badge-proteina';
+        badgeProteico.style.background = '#059669';
+        badgeProteico.style.color = '#ffffff';
+        badgeProteico.innerHTML = '⏳ Pendiente Estación 2';
+      }
+    }
+
+    // 3. Actualizar caja de comprobante
     const qrDisplayBox = document.getElementById('qrDisplayBox');
     const receiptBox = document.getElementById('workerDeliveryReceiptBox');
     const helpText = document.getElementById('workerQrHelpText');
 
-    if (qrDisplayBox) qrDisplayBox.style.display = 'none';
     if (receiptBox) {
       receiptBox.style.display = 'block';
 
@@ -364,7 +448,7 @@ window.setupWorkerSimulator = function() {
 
       if (nameEl) nameEl.textContent = delivery.worker_name || 'Funcionario MIPPCI';
       if (docEl) docEl.textContent = delivery.document_id || 'V-18456123';
-      if (locEl) locEl.textContent = delivery.distribution_point || 'Comedor Central - Sótano 1';
+      if (locEl) locEl.textContent = delivery.distribution_point || (isStation2Event ? 'Estación 2: Cavas Frías' : 'Estación 1: Almacén Sótano 1');
       
       const dateObj = delivery.delivered_at ? new Date(delivery.delivered_at) : new Date();
       if (timeEl) timeEl.textContent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -382,41 +466,109 @@ window.setupWorkerSimulator = function() {
         }
       }
 
-      receiptBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Pastillas de estatus por estación dentro del comprobante
+      const pill1 = document.getElementById('receiptPillStation1');
+      const s1 = document.getElementById('receiptPillStation1Status');
+      if (pill1 && s1) {
+        if (station1Done) {
+          pill1.style.borderColor = '#34d399';
+          pill1.style.background = 'rgba(16, 185, 129, 0.2)';
+          s1.innerHTML = '✅ Retirado en Estación 1 (Almacén)';
+          s1.style.color = '#34d399';
+        } else {
+          pill1.style.borderColor = '#e2e8f0';
+          pill1.style.background = 'rgba(255, 255, 255, 0.05)';
+          s1.innerHTML = '⏳ Pendiente por retirar en Estación 1';
+          s1.style.color = '#fbbf24';
+        }
+      }
+
+      const pill2 = document.getElementById('receiptPillStation2');
+      const s2 = document.getElementById('receiptPillStation2Status');
+      if (pill2 && s2) {
+        if (station2Done) {
+          pill2.style.borderColor = '#34d399';
+          pill2.style.background = 'rgba(16, 185, 129, 0.2)';
+          s2.innerHTML = '✅ Retirado en Estación 2 (Cavas Frías)';
+          s2.style.color = '#34d399';
+        } else {
+          pill2.style.borderColor = '#e2e8f0';
+          pill2.style.background = 'rgba(255, 255, 255, 0.05)';
+          s2.innerHTML = '⏳ Pendiente por retirar en Estación 2';
+          s2.style.color = '#fbbf24';
+        }
+      }
     }
 
-    if (helpText) {
-      helpText.innerHTML = '<strong>✅ ¡Despacho Aprobado y Registrado!</strong> Presente esta pantalla en taquilla para retirar sus combos físicos.';
-      helpText.style.color = '#34d399';
-    }
-
-    // 3. Actualizar caja de estado de passkey / información
+    // 4. Actualizar estado y visibilidad de QR según progreso
     const statusText = document.getElementById('workerPasskeyStatusText');
     const statusBox = document.getElementById('workerPasskeyStatusBox');
-    if (statusBox) statusBox.className = 'alert-box alert-success';
-    if (statusText) {
-      statusText.innerHTML = '<strong>✅ Despacho Autorizado:</strong> Sus combos han sido validados con éxito. Retire sus víveres y proteínas en el Sótano 1.';
+
+    if (allDone) {
+      stopDeliveryMonitoring();
+      if (STATE.qrTimerInterval) {
+        clearInterval(STATE.qrTimerInterval);
+        STATE.qrTimerInterval = null;
+      }
+      if (qrDisplayBox) qrDisplayBox.style.display = 'none';
+
+      if (helpText) {
+        helpText.innerHTML = '<strong>🎉 ¡Jornada Completa!</strong> Ha retirado su Bolsa de Víveres Secos (Estación 1) y su Combo Proteico Fresco (Estación 2).';
+        helpText.style.color = '#34d399';
+      }
+
+      if (statusBox) statusBox.className = 'alert-box alert-success';
+      if (statusText) {
+        statusText.innerHTML = '<strong>✅ Despacho Total Autorizado:</strong> Sus 2 bultos han sido entregados con éxito en el Almacén Sótano 1.';
+      }
+
+      if (btnGenerate) {
+        btnGenerate.disabled = true;
+        btnGenerate.style.background = 'linear-gradient(135deg, #059669, #047857)';
+        btnGenerate.style.borderColor = '#34d399';
+        btnGenerate.innerHTML = '<span>✅ Retiro Completo Aprobado (2/2 Bultos)</span>';
+      }
+
+      receiptBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    } else if (station1Done && !station2Done) {
+      // Estación 1 lista, Estación 2 pendiente: mantener QR activo
+      if (qrDisplayBox) qrDisplayBox.style.display = 'block';
+
+      if (helpText) {
+        helpText.innerHTML = '<strong>📦 Estación 1 Lista:</strong> Bulto de Víveres entregado. Diríjase a la <strong>Estación 2 (Cavas Frías)</strong> y presente este mismo código QR para su 🍗 Combo Proteico Fresco.';
+        helpText.style.color = '#38bdf8';
+      }
+
+      if (statusBox) statusBox.className = 'alert-box alert-info';
+      if (statusText) {
+        statusText.innerHTML = '<strong>Paso 1 de 2 completado:</strong> Víveres Secos retirados. Siguiente paso: Pase a la <strong>Estación 2 (Cavas Frías)</strong>.';
+      }
+
+      if (btnGenerate) {
+        btnGenerate.disabled = false;
+        btnGenerate.innerHTML = '<span>🍗 Siguiente Paso: Retirar en Estación 2</span>';
+      }
+
+    } else if (station2Done && !station1Done) {
+      // Estación 2 lista, Estación 1 pendiente
+      if (qrDisplayBox) qrDisplayBox.style.display = 'block';
+
+      if (helpText) {
+        helpText.innerHTML = '<strong>🍗 Estación 2 Lista:</strong> Combo Proteico entregado. Diríjase a la <strong>Estación 1 (Almacén)</strong> y presente este mismo código QR para su 📦 Bulto Víveres Secos.';
+        helpText.style.color = '#38bdf8';
+      }
+
+      if (statusBox) statusBox.className = 'alert-box alert-info';
+      if (statusText) {
+        statusText.innerHTML = '<strong>Paso 1 de 2 completado:</strong> Proteínas retiradas. Siguiente paso: Pase a la <strong>Estación 1 (Víveres)</strong>.';
+      }
+
+      if (btnGenerate) {
+        btnGenerate.disabled = false;
+        btnGenerate.innerHTML = '<span>📦 Siguiente Paso: Retirar en Estación 1</span>';
+      }
     }
-
-    // 4. Actualizar insignias de bultos
-    const badges = document.querySelectorAll('#workerPackagesSection .package-card-badge');
-    badges.forEach(b => {
-      b.className = 'package-card-badge';
-      b.style.background = '#047857';
-      b.style.color = '#ffffff';
-      b.textContent = '✅ Aprobado para Retiro';
-    });
-
-    // 5. Actualizar botón de acción principal
-    if (btnGenerate) {
-      btnGenerate.disabled = true;
-      btnGenerate.style.background = 'linear-gradient(135deg, #059669, #047857)';
-      btnGenerate.style.borderColor = '#34d399';
-      btnGenerate.innerHTML = '<span>✅ Retiro Aprobado en Taquilla (Comprobante Activo)</span>';
-    }
-
-    // 6. Mensaje emergente toast
-    window.showToast('🎉 ¡RETIRO APROBADO! Ya puede retirar sus combos en la taquilla del Sótano 1.', 'success');
   }
 
   // Temporizador de 180 segundos con barra visual

@@ -18,6 +18,9 @@ window.setupDistributorSimulator = function() {
   document.getElementById('btnDistributorShowSupervisorQr')?.addEventListener('click', loadAndShowSupervisorDailyQrModal);
   document.getElementById('btnSyncDeferredQueue')?.addEventListener('click', syncDeferredQueue);
   
+  // Selector de Estaciones de Despacho (Estación 1: Víveres, Estación 2: Proteína, Unificado)
+  setupStationTabs();
+
   // Controles de Cámara Real en Vivo
   document.getElementById('btnStartCameraScanner')?.addEventListener('click', startLiveCameraScanner);
   document.getElementById('btnStopCameraScanner')?.addEventListener('click', stopLiveCameraScanner);
@@ -66,6 +69,46 @@ window.setupDistributorSimulator = function() {
   // Escuchar sincronización en tiempo real de QR generado por el beneficiario (Multi-pestaña)
   setupRealtimeQrSyncListener();
 };
+
+function setupStationTabs() {
+  STATE.activeStation = STATE.activeStation || '1';
+  const tab1 = document.getElementById('btnStationTab1');
+  const tab2 = document.getElementById('btnStationTab2');
+  const tabAll = document.getElementById('btnStationTabAll');
+  const badge = document.getElementById('activeStationBadge');
+
+  function updateStationUI(st) {
+    STATE.activeStation = String(st);
+    if (tab1) tab1.className = 'btn btn-outline' + (STATE.activeStation === '1' ? ' active-station-tab' : '');
+    if (tab2) tab2.className = 'btn btn-outline' + (STATE.activeStation === '2' ? ' active-station-tab-proteina' : '');
+    if (tabAll) tabAll.className = 'btn btn-outline' + (STATE.activeStation === 'all' ? ' active-station-tab-unificado' : '');
+
+    if (badge) {
+      if (STATE.activeStation === '1') {
+        badge.className = 'badge badge-viveres';
+        badge.style.background = '#0284c7';
+        badge.style.color = '#fff';
+        badge.textContent = '📦 Estación 1: Víveres';
+      } else if (STATE.activeStation === '2') {
+        badge.className = 'badge badge-proteina';
+        badge.style.background = '#059669';
+        badge.style.color = '#fff';
+        badge.textContent = '🍗 Estación 2: Proteínas';
+      } else {
+        badge.className = 'badge badge-activo';
+        badge.style.background = '#4f46e5';
+        badge.style.color = '#fff';
+        badge.textContent = '⚡ Despacho Unificado';
+      }
+    }
+  }
+
+  tab1?.addEventListener('click', () => updateStationUI('1'));
+  tab2?.addEventListener('click', () => updateStationUI('2'));
+  tabAll?.addEventListener('click', () => updateStationUI('all'));
+
+  updateStationUI(STATE.activeStation || '1');
+}
 
 window.downloadDailyPack = downloadDailyPack;
 
@@ -130,6 +173,8 @@ function broadcastDeliveryApproval(deliveryResult, payload = {}) {
       document_id: (deliveryResult.worker && deliveryResult.worker.document_id) || deliveryResult.document_id,
       entitlement_id: payload.ent,
       nonce: payload.nonce,
+      station: deliveryResult.station || (STATE.activeStation === '2' ? 2 : 1),
+      toast_message: deliveryResult.toast_message,
       delivery: deliveryResult
     };
     if ('BroadcastChannel' in window) {
@@ -535,13 +580,25 @@ async function processQrPayload(payload, isLiveCamera = false) {
     broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: 'Bolsa de Víveres Secos + Combo Proteico' }, payload);
   } else {
     try {
+      const activeStation = STATE.activeStation || '1';
       const result = await API.post('/api/v1/verify/qr', {
         qr_payload: payload,
-        delivered_by_user_id: STATE.operatorId
+        delivered_by_user_id: STATE.operatorId,
+        station: activeStation
       });
 
       if (result.valid) {
         STATE.localCache.deliveredEntitlements.add(payload.ent);
+
+        // Notificación Toast exacta por estación
+        const toastMsg = result.toast_message || (result.station === 2 
+          ? '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.'
+          : '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.');
+
+        window.showToast(toastMsg, 'success');
+        playAudioFeedback('success');
+        if (navigator.vibrate) navigator.vibrate([120, 80, 200]);
+
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
           showCameraScanHUD(
             true,
@@ -552,24 +609,30 @@ async function processQrPayload(payload, isLiveCamera = false) {
           showDistributorFeedback(
             true,
             'DESPACHO ONLINE AUTORIZADO',
-            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br><small style="color: #6ee7b7;">Firma biométrica validada en servidor central.</small>`,
+            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br>Estación: <strong>${result.station_name || ('Estación ' + (result.station || 1))}</strong> &middot; <strong>${result.combo_name}</strong><br><small style="color: #6ee7b7;">Firma biométrica validada en servidor central.</small>`,
             result
           );
         }
         broadcastDeliveryApproval(result, payload);
         if (typeof refreshPortalData === 'function') refreshPortalData();
       } else {
+        const errMsg = result.message || 'Código QR no autorizado o beneficio ya reclamado';
+        window.showToast(errMsg, 'error');
+        playAudioFeedback('error');
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-          showCameraScanHUD(false, 'ACCESO DENEGADO', result.message || 'Combo ya reclamado');
+          showCameraScanHUD(false, 'ACCESO DENEGADO', errMsg);
         } else {
-          showDistributorFeedback(false, 'ACCESO DENEGADO', result.message || 'Firma inválida o combo ya reclamado');
+          showDistributorFeedback(false, 'ACCESO DENEGADO', errMsg);
         }
       }
     } catch (err) {
+      const errMsg = err.message || 'Error al validar código QR en el servidor central';
+      window.showToast(errMsg, 'error');
+      playAudioFeedback('error');
       if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-        showCameraScanHUD(false, 'ERROR DE RED', err.message);
+        showCameraScanHUD(false, 'ERROR AL VALIDAR', errMsg);
       } else {
-        showDistributorFeedback(false, 'ERROR DE RED', err.message);
+        showDistributorFeedback(false, 'ERROR AL VALIDAR', errMsg);
       }
     }
   }

@@ -404,6 +404,25 @@ function initializeDatabase() {
           icon = '🍗'
       WHERE category = 'proteico'
     `).run();
+
+    // Garantizar asignaciones por estación (Víveres y Proteína) para hoy
+    const today = new Date().toISOString().split('T')[0];
+    const allWorkers = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
+    const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
+    const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
+    if (vCombo && pCombo && allWorkers && allWorkers.length > 0) {
+      for (const w of allWorkers) {
+        db.prepare(`
+          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+          VALUES (?, ?, ?, ?, 'estacion_1', 'pending')
+        `).run(crypto.randomUUID(), w.id, vCombo.id, today);
+
+        db.prepare(`
+          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+          VALUES (?, ?, ?, ?, 'estacion_2', 'pending')
+        `).run(crypto.randomUUID(), w.id, pCombo.id, today);
+      }
+    }
   } catch (e) {}
 
   console.log('[DB] Esquema relacional verificado e inicializado con soporte Multi-Ente, Jornadas y Notificaciones.');
@@ -476,11 +495,16 @@ function seedDatabase(force = false) {
     for (const p of productionSeed.distribution_points) {
       insertPoint.run(p.id, p.name, p.location_code, p.address, p.is_active ?? 1);
     }
+    // Asegurar estaciones oficiales de despacho
+    insertPoint.run('dist-point-station-1', 'Estación 1: Bulto Víveres Secos (Sótano 1)', 'EST-01', 'Estación 1 [Ambiente] - Almacén Central Sótano 1', 1);
+    insertPoint.run('dist-point-station-2', 'Estación 2: Combo Proteico Fresco (Cadena de Frío)', 'EST-02', 'Estación 2 [Cavas Frías] - Almacén Central Sótano 1', 1);
   } else {
     const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000';
     const pointPlantaB = '550e8400-e29b-41d4-a716-446655440001';
     db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run(pointPlantaA, 'Almacén Central - Sótano 1 (Sede Principal)', 'ALM-S1', 'Edificio Principal MIPPCI, Sótano 1');
     db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run(pointPlantaB, 'Mesa de Despacho 2 (Auditorio Central)', 'MESA-AUD', 'Planta Baja, Auditorio Principal');
+    db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run('dist-point-station-1', 'Estación 1: Bulto Víveres Secos (Sótano 1)', 'EST-01', 'Estación 1 [Ambiente] - Almacén Sótano 1');
+    db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run('dist-point-station-2', 'Estación 2: Combo Proteico Fresco (Cadena de Frío)', 'EST-02', 'Estación 2 [Cavas Frías] - Almacén Sótano 1');
   }
 
   // 3. Catálogo de Combos
@@ -602,32 +626,35 @@ function seedDatabase(force = false) {
   insertNfc.run(crypto.randomUUID(), workerHilda, '04A1B2C3D4E5F6', 'active', operatorMiguel);
   insertNfc.run(crypto.randomUUID(), workerRoberto, '04F9E8D7C6B5A4', 'active', supervisorClaudia);
 
-  // 6. Asignaciones de la Jornada (Víveres y Proteína) para hoy
+  // 6. Asignaciones de la Jornada (Víveres y Proteína por Estaciones) para hoy
   const today = new Date().toISOString().split('T')[0];
   const insertEntitlement = db.prepare(`
     INSERT OR REPLACE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  insertEntitlement.run('770e8400-e29b-41d4-a716-446655440001', workerCarlos, comboViveres, today, 'jornada_continua', 'pending');
-  insertEntitlement.run('880e8400-e29b-41d4-a716-446655440002', workerHilda, comboViveres, today, 'jornada_continua', 'pending');
-  insertEntitlement.run(crypto.randomUUID(), workerRoberto, comboViveres, today, 'jornada_continua', 'pending');
-  insertEntitlement.run(crypto.randomUUID(), adminSahib, comboViveres, today, 'jornada_continua', 'pending');
-
-  // Asegurar asignación para TODOS los trabajadores activos de la institución
   try {
     const allActiveWorkers = db.prepare("SELECT id, shift FROM workers WHERE status = 'active'").all();
+    const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get() || { id: comboViveres };
+    const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get() || { id: comboProteico };
+
     for (const w of allActiveWorkers) {
-      const existing = db.prepare("SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").get(w.id, today);
-      if (!existing) {
-        insertEntitlement.run(crypto.randomUUID(), w.id, comboViveres, today, w.shift || 'jornada_continua', 'pending');
+      // Estación 1: Bulto Víveres Secos
+      const ex1 = db.prepare("SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? AND shift = 'estacion_1'").get(w.id, today);
+      if (!ex1) {
+        insertEntitlement.run(crypto.randomUUID(), w.id, vCombo.id, today, 'estacion_1', 'pending');
+      }
+      // Estación 2: Combo Proteico Fresco (Cadena de Frío)
+      const ex2 = db.prepare("SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? AND shift = 'estacion_2'").get(w.id, today);
+      if (!ex2) {
+        insertEntitlement.run(crypto.randomUUID(), w.id, pCombo.id, today, 'estacion_2', 'pending');
       }
     }
   } catch (entErr) {
-    console.warn('[DB SEED] Aviso asignando derechos diarios a todos los funcionarios:', entErr.message);
+    console.warn('[DB SEED] Aviso asignando derechos diarios por estaciones:', entErr.message);
   }
 
-  console.log('[DB] Seeds oficiales cargados exitosamente (16 Funcionarios con Asignación Diaria activa, Super Admin Msc. Sahib A Franco).');
+  console.log('[DB] Seeds oficiales cargados exitosamente (Asignaciones por Estación 1 y Estación 2 activas).');
 }
 
 // ----------------------------------------------------------------------------

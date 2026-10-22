@@ -1324,7 +1324,7 @@
                   <div class="package-card-title">
                     <span>📦 Bolsa de Víveres Secos</span>
                   </div>
-                  <span class="package-card-badge badge-viveres">12 Rubros</span>
+                  <span id="badgeViveresSecos" class="package-card-badge badge-viveres">12 Rubros</span>
                 </div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
                   Alimentos no perecederos de la cesta básica familiar:
@@ -1363,7 +1363,7 @@
                   <div class="package-card-title">
                     <span>🍗 Combo Proteico Fresco</span>
                   </div>
-                  <span class="package-card-badge badge-proteina">Cadena de Frío</span>
+                  <span id="badgeComboProteico" class="package-card-badge badge-proteina">Cadena de Frío</span>
                 </div>
                 <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
                   Proteínas refrigeradas con despacho inmediato en cavas:
@@ -1432,15 +1432,15 @@
                 </div>
 
                 <div class="delivery-receipt-combos-grid">
-                  <div class="delivery-receipt-combo-pill">
-                    <span>Bulto N° 1</span>
+                  <div id="receiptPillStation1" class="delivery-receipt-combo-pill">
+                    <span>Estación 1: Almacén</span>
                     <strong>📦 Bolsa Víveres Secos</strong>
-                    <span style="color: #a7f3d0; font-size: 0.65rem;">12 Rubros Cesta Básica</span>
+                    <span id="receiptPillStation1Status" style="color: #6ee7b7; font-size: 0.65rem;">⏳ Pendiente por retirar</span>
                   </div>
-                  <div class="delivery-receipt-combo-pill">
-                    <span>Bulto N° 2</span>
-                    <strong>🍗 Combo Proteico</strong>
-                    <span style="color: #a7f3d0; font-size: 0.65rem;">Pollo + Carne + Mortadela</span>
+                  <div id="receiptPillStation2" class="delivery-receipt-combo-pill">
+                    <span>Estación 2: Cavas Frías</span>
+                    <strong>🍗 Combo Proteico Fresco</strong>
+                    <span id="receiptPillStation2Status" style="color: #6ee7b7; font-size: 0.65rem;">⏳ Pendiente por retirar</span>
                   </div>
                 </div>
 
@@ -1566,6 +1566,29 @@
                 </button>
                 <button id="btnSyncDeferredQueue" class="btn btn-cyan" style="font-size: 0.75rem; padding: 0.4rem;">
                   ☁️ Sincronizar Cola Lote
+                </button>
+              </div>
+            </div>
+
+            <!-- SELECTOR DE ESTACIÓN ACTIVA DE DESPACHO -->
+            <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.85rem;">
+              <div class="flex-between" style="margin-bottom: 0.4rem;">
+                <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
+                  Estación de Despacho Activa:
+                </span>
+                <span id="activeStationBadge" class="badge badge-viveres" style="font-size: 0.65rem; background: #0284c7; color: #fff;">
+                  📦 Estación 1: Víveres
+                </span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem;">
+                <button type="button" id="btnStationTab1" class="btn btn-outline active-station-tab" style="padding: 0.35rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
+                  📦 Estación 1<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Víveres Secos</span>
+                </button>
+                <button type="button" id="btnStationTab2" class="btn btn-outline" style="padding: 0.35rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
+                  🍗 Estación 2<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Cadena de Frío</span>
+                </button>
+                <button type="button" id="btnStationTabAll" class="btn btn-outline" style="padding: 0.35rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
+                  ⚡ Unificado<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Ambos Bultos</span>
                 </button>
               </div>
             </div>
