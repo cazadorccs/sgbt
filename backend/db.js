@@ -321,6 +321,8 @@ function initializeDatabase() {
   `);
 
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes
+  try { db.exec("ALTER TABLE workers ADD COLUMN job_title TEXT DEFAULT ''"); } catch (e) {}
+  try { db.exec("ALTER TABLE workers ADD COLUMN hire_date TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN items_detail TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN icon TEXT DEFAULT '🍱'"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN mesa_number INTEGER DEFAULT 1"); } catch (e) {}
@@ -333,6 +335,15 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 1"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
+
+  // Índices de alto rendimiento para búsquedas instantáneas, filtros y login (<1ms)
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_document_id ON workers(document_id);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_full_name ON workers(full_name);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_department ON workers(department_id);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_worker_date ON daily_entitlements(worker_id, valid_date);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_passkey_credentials_worker ON passkey_credentials(worker_id, status);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_nfc_cards_worker ON nfc_cards(worker_id, status);"); } catch (e) {}
 
   // Actualizar pesos estimados de combos por categoría
   try {

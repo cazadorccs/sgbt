@@ -15,14 +15,15 @@ window.setupWorkerSimulator = function() {
       const data = await API.get('/api/v1/admin/workers?status=active');
       const currentSelected = preserveSelected ? (STATE.selectedWorkerId || workerSelect.value) : null;
       workerSelect.innerHTML = '';
-
+      const fragment = document.createDocumentFragment();
       data.workers.forEach(w => {
         const opt = document.createElement('option');
         opt.value = w.id;
         const typeTag = w.worker_type === 'jubilado' ? '👴 Jubilado' : w.worker_type === 'contratado' ? '📋 Contratado' : '🏢 Activo';
         opt.textContent = `${w.full_name} (${w.document_id}) - [${typeTag}] - ${w.auth_label}`;
-        workerSelect.appendChild(opt);
+        fragment.appendChild(opt);
       });
+      workerSelect.appendChild(fragment);
 
       if (currentSelected && data.workers.some(w => w.id === currentSelected)) {
         workerSelect.value = currentSelected;

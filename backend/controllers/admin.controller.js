@@ -89,25 +89,28 @@ const getWorkers = (req, res) => {
   const { search, shift, status, worker_type, role } = req.query;
   const today = new Date().toISOString().split('T')[0];
 
-  // Garantizar que todo funcionario activo tenga su asignación para la jornada de hoy
-  try {
-    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
-    const unassignedWorkers = db.prepare(`
-      SELECT id, shift FROM workers 
-      WHERE status = 'active' 
-        AND id NOT IN (SELECT worker_id FROM daily_entitlements WHERE valid_date = ?)
-    `).all(today);
+  // Solo conciliar asignaciones pendientes en carga general sin filtros de búsqueda
+  if (!search && !role && !worker_type && !shift && !status) {
+    try {
+      const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+      const unassignedWorkers = db.prepare(`
+        SELECT id, shift FROM workers 
+        WHERE status = 'active' 
+          AND id NOT IN (SELECT worker_id FROM daily_entitlements WHERE valid_date = ?)
+        LIMIT 100
+      `).all(today);
 
-    if (unassignedWorkers.length > 0) {
-      const insEnt = db.prepare(`
-        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-        VALUES (?, ?, ?, ?, ?, 'pending')
-      `);
-      for (const uw of unassignedWorkers) {
-        insEnt.run(crypto.randomUUID(), uw.id, defaultCombo, today, uw.shift || 'jornada_continua');
+      if (unassignedWorkers.length > 0) {
+        const insEnt = db.prepare(`
+          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+          VALUES (?, ?, ?, ?, ?, 'pending')
+        `);
+        for (const uw of unassignedWorkers) {
+          insEnt.run(crypto.randomUUID(), uw.id, defaultCombo, today, uw.shift || 'jornada_continua');
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
   let sql = `
     SELECT 
@@ -115,16 +118,23 @@ const getWorkers = (req, res) => {
       d.name as department_name,
       (SELECT COUNT(*) FROM passkey_credentials WHERE worker_id = w.id AND status = 'active') as active_passkeys,
       (SELECT card_uid FROM nfc_cards WHERE worker_id = w.id AND status = 'active' LIMIT 1) as nfc_uid,
-      (SELECT status FROM daily_entitlements WHERE worker_id = w.id AND valid_date = '${today}' LIMIT 1) as today_entitlement_status
+      (SELECT status FROM daily_entitlements WHERE worker_id = w.id AND valid_date = ? LIMIT 1) as today_entitlement_status
     FROM workers w
     LEFT JOIN departments d ON w.department_id = d.id
     WHERE 1=1
   `;
-  const params = [];
+  const params = [today];
 
   if (search) {
-    sql += ` AND (w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ?)`;
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    const cleanSearch = search.trim();
+    const digitsOnly = cleanSearch.replace(/[^0-9]/g, '');
+    if (digitsOnly.length >= 3) {
+      sql += ` AND (w.document_id LIKE ? OR w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ?)`;
+      params.push(`%${digitsOnly}%`, `%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`);
+    } else {
+      sql += ` AND (w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ?)`;
+      params.push(`%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`);
+    }
   }
   if (worker_type) {
     sql += ` AND w.worker_type = ?`;

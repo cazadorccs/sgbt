@@ -85,27 +85,30 @@ window.refreshPortalData = async function() {
   }
 };
 
-window.loadWorkersDirectory = async function() {
-  const search = document.getElementById('searchWorkerInput')?.value || '';
-  const role = document.getElementById('filterRoleSelect')?.value || '';
-  const workerType = document.getElementById('filterWorkerTypeSelect')?.value || '';
-  const shift = document.getElementById('filterShiftSelect')?.value || '';
-  const status = document.getElementById('filterStatusSelect')?.value || '';
+let currentWorkersPage = 1;
+const WORKERS_PER_PAGE = 25;
+let allFilteredWorkers = [];
 
+function renderWorkersPage() {
   const tbody = document.getElementById('workersTableBody');
   if (!tbody) return;
 
-  try {
-    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
-    const data = await API.get(url);
-    tbody.innerHTML = '';
+  const total = allFilteredWorkers.length;
+  const totalPages = Math.max(1, Math.ceil(total / WORKERS_PER_PAGE));
+  if (currentWorkersPage > totalPages) currentWorkersPage = totalPages;
+  if (currentWorkersPage < 1) currentWorkersPage = 1;
 
-    if (!data.workers || data.workers.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron trabajadores con los filtros seleccionados.</td></tr>';
-      return;
-    }
+  const startIdx = (currentWorkersPage - 1) * WORKERS_PER_PAGE;
+  const endIdx = Math.min(startIdx + WORKERS_PER_PAGE, total);
+  const pageWorkers = allFilteredWorkers.slice(startIdx, endIdx);
 
-    data.workers.forEach(w => {
+  tbody.innerHTML = '';
+
+  if (total === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron trabajadores con los filtros seleccionados.</td></tr>';
+  } else {
+    const fragment = document.createDocumentFragment();
+    pageWorkers.forEach(w => {
       const tr = document.createElement('tr');
 
       let badgeClass = 'badge-pending';
@@ -177,8 +180,47 @@ window.loadWorkersDirectory = async function() {
           </div>
         </td>
       `;
-      tbody.appendChild(tr);
+      fragment.appendChild(tr);
     });
+    tbody.appendChild(fragment);
+  }
+
+  // Actualizar controles de paginación
+  const infoEl = document.getElementById('workersPaginationInfo');
+  const pageTextEl = document.getElementById('workersCurrentPageText');
+  const btnPrev = document.getElementById('btnPrevWorkersPage');
+  const btnNext = document.getElementById('btnNextWorkersPage');
+
+  if (infoEl) {
+    if (total === 0) {
+      infoEl.textContent = 'Mostrando 0 trabajadores';
+    } else {
+      infoEl.textContent = `Mostrando ${startIdx + 1} - ${endIdx} de ${total.toLocaleString()} trabajadores`;
+    }
+  }
+  if (pageTextEl) {
+    pageTextEl.textContent = `Página ${currentWorkersPage} de ${totalPages}`;
+  }
+  if (btnPrev) btnPrev.disabled = (currentWorkersPage <= 1);
+  if (btnNext) btnNext.disabled = (currentWorkersPage >= totalPages);
+}
+
+window.loadWorkersDirectory = async function() {
+  const search = document.getElementById('searchWorkerInput')?.value || '';
+  const role = document.getElementById('filterRoleSelect')?.value || '';
+  const workerType = document.getElementById('filterWorkerTypeSelect')?.value || '';
+  const shift = document.getElementById('filterShiftSelect')?.value || '';
+  const status = document.getElementById('filterStatusSelect')?.value || '';
+
+  const tbody = document.getElementById('workersTableBody');
+  if (!tbody) return;
+
+  try {
+    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
+    const data = await API.get(url);
+    allFilteredWorkers = data.workers || [];
+    currentWorkersPage = 1;
+    renderWorkersPage();
   } catch (err) {
     console.error('Error cargando directorio de trabajadores:', err);
   }
@@ -507,11 +549,31 @@ window.assignNfcCard = async function(workerId) {
 
 // Wire up events
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('searchWorkerInput')?.addEventListener('input', loadWorkersDirectory);
+  let searchWorkerTimeout;
+  document.getElementById('searchWorkerInput')?.addEventListener('input', () => {
+    clearTimeout(searchWorkerTimeout);
+    searchWorkerTimeout = setTimeout(loadWorkersDirectory, 250);
+  });
+
   document.getElementById('filterRoleSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterWorkerTypeSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterShiftSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterStatusSelect')?.addEventListener('change', loadWorkersDirectory);
+
+  document.getElementById('btnPrevWorkersPage')?.addEventListener('click', () => {
+    if (currentWorkersPage > 1) {
+      currentWorkersPage--;
+      renderWorkersPage();
+    }
+  });
+
+  document.getElementById('btnNextWorkersPage')?.addEventListener('click', () => {
+    const totalPages = Math.ceil(allFilteredWorkers.length / WORKERS_PER_PAGE);
+    if (currentWorkersPage < totalPages) {
+      currentWorkersPage++;
+      renderWorkersPage();
+    }
+  });
 
   document.getElementById('auditCampaignFilter')?.addEventListener('change', async () => {
     await loadAuditStats();

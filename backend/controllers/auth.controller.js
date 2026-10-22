@@ -93,15 +93,24 @@ const login = async (req, res) => {
   const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
 
   try {
+    // 1. Búsqueda indexada ultra-rápida directa (<1ms)
     let worker = db.prepare(`
       SELECT w.*, d.name as department_name, d.code as department_code
       FROM workers w
       LEFT JOIN departments d ON w.department_id = d.id
-      WHERE UPPER(w.document_id) = ? 
-         OR w.id = ? 
-         OR UPPER(w.document_id) LIKE ?
-         OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(w.document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
-    `).get(cleanDoc, cleanDoc, `%${digitsOnly}%`, digitsOnly, digitsOnly);
+      WHERE w.document_id IN (?, ?, ?, ?) OR w.id = ?
+    `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
+
+    // 2. Si no coincide exacto, intentar búsqueda parcial local rápida
+    if (!worker && digitsOnly.length >= 5) {
+      worker = db.prepare(`
+        SELECT w.*, d.name as department_name, d.code as department_code
+        FROM workers w
+        LEFT JOIN departments d ON w.department_id = d.id
+        WHERE w.document_id LIKE ? OR w.document_id LIKE ?
+        LIMIT 1
+      `).get(`%${digitsOnly}%`, `%${cleanDoc}%`);
+    }
 
     // Fallback de consulta en tiempo real a Supabase si no se encuentra en memoria
     if (!worker && digitsOnly.length >= 5) {
