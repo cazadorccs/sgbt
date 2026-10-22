@@ -121,6 +121,29 @@ function setupRealtimeQrSyncListener() {
   } catch (e) {}
 }
 
+function broadcastDeliveryApproval(deliveryResult, payload = {}) {
+  try {
+    const data = {
+      type: 'DELIVERY_APPROVED',
+      timestamp: Date.now(),
+      worker_id: (deliveryResult.worker && deliveryResult.worker.id) || deliveryResult.worker_id || payload.wid,
+      document_id: (deliveryResult.worker && deliveryResult.worker.document_id) || deliveryResult.document_id,
+      entitlement_id: payload.ent,
+      nonce: payload.nonce,
+      delivery: deliveryResult
+    };
+    if ('BroadcastChannel' in window) {
+      const bc = new BroadcastChannel('sgbt_qr_channel');
+      bc.postMessage(data);
+      bc.close();
+    }
+    localStorage.setItem('sgbt_last_delivery_event', JSON.stringify(data));
+  } catch (e) {
+    console.warn('[DELIVERY BROADCAST ERROR]', e);
+  }
+}
+window.broadcastDeliveryApproval = broadcastDeliveryApproval;
+
 async function startLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
@@ -417,6 +440,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
             result
           );
         }
+        broadcastDeliveryApproval(result, payload);
         if (typeof refreshPortalData === 'function') refreshPortalData();
       } else {
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
@@ -508,6 +532,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
         worker || { worker_type: 'activo' }
       );
     }
+    broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: 'Bolsa de Víveres Secos + Combo Proteico' }, payload);
   } else {
     try {
       const result = await API.post('/api/v1/verify/qr', {
@@ -531,6 +556,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
             result
           );
         }
+        broadcastDeliveryApproval(result, payload);
         if (typeof refreshPortalData === 'function') refreshPortalData();
       } else {
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
@@ -861,6 +887,7 @@ async function searchContingencyWorker() {
         btnExec.innerHTML = '<span>✅ Despacho Autorizado con Huella del Supervisor</span>';
         STATE.localCache.deliveredEntitlements.add(workerId);
 
+        broadcastDeliveryApproval(res, { wid: worker.id });
         if (typeof refreshPortalData === 'function') refreshPortalData();
 
       } catch (err) {

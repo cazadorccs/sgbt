@@ -1416,7 +1416,67 @@
                 </div>
               </div>
 
-              <p style="font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
+              <!-- COMPROBANTE DE RETIRO AUTORIZADO (APARECE TRAS ESCANEO APROBADO) -->
+              <div id="workerDeliveryReceiptBox" class="delivery-receipt-card" style="display: none; margin-bottom: 0.75rem;">
+                <div class="delivery-receipt-header-badge">
+                  <span>🏛️ MIPPCI &middot; Control de Despacho</span>
+                </div>
+                <div style="font-size: 2.5rem; line-height: 1; margin: 0.4rem 0 0.1rem 0;">
+                  🎉
+                </div>
+                <div class="delivery-receipt-title">
+                  ¡RETIRO APROBADO!
+                </div>
+                <div class="delivery-receipt-sub">
+                  Presente esta autorización en taquilla para retirar sus combos asignados.
+                </div>
+
+                <div class="delivery-receipt-combos-grid">
+                  <div class="delivery-receipt-combo-pill">
+                    <span>Bulto N° 1</span>
+                    <strong>📦 Bolsa Víveres Secos</strong>
+                    <span style="color: #a7f3d0; font-size: 0.65rem;">12 Rubros Cesta Básica</span>
+                  </div>
+                  <div class="delivery-receipt-combo-pill">
+                    <span>Bulto N° 2</span>
+                    <strong>🍗 Combo Proteico</strong>
+                    <span style="color: #a7f3d0; font-size: 0.65rem;">Pollo + Carne + Mortadela</span>
+                  </div>
+                </div>
+
+                <div class="delivery-receipt-table">
+                  <div class="delivery-receipt-row">
+                    <span class="label">Beneficiario Titular:</span>
+                    <span class="val" id="receiptWorkerName">Carlos Mendoza</span>
+                  </div>
+                  <div class="delivery-receipt-row">
+                    <span class="label">Cédula de Identidad:</span>
+                    <span class="val" id="receiptWorkerDoc">V-18456123</span>
+                  </div>
+                  <div class="delivery-receipt-row">
+                    <span class="label">Punto de Entrega:</span>
+                    <span class="val" id="receiptLocation">Comedor Central - Sótano 1</span>
+                  </div>
+                  <div class="delivery-receipt-row">
+                    <span class="label">Hora de Aprobación:</span>
+                    <span class="val" id="receiptTimestamp" style="color: #6ee7b7;">10:55 AM</span>
+                  </div>
+                  <div class="delivery-receipt-row">
+                    <span class="label">N° de Despacho:</span>
+                    <span class="val" id="receiptDeliveryId" style="font-family: monospace; font-size: 0.72rem; color: #fef08a;">#del-8f2a</span>
+                  </div>
+                  <div class="delivery-receipt-row">
+                    <span class="label">Método de Validación:</span>
+                    <span class="val" id="receiptMethod" style="color: #a7f3d0; font-size: 0.72rem;">Firma Hardware (FIDO2)</span>
+                  </div>
+                </div>
+
+                <div class="delivery-receipt-stamp">
+                  🛡️ Transacción Criptográfica Verificada e Irrefutable
+                </div>
+              </div>
+
+              <p id="workerQrHelpText" style="font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
                 Presente este código en el escáner del comedor. Funciona sin internet mediante criptografía asimétrica local.
               </p>
             </div>

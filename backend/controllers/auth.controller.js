@@ -485,6 +485,10 @@ const verifyQr = (req, res) => {
         campId
       );
 
+      try {
+        db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(ent.id);
+      } catch (e) {}
+
       const worker = db.prepare('SELECT full_name, document_id, worker_type FROM workers WHERE id = ?').get(workerId);
       const combo = db.prepare(`
         SELECT c.name, c.category, c.description
@@ -593,6 +597,11 @@ const verifyQr = (req, res) => {
       nonce,
       campId
     );
+
+    // Marcar derecho diario como reclamado en SQLite local
+    try {
+      db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(ent);
+    } catch (e) {}
 
     // Respaldo asíncrono del despacho en Supabase Cloud
     try {
@@ -857,6 +866,10 @@ const contingencyOverride = (req, res) => {
       campId
     );
 
+    try {
+      db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(ent.id);
+    } catch (e) {}
+
     const combo = db.prepare(`
       SELECT c.name, c.category, c.description
       FROM daily_entitlements e
@@ -888,6 +901,94 @@ const contingencyOverride = (req, res) => {
   }
 };
 
+const getDeliveryStatus = (req, res) => {
+  const { worker_id, entitlement_id, nonce } = req.query;
+
+  if (!worker_id && !entitlement_id && !nonce) {
+    return res.status(400).json({ error: 'Debe suministrar worker_id, entitlement_id o nonce' });
+  }
+
+  try {
+    let query = `
+      SELECT d.id as delivery_id, d.delivered_at, d.verification_method, d.worker_id, d.entitlement_id,
+             d.challenge_nonce,
+             w.full_name as worker_name, w.document_id, w.worker_type,
+             c.name as combo_name, c.category as combo_category, c.description as combo_description,
+             dp.name as distribution_point_name,
+             op.full_name as operator_name
+      FROM deliveries d
+      JOIN workers w ON d.worker_id = w.id
+      LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
+      LEFT JOIN combos c ON e.combo_id = c.id
+      LEFT JOIN distribution_points dp ON d.distribution_point_id = dp.id
+      LEFT JOIN workers op ON d.delivered_by_user_id = op.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (nonce) {
+      query += ` AND d.challenge_nonce = ?`;
+      params.push(nonce);
+    } else if (entitlement_id) {
+      query += ` AND d.entitlement_id = ?`;
+      params.push(entitlement_id);
+    } else if (worker_id) {
+      query += ` AND d.worker_id = ? AND date(d.delivered_at) = date('now')`;
+      params.push(worker_id);
+    }
+
+    query += ` ORDER BY d.delivered_at DESC LIMIT 1`;
+
+    let delivery = db.prepare(query).get(...params);
+
+    // Fallback de últimas 24 horas si las zonas horarias UTC y local difieren
+    if (!delivery && worker_id) {
+      const fallbackQuery = `
+        SELECT d.id as delivery_id, d.delivered_at, d.verification_method, d.worker_id, d.entitlement_id,
+               d.challenge_nonce,
+               w.full_name as worker_name, w.document_id, w.worker_type,
+               c.name as combo_name, c.category as combo_category, c.description as combo_description,
+               dp.name as distribution_point_name,
+               op.full_name as operator_name
+        FROM deliveries d
+        JOIN workers w ON d.worker_id = w.id
+        LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
+        LEFT JOIN combos c ON e.combo_id = c.id
+        LEFT JOIN distribution_points dp ON d.distribution_point_id = dp.id
+        LEFT JOIN workers op ON d.delivered_by_user_id = op.id
+        WHERE d.worker_id = ? AND d.delivered_at >= datetime('now', '-24 hours')
+        ORDER BY d.delivered_at DESC LIMIT 1
+      `;
+      delivery = db.prepare(fallbackQuery).get(worker_id);
+    }
+
+    if (!delivery) {
+      return res.json({ delivered: false });
+    }
+
+    return res.json({
+      delivered: true,
+      delivery: {
+        delivery_id: delivery.delivery_id,
+        delivered_at: delivery.delivered_at,
+        verification_method: delivery.verification_method,
+        worker_id: delivery.worker_id,
+        worker_name: delivery.worker_name,
+        document_id: delivery.document_id,
+        worker_type: delivery.worker_type || 'activo',
+        combo_name: delivery.combo_name || 'Bolsa de Víveres Secos + Combo Proteico',
+        combo_category: delivery.combo_category || 'bolsa_viveres',
+        combo_description: delivery.combo_description || 'Víveres secos y alimentos de la cesta básica familiar',
+        distribution_point: delivery.distribution_point_name || 'Punto Central - Sótano 1 (Torre Ministerial)',
+        operator_name: delivery.operator_name || 'Personal de Despacho',
+        message: '¡Entrega aprobada! Retire sus combos en la taquilla de despacho.'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   login,
   magicLogin,
@@ -897,5 +998,6 @@ module.exports = {
   getSupervisorDailyQr,
   verifyQr,
   createDelegation,
-  contingencyOverride
+  contingencyOverride,
+  getDeliveryStatus
 };

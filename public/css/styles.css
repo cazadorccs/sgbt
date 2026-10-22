@@ -2131,4 +2131,162 @@ body.senior-accessible-mode .feedback-subtitle {
   background: rgba(16, 185, 129, 0.08) !important;
 }
 
+/* ============================================================================
+   TARJETA Y COMPROBANTE DE RETIRO APROBADO (PANTALLA DEL BENEFICIARIO)
+   ============================================================================ */
+@keyframes pulseApprovedGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4), 0 10px 25px rgba(6, 78, 59, 0.35);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(16, 185, 129, 0), 0 12px 30px rgba(6, 78, 59, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0), 0 10px 25px rgba(6, 78, 59, 0.35);
+  }
+}
+
+@keyframes bounceInStamp {
+  0% {
+    transform: scale(0.6) rotate(-4deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.delivery-receipt-card {
+  width: 100%;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #064e3b 0%, #065f46 50%, #047857 100%);
+  border: 2px solid #34d399;
+  padding: 1.25rem 1rem;
+  color: #ffffff;
+  text-align: center;
+  animation: bounceInStamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), pulseApprovedGlow 2.5s infinite ease-in-out;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.delivery-receipt-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.delivery-receipt-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(110, 231, 183, 0.4);
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #a7f3d0;
+  text-transform: uppercase;
+}
+
+.delivery-receipt-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0.4rem 0 0.2rem 0;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.delivery-receipt-sub {
+  font-size: 0.82rem;
+  color: #d1fae5;
+  margin-bottom: 0.85rem;
+  line-height: 1.3;
+}
+
+.delivery-receipt-combos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.delivery-receipt-combo-pill {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(110, 231, 183, 0.3);
+  border-radius: 10px;
+  padding: 0.5rem 0.4rem;
+  font-size: 0.72rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.delivery-receipt-combo-pill strong {
+  color: #fef08a;
+  font-size: 0.78rem;
+}
+
+.delivery-receipt-table {
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 12px;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(110, 231, 183, 0.25);
+  margin-bottom: 0.85rem;
+  text-align: left;
+  font-size: 0.78rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.delivery-receipt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+  padding-bottom: 0.3rem;
+}
+
+.delivery-receipt-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.delivery-receipt-row .label {
+  color: #a7f3d0;
+  font-weight: 500;
+}
+
+.delivery-receipt-row .val {
+  color: #ffffff;
+  font-weight: 700;
+  text-align: right;
+}
+
+.delivery-receipt-stamp {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #6ee7b7;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+}
+
 

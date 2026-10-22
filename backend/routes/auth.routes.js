@@ -13,5 +13,6 @@ router.get('/supervisor/daily-qr', authController.getSupervisorDailyQr);
 router.post('/auth/supervisor/delegate', authController.createDelegation);
 router.post('/auth/supervisor/contingency-override', authController.contingencyOverride);
 router.post('/verify/qr', authController.verifyQr);
+router.get('/auth/delivery-status', authController.getDeliveryStatus);
 
 module.exports = router;
