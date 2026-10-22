@@ -261,6 +261,7 @@ window.setupWorkerManagement = function() {
     const document_id = `${docType}-${docNum}`;
     const full_name = document.getElementById('newWorkerFullName').value.trim();
     const worker_type = document.getElementById('newWorkerType').value;
+    const role = document.getElementById('newWorkerRole')?.value || 'worker';
     const department_id = document.getElementById('newWorkerDepartment').value || null;
     const phone_number = document.getElementById('newWorkerPhone').value.trim() || null;
     const email = document.getElementById('newWorkerEmail').value.trim() || null;
@@ -271,6 +272,7 @@ window.setupWorkerManagement = function() {
         document_id,
         full_name,
         worker_type,
+        role,
         department_id,
         phone_number,
         email,

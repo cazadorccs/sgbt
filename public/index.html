@@ -825,6 +825,13 @@
 
           <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
             <input id="searchWorkerInput" type="text" class="form-input" placeholder="Buscar por Cédula o Nombre..." style="width: 240px;">
+            <select id="filterRoleSelect" class="form-select" style="border-color: #cbd5e1; font-weight: 600;">
+              <option value="">Todos los Roles</option>
+              <option value="supervisor">🛡️ Supervisores de Jornada</option>
+              <option value="operator">📦 Mesa de Despacho (Operadores)</option>
+              <option value="admin">👑 Administradores</option>
+              <option value="worker">👤 Beneficiarios (Nómina General)</option>
+            </select>
             <select id="filterWorkerTypeSelect" class="form-select">
               <option value="">Todas las Condiciones</option>
               <option value="jubilado">Personal Jubilado / Pensionado</option>
@@ -851,6 +858,7 @@
                 <tr>
                   <th>Cédula / Documento</th>
                   <th>Nombre Completo</th>
+                  <th>Rol Institucional</th>
                   <th>Condición Laboral</th>
                   <th>Departamento</th>
                   <th>Turno</th>

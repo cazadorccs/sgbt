@@ -826,6 +826,53 @@ body {
   border: 1px solid #86efac;
 }
 
+/* Badges y Selectores de Rol Institucional (Supervisor, Mesa de Despacho, Admin, Beneficiario) */
+.badge-role-supervisor {
+  background: #fdf4ff !important;
+  color: #a21caf !important;
+  border: 1.5px solid #f0abfc !important;
+}
+
+.badge-role-operator {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border: 1.5px solid #93c5fd !important;
+}
+
+.badge-role-admin {
+  background: #fffbeb !important;
+  color: #b45309 !important;
+  border: 1.5px solid #fde68a !important;
+}
+
+.badge-role-worker {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  border: 1.5px solid #e2e8f0 !important;
+}
+
+.role-select-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+}
+
+.role-select-pill:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.role-select-pill:focus {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
 /* Tablas Modernas y Luminosas */
 .table-responsive {
   width: 100%;

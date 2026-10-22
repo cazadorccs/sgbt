@@ -8,6 +8,7 @@ router.get('/admin/kpis', adminController.getKpis);
 router.get('/admin/workers', adminController.getWorkers);
 router.post('/admin/workers', adminController.createWorker);
 router.put('/admin/workers/:id', adminController.updateWorker);
+router.put('/admin/workers/:id/role', adminController.updateWorkerRole);
 router.delete('/admin/workers/:id', adminController.deleteWorker);
 
 router.get('/admin/workers/:id/security-dossier', adminController.getWorkerDossier);

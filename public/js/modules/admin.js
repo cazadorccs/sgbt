@@ -87,6 +87,7 @@ window.refreshPortalData = async function() {
 
 window.loadWorkersDirectory = async function() {
   const search = document.getElementById('searchWorkerInput')?.value || '';
+  const role = document.getElementById('filterRoleSelect')?.value || '';
   const workerType = document.getElementById('filterWorkerTypeSelect')?.value || '';
   const shift = document.getElementById('filterShiftSelect')?.value || '';
   const status = document.getElementById('filterStatusSelect')?.value || '';
@@ -95,12 +96,12 @@ window.loadWorkersDirectory = async function() {
   if (!tbody) return;
 
   try {
-    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
+    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
     const data = await API.get(url);
     tbody.innerHTML = '';
 
     if (!data.workers || data.workers.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron trabajadores con los filtros seleccionados.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron trabajadores con los filtros seleccionados.</td></tr>';
       return;
     }
 
@@ -130,6 +131,21 @@ window.loadWorkersDirectory = async function() {
         condBadge = '<span class="badge badge-contratado">📋 Personal Contratado</span>';
       }
 
+      const currentRole = w.role || 'worker';
+      let roleClass = 'badge-role-worker';
+      if (currentRole === 'supervisor') roleClass = 'badge-role-supervisor';
+      else if (currentRole === 'operator') roleClass = 'badge-role-operator';
+      else if (currentRole === 'admin') roleClass = 'badge-role-admin';
+
+      const roleSelectHtml = `
+        <select class="form-select role-select-pill ${roleClass}" onchange="window.changeWorkerRole('${w.id}', this.value, '${w.full_name.replace(/'/g, "\\'")}')" title="Modificar rol y permisos operativos">
+          <option value="worker" ${currentRole === 'worker' ? 'selected' : ''}>👤 Beneficiario Titular</option>
+          <option value="operator" ${currentRole === 'operator' ? 'selected' : ''}>📦 Mesa de Despacho</option>
+          <option value="supervisor" ${currentRole === 'supervisor' ? 'selected' : ''}>🛡️ Supervisor de Jornada</option>
+          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>👑 Administrador</option>
+        </select>
+      `;
+
       const entitlementBadge = w.today_entitlement_status === 'claimed'
         ? '<span class="badge badge-passkey">Entregado</span>'
         : w.today_entitlement_status === 'pending'
@@ -142,6 +158,7 @@ window.loadWorkersDirectory = async function() {
           <div style="font-weight: 600;">${w.full_name}</div>
           <div style="font-size: 0.75rem; color: var(--text-dim);">${w.email}</div>
         </td>
+        <td>${roleSelectHtml}</td>
         <td>${condBadge}</td>
         <td>${w.department_name || 'Sin Asignar'}</td>
         <td style="text-transform: capitalize;">${(w.shift || '').replace('_', ' ')}</td>
@@ -164,6 +181,23 @@ window.loadWorkersDirectory = async function() {
     });
   } catch (err) {
     console.error('Error cargando directorio de trabajadores:', err);
+  }
+};
+
+window.changeWorkerRole = async function(workerId, newRole, workerName) {
+  try {
+    const res = await API.put(`/api/v1/admin/workers/${workerId}/role`, { role: newRole });
+    if (res.success) {
+      playAudioFeedback('success');
+      window.showToast(res.message || `✅ Rol de ${workerName} actualizado.`, 'success');
+      await window.loadWorkersDirectory();
+    } else {
+      throw new Error(res.error || 'Error al actualizar rol');
+    }
+  } catch (err) {
+    playAudioFeedback('error');
+    window.showToast('❌ Error: ' + err.message, 'error');
+    await window.loadWorkersDirectory();
   }
 };
 
@@ -474,6 +508,7 @@ window.assignNfcCard = async function(workerId) {
 // Wire up events
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('searchWorkerInput')?.addEventListener('input', loadWorkersDirectory);
+  document.getElementById('filterRoleSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterWorkerTypeSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterShiftSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterStatusSelect')?.addEventListener('change', loadWorkersDirectory);

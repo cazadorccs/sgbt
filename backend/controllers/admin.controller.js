@@ -86,7 +86,7 @@ const getKpis = (req, res) => {
 };
 
 const getWorkers = (req, res) => {
-  const { search, shift, status, worker_type } = req.query;
+  const { search, shift, status, worker_type, role } = req.query;
   const today = new Date().toISOString().split('T')[0];
 
   // Garantizar que todo funcionario activo tenga su asignación para la jornada de hoy
@@ -111,7 +111,7 @@ const getWorkers = (req, res) => {
 
   let sql = `
     SELECT 
-      w.id, w.document_id, w.full_name, w.email, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason,
+      w.id, w.document_id, w.full_name, w.email, w.role, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason,
       d.name as department_name,
       (SELECT COUNT(*) FROM passkey_credentials WHERE worker_id = w.id AND status = 'active') as active_passkeys,
       (SELECT card_uid FROM nfc_cards WHERE worker_id = w.id AND status = 'active' LIMIT 1) as nfc_uid,
@@ -129,6 +129,10 @@ const getWorkers = (req, res) => {
   if (worker_type) {
     sql += ` AND w.worker_type = ?`;
     params.push(worker_type);
+  }
+  if (role) {
+    sql += ` AND w.role = ?`;
+    params.push(role);
   }
   if (shift) {
     sql += ` AND w.shift = ?`;
@@ -699,11 +703,54 @@ const exportDeliveries = (req, res) => {
   res.json({ exported_at: new Date().toISOString(), count: deliveries.length, deliveries });
 };
 
+const updateWorkerRole = (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!role || !['worker', 'operator', 'supervisor', 'admin'].includes(role)) {
+    return res.status(400).json({ error: 'Rol inválido. Opciones: worker, operator, supervisor, admin' });
+  }
+
+  try {
+    const worker = db.prepare('SELECT id, full_name, role FROM workers WHERE id = ?').get(id);
+    if (!worker) {
+      return res.status(404).json({ error: 'Beneficiario no encontrado' });
+    }
+
+    db.prepare('UPDATE workers SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(role, id);
+
+    // Respaldo asíncrono en Supabase
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('workers').update({ role, updated_at: new Date().toISOString() }).eq('id', id).catch(() => {});
+      }
+    } catch (e) {}
+
+    const roleNames = {
+      worker: 'Beneficiario Titular',
+      operator: 'Mesa de Despacho (Operador)',
+      supervisor: 'Supervisor de Jornada / RRHH',
+      admin: 'Administrador General'
+    };
+
+    res.json({
+      success: true,
+      message: `Rol de ${worker.full_name} actualizado exitosamente a ${roleNames[role] || role}`,
+      worker: { id, role, role_name: roleNames[role] || role }
+    });
+  } catch (err) {
+    console.error('[UPDATE ROLE ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getKpis,
   getWorkers,
   createWorker,
   updateWorker,
+  updateWorkerRole,
   deleteWorker,
   getWorkerDossier,
   revokeCredential,
@@ -715,3 +762,4 @@ module.exports = {
   getDeliveries,
   exportDeliveries
 };
+
