@@ -46,6 +46,7 @@ window.setupAuth = function() {
   // Logout
   btnLogout?.addEventListener('click', handleLogout);
   btnWorkerMobileLogout?.addEventListener('click', handleLogout);
+  document.getElementById('btnDistributorLogout')?.addEventListener('click', handleLogout);
 
   // Conmutador de Modo de Demostración vs Producción
   const btnToggleDemo = document.getElementById('btnToggleDemoMode');
@@ -137,8 +138,8 @@ async function executeLogin(rawDocId) {
     applyUserSession(user);
     window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
 
-    // Auto-Enrolamiento mediante Magic Link / One-Click Onboarding si no posee Passkey
-    if (!user.has_passkey) {
+    // Auto-Enrolamiento mediante Magic Link / One-Click Onboarding SOLO para beneficiarios titulares
+    if (user.role === 'worker' && !user.has_passkey) {
       setTimeout(() => {
         triggerOneClickPasskeyOnboarding(user, data.onboarding_token);
       }, 400);
@@ -372,6 +373,15 @@ window.applyUserSession = function(user) {
   } else if (user.role === 'operator') {
     if (masterNav) masterNav.style.display = 'none';
     STATE.operatorId = user.id;
+
+    // Actualizar barra de identidad del Operador en el Despacho
+    const opName = document.getElementById('distributorOperatorName');
+    const opBadge = document.getElementById('distributorOperatorBadge');
+    const opAvatar = document.getElementById('distributorOperatorAvatar');
+    if (opName) opName.textContent = user.full_name;
+    if (opBadge) opBadge.textContent = `Mesa de Despacho · C.I. ${user.document_id}`;
+    if (opAvatar) opAvatar.textContent = initials;
+
     navigateTo('view-distributor');
 
   } else {

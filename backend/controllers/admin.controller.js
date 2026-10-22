@@ -101,13 +101,16 @@ const getWorkers = (req, res) => {
       `).all(today);
 
       if (unassignedWorkers.length > 0) {
-        const insEnt = db.prepare(`
-          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-          VALUES (?, ?, ?, ?, ?, 'pending')
-        `);
-        for (const uw of unassignedWorkers) {
-          insEnt.run(crypto.randomUUID(), uw.id, defaultCombo, today, uw.shift || 'jornada_continua');
-        }
+        const insTx = db.transaction((workersList) => {
+          const insEnt = db.prepare(`
+            INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+            VALUES (?, ?, ?, ?, ?, 'pending')
+          `);
+          for (const uw of workersList) {
+            insEnt.run(crypto.randomUUID(), uw.id, defaultCombo, today, uw.shift || 'jornada_continua');
+          }
+        });
+        insTx(unassignedWorkers);
       }
     } catch (e) {}
   }
@@ -722,12 +725,32 @@ const updateWorkerRole = (req, res) => {
   }
 
   try {
-    const worker = db.prepare('SELECT id, full_name, role FROM workers WHERE id = ?').get(id);
+    const worker = db.prepare('SELECT id, document_id, full_name, role FROM workers WHERE id = ?').get(id);
     if (!worker) {
       return res.status(404).json({ error: 'Beneficiario no encontrado' });
     }
 
     db.prepare('UPDATE workers SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(role, id);
+
+    // Persistir de inmediato en production_seed.json para que sobreviva reinicios y re-inicializaciones
+    try {
+      const fs = require('fs');
+      const path = require('path');
+      const seedPath = path.join(__dirname, '../production_seed.json');
+      if (fs.existsSync(seedPath)) {
+        const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+        if (Array.isArray(seedData.workers)) {
+          const sw = seedData.workers.find(w => w.id === id || w.document_id === worker.document_id);
+          if (sw) {
+            sw.role = role;
+            sw.updated_at = new Date().toISOString();
+            fs.writeFileSync(seedPath, JSON.stringify(seedData, null, 2), 'utf8');
+          }
+        }
+      }
+    } catch (seedErr) {
+      console.warn('[SEED UPDATE WARNING]', seedErr.message);
+    }
 
     // Respaldo asíncrono en Supabase
     try {

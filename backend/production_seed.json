@@ -6347,13 +6347,13 @@
       "shift": "jornada_continua",
       "status": "active",
       "worker_type": "activo",
-      "role": "worker",
+      "role": "operator",
       "has_smartphone": 1,
       "contingency_reason": null,
       "phone_number": null,
       "avatar_url": null,
       "created_at": "2026-10-22T14:55:12.807669",
-      "updated_at": "2026-10-22T14:55:12.807669"
+      "updated_at": "2026-10-22T20:17:28.378Z"
     },
     {
       "id": "1dd5c500-97a2-47ca-8cbf-082971c1611b",

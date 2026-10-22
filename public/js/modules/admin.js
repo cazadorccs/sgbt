@@ -205,7 +205,7 @@ function renderWorkersPage() {
   if (btnNext) btnNext.disabled = (currentWorkersPage >= totalPages);
 }
 
-window.loadWorkersDirectory = async function() {
+window.loadWorkersDirectory = async function(preservePage = false) {
   const search = document.getElementById('searchWorkerInput')?.value || '';
   const role = document.getElementById('filterRoleSelect')?.value || '';
   const workerType = document.getElementById('filterWorkerTypeSelect')?.value || '';
@@ -219,7 +219,12 @@ window.loadWorkersDirectory = async function() {
     const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
     const data = await API.get(url);
     allFilteredWorkers = data.workers || [];
-    currentWorkersPage = 1;
+    if (!preservePage) {
+      currentWorkersPage = 1;
+    } else {
+      const totalPages = Math.ceil(allFilteredWorkers.length / WORKERS_PAGE_SIZE) || 1;
+      if (currentWorkersPage > totalPages) currentWorkersPage = totalPages;
+    }
     renderWorkersPage();
   } catch (err) {
     console.error('Error cargando directorio de trabajadores:', err);
@@ -232,14 +237,18 @@ window.changeWorkerRole = async function(workerId, newRole, workerName) {
     if (res.success) {
       playAudioFeedback('success');
       window.showToast(res.message || `✅ Rol de ${workerName} actualizado.`, 'success');
-      await window.loadWorkersDirectory();
+      const localWorker = allFilteredWorkers.find(w => w.id === workerId);
+      if (localWorker) {
+        localWorker.role = newRole;
+      }
+      await window.loadWorkersDirectory(true);
     } else {
       throw new Error(res.error || 'Error al actualizar rol');
     }
   } catch (err) {
     playAudioFeedback('error');
     window.showToast('❌ Error: ' + err.message, 'error');
-    await window.loadWorkersDirectory();
+    await window.loadWorkersDirectory(true);
   }
 };
 

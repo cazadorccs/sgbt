@@ -1598,6 +1598,26 @@
               </span>
             </div>
 
+            <!-- Identidad del Operador de Mesa Activo -->
+            <div id="distributorOperatorIdentityBar" style="background: rgba(2, 132, 199, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--radius-sm); padding: 0.55rem 0.75rem; margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <div id="distributorOperatorAvatar" class="user-avatar-badge" style="background: linear-gradient(135deg, #0284c7, #0891b2); color: #fff; font-size: 0.75rem; font-weight: 700; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                  OP
+                </div>
+                <div>
+                  <div id="distributorOperatorName" style="font-size: 0.82rem; font-weight: 700; color: #f8fafc; line-height: 1.2;">
+                    Mesa de Despacho
+                  </div>
+                  <div id="distributorOperatorBadge" style="font-size: 0.68rem; color: #38bdf8;">
+                    Rol: Mesa de Despacho (Operador)
+                  </div>
+                </div>
+              </div>
+              <button type="button" id="btnDistributorLogout" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.08);" title="Cerrar Sesión del Operador">
+                Salir 🚪
+              </button>
+            </div>
+
             <!-- CONTROLES OFFLINE-FIRST: PRECARGA & COLA DIFERIDA -->
             <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 0.85rem;">
               <div class="flex-between" style="font-size: 0.75rem; margin-bottom: 0.5rem;">

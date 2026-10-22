@@ -112,48 +112,54 @@ const login = async (req, res) => {
       `).get(`%${digitsOnly}%`, `%${cleanDoc}%`);
     }
 
-    // Fallback de consulta en tiempo real a Supabase si no se encuentra en memoria
+    // Fallback de consulta en tiempo real a Supabase SOLO si la base de datos local no contiene la nómina o con timeout estricto
     if (!worker && digitsOnly.length >= 5) {
-      try {
-        const { supabase, isSupabaseConfigured } = require('../supabase');
-        if (isSupabaseConfigured() && supabase) {
-          const { data: remoteWorkers } = await supabase
-            .from('workers')
-            .select('*')
-            .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.${digitsOnly}`);
+      const localWorkersCount = db.prepare('SELECT COUNT(*) as c FROM workers').get()?.c || 0;
+      if (localWorkersCount < 50) {
+        try {
+          const { supabase, isSupabaseConfigured } = require('../supabase');
+          if (isSupabaseConfigured() && supabase) {
+            const queryPromise = supabase
+              .from('workers')
+              .select('*')
+              .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.${digitsOnly}`);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 1200));
 
-          if (remoteWorkers && remoteWorkers.length > 0) {
-            const rw = remoteWorkers[0];
-            db.prepare(`
-              INSERT OR REPLACE INTO workers (
-                id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(
-              rw.id,
-              rw.document_id,
-              rw.full_name,
-              rw.email,
-              rw.department_id,
-              rw.shift || 'jornada_continua',
-              rw.status || 'active',
-              rw.worker_type || 'activo',
-              rw.role || 'worker',
-              rw.has_smartphone ? 1 : 0,
-              rw.contingency_reason,
-              rw.phone_number,
-              rw.avatar_url
-            );
+            const { data: remoteWorkers } = await Promise.race([queryPromise, timeoutPromise]);
 
-            worker = db.prepare(`
-              SELECT w.*, d.name as department_name, d.code as department_code
-              FROM workers w
-              LEFT JOIN departments d ON w.department_id = d.id
-              WHERE w.id = ?
-            `).get(rw.id);
+            if (remoteWorkers && remoteWorkers.length > 0) {
+              const rw = remoteWorkers[0];
+              db.prepare(`
+                INSERT OR REPLACE INTO workers (
+                  id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                rw.id,
+                rw.document_id,
+                rw.full_name,
+                rw.email,
+                rw.department_id,
+                rw.shift || 'jornada_continua',
+                rw.status || 'active',
+                rw.worker_type || 'activo',
+                rw.role || 'worker',
+                rw.has_smartphone ? 1 : 0,
+                rw.contingency_reason,
+                rw.phone_number,
+                rw.avatar_url
+              );
+
+              worker = db.prepare(`
+                SELECT w.*, d.name as department_name, d.code as department_code
+                FROM workers w
+                LEFT JOIN departments d ON w.department_id = d.id
+                WHERE w.id = ?
+              `).get(rw.id);
+            }
           }
+        } catch (sbErr) {
+          console.warn('[LOGIN SUPABASE FALLBACK WARNING]', sbErr.message);
         }
-      } catch (sbErr) {
-        console.warn('[LOGIN SUPABASE FALLBACK WARNING]', sbErr.message);
       }
     }
 
