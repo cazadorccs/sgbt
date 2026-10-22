@@ -1544,11 +1544,25 @@
                 <label style="font-size: 0.7rem; color: var(--sea-anakiwa); text-transform: uppercase; font-weight: 700;">
                   Escáner Criptográfico Local (Sin Internet):
                 </label>
-                <span id="cameraStatusBadge" class="badge badge-viveres" style="font-size: 0.6rem;">Cámara Lista</span>
+                <div style="display: flex; gap: 0.4rem; align-items: center;">
+                  <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.6rem; border: 1px solid rgba(16, 185, 129, 0.4);">⚡ Modo Ráfaga</span>
+                  <span id="cameraStatusBadge" class="badge badge-viveres" style="font-size: 0.6rem;">Cámara Lista</span>
+                </div>
               </div>
               
-              <!-- Visor de Cámara Real en Vivo -->
+              <!-- Visor de Cámara Real en Vivo con HUD Sub-segundo -->
               <div id="liveCameraContainer" style="display: none; background: #000; border-radius: var(--radius-md); overflow: hidden; margin-top: 0.5rem; position: relative; border: 2px solid var(--sea-malibu); box-shadow: 0 0 25px var(--accent-primary-glow);">
+                <!-- Floating HUD Sub-segundo (Aparece y auto-desaparece tras cada lectura) -->
+                <div id="cameraScanHUD" style="display: none; position: absolute; top: 10px; left: 10px; right: 10px; z-index: 100; border-radius: 8px; padding: 0.65rem 0.85rem; color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(6px); transition: all 0.2s ease;">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span id="cameraScanHUDIcon" style="font-size: 1.5rem;">✅</span>
+                    <div style="flex: 1; min-width: 0;">
+                      <div id="cameraScanHUDTitle" style="font-weight: 800; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">DESPACHADO</div>
+                      <div id="cameraScanHUDSub" style="font-size: 0.75rem; opacity: 0.9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Combo Asignado</div>
+                    </div>
+                  </div>
+                </div>
+
                 <div id="cameraQrReader" style="width: 100%;"></div>
                 <div style="padding: 0.5rem; display: flex; gap: 0.5rem; background: rgba(4, 13, 22, 0.95); border-top: 1px solid rgba(153, 230, 255, 0.1);">
                   <button type="button" id="btnStopCameraScanner" class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.35rem; color: #fca5a5; border-color: rgba(239, 68, 68, 0.4);">
@@ -1588,7 +1602,7 @@
                   </select>
 
                   <button type="button" id="btnStartCameraScanner" class="btn btn-primary" style="width: 100%; font-size: 0.82rem; font-weight: 700;">
-                    📹 Iniciar Escáner con Cámara en Vivo
+                    📹 Iniciar Escáner con Cámara en Vivo (Ráfaga)
                   </button>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                     <button type="button" id="btnScanWorkerGeneratedQr" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.4rem;" title="Lee el QR generado en la sesión activa o compartido entre pestañas">
@@ -1614,18 +1628,23 @@
                     </button>
                   </div>
 
-                  <button type="button" id="btnDistributorShowSupervisorQr" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: none; background: rgba(2, 132, 199, 0.1);">
-                    📲 Ver Código QR Diario de Mesa del Supervisor
-                  </button>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="btnOpenDelegationModalTrigger" class="btn btn-outline" style="flex: 1; font-size: 0.7rem; padding: 0.35rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; background: rgba(2, 132, 199, 0.08);">
+                      🤝 Emitir Retiro Delegado (Terceros)
+                    </button>
+                    <button type="button" id="btnDistributorShowSupervisorQr" class="btn btn-outline" style="flex: 1; font-size: 0.7rem; padding: 0.35rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: none; background: rgba(2, 132, 199, 0.1);">
+                      📲 QR Diario de Mesa
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- MÓDULO DE CONTINGENCIA (NIVEL 1 & NIVEL 2) -->
+            <!-- MÓDULO DE CONTINGENCIA Y APROBACIÓN 1-CLIC SUPERVISOR -->
             <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem; margin-top: auto;">
               <div class="flex-between" style="margin-bottom: 0.5rem;">
-                <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b;">
-                  ⚠️ Módulo de Contingencia y Excepciones
+                <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; display: flex; align-items: center; gap: 0.3rem;">
+                  <span>🛡️</span> Aprobación de Contingencia en 1 Clic
                 </span>
                 <span id="operatorOverridesCount" style="font-size: 0.65rem; color: var(--text-dim);">
                   0 / 3 liberaciones de operador
@@ -1633,10 +1652,14 @@
               </div>
 
               <div class="input-group">
-                <input id="contingencyDocInput" type="text" class="form-input" placeholder="Ingresar Cédula / DNI..." style="font-size: 0.8rem;">
-                <button id="btnSearchContingencyWorker" class="btn btn-outline" style="font-size: 0.8rem;">
+                <input id="contingencyDocInput" type="text" class="form-input" placeholder="Ingresar Cédula para liberar en 1 Clic..." style="font-size: 0.8rem;">
+                <button id="btnSearchContingencyWorker" class="btn btn-outline" style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #fbbf24;">
                   Buscar
                 </button>
+              </div>
+
+              <!-- TARJETA REACTIVA DE LIBERACIÓN EN 1 CLIC CON HUELLA -->
+              <div id="contingencyWorkerResultBox" style="display: none; margin-top: 0.65rem; background: rgba(15, 23, 42, 0.85); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 0.75rem; animation: fadeIn 0.2s ease-out;">
               </div>
             </div>
 

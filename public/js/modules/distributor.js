@@ -48,9 +48,20 @@ window.setupDistributorSimulator = function() {
     document.getElementById('distributorFeedbackOverlay').classList.remove('active');
   });
 
-  // Módulo de Contingencia
+  // Módulo de Contingencia y Delegación
   document.getElementById('btnSearchContingencyWorker')?.addEventListener('click', searchContingencyWorker);
+  document.getElementById('contingencyDocInput')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      searchContingencyWorker();
+    }
+  });
   document.getElementById('btnAuthorizeSupervisorOverride')?.addEventListener('click', executeSupervisorOverride);
+  document.getElementById('btnOpenDelegationModalTrigger')?.addEventListener('click', () => {
+    if (typeof window.openDelegationModal === 'function') {
+      window.openDelegationModal();
+    }
+  });
 
   // Escuchar sincronización en tiempo real de QR generado por el beneficiario (Multi-pestaña)
   setupRealtimeQrSyncListener();
@@ -172,16 +183,53 @@ async function startLiveCameraScanner() {
       aspectRatio: 1.0
     };
 
-    const cameraParam = selectedCameraId ? selectedCameraId : { facingMode: { ideal: "environment" } };
+    let lastScannedRaw = '';
+    let lastScannedTime = 0;
+    let isScanCooldown = false;
+
+    function showCameraScanHUD(isSuccess, title, subtitle) {
+      const hud = document.getElementById('cameraScanHUD');
+      const icon = document.getElementById('cameraScanHUDIcon');
+      const t = document.getElementById('cameraScanHUDTitle');
+      const s = document.getElementById('cameraScanHUDSub');
+
+      if (!hud) return;
+
+      hud.style.display = 'block';
+      if (isSuccess) {
+        hud.style.background = 'rgba(6, 78, 59, 0.94)';
+        hud.style.border = '1.5px solid #10b981';
+        hud.style.boxShadow = '0 6px 25px rgba(16, 185, 129, 0.5)';
+        if (icon) icon.textContent = '✅';
+      } else {
+        hud.style.background = 'rgba(127, 29, 29, 0.94)';
+        hud.style.border = '1.5px solid #ef4444';
+        hud.style.boxShadow = '0 6px 25px rgba(239, 68, 68, 0.5)';
+        if (icon) icon.textContent = '🛑';
+      }
+
+      if (t) t.textContent = title;
+      if (s) s.innerHTML = subtitle;
+
+      playAudioFeedback(isSuccess ? 'success' : 'error');
+
+      clearTimeout(hud._timer);
+      hud._timer = setTimeout(() => {
+        hud.style.display = 'none';
+      }, isSuccess ? 1300 : 1900);
+    }
 
     const onScanSuccess = async (decodedText) => {
-      console.log('[CÁMARA QR] Código decodificado exitosamente:', decodedText);
-      playAudioFeedback('success');
+      const cleanText = decodedText.trim();
+      if (isScanCooldown || (lastScannedRaw === cleanText && (Date.now() - lastScannedTime < 2800))) {
+        return;
+      }
+      lastScannedRaw = cleanText;
+      lastScannedTime = Date.now();
+      isScanCooldown = true;
 
       try {
-        const cleanText = decodedText.trim();
         let payload;
-
         if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
           payload = JSON.parse(cleanText);
         } else if (cleanText.startsWith('%7B') || cleanText.startsWith('%7b')) {
@@ -194,12 +242,16 @@ async function startLiveCameraScanner() {
           }
         }
 
-        await stopLiveCameraScanner();
-        await processQrPayload(payload);
+        // Modo Ráfaga Continuo: Procesa el QR sin apagar la cámara
+        await processQrPayload(payload, true /* isLiveCamera */);
 
       } catch (err) {
         console.error('[QR PARSE ERROR]', err, decodedText);
-        showDistributorFeedback(false, 'FORMATO QR NO RECONOCIDO', 'El código escaneado no corresponde a una credencial FIDO2 válida ni al QR del Supervisor.');
+        showCameraScanHUD(false, 'FORMATO NO RECONOCIDO', 'El código escaneado no corresponde al protocolo SGBT.');
+      } finally {
+        setTimeout(() => {
+          isScanCooldown = false;
+        }, 1300);
       }
     };
 
@@ -337,32 +389,89 @@ async function scanWorkerQr() {
   await processQrPayload(payload);
 }
 
-async function processQrPayload(payload) {
+async function processQrPayload(payload, isLiveCamera = false) {
   if (payload && payload.protocol === 'SGBT_SUPERVISOR_DAILY_QR_V1') {
     return handleSupervisorDailyQrScan(payload);
   }
 
+  // Soporte para Código QR de Delegación Criptográfica Temporal (Retiro por Terceros)
+  if (payload && payload.protocol === 'SGBT_DELEGATED_CLAIM_V1') {
+    try {
+      const result = await API.post('/api/v1/verify/qr', {
+        qr_payload: payload,
+        delivered_by_user_id: STATE.operatorId
+      });
+
+      if (result.valid) {
+        if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+          showCameraScanHUD(
+            true,
+            'RETIRO DELEGADO VÁLIDO',
+            `Titular: ${result.worker_name} &middot; Retira: ${result.delegate_name}`
+          );
+        } else {
+          showDistributorFeedback(
+            true,
+            'DESPACHO POR DELEGACIÓN AUTORIZADO',
+            `Titular: <strong>${result.worker_name}</strong> (${result.document_id})<br>Compañero que retira: <strong>${result.delegate_name}</strong> (${result.delegate_doc})<br><small style="color: #6ee7b7;">Autorizado mediante firma criptográfica del Supervisor.</small>`,
+            result
+          );
+        }
+        if (typeof refreshPortalData === 'function') refreshPortalData();
+      } else {
+        if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+          showCameraScanHUD(false, 'ACCESO DENEGADO', result.message || 'Delegación inválida');
+        } else {
+          showDistributorFeedback(false, 'ACCESO DENEGADO', result.message || 'Delegación inválida');
+        }
+      }
+    } catch (err) {
+      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+        showCameraScanHUD(false, 'ERROR AL VALIDAR', err.message);
+      } else {
+        showDistributorFeedback(false, 'ERROR AL VALIDAR', err.message);
+      }
+    }
+    return;
+  }
+
   if (!payload || !payload.wid || !payload.ent) {
-    showDistributorFeedback(false, 'ESTRUCTURA CORRUPTA', 'El payload QR no posee los identificadores requeridos.');
+    if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+      showCameraScanHUD(false, 'ESTRUCTURA CORRUPTA', 'Payload incompleto');
+    } else {
+      showDistributorFeedback(false, 'ESTRUCTURA CORRUPTA', 'El payload QR no posee los identificadores requeridos.');
+    }
     return;
   }
 
   const now = Math.floor(Date.now() / 1000);
 
   if (Math.abs(now - payload.ts) > 180) {
-    showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 180 segundos de validez anti-captura.');
+    if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+      showCameraScanHUD(false, 'QR EXPIRADO', 'Vigencia de 180s superada');
+    } else {
+      showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 180 segundos de validez anti-captura.');
+    }
     return;
   }
 
   if (STATE.localCache.deliveredEntitlements.has(payload.ent)) {
-    showDistributorFeedback(false, 'INTENTO DE DUPLICADO', 'Alerta de Seguridad: Este beneficio ya fue entregado hoy (idx_unique_daily_claim).');
+    if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+      showCameraScanHUD(false, 'INTENTO DE DUPLICADO', 'Beneficio ya entregado hoy');
+    } else {
+      showDistributorFeedback(false, 'INTENTO DE DUPLICADO', 'Alerta de Seguridad: Este beneficio ya fue entregado hoy (idx_unique_daily_claim).');
+    }
     return;
   }
 
   if (!STATE.isOnline) {
     const pubKey = STATE.localCache.publicKeys[payload.wid];
     if (!pubKey) {
-      showDistributorFeedback(false, 'PASSKEY NO ENCONTRADA', 'El trabajador no posee una clave pública activa en la base local.');
+      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+        showCameraScanHUD(false, 'SIN LLAVE FIDO2', 'Trabajador sin passkey local');
+      } else {
+        showDistributorFeedback(false, 'PASSKEY NO ENCONTRADA', 'El trabajador no posee una clave pública activa en la base local.');
+      }
       return;
     }
 
@@ -385,12 +494,20 @@ async function processQrPayload(payload) {
     STATE.localCache.syncQueue.push(offlineRecord);
     updateSyncQueueUI();
 
-    showDistributorFeedback(
-      true,
-      'DESPACHO OFFLINE AUTORIZADO',
-      `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><small style="color: #6ee7b7;">Firma digital FIDO2 validada localmente en Almacén Sótano 1.</small>`,
-      worker || { worker_type: 'activo' }
-    );
+    if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+      showCameraScanHUD(
+        true,
+        'DESPACHO OFFLINE VÁLIDO',
+        `${worker ? worker.full_name : 'Beneficiario'} &middot; Bolsa + Proteína`
+      );
+    } else {
+      showDistributorFeedback(
+        true,
+        'DESPACHO OFFLINE AUTORIZADO',
+        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><small style="color: #6ee7b7;">Firma digital FIDO2 validada localmente en Almacén Sótano 1.</small>`,
+        worker || { worker_type: 'activo' }
+      );
+    }
   } else {
     try {
       const result = await API.post('/api/v1/verify/qr', {
@@ -400,18 +517,34 @@ async function processQrPayload(payload) {
 
       if (result.valid) {
         STATE.localCache.deliveredEntitlements.add(payload.ent);
-        showDistributorFeedback(
-          true,
-          'DESPACHO ONLINE AUTORIZADO',
-          `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br><small style="color: #6ee7b7;">Firma biométrica validada en servidor central.</small>`,
-          result
-        );
+        if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+          showCameraScanHUD(
+            true,
+            'DESPACHO AUTORIZADO',
+            `${result.worker_name} (${result.document_id}) &middot; ${result.combo_name}`
+          );
+        } else {
+          showDistributorFeedback(
+            true,
+            'DESPACHO ONLINE AUTORIZADO',
+            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br><small style="color: #6ee7b7;">Firma biométrica validada en servidor central.</small>`,
+            result
+          );
+        }
         if (typeof refreshPortalData === 'function') refreshPortalData();
       } else {
-        showDistributorFeedback(false, 'ACCESO DENEGADO', result.message || 'Firma inválida o combo ya reclamado');
+        if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+          showCameraScanHUD(false, 'ACCESO DENEGADO', result.message || 'Combo ya reclamado');
+        } else {
+          showDistributorFeedback(false, 'ACCESO DENEGADO', result.message || 'Firma inválida o combo ya reclamado');
+        }
       }
     } catch (err) {
-      showDistributorFeedback(false, 'ERROR DE RED', err.message);
+      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+        showCameraScanHUD(false, 'ERROR DE RED', err.message);
+      } else {
+        showDistributorFeedback(false, 'ERROR DE RED', err.message);
+      }
     }
   }
 }
@@ -611,38 +744,133 @@ async function handleSupervisorDailyQrScan(payload) {
   }
 }
 
-function searchContingencyWorker() {
-  const doc = document.getElementById('contingencyDocInput')?.value.trim();
-  if (!doc) return window.showToast('Ingrese un número de documento', 'warning');
+async function searchContingencyWorker() {
+  const input = document.getElementById('contingencyDocInput');
+  const resultBox = document.getElementById('contingencyWorkerResultBox');
+  const doc = input?.value.trim();
+  if (!doc) return window.showToast('Ingrese un número de Cédula', 'warning');
 
-  const worker = STATE.localCache.workers.find(w => w.document_id === doc);
+  const cleanDoc = doc.toUpperCase();
+  const digits = doc.replace(/[^0-9]/g, '');
+
+  let worker = STATE.localCache.workers.find(w => 
+    w.document_id === cleanDoc || 
+    (digits && w.document_id.replace(/[^0-9]/g, '') === digits)
+  );
+
   if (!worker) {
-    window.showToast('Trabajador no encontrado en el padrón.', 'error');
+    try {
+      const data = await API.get(`/api/v1/admin/workers?search=${encodeURIComponent(digits || cleanDoc)}`);
+      if (data && data.workers && data.workers.length > 0) {
+        worker = data.workers[0];
+      }
+    } catch (e) {}
+  }
+
+  if (!worker) {
+    if (resultBox) {
+      resultBox.style.display = 'block';
+      resultBox.innerHTML = `
+        <div style="color: #f87171; font-size: 0.8rem; text-align: center; padding: 0.5rem;">
+          ❌ La Cédula <strong>${doc}</strong> no se encuentra en la nómina institucional.
+        </div>
+      `;
+    }
+    playAudioFeedback('error');
     return;
   }
 
   pendingContingencyWorker = worker;
-  const entitlement = STATE.localCache.entitlements[worker.worker_id];
+  const workerId = worker.worker_id || worker.id;
+  const isJubilado = worker.worker_type === 'jubilado' || worker.contingency_reason === 'adulto_mayor_sin_smartphone';
+  const typeBadge = isJubilado 
+    ? '<span class="badge badge-jubilado" style="font-size: 0.68rem;">👴 Jubilado / Sin Móvil</span>'
+    : '<span class="badge badge-activo" style="font-size: 0.68rem;">🏢 Funcionario Activo</span>';
 
-  if (entitlement && STATE.localCache.deliveredEntitlements.has(entitlement.entitlement_id)) {
-    window.showToast('ALERTA: Este trabajador ya reclamó su combo el día de hoy.', 'error');
-    return;
-  }
+  const isDelivered = STATE.localCache.deliveredEntitlements.has(workerId) || worker.today_claimed;
 
-  const requiresSupervisor = worker.contingency_reason === 'device_lost' || STATE.operatorOverridesCount >= 3;
+  if (resultBox) {
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+              👤
+            </div>
+            <div>
+              <div style="font-weight: 800; font-size: 0.85rem; color: #fff;">${worker.full_name}</div>
+              <div class="text-mono" style="font-size: 0.75rem; color: #94a3b8;">${worker.document_id} &middot; ${worker.department_name || 'MIPPCI'}</div>
+            </div>
+          </div>
+          <div>${typeBadge}</div>
+        </div>
 
-  if (requiresSupervisor) {
-    document.getElementById('modalBeneficiaryName').textContent = worker.full_name;
-    document.getElementById('modalBeneficiaryDoc').textContent = worker.document_id;
-    document.getElementById('modalBeneficiaryCombo').textContent = entitlement ? entitlement.combo_name : 'Combo Asignado';
-    document.getElementById('supervisorModalBackdrop')?.classList.add('active');
-  } else {
-    if (confirm(`¿Autorizar liberación manual Nivel 1 para ${worker.full_name}? (Quedan ${2 - STATE.operatorOverridesCount} liberaciones de operador)`)) {
-      STATE.operatorOverridesCount++;
-      const opCountEl = document.getElementById('operatorOverridesCount');
-      if (opCountEl) opCountEl.textContent = `${STATE.operatorOverridesCount} / 3 liberaciones de operador`;
-      recordContingencyDelivery('supervisor_override', 'battery_dead_screen_broken', STATE.operatorId);
-    }
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+          <span style="color: #94a3b8;">Beneficio del Día:</span>
+          <span style="color: #34d399; font-weight: 700;">📦 Bolsa Víveres Secos + Combo Proteico</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+          <span style="color: #94a3b8;">Estatus de Despacho:</span>
+          <span id="contingencyDeliveryStatusLabel" style="color: ${isDelivered ? '#f87171' : '#38bdf8'}; font-weight: 700;">
+            ${isDelivered ? '🔴 Ya retirado hoy' : '🟢 Pendiente por retirar'}
+          </span>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <label style="font-size: 0.72rem; color: #cbd5e1; white-space: nowrap;">Motivo:</label>
+          <select id="contingencyOverrideReasonInput" class="form-select" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; flex: 1;">
+            <option value="adulto_mayor_sin_smartphone" ${isJubilado ? 'selected' : ''}>👴 Adulto mayor sin smartphone</option>
+            <option value="device_lost">📱 Dispositivo extraviado o robado</option>
+            <option value="battery_dead_screen_broken">🔋 Batería descargada / Pantalla rota</option>
+            <option value="reposo_medico">🏥 Reposo médico justificado</option>
+          </select>
+        </div>
+
+        <button type="button" id="btnExecuteOneClickOverride" class="btn btn-primary" style="width: 100%; padding: 0.65rem; font-size: 0.82rem; font-weight: 800; background: ${isDelivered ? '#475569' : 'linear-gradient(135deg, #059669, #10b981)'}; border: none; border-radius: 6px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; gap: 0.4rem; cursor: pointer;" ${isDelivered ? 'disabled' : ''}>
+          <span>🛡️</span>
+          <span>${isDelivered ? 'Beneficio Ya Reclamado Hoy' : 'Liberar Combo con Huella del Supervisor (1 Clic)'}</span>
+        </button>
+      </div>
+    `;
+
+    const btnExec = resultBox.querySelector('#btnExecuteOneClickOverride');
+    btnExec?.addEventListener('click', async () => {
+      btnExec.disabled = true;
+      btnExec.innerHTML = '<span>⏳ Estampando Firma Biométrica de Supervisor...</span>';
+
+      try {
+        const reason = resultBox.querySelector('#contingencyOverrideReasonInput')?.value || 'adulto_mayor_sin_smartphone';
+        const res = await API.post('/api/v1/auth/supervisor/contingency-override', {
+          worker_document_id: worker.document_id,
+          supervisor_id: STATE.currentUser?.id,
+          override_reason: reason
+        });
+
+        playAudioFeedback('success');
+        window.showToast(res.message, 'success');
+        
+        const statusLabel = resultBox.querySelector('#contingencyDeliveryStatusLabel');
+        if (statusLabel) {
+          statusLabel.textContent = '✅ Despachado exitosamente';
+          statusLabel.style.color = '#34d399';
+        }
+
+        btnExec.style.background = '#047857';
+        btnExec.innerHTML = '<span>✅ Despacho Autorizado con Huella del Supervisor</span>';
+        STATE.localCache.deliveredEntitlements.add(workerId);
+
+        if (typeof refreshPortalData === 'function') refreshPortalData();
+
+      } catch (err) {
+        console.error('Error liberando contingencia 1-clic:', err);
+        playAudioFeedback('error');
+        window.showToast(err.message || 'Error autorizando liberación', 'error');
+        btnExec.disabled = false;
+        btnExec.innerHTML = '<span>🔄 Reintentar Liberación con Huella</span>';
+      }
+    });
   }
 }
 

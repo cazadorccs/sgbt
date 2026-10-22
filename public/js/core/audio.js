@@ -1,41 +1,89 @@
 // ============================================================================
-// CORE: WEB AUDIO API SYNTHESIZER (FEEDBACK AUDITIVO DE COMEDOR)
+// CORE: WEB AUDIO & HAPTIC SYNTHESIZER (SUB-SEGUNDO & FEEDBACK TÁCTIL)
 // ============================================================================
 
-window.playAudioFeedback = function(type = 'success') {
-  try {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+let sharedAudioCtx = null;
+
+function getAudioContext() {
+  if (!sharedAudioCtx) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      sharedAudioCtx = new AudioCtx();
     }
+  }
+  if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
+    sharedAudioCtx.resume().catch(() => {});
+  }
+  return sharedAudioCtx;
+}
+
+// Desbloqueo inicial al primer click o toque del usuario
+window.addEventListener('pointerdown', () => {
+  getAudioContext();
+}, { once: true });
+
+window.playAudioFeedback = function(type = 'success') {
+  // 1. Feedback Háptico Sub-segundo (Vibración física en smartphones y terminales Android/iOS)
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      if (type === 'success') {
+        // Vibración corta de confirmación (80ms - feedback táctil tipo escáner POS)
+        navigator.vibrate(80);
+      } else if (type === 'error') {
+        // Doble pulso de alerta rejected (120ms - pausa - 120ms)
+        navigator.vibrate([120, 60, 120]);
+      } else if (type === 'warning') {
+        navigator.vibrate(50);
+      }
+    }
+  } catch (vibErr) {
+    // Silencioso en navegadores sin permisos o hardware sin motor háptico
+  }
+
+  // 2. Síntesis Acústica Sub-segundo con Web Audio API
+  try {
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
+
     osc.connect(gain);
     gain.connect(audioCtx.destination);
 
     if (type === 'success') {
+      // Chime sub-segundo de alta fidelidad (G5 784Hz -> C6 1046.5Hz en 180ms)
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.35);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.35);
+      osc.frequency.setValueAtTime(784, now);
+      osc.frequency.exponentialRampToValueAtTime(1046.5, now + 0.08);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      osc.start(now);
+      osc.stop(now + 0.22);
+
     } else if (type === 'warning') {
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
-      gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.25);
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
+
+      osc.start(now);
+      osc.stop(now + 0.20);
+
     } else {
+      // Tono de anomalía / duplicado bloqueado: Frecuencia baja dual tipo buzz (220Hz -> 146Hz en 250ms)
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(220, audioCtx.currentTime); // A3
-      osc.frequency.setValueAtTime(164.81, audioCtx.currentTime + 0.15); // E3
-      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.45);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.45);
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.linearRampToValueAtTime(146.83, now + 0.12);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.26);
+
+      osc.start(now);
+      osc.stop(now + 0.26);
     }
   } catch (e) {
     console.warn('AudioContext no disponible o bloqueado por el navegador:', e);

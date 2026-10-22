@@ -625,3 +625,125 @@ window.handleUrlDeepLinks = function() {
     }
   }
 };
+
+window.openDelegationModal = function() {
+  const modal = document.getElementById('delegationModalBackdrop');
+  if (modal) {
+    modal.classList.add('active');
+    const formSec = document.getElementById('delegationFormSection');
+    const resSec = document.getElementById('delegationResultSection');
+    if (formSec) formSec.style.display = 'block';
+    if (resSec) resSec.style.display = 'none';
+  }
+};
+
+window.closeDelegationModal = function() {
+  const modal = document.getElementById('delegationModalBackdrop');
+  if (modal) modal.classList.remove('active');
+};
+
+window.setupDelegationModal = function() {
+  const btnClose = document.getElementById('btnCloseDelegationModal');
+  const btnGenerate = document.getElementById('btnGenerateDelegationQr');
+  const btnReset = document.getElementById('btnResetDelegationForm');
+  const btnShareWa = document.getElementById('btnShareDelegationWhatsApp');
+
+  btnClose?.addEventListener('click', window.closeDelegationModal);
+
+  let activeDelegationPayload = null;
+
+  btnGenerate?.addEventListener('click', async () => {
+    const benDoc = document.getElementById('delegationBeneficiaryDoc')?.value.trim();
+    const delDoc = document.getElementById('delegationDelegateDoc')?.value.trim();
+    const delName = document.getElementById('delegationDelegateName')?.value.trim();
+    const reason = document.getElementById('delegationReasonSelect')?.value || 'reposo_medico';
+    const hours = document.getElementById('delegationHoursSelect')?.value || '24';
+
+    if (!benDoc || !delDoc) {
+      window.showToast('Ingrese las Cédulas del titular y del compañero delegado', 'warning');
+      return;
+    }
+
+    btnGenerate.disabled = true;
+    btnGenerate.textContent = '⏳ Emitiendo y firmando autorización FIDO2...';
+
+    try {
+      const data = await API.post('/api/v1/auth/supervisor/delegate', {
+        beneficiary_doc: benDoc,
+        delegate_doc: delDoc,
+        delegate_name: delName,
+        supervisor_id: STATE.currentUser?.id,
+        reason,
+        valid_hours: hours
+      });
+
+      if (!data.success) {
+        throw new Error(data.error || 'Error al generar delegación');
+      }
+
+      activeDelegationPayload = data.delegation;
+      playAudioFeedback('success');
+      window.showToast(data.message, 'success');
+
+      // Mostrar QR generado
+      const formSec = document.getElementById('delegationFormSection');
+      const resSec = document.getElementById('delegationResultSection');
+      const summary = document.getElementById('delegationResultSummary');
+      const qrDisplay = document.getElementById('delegationQrDisplay');
+
+      if (summary) {
+        summary.innerHTML = `
+          Titular: <strong>${data.delegation.beneficiary_name}</strong> (${data.delegation.beneficiary_doc})<br>
+          Retira Delegado: <strong>${data.delegation.delegate_name}</strong> (${data.delegation.delegate_doc})<br>
+          Válido hasta: <span class="text-mono" style="color: #0284c7;">${new Date(data.delegation.valid_until).toLocaleString('es-VE')}</span>
+        `;
+      }
+
+      if (qrDisplay) {
+        qrDisplay.innerHTML = '';
+        if (typeof QRCode !== 'undefined') {
+          new QRCode(qrDisplay, {
+            text: data.qr_string,
+            width: 220,
+            height: 220,
+            colorDark: '#040d16',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      }
+
+      if (formSec) formSec.style.display = 'none';
+      if (resSec) resSec.style.display = 'block';
+
+    } catch (err) {
+      console.error('Error generando delegación:', err);
+      playAudioFeedback('error');
+      window.showToast(err.message || 'Error generando delegación', 'error');
+    } finally {
+      btnGenerate.disabled = false;
+      btnGenerate.textContent = '⚡ Emitir Autorización con QR Firmado (Supervisor)';
+    }
+  });
+
+  btnReset?.addEventListener('click', () => {
+    const formSec = document.getElementById('delegationFormSection');
+    const resSec = document.getElementById('delegationResultSection');
+    if (formSec) formSec.style.display = 'block';
+    if (resSec) resSec.style.display = 'none';
+  });
+
+  btnShareWa?.addEventListener('click', () => {
+    if (!activeDelegationPayload) return;
+    const msg = `🏛️ *AUTORIZACIÓN OFICIAL DE RETIRO DE VÍVERES Y PROTEÍNAS (MIPPCI)*\n\n` +
+      `Estimado(a) *${activeDelegationPayload.delegate_name}* (C.I. *${activeDelegationPayload.delegate_doc}*):\n` +
+      `Usted ha sido formalmente comisionado(a) y autorizado(a) por la Dirección de Gestión Humana para retirar el combo alimentario del funcionario titular:\n\n` +
+      `👤 *Titular:* ${activeDelegationPayload.beneficiary_name} (${activeDelegationPayload.beneficiary_doc})\n` +
+      `📋 *Motivo Justificado:* ${activeDelegationPayload.reason}\n` +
+      `⏳ *Vigencia:* Hasta ${new Date(activeDelegationPayload.valid_until).toLocaleString('es-VE')}\n\n` +
+      `Presente esta confirmación o el código QR en la Mesa de Despacho de Comedor para la entrega inmediata.`;
+
+    const encoded = encodeURIComponent(msg);
+    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+  });
+};

@@ -305,6 +305,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof setupSupervisorDailyQrModal === 'function') setupSupervisorDailyQrModal();
   if (typeof setupNotificationsSystem === 'function') setupNotificationsSystem();
   if (typeof setupWhatsAppShareSystem === 'function') setupWhatsAppShareSystem();
+  if (typeof setupDelegationModal === 'function') setupDelegationModal();
 
   // 6. Carga inicial de datos
   if (typeof loadTenantSettings === 'function') await loadTenantSettings();

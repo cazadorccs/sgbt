@@ -103,6 +103,97 @@ function verifyWebhookHmac(secretKey, payloadJsonString, headerSignature) {
   }
 }
 
+const MAGIC_SECRET = process.env.MAGIC_LINK_SECRET || 'MIPPCI_SGBT_MAGIC_TOKEN_SECRET_2026';
+const DELEGATION_SECRET = process.env.DELEGATION_SECRET || 'MIPPCI_SGBT_DELEGATION_SECRET_2026';
+
+/**
+ * Genera un token temporal de un solo uso firmado con HMAC-SHA256 (vigencia corta, ej. 15 min).
+ */
+function generateMagicLinkToken({ workerId, documentId }, expiresInMinutes = 15) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + (expiresInMinutes * 60);
+  const jti = generateNonce(16);
+  const payload = Buffer.from(JSON.stringify({
+    sub: workerId,
+    doc: documentId,
+    typ: 'magic_onboarding',
+    exp,
+    jti
+  })).toString('base64url');
+  const signature = crypto.createHmac('sha256', MAGIC_SECRET).update(`${header}.${payload}`).digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * Verifica la firma y expiración de un Magic Link Token.
+ */
+function verifyMagicLinkToken(token) {
+  try {
+    if (!token || typeof token !== 'string') return { valid: false, error: 'Token no provisto' };
+    const parts = token.split('.');
+    if (parts.length !== 3) return { valid: false, error: 'Formato de token inválido' };
+    const [headerB64, payloadB64, sigB64] = parts;
+    const expectedSig = crypto.createHmac('sha256', MAGIC_SECRET).update(`${headerB64}.${payloadB64}`).digest('base64url');
+    const bufA = Buffer.from(sigB64, 'utf8');
+    const bufB = Buffer.from(expectedSig, 'utf8');
+    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+      return { valid: false, error: 'Firma de token adulterada o inválida' };
+    }
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      return { valid: false, error: 'El enlace de auto-enrolamiento ha expirado (validez máx 15 min)' };
+    }
+    return { valid: true, payload };
+  } catch (err) {
+    return { valid: false, error: err.message };
+  }
+}
+
+/**
+ * Genera un token de Delegación Criptográfica Temporal (Retiro por Terceros) firmado por el supervisor.
+ * Validez por defecto de 24 a 48 horas.
+ */
+function generateDelegationToken(data, validHours = 24) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + (validHours * 3600);
+  const jti = generateNonce(16);
+  const payload = Buffer.from(JSON.stringify({
+    protocol: 'SGBT_DELEGATED_CLAIM_V1',
+    ...data,
+    exp,
+    jti
+  })).toString('base64url');
+  const signature = crypto.createHmac('sha256', DELEGATION_SECRET).update(`${header}.${payload}`).digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * Verifica la firma y vigencia del token de Delegación Criptográfica Temporal.
+ */
+function verifyDelegationToken(token) {
+  try {
+    if (!token || typeof token !== 'string') return { valid: false, error: 'Token de delegación no provisto' };
+    const parts = token.split('.');
+    if (parts.length !== 3) return { valid: false, error: 'Formato de token de delegación inválido' };
+    const [headerB64, payloadB64, sigB64] = parts;
+    const expectedSig = crypto.createHmac('sha256', DELEGATION_SECRET).update(`${headerB64}.${payloadB64}`).digest('base64url');
+    const bufA = Buffer.from(sigB64, 'utf8');
+    const bufB = Buffer.from(expectedSig, 'utf8');
+    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+      return { valid: false, error: 'Firma de delegación inválida o adulterada' };
+    }
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      return { valid: false, error: 'El permiso temporal de delegación ha expirado' };
+    }
+    return { valid: true, payload };
+  } catch (err) {
+    return { valid: false, error: err.message };
+  }
+}
+
 module.exports = {
   generateP256KeyPair,
   generateNonce,
@@ -111,5 +202,9 @@ module.exports = {
   signOfflinePayload,
   verifyOfflineSignature,
   generateWebhookHmac,
-  verifyWebhookHmac
+  verifyWebhookHmac,
+  generateMagicLinkToken,
+  verifyMagicLinkToken,
+  generateDelegationToken,
+  verifyDelegationToken
 };

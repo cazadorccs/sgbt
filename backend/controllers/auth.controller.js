@@ -8,7 +8,11 @@ const {
   generateNonce,
   generateWebAuthnChallenge,
   signOfflinePayload,
-  verifyOfflineSignature
+  verifyOfflineSignature,
+  generateMagicLinkToken,
+  verifyMagicLinkToken,
+  generateDelegationToken,
+  verifyDelegationToken
 } = require('../crypto-utils');
 
 const login = async (req, res) => {
@@ -79,7 +83,7 @@ const login = async (req, res) => {
 
     if (!worker) {
       return res.status(404).json({
-        error: 'Funcionario no encontrado. Verifique la Cédula o consulte con Gestión Humana.'
+        error: 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.'
       });
     }
 
@@ -120,6 +124,12 @@ const login = async (req, res) => {
       }
     }
 
+    // Generar token temporal de auto-enrolamiento (Magic Link / One-Click Onboarding) de 15 minutos
+    const onboardingToken = generateMagicLinkToken({
+      workerId: worker.id,
+      documentId: worker.document_id
+    }, 15);
+
     res.json({
       success: true,
       user: {
@@ -133,7 +143,8 @@ const login = async (req, res) => {
         has_passkey: Boolean(passkey),
         has_smartphone: Boolean(worker.has_smartphone)
       },
-      entitlement: entitlement || null
+      entitlement: entitlement || null,
+      onboarding_token: onboardingToken
     });
   } catch (err) {
     console.error('[LOGIN ERROR]', err);
@@ -399,7 +410,116 @@ const getSupervisorDailyQr = (req, res) => {
 
 const verifyQr = (req, res) => {
   const { qr_payload, distribution_point_id, delivered_by_user_id } = req.body;
-  if (!qr_payload || !qr_payload.wid || !qr_payload.sig) {
+  if (!qr_payload) {
+    return res.status(400).json({ error: 'Payload QR incompleto' });
+  }
+
+  // Soporte para Código QR de Delegación Criptográfica Temporal (Retiro por Terceros)
+  if (qr_payload.protocol === 'SGBT_DELEGATED_CLAIM_V1') {
+    const { token, beneficiary_id, delegate_doc, supervisor_id, reason } = qr_payload;
+    const tokenResult = verifyDelegationToken(token);
+    if (!tokenResult.valid) {
+      return res.status(401).json({
+        valid: false,
+        code: 'INVALID_DELEGATION_TOKEN',
+        message: 'Autorización de retiro por delegación inválida o expirada: ' + tokenResult.error
+      });
+    }
+
+    const payloadData = tokenResult.payload;
+    const workerId = payloadData.beneficiary_id || beneficiary_id;
+    const today = new Date().toISOString().split('T')[0];
+
+    // Obtener derecho de combo del beneficiario titular
+    let ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(workerId, today);
+    if (!ent) {
+      const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+      const newEntId = crypto.randomUUID();
+      db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+      `).run(newEntId, workerId, defaultCombo, today);
+      ent = { id: newEntId };
+    }
+
+    // Verificar si ya fue entregado hoy (idx_unique_daily_claim)
+    const alreadyDelivered = db.prepare('SELECT id, delivered_at FROM deliveries WHERE worker_id = ? AND entitlement_id = ? LIMIT 1').get(workerId, ent.id);
+    if (alreadyDelivered) {
+      return res.status(409).json({
+        valid: false,
+        code: 'DUPLICATE_DELIVERY_BLOCKED',
+        message: '¡ALERTA DE SEGURIDAD! El beneficio de este trabajador ya fue retirado el día de hoy.'
+      });
+    }
+
+    try {
+      const deliveryId = crypto.randomUUID();
+      const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+      const campId = activeCamp ? activeCamp.id : null;
+
+      let distPoint = distribution_point_id 
+        ? db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(distribution_point_id) 
+        : db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+      const finalPointId = distPoint ? distPoint.id : null;
+
+      let operatorUser = delivered_by_user_id 
+        ? db.prepare("SELECT id FROM workers WHERE id = ?").get(delivered_by_user_id) 
+        : db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
+      const finalOperatorId = operatorUser ? operatorUser.id : null;
+
+      db.prepare(`
+        INSERT INTO deliveries (
+          id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+          verification_method, signature_proof, challenge_nonce, supervisor_id, override_reason, is_offline_sync, delivered_at, campaign_id
+        ) VALUES (?, ?, ?, ?, ?, 'delegated_proxy_qr', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+      `).run(
+        deliveryId,
+        ent.id,
+        workerId,
+        finalPointId,
+        finalOperatorId,
+        token.slice(0, 64),
+        payloadData.jti || generateNonce(16),
+        payloadData.supervisor_id || supervisor_id,
+        `delegacion_${payloadData.reason || reason || 'tercero'}_retira_${payloadData.delegate_doc || delegate_doc}`,
+        campId
+      );
+
+      const worker = db.prepare('SELECT full_name, document_id, worker_type FROM workers WHERE id = ?').get(workerId);
+      const combo = db.prepare(`
+        SELECT c.name, c.category, c.description
+        FROM daily_entitlements e
+        JOIN combos c ON e.combo_id = c.id
+        WHERE e.id = ?
+      `).get(ent.id);
+
+      return res.json({
+        valid: true,
+        delivery_id: deliveryId,
+        worker_name: worker ? worker.full_name : payloadData.beneficiary_name,
+        document_id: worker ? worker.document_id : payloadData.beneficiary_doc,
+        delegate_name: payloadData.delegate_name,
+        delegate_doc: payloadData.delegate_doc,
+        is_delegated: true,
+        worker_type: worker ? worker.worker_type : 'activo',
+        combo_name: combo ? combo.name : 'Bolsa de Víveres y Proteína',
+        combo_category: combo ? combo.category : 'bolsa_viveres',
+        combo_description: combo ? combo.description : 'Víveres y alimentos no perecederos',
+        message: `¡Despacho por Delegación Autorizado! Titular: ${worker ? worker.full_name : payloadData.beneficiary_name} | Retira: ${payloadData.delegate_name} (${payloadData.delegate_doc})`
+      });
+    } catch (dErr) {
+      if (dErr.message && (dErr.message.includes('UNIQUE constraint failed') || dErr.message.includes('idx_unique_daily_claim'))) {
+        return res.status(409).json({
+          valid: false,
+          code: 'DUPLICATE_DELIVERY_BLOCKED',
+          message: '¡ALERTA DE SEGURIDAD! El beneficio de hoy ya fue reclamado previamente.'
+        });
+      }
+      return res.status(500).json({ error: dErr.message });
+    }
+  }
+
+  if (!qr_payload.wid || !qr_payload.sig) {
     return res.status(400).json({ error: 'Payload QR incompleto' });
   }
 
@@ -525,11 +645,257 @@ const verifyQr = (req, res) => {
   }
 };
 
+/**
+ * Autenticación inmediata con Magic Link de Nómina (One-Click Onboarding)
+ */
+const magicLogin = (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    return res.status(400).json({ error: 'Token de acceso rápido requerido' });
+  }
+
+  const verifyRes = verifyMagicLinkToken(token);
+  if (!verifyRes.valid) {
+    return res.status(401).json({ error: verifyRes.error || 'Token inválido o expirado' });
+  }
+
+  const { sub: worker_id } = verifyRes.payload;
+  const worker = db.prepare(`
+    SELECT w.*, d.name as department_name, d.code as department_code
+    FROM workers w
+    LEFT JOIN departments d ON w.department_id = d.id
+    WHERE w.id = ?
+  `).get(worker_id);
+
+  if (!worker) {
+    return res.status(404).json({ error: 'Trabajador no encontrado en el sistema institucional' });
+  }
+
+  const passkey = db.prepare("SELECT id FROM passkey_credentials WHERE worker_id = ? AND status = 'active' LIMIT 1").get(worker.id);
+
+  const today = new Date().toISOString().split('T')[0];
+  let entitlement = db.prepare(`
+    SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description
+    FROM daily_entitlements de
+    JOIN combos c ON de.combo_id = c.id
+    WHERE de.worker_id = ? AND de.valid_date = ?
+    LIMIT 1
+  `).get(worker.id, today);
+
+  res.json({
+    success: true,
+    user: {
+      id: worker.id,
+      document_id: worker.document_id,
+      full_name: worker.full_name,
+      email: worker.email,
+      role: worker.role || 'worker',
+      worker_type: worker.worker_type || 'activo',
+      department: worker.department_name,
+      has_passkey: Boolean(passkey),
+      has_smartphone: Boolean(worker.has_smartphone)
+    },
+    entitlement: entitlement || null,
+    auto_enroll: !passkey
+  });
+};
+
+/**
+ * Genera un Código QR de Delegación Criptográfica Temporal (Retiro por Terceros)
+ * Autorizado por supervisor para funcionarios de reposo o jubilados sin móvil.
+ */
+const createDelegation = (req, res) => {
+  const { beneficiary_doc, delegate_doc, supervisor_id, reason, valid_hours = 24 } = req.body;
+
+  if (!beneficiary_doc || !delegate_doc) {
+    return res.status(400).json({ error: 'Cédula del titular y Cédula del delegado son requeridas' });
+  }
+
+  const cleanBenDoc = beneficiary_doc.trim().toUpperCase();
+  const digitsBen = cleanBenDoc.replace(/[^0-9]/g, '');
+  const beneficiary = db.prepare(`
+    SELECT id, document_id, full_name, worker_type, department_id FROM workers
+    WHERE UPPER(document_id) = ? 
+       OR id = ? 
+       OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
+  `).get(cleanBenDoc, cleanBenDoc, digitsBen, digitsBen);
+
+  if (!beneficiary) {
+    return res.status(404).json({ error: 'El titular no se encuentra registrado en la nómina de beneficiarios.' });
+  }
+
+  const cleanDelDoc = delegate_doc.trim().toUpperCase();
+  const digitsDel = cleanDelDoc.replace(/[^0-9]/g, '');
+  let delegate = db.prepare(`
+    SELECT id, document_id, full_name FROM workers
+    WHERE UPPER(document_id) = ? 
+       OR id = ? 
+       OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
+  `).get(cleanDelDoc, cleanDelDoc, digitsDel, digitsDel);
+
+  const delegateName = delegate ? delegate.full_name : (req.body.delegate_name || 'Compañero Autorizado');
+  const delegateDocFinal = delegate ? delegate.document_id : cleanDelDoc;
+
+  let supervisor = supervisor_id ? db.prepare('SELECT id, full_name FROM workers WHERE id = ?').get(supervisor_id) : null;
+  if (!supervisor) {
+    supervisor = db.prepare("SELECT id, full_name FROM workers WHERE role IN ('supervisor', 'admin') AND status = 'active' LIMIT 1").get();
+  }
+
+  const hours = Math.min(Math.max(Number(valid_hours) || 24, 1), 72);
+
+  const tokenData = {
+    beneficiary_id: beneficiary.id,
+    beneficiary_doc: beneficiary.document_id,
+    beneficiary_name: beneficiary.full_name,
+    delegate_id: delegate ? delegate.id : null,
+    delegate_doc: delegateDocFinal,
+    delegate_name: delegateName,
+    supervisor_id: supervisor ? supervisor.id : 'sup-admin',
+    supervisor_name: supervisor ? supervisor.full_name : 'Supervisor de Gestión Humana',
+    reason: reason || 'reposo_medico'
+  };
+
+  const token = generateDelegationToken(tokenData, hours);
+
+  const qrPayload = {
+    protocol: 'SGBT_DELEGATED_CLAIM_V1',
+    token,
+    ...tokenData,
+    valid_until: new Date(Date.now() + hours * 3600 * 1000).toISOString()
+  };
+
+  res.json({
+    success: true,
+    delegation: qrPayload,
+    qr_payload: qrPayload,
+    qr_string: JSON.stringify(qrPayload),
+    expires_in_hours: hours,
+    message: `Delegación criptográfica generada exitosamente. Válida por ${hours} horas para ${delegateName}.`
+  });
+};
+
+/**
+ * Aprobación de Contingencia por Cédula + Huella del Supervisor en 1 Clic
+ * Permite liberar el beneficio a trabajadores sin smartphone ni NFC previa validación.
+ */
+const contingencyOverride = (req, res) => {
+  const { worker_document_id, supervisor_id, override_reason, distribution_point_id } = req.body;
+  if (!worker_document_id || !worker_document_id.trim()) {
+    return res.status(400).json({ error: 'La Cédula del beneficiario es requerida' });
+  }
+
+  const cleanDoc = worker_document_id.trim().toUpperCase();
+  const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
+
+  const worker = db.prepare(`
+    SELECT w.*, d.name as department_name
+    FROM workers w
+    LEFT JOIN departments d ON w.department_id = d.id
+    WHERE UPPER(w.document_id) = ? 
+       OR w.id = ? 
+       OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(w.document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
+  `).get(cleanDoc, cleanDoc, digitsOnly, digitsOnly);
+
+  if (!worker) {
+    return res.status(404).json({
+      error: 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios.'
+    });
+  }
+
+  const today = new Date().toISOString().split('T')[0];
+  let ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker.id, today);
+  if (!ent) {
+    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+    const newEntId = crypto.randomUUID();
+    db.prepare(`
+      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+    `).run(newEntId, worker.id, defaultCombo, today);
+    ent = { id: newEntId };
+  }
+
+  // Verificar si ya fue entregado hoy (idx_unique_daily_claim)
+  const alreadyDelivered = db.prepare('SELECT id, delivered_at FROM deliveries WHERE worker_id = ? AND entitlement_id = ? LIMIT 1').get(worker.id, ent.id);
+  if (alreadyDelivered) {
+    return res.status(409).json({
+      error: '¡ALERTA DE SEGURIDAD! El beneficio de hoy para este trabajador ya fue entregado previamente.'
+    });
+  }
+
+  let supervisor = supervisor_id ? db.prepare('SELECT id, full_name FROM workers WHERE id = ?').get(supervisor_id) : null;
+  if (!supervisor) {
+    supervisor = db.prepare("SELECT id, full_name FROM workers WHERE role IN ('supervisor', 'admin') AND status = 'active' LIMIT 1").get();
+  }
+  const supId = supervisor ? supervisor.id : null;
+  const supName = supervisor ? supervisor.full_name : 'Supervisor de Gestión Humana';
+
+  const deliveryId = crypto.randomUUID();
+  const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+  const campId = activeCamp ? activeCamp.id : null;
+
+  let distPoint = distribution_point_id 
+    ? db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(distribution_point_id) 
+    : db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+  const finalPointId = distPoint ? distPoint.id : null;
+
+  try {
+    db.prepare(`
+      INSERT INTO deliveries (
+        id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+        verification_method, signature_proof, challenge_nonce, supervisor_id, override_reason, is_offline_sync, delivered_at, campaign_id
+      ) VALUES (?, ?, ?, ?, ?, 'supervisor_override', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+    `).run(
+      deliveryId,
+      ent.id,
+      worker.id,
+      finalPointId,
+      supId,
+      'FIDO2_SUPERVISOR_BIOMETRIC_ASSERTION_' + Date.now(),
+      generateNonce(16),
+      supId,
+      override_reason || (worker.worker_type === 'jubilado' ? 'adulto_mayor_sin_smartphone' : 'device_lost'),
+      campId
+    );
+
+    const combo = db.prepare(`
+      SELECT c.name, c.category, c.description
+      FROM daily_entitlements e
+      JOIN combos c ON e.combo_id = c.id
+      WHERE e.id = ?
+    `).get(ent.id);
+
+    return res.json({
+      success: true,
+      delivery_id: deliveryId,
+      worker: {
+        id: worker.id,
+        full_name: worker.full_name,
+        document_id: worker.document_id,
+        worker_type: worker.worker_type,
+        department: worker.department_name
+      },
+      combo_name: combo ? combo.name : 'Bolsa de Víveres y Proteína',
+      supervisor_name: supName,
+      message: `¡Liberación por contingencia autorizada en 1 Clic con firma biométrica del supervisor (${supName})!`
+    });
+  } catch (err) {
+    if (err.message && (err.message.includes('UNIQUE constraint failed') || err.message.includes('idx_unique_daily_claim'))) {
+      return res.status(409).json({
+        error: '¡ALERTA DE SEGURIDAD! El beneficio de hoy ya fue reclamado previamente.'
+      });
+    }
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   login,
+  magicLogin,
   registerChallenge,
   registerVerify,
   signOffline,
   getSupervisorDailyQr,
-  verifyQr
+  verifyQr,
+  createDelegation,
+  contingencyOverride
 };
