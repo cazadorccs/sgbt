@@ -85,12 +85,9 @@ const db = {
           }
         } catch (e) {}
 
-        // Persistir copia en /tmp en Vercel
+        // Persistir copia en /tmp en Vercel (programada de forma debounced para no bloquear el CPU)
         if (isVercel && rawDb) {
-          try {
-            const data = rawDb.export();
-            fs.writeFileSync(DB_PATH, Buffer.from(data));
-          } catch (e) {}
+          scheduleVercelPersist();
         }
 
         return { changes, lastInsertRowid };
@@ -129,6 +126,9 @@ const db = {
         if (inTx) {
           try {
             rawDb.run('COMMIT;');
+            if (isVercel && rawDb) {
+              scheduleVercelPersist();
+            }
           } catch (commitErr) {
             console.warn('[DB WASM TRANSACTION WARNING]', commitErr.message);
           }
@@ -143,6 +143,19 @@ const db = {
     };
   }
 };
+
+let vercelPersistTimer = null;
+function scheduleVercelPersist() {
+  if (!isVercel || !rawDb) return;
+  if (vercelPersistTimer) return;
+  vercelPersistTimer = setTimeout(() => {
+    vercelPersistTimer = null;
+    try {
+      const data = rawDb.export();
+      fs.writeFileSync(DB_PATH, Buffer.from(data));
+    } catch (e) {}
+  }, 1000);
+}
 
 // Inicializar tablas
 function initializeDatabase() {
@@ -416,22 +429,25 @@ function initializeDatabase() {
       WHERE category = 'proteico'
     `).run();
 
-    // Garantizar asignaciones por estación (Víveres y Proteína) para hoy
+    // Garantizar asignaciones por estación (Víveres y Proteína) para hoy (en bloque atómico)
     const today = new Date().toISOString().split('T')[0];
-    const allWorkers = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
-    const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-    const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-    if (vCombo && pCombo && allWorkers && allWorkers.length > 0) {
-      for (const w of allWorkers) {
-        db.prepare(`
-          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-          VALUES (?, ?, ?, ?, 'estacion_1', 'pending')
-        `).run(crypto.randomUUID(), w.id, vCombo.id, today);
-
-        db.prepare(`
-          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-          VALUES (?, ?, ?, ?, 'estacion_2', 'pending')
-        `).run(crypto.randomUUID(), w.id, pCombo.id, today);
+    const entCount = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ?").get()?.c || 0;
+    if (entCount === 0) {
+      const allWorkers = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
+      const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
+      const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
+      if (vCombo && pCombo && allWorkers && allWorkers.length > 0) {
+        const assignTx = db.transaction((workersList) => {
+          const insEnt = db.prepare(`
+            INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+            VALUES (?, ?, ?, ?, ?, 'pending')
+          `);
+          for (const w of workersList) {
+            insEnt.run(crypto.randomUUID(), w.id, vCombo.id, today, 'estacion_1');
+            insEnt.run(crypto.randomUUID(), w.id, pCombo.id, today, 'estacion_2');
+          }
+        });
+        assignTx(allWorkers);
       }
     }
   } catch (e) {}
@@ -548,23 +564,26 @@ function seedDatabase(force = false) {
   `);
 
   if (productionSeed && Array.isArray(productionSeed.workers) && productionSeed.workers.length > 0) {
-    for (const w of productionSeed.workers) {
-      insertWorker.run(
-        w.id,
-        w.document_id,
-        w.full_name,
-        w.email,
-        w.department_id,
-        w.shift || 'jornada_continua',
-        w.status || 'active',
-        w.worker_type || 'activo',
-        w.role || 'worker',
-        w.has_smartphone ? 1 : 0,
-        w.contingency_reason || null,
-        w.phone_number || null,
-        w.avatar_url || null
-      );
-    }
+    const seedWorkersTx = db.transaction((workersList) => {
+      for (const w of workersList) {
+        insertWorker.run(
+          w.id,
+          w.document_id,
+          w.full_name,
+          w.email,
+          w.department_id,
+          w.shift || 'jornada_continua',
+          w.status || 'active',
+          w.worker_type || 'activo',
+          w.role || 'worker',
+          w.has_smartphone ? 1 : 0,
+          w.contingency_reason || null,
+          w.phone_number || null,
+          w.avatar_url || null
+        );
+      }
+    });
+    seedWorkersTx(productionSeed.workers);
   } else {
     const deptGestionHumana = db.prepare("SELECT id FROM departments WHERE code = 'DGGH_01'").get()?.id;
     const deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
@@ -834,14 +853,36 @@ if (!rawDb) {
 
   initSqlJs().then(async (SQL) => {
     try {
-      rawDb = new SQL.Database();
-      console.log('[DB] Base de datos SQLite creada en memoria WASM (Zero-Config Serverless).');
+      if (isVercel && fs.existsSync(DB_PATH)) {
+        try {
+          const fileBuf = fs.readFileSync(DB_PATH);
+          if (fileBuf && fileBuf.length > 1000) {
+            rawDb = new SQL.Database(fileBuf);
+            console.log('[DB] Base de datos SQLite restaurada desde caché /tmp en Vercel.');
+          } else {
+            rawDb = new SQL.Database();
+          }
+        } catch (readErr) {
+          rawDb = new SQL.Database();
+        }
+      } else {
+        rawDb = new SQL.Database();
+      }
+
+      console.log('[DB] Base de datos SQLite inicializada en memoria WASM.');
 
       initializeDatabase();
       seedDatabase();
 
-      // Sincronizar funcionarios desde Supabase Cloud si está conectado
-      await syncFromSupabase().catch(() => {});
+      if (isVercel && rawDb) {
+        try {
+          const data = rawDb.export();
+          fs.writeFileSync(DB_PATH, Buffer.from(data));
+        } catch (e) {}
+      }
+
+      // Sincronizar en segundo plano sin retrasar el arranque
+      syncFromSupabase().catch(() => {});
 
       readyResolve(true);
       console.log('[DB] Motor SQLite WebAssembly (sql-wasm-inline) listo y operativo para Vercel.');
