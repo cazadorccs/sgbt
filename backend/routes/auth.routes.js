@@ -14,5 +14,6 @@ router.post('/auth/supervisor/delegate', authController.createDelegation);
 router.post('/auth/supervisor/contingency-override', authController.contingencyOverride);
 router.post('/verify/qr', authController.verifyQr);
 router.get('/auth/delivery-status', authController.getDeliveryStatus);
+router.get('/auth/delivery-stream', authController.deliveryStream);
 
 module.exports = router;

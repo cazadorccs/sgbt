@@ -87,14 +87,21 @@ window.setupWorkerSimulator = function() {
           const qrContainer = document.getElementById('workerQrContainer');
           if (qrContainer) qrContainer.style.display = 'flex';
           handleDeliveryApproved(statusRes);
-          if (statusRes.all_completed) return;
+          if (statusRes.all_completed) {
+            return;
+          } else {
+            // Mantener canal de escucha SSE abierto para el siguiente combo
+            startDeliveryMonitoring({ wid: STATE.selectedWorkerId });
+          }
         } else {
           STATE.deliveredStations = new Set();
           STATE._lastShownToast = null;
           // Si no ha retirado hoy, restaurar la vista para generación de QR
           const qrDisplayBox = document.getElementById('qrDisplayBox');
+          const transitionCard = document.getElementById('stationTransitionCard');
           const receiptBox = document.getElementById('workerDeliveryReceiptBox');
           if (receiptBox) receiptBox.style.display = 'none';
+          if (transitionCard) transitionCard.style.display = 'none';
           if (qrDisplayBox) qrDisplayBox.style.display = 'block';
 
           const b1 = document.getElementById('badgeViveresSecos');
@@ -165,21 +172,34 @@ window.setupWorkerSimulator = function() {
     }
   }
 
+  // Manejador del botón de transición para autorizar y desplegar el 2do QR (Estación 2)
+  document.getElementById('btnProceedToStation2')?.addEventListener('click', () => {
+    playAudioFeedback('success');
+    generateWorkerStationQr('2');
+  });
+
   // Generar QR firmado offline (o Enrolar + Generar en 1 Clic si no tiene passkey)
   btnGenerate?.addEventListener('click', async () => {
     if (!STATE.selectedWorkerId) return;
+    if (STATE.deliveredStations && STATE.deliveredStations.has(1) && !STATE.deliveredStations.has(2)) {
+      generateWorkerStationQr('2');
+    } else {
+      generateWorkerStationQr('1');
+    }
+  });
 
-    btnGenerate.disabled = true;
+  async function generateWorkerStationQr(targetStation = '1') {
+    if (!STATE.selectedWorkerId) return;
+
+    if (btnGenerate) btnGenerate.disabled = true;
 
     try {
       // 0. Si el trabajador NO tiene passkey enrolada aún, enrolar automáticamente en este mismo clic
-      if (btnGenerate.dataset.needsEnroll === 'true') {
+      if (btnGenerate && btnGenerate.dataset.needsEnroll === 'true') {
         btnGenerate.textContent = '🔐 1/2 Enrolando Passkey biométrica (FIDO2)...';
         
-        // Desafío FIDO2
         await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
 
-        // Registro biométrico simulado o nativo
         const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone (Secure Enclave)' : 'Dispositivo Móvil (TEE / WebAuthn)';
         await API.post('/api/v1/auth/passkey/register-verify', {
           worker_id: STATE.selectedWorkerId,
@@ -187,7 +207,6 @@ window.setupWorkerSimulator = function() {
           credential: { credential_id: 'Cred_' + Date.now() }
         });
 
-        // Actualizar estado reactivo sin recargar la página
         STATE.updateWorkerPasskeyStatus(STATE.selectedWorkerId, true, deviceName);
         btnGenerate.dataset.needsEnroll = 'false';
         
@@ -197,23 +216,42 @@ window.setupWorkerSimulator = function() {
         if (statusBox) statusBox.className = 'alert-box alert-info';
       }
 
-      btnGenerate.textContent = '⏳ 2/2 Firmando criptográficamente (ECDSA P-256)...';
+      if (btnGenerate) {
+        btnGenerate.textContent = targetStation === '2' 
+          ? '⏳ 2/2 Firmando QR Estación 2: Combo Proteico (ECDSA P-256)...'
+          : '⏳ 2/2 Firmando QR Estación 1: Víveres Secos (ECDSA P-256)...';
+      }
 
-      // 1. Obtener derecho de hoy
+      // 1. Obtener derecho de hoy correspondiente a la estación
       const pack = await API.get('/api/v1/sync/daily-pack');
       const currentWorker = pack.active_workers.find(w => w.worker_id === STATE.selectedWorkerId);
       
-      const entitlementId = currentWorker && currentWorker.entitlements && currentWorker.entitlements.length > 0 
-        ? currentWorker.entitlements[0].entitlement_id 
-        : null;
+      let entitlementId = null;
+      if (currentWorker && currentWorker.entitlements && currentWorker.entitlements.length > 0) {
+        if (targetStation === '2') {
+          const ent2 = currentWorker.entitlements.find(e => 
+            e.shift === 'estacion_2' || 
+            (e.combo_name && e.combo_name.toLowerCase().includes('prote'))
+          );
+          entitlementId = ent2 ? ent2.entitlement_id : (currentWorker.entitlements[1]?.entitlement_id || currentWorker.entitlements[0].entitlement_id);
+        } else {
+          const ent1 = currentWorker.entitlements.find(e => 
+            e.shift === 'estacion_1' || 
+            (e.combo_name && e.combo_name.toLowerCase().includes('víveres'))
+          );
+          entitlementId = ent1 ? ent1.entitlement_id : currentWorker.entitlements[0].entitlement_id;
+        }
+      }
 
       // 2. Firmar mediante enclave biométrico
       const signData = await API.post('/api/v1/auth/passkey/sign-offline', {
         worker_id: STATE.selectedWorkerId,
-        entitlement_id: entitlementId
+        entitlement_id: entitlementId,
+        station: targetStation
       });
 
       STATE.activeQrPayload = signData.qr_payload;
+      STATE.activeStation = targetStation;
 
       // Sincronizar en localStorage y BroadcastChannel para pruebas multi-pestaña
       try {
@@ -221,6 +259,7 @@ window.setupWorkerSimulator = function() {
         localStorage.setItem('sgbt_active_qr_worker_name', (currentWorker && currentWorker.full_name) || 'Funcionario MIPPCI');
         localStorage.setItem('sgbt_active_qr_doc', (currentWorker && currentWorker.document_id) || '');
         localStorage.setItem('sgbt_active_qr_timestamp', Date.now().toString());
+        localStorage.setItem('sgbt_active_station', targetStation);
 
         if ('BroadcastChannel' in window) {
           const bc = new BroadcastChannel('sgbt_qr_channel');
@@ -228,7 +267,8 @@ window.setupWorkerSimulator = function() {
             type: 'NEW_QR_GENERATED',
             payload: signData.qr_payload,
             worker_name: (currentWorker && currentWorker.full_name) || 'Funcionario MIPPCI',
-            doc_id: (currentWorker && currentWorker.document_id) || ''
+            doc_id: (currentWorker && currentWorker.document_id) || '',
+            station: targetStation
           });
           bc.close();
         }
@@ -236,79 +276,138 @@ window.setupWorkerSimulator = function() {
         console.warn('[QR SYNC ERROR]', e);
       }
 
-      // Mostrar contenedor de QR y enfocar suavemente
+      // 3. Actualizar elementos visuales del banner de estación y cajas
       const qrContainer = document.getElementById('workerQrContainer');
       const qrDisplayBox = document.getElementById('qrDisplayBox');
+      const transitionCard = document.getElementById('stationTransitionCard');
       const receiptBox = document.getElementById('workerDeliveryReceiptBox');
       const helpText = document.getElementById('workerQrHelpText');
+      const banner = document.getElementById('qrStationBanner');
+      const title = document.getElementById('qrStationTitle');
+      const badgePill = document.getElementById('qrStationBadgePill');
 
-      if (qrContainer) {
-        qrContainer.style.display = 'flex';
-        qrContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
+      if (qrContainer) qrContainer.style.display = 'flex';
       if (qrDisplayBox) qrDisplayBox.style.display = 'block';
+      if (transitionCard) transitionCard.style.display = 'none';
       if (receiptBox) receiptBox.style.display = 'none';
-      if (helpText) {
-        helpText.textContent = 'Presente este código en el escáner del comedor. Funciona sin internet mediante criptografía asimétrica local.';
-        helpText.style.color = '';
+
+      if (banner && title && badgePill) {
+        banner.style.display = 'flex';
+        if (targetStation === '2') {
+          banner.style.background = 'rgba(5, 150, 105, 0.2)';
+          banner.style.borderColor = 'rgba(5, 150, 105, 0.45)';
+          title.textContent = '🍗 PASO 2 DE 2: ESTACIÓN 2 (CADENA DE FRÍO - PROTEÍNAS)';
+          title.style.color = '#34d399';
+          badgePill.className = 'badge badge-proteina';
+          badgePill.textContent = 'Estación 2: Cavas';
+        } else {
+          banner.style.background = 'rgba(2, 132, 199, 0.18)';
+          banner.style.borderColor = 'rgba(2, 132, 199, 0.4)';
+          title.textContent = '📦 PASO 1 DE 2: ESTACIÓN 1 (VÍVERES SECOS)';
+          title.style.color = '#38bdf8';
+          badgePill.className = 'badge badge-viveres';
+          badgePill.textContent = 'Estación 1: Almacén';
+        }
       }
 
-      // Renderizar QR Code estándar RFC (Reed-Solomon real legible por cualquier cámara)
+      if (helpText) {
+        if (targetStation === '2') {
+          helpText.innerHTML = 'Presente este código en la <strong>Estación 2 (Cavas Refrigeradas)</strong> para retirar su 🍗 Combo Proteico Fresco.';
+          helpText.style.color = '#34d399';
+        } else {
+          helpText.innerHTML = 'Presente este código en la <strong>Estación 1 (Almacén)</strong> para retirar su 📦 Bolsa de Víveres Secos.';
+          helpText.style.color = '#38bdf8';
+        }
+      }
+
+      // Renderizar QR Code estándar
       if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
         window.QRCodeGenerator.render('qrCodeTarget', signData.qr_raw_string, { size: 260 });
       }
       
       const nonceEl = document.getElementById('qrNonceLabel');
       if (nonceEl) {
-        nonceEl.textContent = `Nonce: ${signData.qr_payload.nonce.substring(0, 24)}... (ES256)`;
+        nonceEl.textContent = `Nonce: ${signData.qr_payload.nonce.substring(0, 20)}... (ES256)`;
       }
 
       playAudioFeedback('success');
-      window.showToast('¡Passkey activada y Código QR generado exitosamente en 1 Clic!', 'success');
+      window.showToast(targetStation === '2' ? '¡Código QR para Estación 2 (Combo Proteico) activo!' : '¡Código QR para Estación 1 (Víveres Secos) activo!', 'success');
 
-      // Iniciar cuenta regresiva de 180 segundos (3 minutos)
+      // Iniciar cuenta regresiva de 180 segundos
       startQrCountdown(180);
 
-      // Iniciar monitoreo reactivo de retiro aprobado
+      // Iniciar escucha reactiva en tiempo real por SSE y sondeo de respaldo
       startDeliveryMonitoring(signData.qr_payload);
 
-      btnGenerate.textContent = '⚡ Generar Nuevo Código QR (Firma Biométrica)';
+      if (btnGenerate) {
+        btnGenerate.textContent = targetStation === '2' 
+          ? '🍗 Re-generar QR Estación 2 (Combo Proteico)'
+          : '📦 Re-generar QR Estación 1 (Víveres Secos)';
+      }
+
+      qrContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     } catch (err) {
       window.showToast('Error generando firma QR: ' + err.message, 'error');
       playAudioFeedback('error');
-      btnGenerate.textContent = '⚡ Intentar Nuevamente';
+      if (btnGenerate) btnGenerate.textContent = '⚡ Intentar Nuevamente';
     } finally {
-      btnGenerate.disabled = false;
+      if (btnGenerate) btnGenerate.disabled = false;
     }
-  });
+  }
 
-  // Monitoreo reactivo en tiempo real de la aprobación del despacho
+  // Monitoreo reactivo en tiempo real de la aprobación del despacho (SSE + WebSockets/Stream)
   function startDeliveryMonitoring(qrPayload) {
     stopDeliveryMonitoring();
 
+    const wid = qrPayload?.wid || STATE.selectedWorkerId;
+    if (!wid) return;
+
+    // 1. CONEXIÓN EN TIEMPO REAL: SERVER-SENT EVENTS (SSE)
+    // Permite replicación push instantánea (0ms) desde el servidor sin que el beneficiario recargue la pantalla (F5)
+    try {
+      if ('EventSource' in window) {
+        const sseUrl = `/api/v1/auth/delivery-stream?worker_id=${encodeURIComponent(wid)}`;
+        const sse = new EventSource(sseUrl);
+
+        sse.addEventListener('delivery_update', (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            console.log('[SSE EVENT] Notificación de entrega en tiempo real recibida:', data);
+            handleDeliveryApproved(data);
+          } catch (err) {
+            console.warn('[SSE PARSE ERROR]', err);
+          }
+        });
+
+        sse.onerror = (err) => {
+          console.debug('[SSE RECONNECTING]', err);
+        };
+
+        STATE._beneficiarySse = sse;
+      }
+    } catch (sseErr) {
+      console.warn('[SSE INIT ERROR]', sseErr);
+    }
+
+    // 2. Sondeo periódico de respaldo ultra-rápido (cada 1000ms)
     const checkStatus = async () => {
       try {
-        const wid = qrPayload.wid || STATE.selectedWorkerId;
-        const nonce = qrPayload.nonce;
-        const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}&nonce=${encodeURIComponent(nonce)}`);
+        const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}`);
         if (res && res.delivered) {
           handleDeliveryApproved(res);
         }
       } catch (e) {}
     };
+    STATE.deliveryMonitorInterval = setInterval(checkStatus, 1000);
 
-    // 1. Sondeo periódico ultrarrápido (cada 1200ms)
-    STATE.deliveryMonitorInterval = setInterval(checkStatus, 1200);
-
-    // 2. Canal BroadcastChannel para actualización 0ms multi-pestaña
+    // 3. Canal BroadcastChannel para actualización multi-pestaña local en el mismo navegador
     if ('BroadcastChannel' in window) {
       try {
         const bc = new BroadcastChannel('sgbt_qr_channel');
         bc.onmessage = (e) => {
           if (e.data && e.data.type === 'DELIVERY_APPROVED') {
-            const wid = qrPayload.wid || STATE.selectedWorkerId;
-            if (e.data.worker_id === wid || (e.data.nonce && e.data.nonce === qrPayload.nonce)) {
+            if (e.data.worker_id === wid) {
               handleDeliveryApproved(e.data);
             }
           }
@@ -317,13 +416,12 @@ window.setupWorkerSimulator = function() {
       } catch (err) {}
     }
 
-    // 3. Storage event listener (multi-pestaña complementario)
+    // 4. Storage event listener (multi-pestaña complementario)
     const onStorage = (e) => {
       if (e.key === 'sgbt_last_delivery_event' && e.newValue) {
         try {
           const data = JSON.parse(e.newValue);
-          const wid = qrPayload.wid || STATE.selectedWorkerId;
-          if (data.worker_id === wid || (data.nonce && data.nonce === qrPayload.nonce)) {
+          if (data.worker_id === wid) {
             handleDeliveryApproved(data);
           }
         } catch (err) {}
@@ -337,6 +435,10 @@ window.setupWorkerSimulator = function() {
     if (STATE.deliveryMonitorInterval) {
       clearInterval(STATE.deliveryMonitorInterval);
       STATE.deliveryMonitorInterval = null;
+    }
+    if (STATE._beneficiarySse) {
+      try { STATE._beneficiarySse.close(); } catch (e) {}
+      STATE._beneficiarySse = null;
     }
     if (STATE._beneficiaryBc) {
       try { STATE._beneficiaryBc.close(); } catch (e) {}
@@ -380,7 +482,7 @@ window.setupWorkerSimulator = function() {
     const station2Done = STATE.deliveredStations.has(2);
     const allDone = Boolean(data.all_completed || (station1Done && station2Done));
 
-    // Determinar mensaje Toast específico requerido por el usuario
+    // Determinar mensaje Toast exacto requerido por el usuario
     let targetToastMsg = data.latest_toast || data.toast_message || delivery.toast_message;
     if (!targetToastMsg) {
       if (isStation2Event || (station2Done && !station1Done)) {
@@ -390,7 +492,7 @@ window.setupWorkerSimulator = function() {
       }
     }
 
-    // 1. Mostrar Toast en Pantalla y feedback háptico/sonoro (sin repetir el mismo toast en bucle)
+    // 1. Mostrar Toast en Pantalla + feedback sonoro y háptico (sin duplicar el mismo toast)
     if (targetToastMsg && STATE._lastShownToast !== targetToastMsg) {
       STATE._lastShownToast = targetToastMsg;
       window.showToast(targetToastMsg, 'success');
@@ -431,86 +533,28 @@ window.setupWorkerSimulator = function() {
       }
     }
 
-    // 3. Actualizar caja de comprobante
+    // 3. Referencias a las cajas de la UI
     const qrDisplayBox = document.getElementById('qrDisplayBox');
+    const transitionCard = document.getElementById('stationTransitionCard');
     const receiptBox = document.getElementById('workerDeliveryReceiptBox');
     const helpText = document.getElementById('workerQrHelpText');
-
-    if (receiptBox) {
-      receiptBox.style.display = 'block';
-
-      const nameEl = document.getElementById('receiptWorkerName');
-      const docEl = document.getElementById('receiptWorkerDoc');
-      const locEl = document.getElementById('receiptLocation');
-      const timeEl = document.getElementById('receiptTimestamp');
-      const idEl = document.getElementById('receiptDeliveryId');
-      const methodEl = document.getElementById('receiptMethod');
-
-      if (nameEl) nameEl.textContent = delivery.worker_name || 'Funcionario MIPPCI';
-      if (docEl) docEl.textContent = delivery.document_id || 'V-18456123';
-      if (locEl) locEl.textContent = delivery.distribution_point || (isStation2Event ? 'Estación 2: Cavas Frías' : 'Estación 1: Almacén Sótano 1');
-      
-      const dateObj = delivery.delivered_at ? new Date(delivery.delivered_at) : new Date();
-      if (timeEl) timeEl.textContent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      
-      const shortId = delivery.delivery_id ? delivery.delivery_id.substring(0, 8).toUpperCase() : 'OK-' + Date.now().toString().slice(-6);
-      if (idEl) idEl.textContent = `#DEL-${shortId}`;
-      
-      if (methodEl) {
-        if (delivery.verification_method === 'supervisor_override') {
-          methodEl.textContent = 'Huella Supervisor (Contingencia)';
-        } else if (delivery.verification_method === 'delegated_proxy_qr') {
-          methodEl.textContent = 'QR Delegado Supervisor';
-        } else {
-          methodEl.textContent = 'Firma Hardware FIDO2 (ES256)';
-        }
-      }
-
-      // Pastillas de estatus por estación dentro del comprobante
-      const pill1 = document.getElementById('receiptPillStation1');
-      const s1 = document.getElementById('receiptPillStation1Status');
-      if (pill1 && s1) {
-        if (station1Done) {
-          pill1.style.borderColor = '#34d399';
-          pill1.style.background = 'rgba(16, 185, 129, 0.2)';
-          s1.innerHTML = '✅ Retirado en Estación 1 (Almacén)';
-          s1.style.color = '#34d399';
-        } else {
-          pill1.style.borderColor = '#e2e8f0';
-          pill1.style.background = 'rgba(255, 255, 255, 0.05)';
-          s1.innerHTML = '⏳ Pendiente por retirar en Estación 1';
-          s1.style.color = '#fbbf24';
-        }
-      }
-
-      const pill2 = document.getElementById('receiptPillStation2');
-      const s2 = document.getElementById('receiptPillStation2Status');
-      if (pill2 && s2) {
-        if (station2Done) {
-          pill2.style.borderColor = '#34d399';
-          pill2.style.background = 'rgba(16, 185, 129, 0.2)';
-          s2.innerHTML = '✅ Retirado en Estación 2 (Cavas Frías)';
-          s2.style.color = '#34d399';
-        } else {
-          pill2.style.borderColor = '#e2e8f0';
-          pill2.style.background = 'rgba(255, 255, 255, 0.05)';
-          s2.innerHTML = '⏳ Pendiente por retirar en Estación 2';
-          s2.style.color = '#fbbf24';
-        }
-      }
-    }
-
-    // 4. Actualizar estado y visibilidad de QR según progreso
+    const banner = document.getElementById('qrStationBanner');
     const statusText = document.getElementById('workerPasskeyStatusText');
     const statusBox = document.getElementById('workerPasskeyStatusBox');
 
+    // 4. LÓGICA DE TRANSICIÓN Y FINALIZACIÓN INSTANTÁNEA (0 RECARGAS / 0 F5)
     if (allDone) {
+      // AMBAS ESTACIONES COMPLETADAS (2/2): FINALIZACIÓN TOTAL INSTANTÁNEA
       stopDeliveryMonitoring();
       if (STATE.qrTimerInterval) {
         clearInterval(STATE.qrTimerInterval);
         STATE.qrTimerInterval = null;
       }
+
       if (qrDisplayBox) qrDisplayBox.style.display = 'none';
+      if (transitionCard) transitionCard.style.display = 'none';
+      if (banner) banner.style.display = 'none';
+      if (receiptBox) receiptBox.style.display = 'block';
 
       if (helpText) {
         helpText.innerHTML = '<strong>🎉 ¡Jornada Completa!</strong> Ha retirado su Bolsa de Víveres Secos (Estación 1) y su Combo Proteico Fresco (Estación 2).';
@@ -522,52 +566,79 @@ window.setupWorkerSimulator = function() {
         statusText.innerHTML = '<strong>✅ Despacho Total Autorizado:</strong> Sus 2 bultos han sido entregados con éxito en el Almacén Sótano 1.';
       }
 
+      // Actualizar datos del comprobante final
+      const nameEl = document.getElementById('receiptWorkerName');
+      const docEl = document.getElementById('receiptWorkerDoc');
+      const locEl = document.getElementById('receiptLocation');
+      const timeEl = document.getElementById('receiptTimestamp');
+      const idEl = document.getElementById('receiptDeliveryId');
+      const methodEl = document.getElementById('receiptMethod');
+
+      if (nameEl) nameEl.textContent = delivery.worker_name || 'Funcionario MIPPCI';
+      if (docEl) docEl.textContent = delivery.document_id || 'V-18456123';
+      if (locEl) locEl.textContent = 'Almacén Central MIPPCI - Sótano 1';
+      
+      const dateObj = delivery.delivered_at ? new Date(delivery.delivered_at) : new Date();
+      if (timeEl) timeEl.textContent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      const shortId = delivery.delivery_id ? delivery.delivery_id.substring(0, 8).toUpperCase() : 'OK-' + Date.now().toString().slice(-6);
+      if (idEl) idEl.textContent = `#DEL-${shortId}`;
+      if (methodEl) methodEl.textContent = 'Firma Hardware FIDO2 (ES256)';
+
+      const pill1 = document.getElementById('receiptPillStation1');
+      const s1 = document.getElementById('receiptPillStation1Status');
+      if (pill1 && s1) {
+        pill1.style.borderColor = '#34d399';
+        pill1.style.background = 'rgba(16, 185, 129, 0.2)';
+        s1.innerHTML = '✅ Retirado en Estación 1 (Almacén)';
+        s1.style.color = '#34d399';
+      }
+
+      const pill2 = document.getElementById('receiptPillStation2');
+      const s2 = document.getElementById('receiptPillStation2Status');
+      if (pill2 && s2) {
+        pill2.style.borderColor = '#34d399';
+        pill2.style.background = 'rgba(16, 185, 129, 0.2)';
+        s2.innerHTML = '✅ Retirado en Estación 2 (Cavas Frías)';
+        s2.style.color = '#34d399';
+      }
+
       if (btnGenerate) {
         btnGenerate.disabled = true;
         btnGenerate.style.background = 'linear-gradient(135deg, #059669, #047857)';
         btnGenerate.style.borderColor = '#34d399';
-        btnGenerate.innerHTML = '<span>✅ Retiro Completo Aprobado (2/2 Bultos)</span>';
+        btnGenerate.innerHTML = '<span>✅ Entrega Finalizada (2/2 Bultos Entregados)</span>';
       }
 
       receiptBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     } else if (station1Done && !station2Done) {
-      // Estación 1 lista, Estación 2 pendiente: mantener QR activo
-      if (qrDisplayBox) qrDisplayBox.style.display = 'block';
+      // PASO 1 COMPLETADO: OCULTAR QR 1 Y MOSTRAR TARJETA CON BOTÓN PARA GENERAR QR 2
+      if (STATE.qrTimerInterval) {
+        clearInterval(STATE.qrTimerInterval);
+        STATE.qrTimerInterval = null;
+      }
+
+      if (qrDisplayBox) qrDisplayBox.style.display = 'none';
+      if (receiptBox) receiptBox.style.display = 'none';
+      if (transitionCard) transitionCard.style.display = 'block';
 
       if (helpText) {
-        helpText.innerHTML = '<strong>📦 Estación 1 Lista:</strong> Bulto de Víveres entregado. Diríjase a la <strong>Estación 2 (Cavas Frías)</strong> y presente este mismo código QR para su 🍗 Combo Proteico Fresco.';
-        helpText.style.color = '#38bdf8';
+        helpText.innerHTML = '<strong>📦 Bulto de Víveres entregado en Estación 1.</strong> Presione el botón verde arriba para autorizar y habilitar su 2do código QR para la Estación 2 (Combo Proteico).';
+        helpText.style.color = '#34d399';
       }
 
       if (statusBox) statusBox.className = 'alert-box alert-info';
       if (statusText) {
-        statusText.innerHTML = '<strong>Paso 1 de 2 completado:</strong> Víveres Secos retirados. Siguiente paso: Pase a la <strong>Estación 2 (Cavas Frías)</strong>.';
+        statusText.innerHTML = '<strong>Paso 1 de 2 Completado:</strong> Víveres Secos retirados. <strong>Siguiente paso:</strong> Aprobar y pasar a Estación 2 (Cavas).';
       }
 
       if (btnGenerate) {
         btnGenerate.disabled = false;
-        btnGenerate.innerHTML = '<span>🍗 Siguiente Paso: Retirar en Estación 2</span>';
+        btnGenerate.innerHTML = '<span>🍗 Pasar a Estación 2: Combo Proteico ➔</span>';
       }
 
-    } else if (station2Done && !station1Done) {
-      // Estación 2 lista, Estación 1 pendiente
-      if (qrDisplayBox) qrDisplayBox.style.display = 'block';
-
-      if (helpText) {
-        helpText.innerHTML = '<strong>🍗 Estación 2 Lista:</strong> Combo Proteico entregado. Diríjase a la <strong>Estación 1 (Almacén)</strong> y presente este mismo código QR para su 📦 Bulto Víveres Secos.';
-        helpText.style.color = '#38bdf8';
-      }
-
-      if (statusBox) statusBox.className = 'alert-box alert-info';
-      if (statusText) {
-        statusText.innerHTML = '<strong>Paso 1 de 2 completado:</strong> Proteínas retiradas. Siguiente paso: Pase a la <strong>Estación 1 (Víveres)</strong>.';
-      }
-
-      if (btnGenerate) {
-        btnGenerate.disabled = false;
-        btnGenerate.innerHTML = '<span>📦 Siguiente Paso: Retirar en Estación 1</span>';
-      }
+      transitionCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }
 

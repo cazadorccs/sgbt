@@ -15,6 +15,73 @@ const {
   verifyDelegationToken
 } = require('../crypto-utils');
 
+// ============================================================================
+// SERVIDOR EN TIEMPO REAL: SERVER-SENT EVENTS (SSE)
+// Notificación Push reactiva instantánea entre puestos de despacho y móviles
+// Permite actualización en tiempo real (0ms delay) sin recargar la página (F5)
+// ============================================================================
+const sseClients = new Map(); // worker_id -> Set of { res, id }
+
+function notifyDeliveryStream(worker_id, data) {
+  const jsonStr = JSON.stringify(data);
+  const targets = [];
+
+  if (worker_id && sseClients.has(worker_id)) {
+    targets.push(...sseClients.get(worker_id));
+  }
+  if (sseClients.has('*')) {
+    targets.push(...sseClients.get('*'));
+  }
+
+  targets.forEach(client => {
+    try {
+      client.res.write(`event: delivery_update\ndata: ${jsonStr}\n\n`);
+    } catch (e) {
+      if (worker_id && sseClients.has(worker_id)) {
+        sseClients.get(worker_id).delete(client);
+      }
+    }
+  });
+}
+
+const deliveryStream = (req, res) => {
+  const worker_id = req.query.worker_id || '*';
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+
+  const clientId = crypto.randomUUID();
+  const clientObj = { res, id: clientId };
+
+  if (!sseClients.has(worker_id)) {
+    sseClients.set(worker_id, new Set());
+  }
+  sseClients.get(worker_id).add(clientObj);
+
+  res.write(`event: connected\ndata: ${JSON.stringify({ worker_id, status: 'streaming', timestamp: Date.now() })}\n\n`);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(': heartbeat\n\n');
+    } catch (e) {
+      clearInterval(heartbeat);
+    }
+  }, 15000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    const set = sseClients.get(worker_id);
+    if (set) {
+      set.delete(clientObj);
+      if (set.size === 0) sseClients.delete(worker_id);
+    }
+  });
+};
+
 const login = async (req, res) => {
   const { document_id } = req.body;
 
@@ -778,9 +845,14 @@ const verifyQr = (req, res) => {
 
     const worker = db.prepare('SELECT full_name, document_id, worker_type FROM workers WHERE id = ?').get(wid);
 
-    return res.json({
+    const finalViveresDelivered = targetStationNum === 1 ? true : Boolean(isViveresDelivered);
+    const finalProteicoDelivered = targetStationNum === 2 ? true : Boolean(isProteicoDelivered);
+    const isAllCompleted = Boolean(finalViveresDelivered && finalProteicoDelivered);
+
+    const deliveryPayload = {
       valid: true,
       delivery_id: deliveryId,
+      worker_id: wid,
       worker_name: worker.full_name,
       document_id: worker.document_id,
       worker_type: worker.worker_type || 'activo',
@@ -790,8 +862,17 @@ const verifyQr = (req, res) => {
       combo_category: targetEnt.combo_category || (targetStationNum === 2 ? 'proteico' : 'bolsa_viveres'),
       combo_description: targetEnt.combo_name || targetComboTitle,
       toast_message: targetToastMsg,
-      message: targetToastMsg
-    });
+      message: targetToastMsg,
+      station_1_delivered: finalViveresDelivered,
+      station_2_delivered: finalProteicoDelivered,
+      all_completed: isAllCompleted,
+      delivered_at: new Date().toISOString()
+    };
+
+    // Notificación Push reactiva instantánea por SSE al teléfono móvil del beneficiario
+    notifyDeliveryStream(wid, deliveryPayload);
+
+    return res.json(deliveryPayload);
   } catch (err) {
     if (err.message && (err.message.includes('UNIQUE constraint failed') || err.message.includes('idx_unique_daily_claim'))) {
       return res.status(409).json({
@@ -1076,15 +1157,15 @@ const getDeliveryStatus = (req, res) => {
     `;
     const params = [];
 
-    if (nonce) {
+    if (worker_id) {
+      query += ` AND d.worker_id = ? AND d.delivered_at >= datetime('now', '-24 hours')`;
+      params.push(worker_id);
+    } else if (nonce) {
       query += ` AND d.challenge_nonce = ?`;
       params.push(nonce);
     } else if (entitlement_id) {
       query += ` AND d.entitlement_id = ?`;
       params.push(entitlement_id);
-    } else if (worker_id) {
-      query += ` AND d.worker_id = ? AND d.delivered_at >= datetime('now', '-24 hours')`;
-      params.push(worker_id);
     }
 
     query += ` ORDER BY d.delivered_at ASC`;
@@ -1174,5 +1255,6 @@ module.exports = {
   verifyQr,
   createDelegation,
   contingencyOverride,
-  getDeliveryStatus
+  getDeliveryStatus,
+  deliveryStream
 };

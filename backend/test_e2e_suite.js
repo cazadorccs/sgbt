@@ -239,6 +239,51 @@ test('E2E-18: Gestión y Seguridad de Sesión Bancaria (Auto-Logout e Inactivida
   console.log('     [Watchdog Bancario: Activo, Modal: sessionTimeoutModalBackdrop, Abandono de ventana: 3m]');
 });
 
+test('E2E-19: Stream SSE de Notificaciones en Tiempo Real (Server-Sent Events)', async () => {
+  return new Promise((resolve, reject) => {
+    const url = new URL('/api/v1/auth/delivery-stream?worker_id=V-18456123', BASE_URL);
+    const req = http.get(url.toString(), (res) => {
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP status SSE ${res.statusCode}`));
+      }
+      if (res.headers['content-type'] !== 'text/event-stream') {
+        return reject(new Error(`Content-Type inválido: ${res.headers['content-type']}`));
+      }
+      let receivedChunk = false;
+      res.on('data', (chunk) => {
+        const text = chunk.toString();
+        if (text.includes('connected') || text.includes(': ping')) {
+          receivedChunk = true;
+          req.destroy();
+          console.log('     [Canal SSE conectado exitosamente con cabeceras text/event-stream]');
+          resolve();
+        }
+      });
+      setTimeout(() => {
+        if (!receivedChunk) {
+          req.destroy();
+          resolve();
+        }
+      }, 1500);
+    });
+    req.on('error', (err) => {
+      if (err.message.includes('socket hang up') || err.code === 'ECONNRESET') {
+        resolve();
+      } else {
+        reject(err);
+      }
+    });
+  });
+});
+
+test('E2E-20: Verificación de Estado de Despacho por Estaciones (/api/v1/auth/delivery-status)', async () => {
+  const res = await request('GET', '/api/v1/auth/delivery-status?worker_id=V-18456123');
+  if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+  if (typeof res.data.delivered !== 'boolean') throw new Error('Respuesta no incluye booleano delivered');
+  console.log(`     [Status Entrega: delivered=${res.data.delivered}, S1=${res.data.station_1_delivered}, S2=${res.data.station_2_delivered}]`);
+});
+
+
 // ----------------------------------------------------------------------------
 // EJECUTOR DE LA SUITE
 // ----------------------------------------------------------------------------

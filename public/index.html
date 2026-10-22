@@ -1402,6 +1402,16 @@
                 </button>
               </div>
 
+              <!-- INDICADOR DE ESTACIÓN ACTIVA DEL QR -->
+              <div id="qrStationBanner" style="width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 0.4rem 0.75rem; border-radius: 8px; background: rgba(2, 132, 199, 0.18); border: 1px solid rgba(2, 132, 199, 0.4);">
+                <span id="qrStationTitle" style="font-size: 0.72rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px;">
+                  📦 Paso 1 de 2: Estación 1 (Víveres)
+                </span>
+                <span id="qrStationBadgePill" class="badge badge-viveres" style="font-size: 0.6rem; padding: 0.15rem 0.5rem;">
+                  Estación 1
+                </span>
+              </div>
+
               <!-- CAJA DEL QR CON WATERMARK DINÁMICO -->
               <div id="qrDisplayBox" class="qr-display-box" style="width: 100%;">
                 <div id="qrCodeTarget"></div>
@@ -1416,6 +1426,25 @@
                 </div>
               </div>
 
+              <!-- TARJETA INTERACTIVA DE TRANSICIÓN A ESTACIÓN 2 (COMBO PROTEICO) -->
+              <div id="stationTransitionCard" class="glass-card" style="display: none; width: 100%; margin-bottom: 0.75rem; padding: 1rem; border-radius: 14px; background: linear-gradient(135deg, rgba(6, 78, 59, 0.4), rgba(4, 120, 87, 0.25)); border: 1.5px solid #34d399; box-shadow: 0 6px 20px rgba(5, 150, 105, 0.3); text-align: center;">
+                <div style="font-size: 2.2rem; line-height: 1; margin-bottom: 0.4rem;">
+                  📦✅
+                </div>
+                <div style="font-size: 0.95rem; font-weight: 800; color: #34d399; margin-bottom: 0.2rem; text-transform: uppercase;">
+                  ¡Retiro Aprobado en Estación 1!
+                </div>
+                <div style="font-size: 0.72rem; color: #a7f3d0; margin-bottom: 0.75rem;">
+                  Su <strong>Bulto de Víveres Secos</strong> ha sido verificado con éxito.
+                </div>
+                <p style="font-size: 0.74rem; color: var(--sea-onahau); margin: 0 0 0.85rem 0; line-height: 1.4;">
+                  Ya puede retirar su bulto en taquilla. Presione el botón a continuación para autorizar y desplegar su <strong>2do Código QR</strong> para el Combo Proteico.
+                </p>
+                <button type="button" id="btnProceedToStation2" class="btn btn-primary" style="width: 100%; font-size: 0.82rem; font-weight: 800; padding: 0.75rem 1rem; background: linear-gradient(135deg, #059669, #047857); border-color: #34d399; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.5); cursor: pointer;">
+                  🍗 APROBAR Y PASAR A ESTACIÓN 2 (COMBO PROTEICO) ➔
+                </button>
+              </div>
+
               <!-- COMPROBANTE DE RETIRO AUTORIZADO (APARECE TRAS ESCANEO APROBADO) -->
               <div id="workerDeliveryReceiptBox" class="delivery-receipt-card" style="display: none; margin-bottom: 0.75rem;">
                 <div class="delivery-receipt-header-badge">
@@ -1424,11 +1453,11 @@
                 <div style="font-size: 2.5rem; line-height: 1; margin: 0.4rem 0 0.1rem 0;">
                   🎉
                 </div>
-                <div class="delivery-receipt-title">
-                  ¡RETIRO APROBADO!
+                <div class="delivery-receipt-title" id="receiptMainTitle">
+                  ¡ENTREGA FINALIZADA CON ÉXITO!
                 </div>
-                <div class="delivery-receipt-sub">
-                  Presente esta autorización en taquilla para retirar sus combos asignados.
+                <div class="delivery-receipt-sub" id="receiptMainSub">
+                  Ha completado el retiro de sus 2 bultos asignados (Víveres y Proteína).
                 </div>
 
                 <div class="delivery-receipt-combos-grid">
