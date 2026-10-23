@@ -14,6 +14,23 @@ window.loadCombosCatalog = async function() {
     cachedCombos = Array.isArray(combos) ? combos : [];
     grid.innerHTML = '';
 
+    if (cachedCombos.length === 0) {
+      grid.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1.5rem; color: #475569; background: #ffffff; border: 2px dashed #cbd5e1; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📦</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Catálogo de Beneficios Vacío</div>
+          <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.45;">
+            Configure los combos institucionales (Víveres, Proteína, Útiles, Higiene) para las jornadas de despacho.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="if(typeof openCreateComboModal === 'function') openCreateComboModal();" style="font-size: 0.85rem; font-weight: 700; padding: 0.65rem 1.4rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Crear Primer Combo Institucional</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
+
     cachedCombos.forEach(c => {
       const card = document.createElement('div');
       
@@ -152,11 +169,11 @@ window.loadCombosCatalog = async function() {
         btn.disabled = true;
         try {
           const res = await API.patch(`/api/v1/admin/combos/${id}/toggle-status`, {});
-          window.showToast(res.message, 'success');
+          Toast.success(res.message);
           if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
           loadCombosCatalog();
         } catch (err) {
-          window.showToast('Error al cambiar estado: ' + err.message, 'error');
+          Toast.error('Error al cambiar estado: ' + err.message);
           btn.disabled = false;
         }
       });
@@ -181,10 +198,10 @@ window.loadCombosCatalog = async function() {
         
         try {
           const delData = await API.delete(`/api/v1/admin/combos/${id}`);
-          window.showToast(delData.message || 'Beneficio eliminado', 'info');
+          Toast.info(delData.message || 'Beneficio eliminado');
           loadCombosCatalog();
         } catch (err) {
-          window.showToast('Error al eliminar beneficio: ' + err.message, 'error');
+          Toast.error('Error al eliminar beneficio: ' + err.message);
         }
       });
     });
@@ -192,6 +209,129 @@ window.loadCombosCatalog = async function() {
   } catch (err) {
     console.error('[LOAD COMBOS ERROR]', err);
   }
+};
+
+window.openCreateComboModal = async function(preset = null) {
+  if (!document.getElementById('createComboModalBackdrop') && typeof loadTemplates === 'function') {
+    await loadTemplates();
+  }
+  const modal = document.getElementById('createComboModalBackdrop');
+  if (!modal) {
+    console.error('Modal #createComboModalBackdrop no encontrado');
+    return;
+  }
+
+  const form = document.getElementById('createComboForm');
+  if (form) form.reset();
+
+  const idInput = document.getElementById('comboIdInput');
+  if (idInput) idInput.value = '';
+
+  const modalTitle = document.getElementById('comboModalTitle');
+  if (modalTitle) modalTitle.textContent = '⚙️ Configurar Nuevo Beneficio Institucional';
+
+  const submitBtn = document.getElementById('btnSubmitCreateCombo');
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Guardar e Incorporar al Catálogo';
+  }
+
+  const activeCheckbox = document.getElementById('comboActiveCheckbox');
+  const activeLabel = document.getElementById('comboActiveLabel');
+  if (activeCheckbox) activeCheckbox.checked = true;
+  if (activeLabel) {
+    activeLabel.textContent = 'ACTIVO';
+    activeLabel.style.color = '#16a34a';
+  }
+
+  if (preset === 'escolares') {
+    const nameInput = document.getElementById('comboNameInput');
+    const catSelect = document.getElementById('comboCategorySelect');
+    const logSelect = document.getElementById('comboLogisticSelect');
+    const itemsInput = document.getElementById('comboItemsInput');
+    const mesaInput = document.getElementById('comboMesaInput');
+    const weightInput = document.getElementById('comboWeightInput');
+    const groupSelect = document.getElementById('comboTargetGroupSelect');
+    const caloriesInput = document.getElementById('comboCaloriesInput');
+
+    if (nameInput) nameInput.value = 'Combo Escolar "Paso a Clases" MIPPCI';
+    if (catSelect) catSelect.value = 'utiles_escolares';
+    if (logSelect) logSelect.value = 'Almacén Seco / Logística Estándar';
+    if (itemsInput) itemsInput.value = '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja de lápices grafito 2B, 1 Juego de geometría, 1 Caja de creyones de madera, 1 Pega blanca líquida, 1 Tijera escolar, 1 Sacapuntas';
+    if (mesaInput) mesaInput.value = 'Mesa 3 - Educación & Familia';
+    if (weightInput) weightInput.value = 3.5;
+    if (groupSelect) groupSelect.value = 'Personal con Hijos / Cargas Familiares';
+    if (caloriesInput) caloriesInput.value = '0';
+  } else if (preset === 'higienico') {
+    const nameInput = document.getElementById('comboNameInput');
+    const catSelect = document.getElementById('comboCategorySelect');
+    const logSelect = document.getElementById('comboLogisticSelect');
+    const itemsInput = document.getElementById('comboItemsInput');
+    const mesaInput = document.getElementById('comboMesaInput');
+    const weightInput = document.getElementById('comboWeightInput');
+    const groupSelect = document.getElementById('comboTargetGroupSelect');
+    const caloriesInput = document.getElementById('comboCaloriesInput');
+
+    if (nameInput) nameInput.value = 'Combo Higiénico y Aseo Personal Institucional';
+    if (catSelect) catSelect.value = 'combo_higienico';
+    if (logSelect) logSelect.value = 'Almacén Seco / Logística Estándar';
+    if (itemsInput) itemsInput.value = '4 Jabones de tocador en barra, 2 Cremas dentales con flúor, 2 Champús hidratantes, 2 Desodorantes en roll-on, 4 Rollos de papel higiénico, 1 Jabón lavaplatos líquido, 1 Detergente en polvo multiuso';
+    if (mesaInput) mesaInput.value = 'Mesa 2 - Higiene & Aseo';
+    if (weightInput) weightInput.value = 5.2;
+    if (groupSelect) groupSelect.value = 'Todos los Trabajadores (Universal)';
+    if (caloriesInput) caloriesInput.value = '0';
+  }
+
+  modal.classList.add('active');
+};
+
+window.openEditComboModal = async function(combo) {
+  if (!combo) return;
+
+  if (!document.getElementById('createComboModalBackdrop') && typeof loadTemplates === 'function') {
+    await loadTemplates();
+  }
+  const modal = document.getElementById('createComboModalBackdrop');
+  if (!modal) return;
+
+  const idInput = document.getElementById('comboIdInput');
+  const nameInput = document.getElementById('comboNameInput');
+  const catSelect = document.getElementById('comboCategorySelect');
+  const logSelect = document.getElementById('comboLogisticSelect');
+  const itemsInput = document.getElementById('comboItemsInput');
+  const mesaInput = document.getElementById('comboMesaInput');
+  const weightInput = document.getElementById('comboWeightInput');
+  const groupSelect = document.getElementById('comboTargetGroupSelect');
+  const caloriesInput = document.getElementById('comboCaloriesInput');
+  const modalTitle = document.getElementById('comboModalTitle');
+  const submitBtn = document.getElementById('btnSubmitCreateCombo');
+  const activeCheckbox = document.getElementById('comboActiveCheckbox');
+  const activeLabel = document.getElementById('comboActiveLabel');
+
+  if (idInput) idInput.value = combo.id;
+  if (nameInput) nameInput.value = combo.name || '';
+  if (catSelect) catSelect.value = combo.category || 'bolsa_viveres';
+  if (logSelect) logSelect.value = combo.dietary_info || 'Almacén Seco / Logística Estándar';
+  if (itemsInput) itemsInput.value = combo.items_detail || combo.description || '';
+  if (mesaInput) mesaInput.value = combo.mesa_name || '';
+  if (weightInput) weightInput.value = combo.weight_kg !== undefined ? combo.weight_kg : 14.0;
+  if (groupSelect) groupSelect.value = combo.target_group || 'Todos los Trabajadores (Universal)';
+  if (caloriesInput) caloriesInput.value = combo.calories || 0;
+
+  const isActive = combo.is_active === 1 || combo.is_active === true;
+  if (activeCheckbox) activeCheckbox.checked = isActive;
+  if (activeLabel) {
+    activeLabel.textContent = isActive ? 'ACTIVO' : 'INACTIVO';
+    activeLabel.style.color = isActive ? '#16a34a' : '#dc2626';
+  }
+
+  if (modalTitle) modalTitle.textContent = `✏️ Editar Beneficio: ${combo.name}`;
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.textContent = '💾 Actualizar Beneficio';
+  }
+
+  modal.classList.add('active');
 };
 
 window.initCombosManagement = function() {
@@ -205,34 +345,33 @@ window.initCombosManagement = function() {
   const activeCheckbox = document.getElementById('comboActiveCheckbox');
   const activeLabel = document.getElementById('comboActiveLabel');
 
-  if (!modal) return;
-
-  const openModal = () => modal.classList.add('active');
   const closeModal = () => {
-    modal.classList.remove('active');
+    if (modal) modal.classList.remove('active');
     form?.reset();
     const idInput = document.getElementById('comboIdInput');
     if (idInput) idInput.value = '';
     const modalTitle = document.getElementById('comboModalTitle');
     if (modalTitle) modalTitle.textContent = '⚙️ Configurar Beneficio Institucional';
     const submitBtn = document.getElementById('btnSubmitCreateCombo');
-    if (submitBtn) submitBtn.textContent = '💾 Guardar Beneficio';
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = '💾 Guardar Beneficio';
+    }
   };
 
-  btnOpen?.addEventListener('click', () => {
-    form?.reset();
-    const idInput = document.getElementById('comboIdInput');
-    if (idInput) idInput.value = '';
-    const modalTitle = document.getElementById('comboModalTitle');
-    if (modalTitle) modalTitle.textContent = '⚙️ Configurar Nuevo Beneficio Institucional';
-    const submitBtn = document.getElementById('btnSubmitCreateCombo');
-    if (submitBtn) submitBtn.textContent = '💾 Guardar e Incorporar al Catálogo';
-    if (activeCheckbox) activeCheckbox.checked = true;
-    if (activeLabel) {
-      activeLabel.textContent = 'ACTIVO';
-      activeLabel.style.color = '#16a34a';
-    }
-    openModal();
+  btnOpen?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.openCreateComboModal();
+  });
+
+  btnPresetEscolares?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.openCreateComboModal('escolares');
+  });
+
+  btnPresetHigienico?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.openCreateComboModal('higienico');
   });
 
   btnClose?.addEventListener('click', closeModal);
@@ -251,81 +390,24 @@ window.initCombosManagement = function() {
     }
   });
 
-  // Función pública para abrir el modal en modo edición
-  window.openEditComboModal = function(combo) {
-    if (!combo) return;
-    const idInput = document.getElementById('comboIdInput');
-    const nameInput = document.getElementById('comboNameInput');
-    const catSelect = document.getElementById('comboCategorySelect');
-    const logSelect = document.getElementById('comboLogisticSelect');
-    const itemsInput = document.getElementById('comboItemsInput');
-    const mesaInput = document.getElementById('comboMesaInput');
-    const weightInput = document.getElementById('comboWeightInput');
-    const groupSelect = document.getElementById('comboTargetGroupSelect');
-    const caloriesInput = document.getElementById('comboCaloriesInput');
-    const modalTitle = document.getElementById('comboModalTitle');
-    const submitBtn = document.getElementById('btnSubmitCreateCombo');
-
-    if (idInput) idInput.value = combo.id;
-    if (nameInput) nameInput.value = combo.name || '';
-    if (catSelect) catSelect.value = combo.category || 'bolsa_viveres';
-    if (logSelect) logSelect.value = combo.dietary_info || 'Almacén Seco / Logística Estándar';
-    if (itemsInput) itemsInput.value = combo.items_detail || combo.description || '';
-    if (mesaInput) mesaInput.value = combo.mesa_name || '';
-    if (weightInput) weightInput.value = combo.weight_kg !== undefined ? combo.weight_kg : 14.0;
-    if (groupSelect) groupSelect.value = combo.target_group || 'Todos los Trabajadores (Universal)';
-    if (caloriesInput) caloriesInput.value = combo.calories || 0;
-
-    const isActive = combo.is_active === 1 || combo.is_active === true;
-    if (activeCheckbox) activeCheckbox.checked = isActive;
-    if (activeLabel) {
-      activeLabel.textContent = isActive ? 'ACTIVO' : 'INACTIVO';
-      activeLabel.style.color = isActive ? '#16a34a' : '#dc2626';
-    }
-
-    if (modalTitle) modalTitle.textContent = `✏️ Editar Beneficio: ${combo.name}`;
-    if (submitBtn) submitBtn.textContent = '💾 Actualizar Beneficio';
-
-    openModal();
-  };
-
-  btnPresetEscolares?.addEventListener('click', () => {
-    document.getElementById('comboIdInput').value = '';
-    document.getElementById('comboNameInput').value = 'Combo Escolar "Paso a Clases" MIPPCI';
-    document.getElementById('comboCategorySelect').value = 'utiles_escolares';
-    document.getElementById('comboLogisticSelect').value = 'Almacén Seco / Logística Estándar';
-    document.getElementById('comboItemsInput').value = '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja de lápices grafito 2B, 1 Juego de geometría, 1 Caja de creyones de madera, 1 Pega blanca líquida, 1 Tijera escolar, 1 Sacapuntas';
-    document.getElementById('comboTargetGroupSelect').value = 'Personal con Hijos / Cargas Familiares';
-    document.getElementById('comboCaloriesInput').value = '0';
-    if (activeCheckbox) activeCheckbox.checked = true;
-    openModal();
-  });
-
-  btnPresetHigienico?.addEventListener('click', () => {
-    document.getElementById('comboIdInput').value = '';
-    document.getElementById('comboNameInput').value = 'Combo Higiénico y Aseo Personal Institucional';
-    document.getElementById('comboCategorySelect').value = 'combo_higienico';
-    document.getElementById('comboLogisticSelect').value = 'Almacén Seco / Logística Estándar';
-    document.getElementById('comboItemsInput').value = '4 Jabones de tocador en barra, 2 Cremas dentales con flúor, 2 Champús hidratantes, 2 Desodorantes en roll-on, 4 Rollos de papel higiénico, 1 Jabón lavaplatos líquido, 1 Detergente en polvo multiuso';
-    document.getElementById('comboTargetGroupSelect').value = 'Todos los Trabajadores (Universal)';
-    document.getElementById('comboCaloriesInput').value = '0';
-    if (activeCheckbox) activeCheckbox.checked = true;
-    openModal();
-  });
-
   form?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const comboId = document.getElementById('comboIdInput')?.value;
-    const name = document.getElementById('comboNameInput')?.value;
+    const name = document.getElementById('comboNameInput')?.value?.trim();
     const category = document.getElementById('comboCategorySelect')?.value;
     const logistic = document.getElementById('comboLogisticSelect')?.value;
-    const items = document.getElementById('comboItemsInput')?.value;
-    const mesa = document.getElementById('comboMesaInput')?.value;
+    const items = document.getElementById('comboItemsInput')?.value?.trim();
+    const mesa = document.getElementById('comboMesaInput')?.value?.trim();
     const weight = parseFloat(document.getElementById('comboWeightInput')?.value) || 14.0;
     const targetGroup = document.getElementById('comboTargetGroupSelect')?.value;
     const calories = parseInt(document.getElementById('comboCaloriesInput')?.value, 10) || 0;
     const isActive = document.getElementById('comboActiveCheckbox')?.checked ? 1 : 0;
+
+    if (!name) {
+      Toast.error('Debe ingresar el nombre del beneficio o combo.');
+      return;
+    }
 
     const payload = {
       name,
@@ -350,18 +432,20 @@ window.initCombosManagement = function() {
       if (comboId) {
         // MODO EDICIÓN (PUT)
         const data = await API.put(`/api/v1/admin/combos/${comboId}`, payload);
-        window.showToast(`✅ ${data.message || 'Combo actualizado exitosamente'}`, 'success');
+        Toast.success(data.message || 'Combo actualizado exitosamente');
       } else {
         // MODO CREACIÓN (POST)
         const data = await API.post('/api/v1/admin/combos', payload);
-        window.showToast(`✅ ${data.message}: "${data.combo.name}"`, 'success');
+        const comboName = (data && data.combo && data.combo.name) ? data.combo.name : name;
+        Toast.success(`¡Combo "${comboName}" incorporado al catálogo exitosamente!`);
       }
       
       if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
       closeModal();
-      loadCombosCatalog();
+      await loadCombosCatalog();
     } catch (err) {
-      window.showToast(`Error al procesar: ${err.message}`, 'error');
+      console.error('[COMBO SAVE ERROR]', err);
+      Toast.error(`Error al procesar combo: ${err.message}`);
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;

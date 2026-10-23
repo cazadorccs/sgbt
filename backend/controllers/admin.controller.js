@@ -397,7 +397,10 @@ const getCombos = (req, res) => {
 };
 
 const createCombo = (req, res) => {
-  const { name, description, category, dietary_info, calories, items_detail, icon, weight_kg } = req.body;
+  const { 
+    name, description, category, dietary_info, calories, items_detail, 
+    icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active 
+  } = req.body;
 
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'El nombre del combo es obligatorio' });
@@ -405,18 +408,56 @@ const createCombo = (req, res) => {
 
   const newId = crypto.randomUUID();
   const cat = category || 'combo_especial';
-  const info = dietary_info || 'Estándar';
+  const info = dietary_info || 'Almacén Seco / Logística Estándar';
   const cal = parseInt(calories, 10) || 0;
-  const items = items_detail ? items_detail.trim() : '';
-  const comboIcon = icon || (cat === 'proteico' ? '🍗' : (cat === 'navideno' ? '🎄' : '🍱'));
+  const items = items_detail ? items_detail.trim() : (description ? description.trim() : '');
+  const comboIcon = icon || (cat === 'proteico' || cat === 'combo_proteico' ? '🍗' : (cat === 'navideno' || cat === 'combo_navideno' ? '🎁' : (cat === 'utiles_escolares' ? '🎒' : (cat === 'combo_higienico' ? '🧼' : (cat === 'bolsa_viveres' ? '🌾' : '🍱')))));
   const weight = parseFloat(weight_kg) || 14.0;
+  const mesa = mesa_name || 'Mesa 1';
+  const mesaNum = parseInt(mesa_number, 10) || 1;
+  const cons = conservation || (info.includes('Frío') ? 'Cadena de Frío (-18°C)' : 'Ambiente');
+  const target = target_qty || '1';
+  const activeVal = is_active !== undefined ? (is_active ? 1 : 0) : 1;
 
   try {
     const insert = db.prepare(`
-      INSERT INTO combos (id, name, description, category, calories, dietary_info, items_detail, icon, weight_kg, is_active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO combos (
+        id, name, description, category, calories, dietary_info, items_detail, 
+        icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    insert.run(newId, name.trim(), description || '', cat, cal, info, items, comboIcon, weight);
+    insert.run(newId, name.trim(), items || description || '', cat, cal, info, items, comboIcon, weight, mesa, mesaNum, cons, target, activeVal);
+
+    // Sincronización asíncrona con Supabase Cloud si está disponible
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const validCategoryMap = {
+          'bolsa_viveres': 'bolsa_viveres',
+          'combo_proteico': 'combo_proteico',
+          'proteico': 'combo_proteico',
+          'utiles_escolares': 'utiles_escolares',
+          'combo_higienico': 'combo_higienico',
+          'dotacion_uniformes': 'dotacion_uniformes',
+          'combo_navideno': 'combo_navideno',
+          'navideno': 'combo_navideno',
+          'combo_salud': 'combo_salud',
+          'combo_especial': 'combo_especial'
+        };
+        const safeCategory = validCategoryMap[cat] || 'combo_especial';
+
+        supabase.from('combos').insert([{
+          id: newId,
+          name: name.trim(),
+          description: items || description || '',
+          category: safeCategory,
+          calories: cal,
+          dietary_info: info,
+          is_active: activeVal === 1
+        }]).then(() => {}).catch(err => console.warn('[SUPABASE INSERT COMBO WARN]', err.message));
+      }
+    } catch (e) {}
 
     const created = db.prepare('SELECT * FROM combos WHERE id = ?').get(newId);
     res.status(201).json({
@@ -426,7 +467,7 @@ const createCombo = (req, res) => {
     });
   } catch (err) {
     console.error('[CATALOG ERROR]', err);
-    res.status(500).json({ error: 'Error al registrar el nuevo combo' });
+    res.status(500).json({ error: 'Error al registrar el nuevo combo: ' + err.message });
   }
 };
 

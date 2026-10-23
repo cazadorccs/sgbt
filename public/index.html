@@ -1117,15 +1117,15 @@
               </div>
             </div>
             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-              <button id="btnPresetEscolares" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
+              <button id="btnPresetEscolares" onclick="if(typeof openCreateComboModal === 'function') openCreateComboModal('escolares');" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
                 <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
                 <span>+ Útiles Escolares</span>
               </button>
-              <button id="btnPresetHigienico" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
+              <button id="btnPresetHigienico" onclick="if(typeof openCreateComboModal === 'function') openCreateComboModal('higienico');" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
                 <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M12 2v8"></path><path d="m4.93 10.93 1.41 1.41"></path><path d="M2 18h2"></path><path d="M20 18h2"></path><path d="m19.07 10.93-1.41 1.41"></path><path d="M22 22H2"></path><path d="m16 6-4 4-4-4"></path><path d="M16 18a4 4 0 0 0-8 0"></path></svg>
                 <span>+ Combo Higiene</span>
               </button>
-              <button id="btnOpenCreateComboModal" class="btn btn-primary" style="font-size: 0.82rem;">
+              <button id="btnOpenCreateComboModal" onclick="if(typeof openCreateComboModal === 'function') openCreateComboModal();" class="btn btn-primary" style="font-size: 0.82rem;">
                 <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 <span>Nuevo Beneficio</span>
               </button>
