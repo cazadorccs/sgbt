@@ -36,11 +36,18 @@ module.exports = async (req, res) => {
       await readyPromise;
     }
 
-    // Preservar la ruta original si Vercel la reescribe
-    if (req.url && !req.url.startsWith('/api') && !req.url.startsWith('/public')) {
-      const originalPath = req.headers['x-matched-path'] || req.headers['x-now-route-matches'];
-      if (originalPath && originalPath.startsWith('/api')) {
-        req.url = originalPath;
+    // Preservar la ruta original si Vercel la reescribe a /api/index.js o /api
+    const candidatePath = req.headers['x-invoke-path'] 
+      || req.headers['x-forwarded-uri'] 
+      || req.headers['x-matched-path']
+      || req.headers['x-original-url']
+      || req.headers['x-now-route-matches'];
+
+    if (candidatePath && candidatePath.startsWith('/api') && candidatePath !== '/api/index.js') {
+      req.url = candidatePath;
+    } else if (req.url && (req.url === '/api/index.js' || req.url === '/api' || (!req.url.startsWith('/api/v1') && !req.url.startsWith('/public')))) {
+      if (candidatePath && candidatePath.startsWith('/api')) {
+        req.url = candidatePath;
       }
     }
 

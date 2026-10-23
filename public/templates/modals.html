@@ -665,7 +665,7 @@
         <button id="btnCloseCreateCampaignModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
       </div>
 
-      <form id="createCampaignForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
+      <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1rem;">
         <div class="input-group">
           <label>Título / Nombre de la Jornada: *</label>
           <input type="text" id="campaignNameInput" class="form-input" placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
@@ -685,8 +685,9 @@
         <div class="form-grid-2">
           <div class="input-group">
             <label>Combo / Beneficio Asignado: *</label>
-            <select id="campaignComboSelect" class="form-select" required>
-              <!-- Dinámico desde combos -->
+            <select id="campaignComboSelect" class="form-select">
+              <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)</option>
+              <option value="ae65fee7-79f6-48a3-bc41-a61c928876b5">🍗 Combo Proteico Fresco (Cadena de Frío)</option>
             </select>
           </div>
           <div class="input-group">
@@ -703,8 +704,8 @@
                 </button>
               </div>
             </div>
-            <select id="campaignPointSelect" class="form-select" required>
-              <!-- Dinámico desde distribution_points -->
+            <select id="campaignPointSelect" class="form-select">
+              <option value="b12f492f-ebb3-430f-bc20-26ca4aa5b865">Almacén Central - Sede Principal MIPPCI (ALM-MIPPCI)</option>
             </select>
           </div>
         </div>

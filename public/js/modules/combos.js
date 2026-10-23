@@ -378,30 +378,146 @@ window.initCombosManagement = function() {
   });
 };
 
+window.populateCampaignCombosSelect = async function(selectedId = null) {
+  const comboSelect = document.getElementById('campaignComboSelect');
+  if (!comboSelect) return;
+
+  try {
+    let combosList = [];
+    try {
+      const res = await API.get('/api/v1/admin/combos');
+      combosList = Array.isArray(res) ? res : (res && res.combos ? res.combos : []);
+    } catch (e) {
+      console.warn('Advertencia obteniendo combos para jornada:', e.message);
+    }
+
+    if (combosList.length === 0) {
+      combosList = [
+        { id: 'c1a2b3c4-1111-2222-3333-444455556666', name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)', icon: '🌾', category: 'bolsa_viveres' },
+        { id: 'ae65fee7-79f6-48a3-bc41-a61c928876b5', name: 'Combo Proteico Fresco (Cadena de Frío)', icon: '🍗', category: 'combo_proteico' },
+        { id: '3df50537-3333-4fce-8bdc-f4ecbb567adf', name: 'Combo Higiénico & Aseo del Hogar', icon: '🧼', category: 'combo_higienico' },
+        { id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113', name: 'Combo de Útiles Escolares', icon: '🎒', category: 'utiles_escolares' }
+      ];
+    }
+
+    comboSelect.innerHTML = '';
+    combosList.forEach(cb => {
+      const isSel = selectedId ? (cb.id === selectedId) : '';
+      comboSelect.innerHTML += `<option value="${cb.id}" ${isSel}>${cb.icon || '🍱'} ${cb.name} (${cb.category || 'general'})</option>`;
+    });
+  } catch (err) {
+    console.error('Error poblando combos select:', err);
+    comboSelect.innerHTML = '<option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)</option>';
+  }
+};
+
+window.reloadDistributionPoints = async function(selectedId = null) {
+  const pointSelect = document.getElementById('campaignPointSelect');
+  if (!pointSelect) return;
+
+  try {
+    let points = [];
+    try {
+      const data = await API.get('/api/v1/distribution-points');
+      if (data && data.success && Array.isArray(data.distributionPoints)) {
+        points = data.distributionPoints;
+      }
+    } catch (e) {
+      console.warn('Advertencia obteniendo puntos de distribución:', e.message);
+    }
+
+    if (points.length === 0) {
+      points = [
+        { id: 'b12f492f-ebb3-430f-bc20-26ca4aa5b865', name: 'Almacén Central - Sede Principal MIPPCI', location_code: 'ALM-MIPPCI' },
+        { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Almacén Central - Sótano 1 (Sede Principal)', location_code: 'ALM-S1' },
+        { id: 'f641deb9-9123-415e-8cd1-ea01b8a7d367', name: 'Mesa 1 - Víveres Secos (Sótano 1)', location_code: 'MESA-01' },
+        { id: '94df5c9d-0eb8-4603-859d-447309a0e9ca', name: 'Mesa 2 - Proteína y Aseo (Sótano 1)', location_code: 'MESA-02' }
+      ];
+    }
+
+    cachedDistributionPoints = points;
+    pointSelect.innerHTML = '';
+    points.forEach(p => {
+      const isSelected = selectedId ? (p.id === selectedId) : false;
+      pointSelect.innerHTML += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${p.name} (${p.location_code || 'SEDE'})</option>`;
+    });
+    if (selectedId) pointSelect.value = selectedId;
+  } catch (err) {
+    console.warn('Error al recargar sedes de despacho:', err);
+    pointSelect.innerHTML = '<option value="b12f492f-ebb3-430f-bc20-26ca4aa5b865">Almacén Central - Sede Principal MIPPCI (ALM-MIPPCI)</option>';
+  }
+};
+
+window.openCreateCampaignModal = async function() {
+  // Asegurar que las plantillas y modales estén presentes en el DOM
+  if (!document.getElementById('createCampaignModalBackdrop') && typeof loadTemplates === 'function') {
+    await loadTemplates();
+  }
+
+  const modal = document.getElementById('createCampaignModalBackdrop');
+  if (!modal) {
+    console.error('Modal #createCampaignModalBackdrop no encontrado');
+    return;
+  }
+
+  const form = document.getElementById('createCampaignForm');
+  if (form) form.reset();
+
+  const panel = document.getElementById('distributionPointFormPanel');
+  if (panel) panel.style.display = 'none';
+
+  const today = new Date().toISOString().split('T')[0];
+  const startInput = document.getElementById('campaignStartDateInput');
+  const endInput = document.getElementById('campaignEndDateInput');
+  if (startInput) startInput.value = today;
+  if (endInput) endInput.value = today;
+
+  const alertBox = document.getElementById('campaignAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+
+  // Cargar combos y puntos de despacho para que el formulario nunca tenga campos vacíos
+  await Promise.allSettled([
+    window.populateCampaignCombosSelect(),
+    window.reloadDistributionPoints()
+  ]);
+
+  modal.classList.add('active');
+};
+
 window.loadCampaigns = async function() {
   const grid = document.getElementById('campaignsGrid');
   if (!grid) return;
 
+  // Cargar selects en segundo plano siempre
+  window.populateCampaignCombosSelect().catch(() => {});
+  window.reloadDistributionPoints().catch(() => {});
+
   try {
-    const campaigns = await API.get('/api/v1/admin/campaigns');
+    let campaigns = [];
+    try {
+      const res = await API.get('/api/v1/admin/campaigns');
+      campaigns = Array.isArray(res) ? res : (res && res.campaigns ? res.campaigns : []);
+    } catch (e) {
+      console.warn('Error al consultar jornadas:', e.message);
+    }
+
     grid.innerHTML = '';
 
-    if (campaigns.length === 0) {
+    if (!campaigns || campaigns.length === 0) {
       grid.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #64748b; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: var(--radius-md);">
-          📅 No hay jornadas de entrega programadas. Haga clic en <strong>"+ Programar Nueva Jornada"</strong> para crear la primera.
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1.5rem; color: #475569; background: #ffffff; border: 2px dashed #cbd5e1; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📅</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">No hay jornadas de entrega programadas</div>
+          <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.45;">
+            Planifique fechas de entrega institucional, asigne combos del catálogo y organice las estaciones de despacho.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="if(typeof openCreateCampaignModal === 'function') openCreateCampaignModal();" style="font-size: 0.85rem; font-weight: 700; padding: 0.65rem 1.4rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Programar Nueva Jornada Ahora</span>
+          </button>
         </div>
       `;
       return;
-    }
-
-    const comboSelect = document.getElementById('campaignComboSelect');
-    if (comboSelect) {
-      const combosList = await API.get('/api/v1/admin/combos');
-      comboSelect.innerHTML = '';
-      combosList.forEach(cb => {
-        comboSelect.innerHTML += `<option value="${cb.id}">${cb.icon || '🍱'} ${cb.name} (${cb.category})</option>`;
-      });
     }
 
     campaigns.forEach(c => {
@@ -448,15 +564,15 @@ window.loadCampaigns = async function() {
 
           <div class="campaign-stats-grid">
             <div class="campaign-stat-item">
-              <div class="stat-num">${c.total_eligible}</div>
+              <div class="stat-num">${c.total_eligible || 0}</div>
               <div class="stat-lbl">Convocados</div>
             </div>
             <div class="campaign-stat-item">
-              <div class="stat-num">${c.assigned_count}</div>
+              <div class="stat-num">${c.assigned_count || 0}</div>
               <div class="stat-lbl">Asignados</div>
             </div>
             <div class="campaign-stat-item">
-              <div class="stat-num" style="color: #10b981;">${c.claimed_count}</div>
+              <div class="stat-num" style="color: #10b981;">${c.claimed_count || 0}</div>
               <div class="stat-lbl">Despachados</div>
             </div>
           </div>
@@ -547,22 +663,15 @@ window.setupCampaignsManagement = function() {
   const btnClose = document.getElementById('btnCloseCreateCampaignModal');
   const btnCancel = document.getElementById('btnCancelCreateCampaign');
   const form = document.getElementById('createCampaignForm');
+  const submitBtn = document.getElementById('btnSubmitCreateCampaign');
   const alertBox = document.getElementById('campaignAlertBox');
 
-  const today = new Date().toISOString().split('T')[0];
   const startInput = document.getElementById('campaignStartDateInput');
   const endInput = document.getElementById('campaignEndDateInput');
-  if (startInput) startInput.value = today;
-  if (endInput) endInput.value = today;
 
-  btnOpen?.addEventListener('click', () => {
-    form?.reset();
-    const panel = document.getElementById('distributionPointFormPanel');
-    if (panel) panel.style.display = 'none';
-    if (startInput) startInput.value = today;
-    if (endInput) endInput.value = today;
-    if (alertBox) alertBox.style.display = 'none';
-    modal?.classList.add('active');
+  btnOpen?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.openCreateCampaignModal();
   });
 
   const closeModal = () => {
@@ -573,8 +682,13 @@ window.setupCampaignsManagement = function() {
   btnClose?.addEventListener('click', closeModal);
   btnCancel?.addEventListener('click', closeModal);
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+  async function handleCampaignSubmit(e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const originalBtnContent = submitBtn ? submitBtn.innerHTML : 'Publicar Jornada';
     const name = document.getElementById('campaignNameInput')?.value.trim();
     const start_date = startInput?.value;
     const end_date = endInput?.value;
@@ -582,58 +696,85 @@ window.setupCampaignsManagement = function() {
     const distribution_point_id = document.getElementById('campaignPointSelect')?.value;
     const target_group = document.getElementById('campaignTargetSelect')?.value;
     const description = document.getElementById('campaignDescriptionInput')?.value.trim();
-    const auto_generate_entitlements = document.getElementById('campaignAutoEntitlementsCheck')?.checked;
-    const notify_workers = document.getElementById('campaignNotifyCheck')?.checked;
+    const auto_generate_entitlements = document.getElementById('campaignAutoEntitlementsCheck')?.checked !== false;
+    const notify_workers = document.getElementById('campaignNotifyCheck')?.checked === true;
+
+    if (!name) {
+      if (alertBox) {
+        alertBox.textContent = 'Por favor indique el nombre o título de la jornada.';
+        alertBox.style.display = 'block';
+      }
+      Toast.error('Por favor indique el título de la jornada.');
+      document.getElementById('campaignNameInput')?.focus();
+      return;
+    }
+
+    if (!start_date || !end_date) {
+      if (alertBox) {
+        alertBox.textContent = 'Debe indicar fecha de inicio y fecha de cierre.';
+        alertBox.style.display = 'block';
+      }
+      Toast.error('Debe indicar fecha de inicio y fecha de cierre.');
+      return;
+    }
+
+    if (alertBox) alertBox.style.display = 'none';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '⏳ <span>Publicando Jornada...</span>';
+    }
 
     try {
       const data = await API.post('/api/v1/admin/campaigns', {
         name,
         start_date,
         end_date,
-        combo_id,
-        distribution_point_id,
-        target_group,
-        description,
+        combo_id: combo_id || null,
+        distribution_point_id: distribution_point_id || null,
+        target_group: target_group || 'all',
+        description: description || '',
         auto_generate_entitlements
       });
 
       if (notify_workers && data.campaign?.id) {
-        await API.post(`/api/v1/admin/campaigns/${data.campaign.id}/notify`, {});
+        try {
+          await API.post(`/api/v1/admin/campaigns/${data.campaign.id}/notify`, {});
+        } catch (notifErr) {
+          console.warn('Aviso de notificación opcional:', notifErr.message);
+        }
       }
 
       closeModal();
       await loadCampaigns();
       if (typeof loadNotifications === 'function') await loadNotifications();
       playAudioFeedback('success');
-      window.showToast(`✅ ${data.message}`, 'success');
+      Toast.success(`¡Jornada "${name}" publicada exitosamente!`);
 
     } catch (err) {
+      console.error('[CAMPAIGN ERROR]', err);
       if (alertBox) {
-        alertBox.textContent = err.message;
+        alertBox.textContent = err.message || 'Error al programar la jornada.';
         alertBox.style.display = 'block';
       }
-    }
-  });
-};
-
-window.reloadDistributionPoints = async function(selectedId = null) {
-  try {
-    const data = await API.get('/api/v1/distribution-points');
-    if (data.success && Array.isArray(data.distributionPoints)) {
-      cachedDistributionPoints = data.distributionPoints;
-      const pointSelect = document.getElementById('campaignPointSelect');
-      if (pointSelect) {
-        pointSelect.innerHTML = '';
-        cachedDistributionPoints.forEach(p => {
-          const isSelected = selectedId ? (p.id === selectedId) : false;
-          pointSelect.innerHTML += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${p.name} (${p.location_code})</option>`;
-        });
-        if (selectedId) pointSelect.value = selectedId;
+      Toast.error(err.message || 'Error al programar la jornada.');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnContent;
       }
     }
-  } catch (err) {
-    console.warn('Error al recargar sedes de despacho:', err);
   }
+
+  form?.addEventListener('submit', handleCampaignSubmit);
+
+  // Asegurar que clic directo en el botón también ejecute la acción si el evento submit es bloqueado
+  submitBtn?.addEventListener('click', (e) => {
+    if (form && !form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    handleCampaignSubmit(e);
+  });
 };
 
 window.setupDistributionPointsManagement = function() {

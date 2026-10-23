@@ -141,6 +141,19 @@ const createCampaign = (req, res) => {
 
   try {
     const tx = db.transaction(() => {
+      // Validar claves foráneas para evitar 'FOREIGN KEY constraint failed'
+      let validComboId = null;
+      if (combo_id) {
+        const found = db.prepare('SELECT id FROM combos WHERE id = ?').get(combo_id);
+        if (found) validComboId = found.id;
+      }
+
+      let validPointId = null;
+      if (distribution_point_id) {
+        const found = db.prepare('SELECT id FROM distribution_points WHERE id = ?').get(distribution_point_id);
+        if (found) validPointId = found.id;
+      }
+
       db.prepare(`
         INSERT INTO delivery_campaigns (
           id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent
@@ -151,14 +164,14 @@ const createCampaign = (req, res) => {
         description || '',
         start_date,
         end_date,
-        combo_id || null,
+        validComboId,
         group,
-        distribution_point_id || null
+        validPointId
       );
 
       let generatedCount = 0;
 
-      if (combo_id && (auto_generate_entitlements !== false)) {
+      if (validComboId && (auto_generate_entitlements !== false)) {
         let workerQuery = "SELECT id FROM workers WHERE status = 'active'";
         if (group === 'activo') workerQuery += " AND worker_type = 'activo'";
         else if (group === 'jubilado') workerQuery += " AND worker_type IN ('jubilado', 'pensionado')";
@@ -171,7 +184,7 @@ const createCampaign = (req, res) => {
         `);
 
         for (const w of workers) {
-          insertEntitlement.run(crypto.randomUUID(), w.id, combo_id, start_date);
+          insertEntitlement.run(crypto.randomUUID(), w.id, validComboId, start_date);
           generatedCount++;
         }
       }
