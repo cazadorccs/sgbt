@@ -717,6 +717,18 @@ async function syncFromSupabase() {
     try {
       const { data: remoteCombos, error: cErr } = await supabase.from('combos').select('*');
       if (!cErr && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
+        const remoteIds = new Set(remoteCombos.map(r => r.id));
+        const localCombos = db.prepare('SELECT id FROM combos').all();
+        for (const loc of localCombos) {
+          if (!remoteIds.has(loc.id)) {
+            try {
+              db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(loc.id);
+              db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(loc.id);
+              db.prepare('DELETE FROM combos WHERE id = ?').run(loc.id);
+            } catch (e) {}
+          }
+        }
+
         for (const c of remoteCombos) {
           try {
             db.prepare(`

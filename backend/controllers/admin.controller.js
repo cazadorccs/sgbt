@@ -539,19 +539,32 @@ const deleteCombo = async (req, res) => {
       });
     }
 
-    // 2. Si no tiene entregas efectivas realizadas, eliminar asignaciones pendientes y campañas vinculadas
+    // 2. Si no tiene entregas efectivas realizadas, eliminar asignaciones pendientes y campañas vinculadas en SQLite
     db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(id);
     db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(id);
     db.prepare('DELETE FROM combos WHERE id = ?').run(id);
 
+    // 3. Eliminar en Supabase: primero las referencias en daily_entitlements para que la foreign key no aborte la eliminación
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
-        await supabase.from('combos').delete().eq('id', id);
-      }
-    } catch (e) {}
+        await supabase.from('daily_entitlements').delete().eq('combo_id', id);
+        try {
+          await supabase.from('delivery_campaigns').delete().eq('combo_id', id);
+        } catch (campErr) {}
 
-    res.json({ success: true, message: 'Combo eliminado exitosamente del catálogo' });
+        const { error: sbErr } = await supabase.from('combos').delete().eq('id', id);
+        if (sbErr) {
+          console.error('[SUPABASE DELETE COMBO ERROR]', sbErr);
+        } else {
+          console.log('[SUPABASE DELETE COMBO SUCCESS]', id);
+        }
+      }
+    } catch (e) {
+      console.error('[SUPABASE CASCADE DELETE EXCEPTION]', e.message);
+    }
+
+    res.json({ success: true, message: 'Combo eliminado exitosamente del catálogo y de la base de datos' });
   } catch (err) {
     console.error('[CATALOG DELETE ERROR]', err);
     res.status(500).json({ error: 'Error al eliminar combo: ' + err.message });
