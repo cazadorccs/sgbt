@@ -447,6 +447,119 @@ const deleteCombo = (req, res) => {
   }
 };
 
+const updateCombo = (req, res) => {
+  const { id } = req.params;
+  const { name, description, category, dietary_info, calories, items_detail, icon, weight_kg, is_active, mesa_name, mesa_number, conservation, target_qty } = req.body;
+
+  try {
+    const existing = db.prepare('SELECT * FROM combos WHERE id = ?').get(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Combo no encontrado' });
+    }
+
+    const cat = category !== undefined ? category : existing.category;
+    const comboIcon = icon !== undefined ? icon : (existing.icon || (cat === 'proteico' || cat === 'combo_proteico' ? '🍗' : '🍱'));
+
+    db.prepare(`
+      UPDATE combos SET
+        name = COALESCE(?, name),
+        description = COALESCE(?, description),
+        category = COALESCE(?, category),
+        calories = COALESCE(?, calories),
+        dietary_info = COALESCE(?, dietary_info),
+        items_detail = COALESCE(?, items_detail),
+        icon = COALESCE(?, icon),
+        weight_kg = COALESCE(?, weight_kg),
+        is_active = COALESCE(?, is_active),
+        mesa_name = COALESCE(?, mesa_name),
+        mesa_number = COALESCE(?, mesa_number),
+        conservation = COALESCE(?, conservation),
+        target_qty = COALESCE(?, target_qty)
+      WHERE id = ?
+    `).run(
+      name !== undefined ? name.trim() : null,
+      description !== undefined ? description : null,
+      cat,
+      calories !== undefined ? parseInt(calories, 10) : null,
+      dietary_info !== undefined ? dietary_info : null,
+      items_detail !== undefined ? items_detail.trim() : null,
+      comboIcon,
+      weight_kg !== undefined ? parseFloat(weight_kg) : null,
+      is_active !== undefined ? (is_active ? 1 : 0) : null,
+      mesa_name !== undefined ? mesa_name : null,
+      mesa_number !== undefined ? parseInt(mesa_number, 10) : null,
+      conservation !== undefined ? conservation : null,
+      target_qty !== undefined ? target_qty : null,
+      id
+    );
+
+    const updated = db.prepare('SELECT * FROM combos WHERE id = ?').get(id);
+
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const validCategoryMap = {
+          'bolsa_viveres': 'bolsa_viveres',
+          'proteico': 'combo_proteico',
+          'combo_proteico': 'combo_proteico',
+          'utiles_escolares': 'utiles_escolares',
+          'combo_higienico': 'combo_higienico',
+          'dotacion_uniformes': 'dotacion_uniformes',
+          'combo_navideno': 'combo_navideno',
+          'combo_salud': 'combo_salud',
+          'combo_especial': 'combo_especial'
+        };
+        supabase.from('combos').update({
+          name: updated.name,
+          description: updated.description,
+          category: validCategoryMap[updated.category] || 'combo_especial',
+          calories: updated.calories,
+          dietary_info: updated.dietary_info,
+          is_active: updated.is_active === 1
+        }).eq('id', id).catch(() => {});
+      }
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      message: `Combo "${updated.name}" actualizado exitosamente`,
+      combo: updated
+    });
+  } catch (err) {
+    console.error('[COMBO UPDATE ERROR]', err);
+    res.status(500).json({ error: 'Error al actualizar combo: ' + err.message });
+  }
+};
+
+const toggleComboStatus = (req, res) => {
+  const { id } = req.params;
+  try {
+    const existing = db.prepare('SELECT id, name, is_active FROM combos WHERE id = ?').get(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Combo no encontrado' });
+    }
+
+    const newStatus = existing.is_active ? 0 : 1;
+    db.prepare('UPDATE combos SET is_active = ? WHERE id = ?').run(newStatus, id);
+
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        supabase.from('combos').update({ is_active: newStatus === 1 }).eq('id', id).catch(() => {});
+      }
+    } catch (e) {}
+
+    res.json({
+      success: true,
+      is_active: newStatus,
+      message: `El combo "${existing.name}" ha sido ${newStatus === 1 ? 'ACTIVADO' : 'DESACTIVADO'} exitosamente.`
+    });
+  } catch (err) {
+    console.error('[COMBO TOGGLE STATUS ERROR]', err);
+    res.status(500).json({ error: 'Error al cambiar estado del combo: ' + err.message });
+  }
+};
+
 const getAuditStats = (req, res) => {
   const { campaign_id } = req.query;
 
@@ -790,6 +903,8 @@ module.exports = {
   assignNfc,
   getCombos,
   createCombo,
+  updateCombo,
+  toggleComboStatus,
   deleteCombo,
   getAuditStats,
   getDeliveries,

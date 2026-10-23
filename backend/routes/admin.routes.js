@@ -17,6 +17,8 @@ router.post('/admin/workers/:id/assign-nfc', adminController.assignNfc);
 
 router.get('/admin/combos', adminController.getCombos);
 router.post('/admin/combos', adminController.createCombo);
+router.put('/admin/combos/:id', adminController.updateCombo);
+router.patch('/admin/combos/:id/toggle-status', adminController.toggleComboStatus);
 router.delete('/admin/combos/:id', adminController.deleteCombo);
 
 router.get('/admin/audit/stats', adminController.getAuditStats);
