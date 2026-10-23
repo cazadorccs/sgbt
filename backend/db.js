@@ -301,7 +301,7 @@ function initializeDatabase() {
       primary_color TEXT DEFAULT '#0284c7',
       secondary_color TEXT DEFAULT '#0ea5e9',
       is_initialized INTEGER DEFAULT 1,
-      is_demo_mode INTEGER DEFAULT 1,
+      is_demo_mode INTEGER DEFAULT 0,
       supervisor_qr_mode INTEGER DEFAULT 0,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );

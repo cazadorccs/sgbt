@@ -9,7 +9,7 @@ const getStatus = async (req, res) => {
   try {
     const supabaseInfo = await testSupabaseConnection();
     let isInitialized = true;
-    let isDemoMode = true;
+    let isDemoMode = false;
     let hasAdmin = false;
     let tenantInfo = null;
 

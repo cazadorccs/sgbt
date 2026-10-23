@@ -23,9 +23,12 @@ async function checkSystemDbStatus() {
       }
     }
 
-    const isDemo = data.is_demo_mode === true || data.is_demo_mode === 1;
+    const isDemo = Boolean(
+      data.is_demo_mode === true || data.is_demo_mode === 1 || 
+      (data.tenant && (data.tenant.is_demo_mode === true || data.tenant.is_demo_mode === 1))
+    );
     STATE.is_demo_mode = isDemo;
-    STATE.is_initialized = data.is_initialized !== false;
+    STATE.is_initialized = data.is_initialized !== false && (data.tenant ? data.tenant.is_initialized !== 0 : true);
 
     const installBanner = document.getElementById('setupInstallBanner');
     const setupBanner = document.getElementById('setupPendingBanner');
