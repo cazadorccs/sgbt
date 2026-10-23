@@ -168,12 +168,13 @@ window.setupGeneralSettings = function() {
   inputResetPhrase?.addEventListener('input', (e) => {
     const val = e.target.value.trim();
     if (btnExecuteResetConfirm) {
-      btnExecuteResetConfirm.disabled = (val !== 'REINICIAR SISTEMA');
+      btnExecuteResetConfirm.disabled = (val !== 'REINICIAR SISTEMA' && val !== '0578');
     }
   });
 
   btnExecuteResetConfirm?.addEventListener('click', async () => {
-    if (inputResetPhrase?.value.trim() !== 'REINICIAR SISTEMA') return;
+    const val = inputResetPhrase?.value.trim();
+    if (val !== 'REINICIAR SISTEMA' && val !== '0578') return;
 
     btnExecuteResetConfirm.disabled = true;
     btnExecuteResetConfirm.textContent = 'Descargando backup y restableciendo...';
@@ -198,7 +199,8 @@ window.setupGeneralSettings = function() {
 
       const keep_templates = document.getElementById('checkKeepTemplatesReset')?.checked ?? true;
       const data = await API.post('/api/v1/admin/factory-reset', {
-        phrase: 'REINICIAR SISTEMA',
+        phrase: val || '0578',
+        pin: '0578',
         keep_templates
       });
 

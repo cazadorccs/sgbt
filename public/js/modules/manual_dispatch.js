@@ -483,20 +483,23 @@ window.ManualDispatch = (function() {
     }
   }
 
-  // Reiniciar entregas a 0 con confirmación
+  // Reiniciar entregas a 0 con confirmación y clave de seguridad 0578
   async function handleResetDeliveries() {
-    const confirmReset = confirm(
-      '⚠️ ATENCIÓN: ¿Está seguro de que desea REINICIAR TODAS LAS ENTREGAS A CERO?\n\n' +
-      '- Se borrarán todos los registros de despachos realizados.\n' +
-      '- Se restaurarán todos los combos de hoy a estado PENDIENTE.\n' +
-      '- El contador de entregas quedará exactamente en 0.\n\n' +
-      '¿Desea continuar con el reinicio?'
+    const key = prompt(
+      '🔒 AUTORIZACIÓN DE SEGURIDAD REQUERIDA:\n\n' +
+      'Esta acción reiniciará a CERO (0) todas las entregas registradas hoy y restaurará las asignaciones a estado PENDIENTE.\n\n' +
+      'Ingrese la clave de seguridad para autorizar:'
     );
 
-    if (!confirmReset) return;
+    if (key === null) return; // Usuario canceló el diálogo
+
+    if (key.trim() !== '0578') {
+      Toast.error('Clave de seguridad incorrecta. Acción cancelada.');
+      return;
+    }
 
     try {
-      const res = await API.post('/api/v1/manual-dispatch/reset-deliveries', {});
+      const res = await API.post('/api/v1/manual-dispatch/reset-deliveries', { key: key.trim() });
       if (res.success) {
         Toast.success('¡Entregas reiniciadas a 0 exitosamente!');
         // Limpiar tarjeta actual si había alguien buscado

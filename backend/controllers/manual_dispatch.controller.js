@@ -448,8 +448,18 @@ const getTodayStatsAndRecent = (req, res) => {
   }
 };
 
-// 5. Reiniciar todas las entregas a 0 (Acción solicitada por el usuario)
+// 5. Reiniciar todas las entregas a 0 (Acción protegida con clave de seguridad 0578)
 const resetDeliveriesAction = (req, res) => {
+  const { key, pin, password } = req.body || {};
+  const providedKey = String(key || pin || password || '').trim();
+
+  if (providedKey !== '0578') {
+    return res.status(403).json({
+      success: false,
+      error: 'Clave de seguridad inválida. Ingrese la clave correcta ("0578") para autorizar el reinicio a cero.'
+    });
+  }
+
   try {
     const result = resetDeliveriesAndSeedToday();
     res.json({

@@ -77,10 +77,11 @@ const exportBackup = (req, res) => {
 };
 
 const factoryReset = (req, res) => {
-  const { phrase, keep_templates } = req.body;
+  const { phrase, pin, key, keep_templates } = req.body;
+  const provided = (phrase || pin || key || '').trim();
 
-  if (!phrase || phrase.trim() !== 'REINICIAR SISTEMA') {
-    return res.status(400).json({ error: 'Debe ingresar exactamente la frase "REINICIAR SISTEMA" para autorizar la puesta a cero.' });
+  if (provided !== 'REINICIAR SISTEMA' && provided !== '0578') {
+    return res.status(400).json({ error: 'Debe ingresar la clave de seguridad "0578" o la frase "REINICIAR SISTEMA" para autorizar la puesta a cero.' });
   }
 
   try {
