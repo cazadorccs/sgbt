@@ -1,6 +1,8 @@
 // ============================================================================
 // CORE: BANKING-GRADE SESSION MANAGER (AUTO-LOGOUT & INACTIVITY WATCHDOG)
 // Sistema Institucional SGBT MIPPCI
+// Regla: Los super administradores y perfiles directivos están EXENTOS
+// del cierre por inactividad o abandono de ventana.
 // ============================================================================
 
 window.SessionManager = (function() {
@@ -24,6 +26,20 @@ window.SessionManager = (function() {
   let isWarningOpen = false;
   let isInitialized = false;
   let throttleTimer = 0;
+
+  // Verifica si un usuario es super administrador o perfil directivo exento de timeout
+  function isSuperAdmin(user) {
+    if (!user) return false;
+    const r = (user.role || '').toLowerCase();
+    return (
+      r === 'admin' ||
+      r === 'superadmin' ||
+      r === 'super_admin' ||
+      r === 'director' ||
+      Boolean(user.is_admin) ||
+      Boolean(user.is_superadmin)
+    );
+  }
 
   // Cargar configuración guardada
   function loadConfig() {
@@ -79,6 +95,7 @@ window.SessionManager = (function() {
     const now = Date.now();
     lastActivityTimestamp = now;
     hiddenTimestamp = null;
+    const superAdminMode = isSuperAdmin(user);
 
     try {
       // 1. Guardar en sessionStorage (se destruye naturalmente al cerrar el navegador/ventana)
@@ -87,13 +104,22 @@ window.SessionManager = (function() {
         loginAt: now,
         lastActive: now,
         userId: user.id,
-        role: user.role
+        role: user.role,
+        isSuperAdmin: superAdminMode
       }));
 
       // 2. Limpiar cualquier sesión residual en localStorage para evitar persistencia eterna
       localStorage.removeItem(STORAGE_USER_KEY);
     } catch (e) {
       console.warn('[SESSION] Error guardando sesión:', e);
+    }
+
+    // Regla: No aplicar cierre por inactividad para el Super Administrador
+    if (superAdminMode) {
+      console.log(`[SESSION WATCHDOG] 🛡️ Super Administrador (${user.full_name}): Exclusión de cierre por inactividad activa permanentemente.`);
+      stopWatchdog();
+      dismissWarningModal();
+      return;
     }
 
     startWatchdog();
@@ -127,6 +153,12 @@ window.SessionManager = (function() {
 
   // Mostrar modal de advertencia de expiración
   function showWarningModal(remainingSeconds) {
+    // Si el usuario actual es super admin, nunca mostrar advertencia
+    if (STATE && STATE.currentUser && isSuperAdmin(STATE.currentUser)) {
+      dismissWarningModal();
+      return;
+    }
+
     isWarningOpen = true;
     const modal = document.getElementById('sessionTimeoutModalBackdrop');
     const label = document.getElementById('sessionTimeoutCountdownLabel');
@@ -164,6 +196,13 @@ window.SessionManager = (function() {
       return;
     }
 
+    // Regla: Eximir totalmente al Super Administrador de la expiración por inactividad
+    if (isSuperAdmin(STATE.currentUser)) {
+      if (isWarningOpen) dismissWarningModal();
+      stopWatchdog();
+      return;
+    }
+
     const now = Date.now();
     const inactivityLimitMs = config.inactivityMinutes * 60 * 1000;
     const warningWindowMs = config.warningSeconds * 1000;
@@ -189,6 +228,13 @@ window.SessionManager = (function() {
 
   // Iniciar temporizador de vigilancia
   function startWatchdog() {
+    // Si el usuario es Super Administrador, la vigilancia nunca se activa
+    if (STATE && STATE.currentUser && isSuperAdmin(STATE.currentUser)) {
+      stopWatchdog();
+      dismissWarningModal();
+      return;
+    }
+
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(heartbeat, 1000);
   }
@@ -213,6 +259,12 @@ window.SessionManager = (function() {
       const now = Date.now();
       const inactivityLimitMs = config.inactivityMinutes * 60 * 1000;
 
+      // Si es super administrador, su sesión NUNCA expira por inactividad
+      if (meta && (meta.isSuperAdmin || meta.role === 'admin' || meta.role === 'superadmin' || meta.role === 'director')) {
+        lastActivityTimestamp = now;
+        return true;
+      }
+
       // Si el tiempo transcurrido desde la última actividad supera el límite, descartar
       if (!meta.lastActive || (now - meta.lastActive) > inactivityLimitMs) {
         sessionStorage.removeItem(STORAGE_USER_KEY);
@@ -232,6 +284,9 @@ window.SessionManager = (function() {
     // 1. Cambio de visibilidad (minimizar navegador o cambiar de pestaña)
     document.addEventListener('visibilitychange', () => {
       if (!STATE || !STATE.currentUser) return;
+
+      // Regla: Exención total para el Super Administrador al minimizar o cambiar de pestaña
+      if (isSuperAdmin(STATE.currentUser)) return;
 
       if (document.hidden) {
         hiddenTimestamp = Date.now();
@@ -291,6 +346,7 @@ window.SessionManager = (function() {
     startWatchdog,
     stopWatchdog,
     saveConfig,
+    isSuperAdmin,
     getConfig: () => ({ ...config })
   };
 })();
