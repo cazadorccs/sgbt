@@ -23,6 +23,14 @@ window.API = {
     });
   },
 
+  async patch(url, body = {}) {
+    return this.request(url, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  },
+
   async delete(url) {
     return this.request(url, { method: 'DELETE' });
   },

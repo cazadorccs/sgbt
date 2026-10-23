@@ -391,7 +391,46 @@ const assignNfc = (req, res) => {
   });
 };
 
-const getCombos = (req, res) => {
+const getCombos = async (req, res) => {
+  try {
+    const { supabase, isSupabaseConfigured } = require('../supabase');
+    if (isSupabaseConfigured() && supabase) {
+      const { data: remoteCombos, error } = await supabase.from('combos').select('*').order('created_at', { ascending: false });
+      if (!error && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
+        const remoteIds = new Set(remoteCombos.map(r => r.id));
+        const localCombos = db.prepare('SELECT id FROM combos').all();
+        for (const loc of localCombos) {
+          if (!remoteIds.has(loc.id)) {
+            try { 
+              db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(loc.id);
+              db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(loc.id);
+              db.prepare('DELETE FROM combos WHERE id = ?').run(loc.id); 
+            } catch (e) {}
+          }
+        }
+
+        for (const c of remoteCombos) {
+          try {
+            db.prepare(`
+              INSERT INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                category = excluded.category,
+                calories = excluded.calories,
+                dietary_info = excluded.dietary_info,
+                is_active = excluded.is_active
+            `).run(
+              c.id, c.name, c.description, c.category || 'combo_especial', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ? 1 : 0,
+              c.description || '', '🍱', 1, 'Mesa 1', 'Ambiente', '1', 14.0, c.created_at || new Date().toISOString()
+            );
+          } catch (e) {}
+        }
+      }
+    }
+  } catch (err) {}
+
   const combos = db.prepare('SELECT * FROM combos ORDER BY created_at DESC').all();
   res.json(combos);
 };
@@ -478,8 +517,15 @@ const createCombo = async (req, res) => {
 const deleteCombo = async (req, res) => {
   const { id } = req.params;
   try {
-    const inUse = db.prepare('SELECT COUNT(*) as count FROM daily_entitlements WHERE combo_id = ?').get(id);
-    if (inUse.count > 0) {
+    // 1. Verificar si existen entregas efectivas ya ejecutadas para este combo
+    const deliveriesCount = db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM deliveries d
+      JOIN daily_entitlements e ON d.entitlement_id = e.id
+      WHERE e.combo_id = ?
+    `).get(id)?.count || 0;
+
+    if (deliveriesCount > 0) {
       db.prepare('UPDATE combos SET is_active = 0 WHERE id = ?').run(id);
       try {
         const { supabase, isSupabaseConfigured } = require('../supabase');
@@ -487,20 +533,28 @@ const deleteCombo = async (req, res) => {
           await supabase.from('combos').update({ is_active: false }).eq('id', id);
         }
       } catch (e) {}
-      return res.json({ success: true, message: 'Combo desactivado (posee asignaciones históricas asociadas)' });
+      return res.json({ 
+        success: true, 
+        message: 'Combo desactivado (posee entregas físicas auditadas registradas)' 
+      });
     }
 
+    // 2. Si no tiene entregas efectivas realizadas, eliminar asignaciones pendientes y campañas vinculadas
+    db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(id);
+    db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(id);
     db.prepare('DELETE FROM combos WHERE id = ?').run(id);
+
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
         await supabase.from('combos').delete().eq('id', id);
       }
     } catch (e) {}
+
     res.json({ success: true, message: 'Combo eliminado exitosamente del catálogo' });
   } catch (err) {
     console.error('[CATALOG DELETE ERROR]', err);
-    res.status(500).json({ error: 'Error al eliminar combo' });
+    res.status(500).json({ error: 'Error al eliminar combo: ' + err.message });
   }
 };
 

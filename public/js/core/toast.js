@@ -84,3 +84,10 @@ window.notifyFeedback = function(msg, isSuccess = true) {
     window.playAudioFeedback(isSuccess ? 'success' : 'error');
   }
 };
+
+window.Toast = {
+  success(msg, duration) { return window.showToast(msg, 'success', duration); },
+  error(msg, duration) { return window.showToast(msg, 'error', duration); },
+  warning(msg, duration) { return window.showToast(msg, 'warning', duration); },
+  info(msg, duration) { return window.showToast(msg, 'info', duration); }
+};

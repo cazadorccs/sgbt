@@ -713,12 +713,30 @@ async function syncFromSupabase() {
     const { supabase, isSupabaseConfigured } = require('./supabase');
     if (!isSupabaseConfigured() || !supabase) return;
 
-    // Asegurar que el combo canónico exista para satisfacer llaves foráneas
+    // Hidratar combos desde Supabase Cloud
     try {
-      db.prepare(`
-        INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg)
-        VALUES ('c1a2b3c4-1111-2222-3333-444455556666', 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)', '12 rubros esenciales', 'bolsa_viveres', 12000, 'Estándar', 1, '4 kg Harina, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, 1 kg Granos, 2 Latas Sardinas', '🌾', 1, 'Mesa 1', 'Ambiente', '1', 14.0)
-      `).run();
+      const { data: remoteCombos, error: cErr } = await supabase.from('combos').select('*');
+      if (!cErr && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
+        for (const c of remoteCombos) {
+          try {
+            db.prepare(`
+              INSERT INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                category = excluded.category,
+                calories = excluded.calories,
+                dietary_info = excluded.dietary_info,
+                is_active = excluded.is_active
+            `).run(
+              c.id, c.name, c.description, c.category || 'combo_especial', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ? 1 : 0,
+              c.description || '', '🍱', 1, 'Mesa 1', 'Ambiente', '1', 14.0, c.created_at || new Date().toISOString()
+            );
+          } catch (e) {}
+        }
+        console.log(`[SUPABASE HYDRATION] ${remoteCombos.length} combos sincronizados desde Supabase Cloud.`);
+      }
     } catch (e) {}
 
     const { data: remoteWorkers, error: wErr } = await supabase.from('workers').select('*');

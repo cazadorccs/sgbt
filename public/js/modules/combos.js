@@ -165,15 +165,33 @@ window.loadCombosCatalog = async function() {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
-        const name = btn.getAttribute('data-name');
         btn.disabled = true;
         try {
-          const res = await API.patch(`/api/v1/admin/combos/${id}/toggle-status`, {});
-          Toast.success(res.message);
+          let res;
+          if (window.API && typeof window.API.patch === 'function') {
+            res = await window.API.patch(`/api/v1/admin/combos/${id}/toggle-status`, {});
+          } else {
+            const resp = await fetch(`/api/v1/admin/combos/${id}/toggle-status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            res = await resp.json();
+          }
+          if (window.Toast && typeof window.Toast.success === 'function') {
+            window.Toast.success(res.message);
+          } else if (typeof window.showToast === 'function') {
+            window.showToast(res.message, 'success');
+          }
           if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
-          loadCombosCatalog();
+          await loadCombosCatalog();
         } catch (err) {
-          Toast.error('Error al cambiar estado: ' + err.message);
+          console.error('[TOGGLE COMBO ERROR]', err);
+          if (window.Toast && typeof window.Toast.error === 'function') {
+            window.Toast.error('Error al cambiar estado: ' + err.message);
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('Error al cambiar estado: ' + err.message, 'error');
+          }
+        } finally {
           btn.disabled = false;
         }
       });
@@ -195,13 +213,30 @@ window.loadCombosCatalog = async function() {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
         if (!confirm('¿Desea eliminar o retirar este beneficio del catálogo activo?')) return;
-        
+        btn.disabled = true;
         try {
-          const delData = await API.delete(`/api/v1/admin/combos/${id}`);
-          Toast.info(delData.message || 'Beneficio eliminado');
-          loadCombosCatalog();
+          let delData;
+          if (window.API && typeof window.API.delete === 'function') {
+            delData = await window.API.delete(`/api/v1/admin/combos/${id}`);
+          } else {
+            const resp = await fetch(`/api/v1/admin/combos/${id}`, { method: 'DELETE' });
+            delData = await resp.json();
+          }
+          if (window.Toast && typeof window.Toast.info === 'function') {
+            window.Toast.info(delData.message || 'Beneficio eliminado');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast(delData.message || 'Beneficio eliminado', 'info');
+          }
+          await loadCombosCatalog();
         } catch (err) {
-          Toast.error('Error al eliminar beneficio: ' + err.message);
+          console.error('[DELETE COMBO ERROR]', err);
+          if (window.Toast && typeof window.Toast.error === 'function') {
+            window.Toast.error('Error al eliminar beneficio: ' + err.message);
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('Error al eliminar beneficio: ' + err.message, 'error');
+          }
+        } finally {
+          btn.disabled = false;
         }
       });
     });
