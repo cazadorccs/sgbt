@@ -396,7 +396,7 @@ const getCombos = (req, res) => {
   res.json(combos);
 };
 
-const createCombo = (req, res) => {
+const createCombo = async (req, res) => {
   const { 
     name, description, category, dietary_info, calories, items_detail, 
     icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active 
@@ -429,7 +429,7 @@ const createCombo = (req, res) => {
     `);
     insert.run(newId, name.trim(), items || description || '', cat, cal, info, items, comboIcon, weight, mesa, mesaNum, cons, target, activeVal);
 
-    // Sincronización asíncrona con Supabase Cloud si está disponible
+    // Sincronización asíncrona garantizada con Supabase Cloud
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
@@ -447,7 +447,7 @@ const createCombo = (req, res) => {
         };
         const safeCategory = validCategoryMap[cat] || 'combo_especial';
 
-        supabase.from('combos').insert([{
+        const { error: sbErr } = await supabase.from('combos').insert([{
           id: newId,
           name: name.trim(),
           description: items || description || '',
@@ -455,9 +455,13 @@ const createCombo = (req, res) => {
           calories: cal,
           dietary_info: info,
           is_active: activeVal === 1
-        }]).then(() => {}).catch(err => console.warn('[SUPABASE INSERT COMBO WARN]', err.message));
+        }]);
+        if (sbErr) console.warn('[SUPABASE INSERT COMBO WARN]', sbErr.message);
+        else console.log('[SUPABASE INSERT COMBO SUCCESS]', newId, name.trim());
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[SUPABASE INSERT COMBO EXCEPTION]', e.message);
+    }
 
     const created = db.prepare('SELECT * FROM combos WHERE id = ?').get(newId);
     res.status(201).json({
@@ -471,16 +475,28 @@ const createCombo = (req, res) => {
   }
 };
 
-const deleteCombo = (req, res) => {
+const deleteCombo = async (req, res) => {
   const { id } = req.params;
   try {
     const inUse = db.prepare('SELECT COUNT(*) as count FROM daily_entitlements WHERE combo_id = ?').get(id);
     if (inUse.count > 0) {
       db.prepare('UPDATE combos SET is_active = 0 WHERE id = ?').run(id);
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          await supabase.from('combos').update({ is_active: false }).eq('id', id);
+        }
+      } catch (e) {}
       return res.json({ success: true, message: 'Combo desactivado (posee asignaciones históricas asociadas)' });
     }
 
     db.prepare('DELETE FROM combos WHERE id = ?').run(id);
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        await supabase.from('combos').delete().eq('id', id);
+      }
+    } catch (e) {}
     res.json({ success: true, message: 'Combo eliminado exitosamente del catálogo' });
   } catch (err) {
     console.error('[CATALOG DELETE ERROR]', err);
@@ -488,7 +504,7 @@ const deleteCombo = (req, res) => {
   }
 };
 
-const updateCombo = (req, res) => {
+const updateCombo = async (req, res) => {
   const { id } = req.params;
   const { name, description, category, dietary_info, calories, items_detail, icon, weight_kg, is_active, mesa_name, mesa_number, conservation, target_qty } = req.body;
 
@@ -550,16 +566,20 @@ const updateCombo = (req, res) => {
           'combo_salud': 'combo_salud',
           'combo_especial': 'combo_especial'
         };
-        supabase.from('combos').update({
+        const { error: sbErr } = await supabase.from('combos').update({
           name: updated.name,
           description: updated.description,
           category: validCategoryMap[updated.category] || 'combo_especial',
           calories: updated.calories,
           dietary_info: updated.dietary_info,
           is_active: updated.is_active === 1
-        }).eq('id', id).catch(() => {});
+        }).eq('id', id);
+        if (sbErr) console.warn('[SUPABASE UPDATE COMBO WARN]', sbErr.message);
+        else console.log('[SUPABASE UPDATE COMBO SUCCESS]', id, updated.name);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[SUPABASE UPDATE COMBO EXCEPTION]', e.message);
+    }
 
     res.json({
       success: true,
@@ -572,7 +592,7 @@ const updateCombo = (req, res) => {
   }
 };
 
-const toggleComboStatus = (req, res) => {
+const toggleComboStatus = async (req, res) => {
   const { id } = req.params;
   try {
     const existing = db.prepare('SELECT id, name, is_active FROM combos WHERE id = ?').get(id);
@@ -586,9 +606,13 @@ const toggleComboStatus = (req, res) => {
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('combos').update({ is_active: newStatus === 1 }).eq('id', id).catch(() => {});
+        const { error: sbErr } = await supabase.from('combos').update({ is_active: newStatus === 1 }).eq('id', id);
+        if (sbErr) console.warn('[SUPABASE TOGGLE COMBO WARN]', sbErr.message);
+        else console.log('[SUPABASE TOGGLE COMBO SUCCESS]', id, newStatus === 1);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[SUPABASE TOGGLE COMBO EXCEPTION]', e.message);
+    }
 
     res.json({
       success: true,

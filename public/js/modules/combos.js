@@ -454,13 +454,6 @@ window.initCombosManagement = function() {
     }
   });
 };
-      closeModal();
-      loadCombosCatalog();
-    } catch (err) {
-      window.showToast(`Error al guardar: ${err.message}`, 'error');
-    }
-  });
-};
 
 window.populateCampaignCombosSelect = async function(selectedId = null) {
   const comboSelect = document.getElementById('campaignComboSelect');
@@ -957,3 +950,15 @@ window.setupDistributionPointsManagement = function() {
     }
   });
 };
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof initCombosManagement === 'function') initCombosManagement();
+    });
+  } else {
+    setTimeout(() => {
+      if (typeof initCombosManagement === 'function') initCombosManagement();
+    }, 100);
+  }
+}
