@@ -126,10 +126,13 @@ function navigateTo(viewId) {
   if (viewId === 'view-portal') {
     const visibleSubtab = Array.from(document.querySelectorAll('.portal-content-block')).find(b => b.style.display !== 'none');
     if (!visibleSubtab) {
-      const dashBtn = document.querySelector('.portal-subtab[data-subtab="subtab-dashboard"]');
-      if (dashBtn) dashBtn.click();
+      const manualBtn = document.querySelector('.portal-subtab[data-subtab="subtab-manual-dispatch"]') || document.querySelector('.portal-subtab[data-subtab="subtab-dashboard"]');
+      if (manualBtn) manualBtn.click();
     }
     if (typeof refreshPortalData === 'function') refreshPortalData();
+    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+      window.ManualDispatch.loadTodaySummary();
+    }
   }
 }
 

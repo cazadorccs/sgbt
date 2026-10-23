@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node backend/server.js",
     "db:dump": "node backend/generate_sql_dump.js",
+    "db:sync:supabase": "node backend/sync-to-supabase.js",
+    "db:reset:today": "node backend/reset-and-seed-today.js",
     "test:supabase": "node backend/test-supabase.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
