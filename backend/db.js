@@ -241,10 +241,11 @@ function initializeDatabase() {
       worker_id TEXT NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
       combo_id TEXT NOT NULL REFERENCES combos(id) ON DELETE RESTRICT,
       valid_date TEXT NOT NULL,
-      shift TEXT NOT NULL DEFAULT 'mañana',
+      shift TEXT NOT NULL DEFAULT 'jornada_continua',
       status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'claimed', 'expired'
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE (worker_id, valid_date, shift)
+      campaign_id TEXT REFERENCES delivery_campaigns(id),
+      UNIQUE (worker_id, valid_date, combo_id)
     );
 
     -- 8. REGISTRO DE ENTREGAS (DELIVERIES)
@@ -346,8 +347,45 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE deliveries ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
-  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 1"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
+
+  // Migración automática de daily_entitlements a UNIQUE (worker_id, valid_date, combo_id)
+  try {
+    const tableSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='daily_entitlements'").get()?.sql || '';
+    if (tableSql && tableSql.includes('UNIQUE (worker_id, valid_date, shift)')) {
+      db.exec("PRAGMA foreign_keys = OFF;");
+      db.exec("DROP TRIGGER IF EXISTS trg_mark_entitlement_claimed;");
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS daily_entitlements_v2 (
+          id TEXT PRIMARY KEY,
+          worker_id TEXT NOT NULL,
+          combo_id TEXT NOT NULL,
+          valid_date TEXT NOT NULL,
+          shift TEXT NOT NULL DEFAULT 'jornada_continua',
+          status TEXT NOT NULL DEFAULT 'pending',
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          campaign_id TEXT,
+          UNIQUE (worker_id, valid_date, combo_id)
+        );
+      `);
+      db.exec("INSERT OR IGNORE INTO daily_entitlements_v2 SELECT id, worker_id, combo_id, valid_date, shift, status, created_at, campaign_id FROM daily_entitlements;");
+      db.exec("DROP TABLE daily_entitlements;");
+      db.exec("ALTER TABLE daily_entitlements_v2 RENAME TO daily_entitlements;");
+      db.exec(`
+        CREATE TRIGGER IF NOT EXISTS trg_mark_entitlement_claimed
+        AFTER INSERT ON deliveries
+        BEGIN
+          UPDATE daily_entitlements
+          SET status = 'claimed'
+          WHERE id = NEW.entitlement_id;
+        END;
+      `);
+      db.exec("PRAGMA foreign_keys = ON;");
+    }
+  } catch (migErr) {
+    console.warn('[DB MIGRATION WARNING] daily_entitlements unique migration:', migErr.message);
+  }
 
   // Índices de alto rendimiento para búsquedas instantáneas, filtros y login (<1ms)
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_document_id ON workers(document_id);"); } catch (e) {}
@@ -355,6 +393,7 @@ function initializeDatabase() {
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_department ON workers(department_id);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_worker_date ON daily_entitlements(worker_id, valid_date);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_combo ON daily_entitlements(combo_id);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_passkey_credentials_worker ON passkey_credentials(worker_id, status);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_nfc_cards_worker ON nfc_cards(worker_id, status);"); } catch (e) {}
 
@@ -429,22 +468,22 @@ function initializeDatabase() {
       WHERE category = 'proteico'
     `).run();
 
-    // Garantizar asignaciones por estación (Víveres y Proteína) para hoy (en bloque atómico)
+    // Garantizar asignaciones para todos los combos activos para hoy (en bloque atómico)
     const today = new Date().toISOString().split('T')[0];
     const entCount = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ?").get()?.c || 0;
     if (entCount === 0) {
       const allWorkers = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
-      const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-      const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-      if (vCombo && pCombo && allWorkers && allWorkers.length > 0) {
+      const activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+      if (activeCombos.length > 0 && allWorkers && allWorkers.length > 0) {
         const assignTx = db.transaction((workersList) => {
           const insEnt = db.prepare(`
             INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-            VALUES (?, ?, ?, ?, ?, 'pending')
+            VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
           `);
           for (const w of workersList) {
-            insEnt.run(crypto.randomUUID(), w.id, vCombo.id, today, 'estacion_1');
-            insEnt.run(crypto.randomUUID(), w.id, pCombo.id, today, 'estacion_2');
+            for (const c of activeCombos) {
+              insEnt.run(crypto.randomUUID(), w.id, c.id, today);
+            }
           }
         });
         assignTx(allWorkers);
@@ -747,6 +786,13 @@ async function syncFromSupabase() {
             );
           } catch (e) {}
         }
+        if (remoteCombos && remoteCombos.length > 0) {
+          const remoteIds = remoteCombos.map(c => c.id);
+          const placeholders = remoteIds.map(() => '?').join(',');
+          try {
+            db.prepare(`UPDATE combos SET is_active = 0 WHERE id NOT IN (${placeholders})`).run(...remoteIds);
+          } catch (e) {}
+        }
         console.log(`[SUPABASE HYDRATION] ${remoteCombos.length} combos sincronizados desde Supabase Cloud.`);
       }
     } catch (e) {}
@@ -833,10 +879,7 @@ async function syncFromSupabase() {
       const insertRemoteEnt = db.prepare(`
         INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
         VALUES (?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-          worker_id = excluded.worker_id,
-          combo_id = excluded.combo_id,
-          valid_date = excluded.valid_date,
+        ON CONFLICT(worker_id, valid_date, combo_id) DO UPDATE SET
           shift = excluded.shift,
           status = excluded.status
       `);

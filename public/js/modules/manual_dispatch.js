@@ -306,12 +306,29 @@ window.ManualDispatch = (function() {
     if (combosContainer) {
       combosContainer.innerHTML = entitlements.map((ent, idx) => {
         const isClaimed = ent.status === 'claimed';
-        const shiftLabel = ent.shift === 'estacion_1' ? 'Mesa 1 &middot; Víveres Secos' : ent.shift === 'estacion_2' ? 'Mesa 2 &middot; Proteína Fresca' : 'Combo Asignado';
+        const nameLower = (ent.combo_name || '').toLowerCase();
+        let comboIcon = ent.icon && ent.icon !== '🍱' ? ent.icon : null;
+        if (!comboIcon) {
+          if (ent.category === 'bolsa_viveres' || nameLower.includes('víveres') || nameLower.includes('canasta')) comboIcon = '🌾';
+          else if (ent.category === 'combo_proteico' || nameLower.includes('charcutería') || nameLower.includes('prote')) comboIcon = '🍗';
+          else if (nameLower.includes('limpieza') || nameLower.includes('aseo')) comboIcon = '🧹';
+          else if (ent.category === 'combo_higienico' || nameLower.includes('higiene')) comboIcon = '🧴';
+          else if (ent.category === 'utiles_escolares' || nameLower.includes('escolar')) comboIcon = '🎒';
+          else comboIcon = '📦';
+        }
+
+        const shiftLabel = ent.mesa_name || (
+          ent.shift === 'estacion_1' || ent.category === 'bolsa_viveres' ? 'Mesa 1 &middot; Víveres Secos' :
+          ent.shift === 'estacion_2' || ent.category === 'combo_proteico' ? 'Mesa 2 &middot; Charcutería / Proteína' :
+          nameLower.includes('limpieza') ? 'Mesa 4 &middot; Artículos de Limpieza' :
+          ent.category === 'combo_higienico' ? 'Mesa 3 &middot; Higiene Personal' :
+          'Mesa de Despacho Institucional'
+        );
 
         return `
           <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid ${isClaimed ? '#cbd5e1' : '#bae6fd'}; background: ${isClaimed ? '#f8fafc' : '#f0f9ff'}; margin-bottom: 0.5rem;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <span style="font-size: 1.5rem;">${ent.icon || '🍱'}</span>
+              <span style="font-size: 1.5rem;">${comboIcon}</span>
               <div>
                 <div style="font-weight: 700; color: #0f172a; font-size: 0.88rem;">
                   ${escapeHtml(ent.combo_name)}

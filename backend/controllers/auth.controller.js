@@ -190,35 +190,36 @@ const login = async (req, res) => {
     `).get(worker.id);
 
     const today = new Date().toISOString().split('T')[0];
-    let entitlement = db.prepare(`
-      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description
-      FROM daily_entitlements de
-      JOIN combos c ON de.combo_id = c.id
-      WHERE de.worker_id = ? AND de.valid_date = ?
-      LIMIT 1
-    `).get(worker.id, today);
 
-    // Auto-asignación en jornada activa para trabajadores activos/jubilados
-    if (!entitlement && worker.status === 'active') {
+    // Auto-asignación de todos los combos activos de la jornada para trabajadores activos/jubilados
+    if (worker.status === 'active') {
       try {
-        const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
-        const newEntId = crypto.randomUUID();
-        db.prepare(`
+        const activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+        const existingCombos = db.prepare("SELECT combo_id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").all(worker.id, today);
+        const existingIds = new Set(existingCombos.map(e => e.combo_id));
+        const insEnt = db.prepare(`
           INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-          VALUES (?, ?, ?, ?, ?, 'pending')
-        `).run(newEntId, worker.id, defaultCombo, today, worker.shift || 'jornada_continua');
-
-        entitlement = db.prepare(`
-          SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description
-          FROM daily_entitlements de
-          JOIN combos c ON de.combo_id = c.id
-          WHERE de.worker_id = ? AND de.valid_date = ?
-          LIMIT 1
-        `).get(worker.id, today);
+          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+        `);
+        for (const c of activeCombos) {
+          if (!existingIds.has(c.id)) {
+            insEnt.run(crypto.randomUUID(), worker.id, c.id, today);
+          }
+        }
       } catch (autoEntErr) {
         console.warn('[LOGIN AUTO-ENTITLEMENT WARNING]', autoEntErr.message);
       }
     }
+
+    const allEntitlements = db.prepare(`
+      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon
+      FROM daily_entitlements de
+      JOIN combos c ON de.combo_id = c.id
+      WHERE de.worker_id = ? AND de.valid_date = ? AND c.is_active = 1
+      ORDER BY c.created_at ASC
+    `).all(worker.id, today);
+
+    let entitlement = allEntitlements[0] || null;
 
     // Generar token temporal de auto-enrolamiento (Magic Link / One-Click Onboarding) de 15 minutos
     const onboardingToken = generateMagicLinkToken({
@@ -253,6 +254,7 @@ const login = async (req, res) => {
         has_smartphone: Boolean(worker.has_smartphone)
       },
       entitlement: entitlement || null,
+      entitlements: allEntitlements || [],
       onboarding_token: onboardingToken
     });
   } catch (err) {

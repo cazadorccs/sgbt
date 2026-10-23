@@ -35,7 +35,8 @@ if (databaseUrl) {
   try {
     pgPool = new Pool({
       connectionString: databaseUrl,
-      ssl: { rejectUnauthorized: false }
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 2000
     });
     console.log('[SUPABASE PG] Pool de conexiones PostgreSQL directo inicializado.');
   } catch (err) {

@@ -54,10 +54,10 @@ const searchWorkerByCedula = (req, res) => {
       });
     }
 
-    // Asegurar que el trabajador tenga asignaciones para hoy (víveres y proteína si faltan)
+    // Asegurar que el trabajador tenga asignaciones para hoy (para todos los combos activos)
     ensureTodayEntitlementsForWorker(worker.id, today);
 
-    // Obtener los derechos / combos de hoy para este trabajador
+    // Obtener los derechos / combos de hoy para este trabajador (activos o ya entregados)
     const entitlements = db.prepare(`
       SELECT 
         e.id as entitlement_id, e.shift, e.status, e.valid_date,
@@ -69,8 +69,8 @@ const searchWorkerByCedula = (req, res) => {
       JOIN combos c ON e.combo_id = c.id
       LEFT JOIN deliveries d ON d.entitlement_id = e.id
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
-      WHERE e.worker_id = ? AND e.valid_date = ?
-      ORDER BY e.shift ASC
+      WHERE e.worker_id = ? AND e.valid_date = ? AND (c.is_active = 1 OR d.id IS NOT NULL)
+      ORDER BY c.created_at ASC, c.id ASC
     `).all(worker.id, today);
 
     const totalCombos = entitlements.length;
@@ -302,12 +302,8 @@ const incorporateAndDeliver = (req, res) => {
       phone_number || null
     );
 
-    // 2. Asignar combos para hoy
-    const vCombo = db.prepare("SELECT id, name FROM combos WHERE category IN ('bolsa_viveres') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-    const pCombo = db.prepare("SELECT id, name FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-
-    const vComboId = vCombo ? vCombo.id : 'c1a2b3c4-1111-2222-3333-444455556666';
-    const pComboId = pCombo ? pCombo.id : 'ae65fee7-79f6-48a3-bc41-a61c928876b5';
+    // 2. Asignar todos los combos activos del catálogo institucional para hoy
+    const activeCombos = db.prepare("SELECT id, name FROM combos WHERE is_active = 1").all();
 
     const insEnt = db.prepare(`
       INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
@@ -315,16 +311,10 @@ const incorporateAndDeliver = (req, res) => {
     `);
 
     const createdEnts = [];
-    const ent1Id = crypto.randomUUID();
-    insEnt.run(ent1Id, workerId, vComboId, today, 'estacion_1');
-    createdEnts.push({ id: ent1Id, combo_id: vComboId, name: vCombo ? vCombo.name : 'Bolsa de Víveres Secos' });
-
-    // Si la cantidad asignada es 2 o más (por defecto 2: víveres + proteína)
-    const qty = combos_qty !== undefined ? parseInt(combos_qty, 10) : 2;
-    if (qty >= 2) {
-      const ent2Id = crypto.randomUUID();
-      insEnt.run(ent2Id, workerId, pComboId, today, 'estacion_2');
-      createdEnts.push({ id: ent2Id, combo_id: pComboId, name: pCombo ? pCombo.name : 'Combo Proteico Fresco' });
+    for (const c of activeCombos) {
+      const entId = crypto.randomUUID();
+      insEnt.run(entId, workerId, c.id, today, 'jornada_continua');
+      createdEnts.push({ id: entId, combo_id: c.id, name: c.name });
     }
 
     // 3. Si se marcó despacho inmediato, entregar de una vez
@@ -476,17 +466,47 @@ const resetDeliveriesAction = (req, res) => {
 // Helper interno para asegurar que el trabajador tenga asignaciones para hoy
 function ensureTodayEntitlementsForWorker(workerId, today) {
   try {
-    const count = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").get(workerId, today).c;
-    if (count === 0) {
-      const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-      const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-      
-      const vComboId = vCombo ? vCombo.id : 'c1a2b3c4-1111-2222-3333-444455556666';
-      const pComboId = pCombo ? pCombo.id : 'ae65fee7-79f6-48a3-bc41-a61c928876b5';
+    // 1. Obtener todos los combos activos del catálogo institucional
+    const activeCombos = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE is_active = 1").all();
+    if (!activeCombos || activeCombos.length === 0) return;
 
-      const ins = db.prepare("INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status) VALUES (?, ?, ?, ?, ?, 'pending')");
-      ins.run(crypto.randomUUID(), workerId, vComboId, today, 'estacion_1');
-      ins.run(crypto.randomUUID(), workerId, pComboId, today, 'estacion_2');
+    // 2. Consultar cuáles combos ya están asignados hoy a este trabajador
+    const existingEnts = db.prepare(
+      "SELECT combo_id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?"
+    ).all(workerId, today);
+    const existingComboIds = new Set(existingEnts.map(e => e.combo_id));
+
+    const ins = db.prepare(`
+      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+    `);
+
+    const newEnts = [];
+    for (const combo of activeCombos) {
+      if (!existingComboIds.has(combo.id)) {
+        const entId = crypto.randomUUID();
+        const r = ins.run(entId, workerId, combo.id, today);
+        if (r.changes > 0) {
+          newEnts.push({
+            id: entId,
+            worker_id: workerId,
+            combo_id: combo.id,
+            valid_date: today,
+            shift: 'jornada_continua',
+            status: 'pending'
+          });
+        }
+      }
+    }
+
+    // 3. Sincronizar de forma asíncrona en Supabase si está disponible
+    if (newEnts.length > 0) {
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          supabase.from('daily_entitlements').upsert(newEnts, { onConflict: 'worker_id,valid_date,shift,combo_id' }).catch(() => {});
+        }
+      } catch (e) {}
     }
   } catch (e) {
     console.warn('[ENSURE ENTITLEMENTS WARNING]', e.message);
