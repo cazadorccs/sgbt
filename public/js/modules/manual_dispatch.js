@@ -236,32 +236,57 @@ window.ManualDispatch = (function() {
     // Resumen de estado de entrega de hoy
     const statusBox = document.getElementById('manualDeliveryStatusBox');
     const btnDeliver = document.getElementById('btnExecuteManualDelivery');
+    const secIdentity = document.getElementById('manualWorkerIdentitySection');
+    const secCombos = document.getElementById('manualWorkerCombosSection');
+    const secAction = document.getElementById('manualWorkerActionSection');
+    const searchInput = document.getElementById('inputManualCedula');
 
     if (summary.is_fully_delivered) {
       // Ya retiró todos sus combos
       const lastDelivery = entitlements.find(e => e.delivery_id);
-      const deliveryTime = lastDelivery && lastDelivery.delivered_at 
-        ? new Date(lastDelivery.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : 'Hoy';
+      const deliveryDate = (lastDelivery && lastDelivery.delivered_at) 
+        ? new Date(lastDelivery.delivered_at) 
+        : new Date();
+      const hh = String(deliveryDate.getHours()).padStart(2, '0');
+      const mm = String(deliveryDate.getMinutes()).padStart(2, '0');
+      const deliveryTime = `${hh}:${mm}`;
       
       statusBox.className = 'alert-box alert-warning';
       statusBox.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
-          <span style="font-size: 1.5rem;">🛑</span>
+        <div style="display: flex; align-items: center; gap: 0.85rem; padding: 0.25rem 0;">
+          <span style="font-size: 1.8rem;">🛑</span>
           <div>
-            <strong style="color: #b45309; font-size: 0.95rem;">YA RETIRÓ TODOS SUS COMBOS HOY</strong>
-            <p style="font-size: 0.8rem; color: #92400e; margin: 0.2rem 0 0 0;">
+            <strong style="color: #b45309; font-size: 1rem; letter-spacing: 0.02em; display: block;">YA RETIRÓ TODOS SUS COMBOS HOY</strong>
+            <p style="font-size: 0.85rem; color: #92400e; margin: 0.25rem 0 0 0; font-weight: 500;">
               El funcionario completó su cuota institucional asignada para la jornada (${summary.claimed_combos} combos entregados a las ${deliveryTime}).
             </p>
           </div>
         </div>
       `;
+
+      // Ocultar las secciones de identidad, combos y botones para que SOLO muestre el mensaje
+      if (secIdentity) secIdentity.style.display = 'none';
+      if (secCombos) secCombos.style.display = 'none';
+      if (secAction) secAction.style.display = 'none';
+
+      // Limpiar campo de búsqueda y situar foco nuevamente
+      if (searchInput) {
+        searchInput.value = '';
+        setTimeout(() => searchInput.focus(), 80);
+      }
+
       if (btnDeliver) {
         btnDeliver.disabled = true;
         btnDeliver.innerHTML = `<span>✓ Todos los Combos Entregados</span>`;
         btnDeliver.style.opacity = '0.6';
       }
-    } else if (summary.has_partial_delivery) {
+    } else {
+      // Restaurar visibilidad de secciones si tiene combos pendientes
+      if (secIdentity) secIdentity.style.display = 'flex';
+      if (secCombos) secCombos.style.display = 'block';
+      if (secAction) secAction.style.display = 'flex';
+      
+      if (summary.has_partial_delivery) {
       // Retiró parcialmente
       statusBox.className = 'alert-box alert-info';
       statusBox.innerHTML = `
@@ -393,8 +418,16 @@ window.ManualDispatch = (function() {
         Toast.success(res.message);
 
         // Recargar datos del trabajador y resumen
-        await searchWorker(currentWorkerData.worker.document_id);
+        const docId = currentWorkerData.worker.document_id;
+        await searchWorker(docId);
         await loadTodaySummary();
+
+        // Limpiar el campo de búsqueda y reenfocar
+        const searchInput = document.getElementById('inputManualCedula');
+        if (searchInput) {
+          searchInput.value = '';
+          setTimeout(() => searchInput.focus(), 80);
+        }
       } else {
         Toast.error(res.error || 'Error al procesar la entrega.');
         if (btnDeliver) btnDeliver.disabled = false;
