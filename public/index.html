@@ -763,7 +763,7 @@
               </button>
             </div>
 
-            <form id="formManualSearch" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <form id="formManualSearch" onsubmit="event.preventDefault(); return false;" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
               <div style="flex: 1; min-width: 260px; position: relative;">
                 <input 
                   type="text" 
@@ -775,7 +775,7 @@
                   required 
                 />
               </div>
-              <button type="submit" id="btnSearchManual" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800; border-radius: 10px; display: flex; align-items: center; gap: 0.5rem;">
+              <button type="button" id="btnSearchManual" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 0.95rem; font-weight: 800; border-radius: 10px; display: flex; align-items: center; gap: 0.5rem;">
                 <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <span>Consultar</span>
               </button>
@@ -2341,7 +2341,7 @@ Listo para recibir transacciones de nómina SSOT...
   <script src="/js/modules/beneficiary.js?v=2.9"></script>
   <script src="/js/modules/distributor.js?v=2.9"></script>
   <script src="/js/modules/admin.js?v=2.9"></script>
-  <script src="/js/modules/manual_dispatch.js?v=2.9"></script>
+  <script src="/js/modules/manual_dispatch.js?v=3.0"></script>
   <script src="/js/modules/payroll.js?v=2.9"></script>
   <script src="/js/modules/combos.js?v=2.9"></script>
   <script src="/js/modules/notifications.js?v=2.9"></script>

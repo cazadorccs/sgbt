@@ -30,7 +30,8 @@ window.ManualDispatch = (function() {
     }
 
     if (btnSearch) {
-      btnSearch.addEventListener('click', () => {
+      btnSearch.addEventListener('click', (e) => {
+        if (e) e.preventDefault();
         const val = searchInput ? searchInput.value.trim() : '';
         if (val) searchWorker(val);
       });
@@ -325,8 +326,9 @@ window.ManualDispatch = (function() {
         btnDeliver.style.opacity = '1';
       }
     }
+  }
 
-    // Renderizar desglose de combos
+  // Renderizar desglose de combos
     const combosContainer = document.getElementById('manualWorkerCombosList');
     if (combosContainer) {
       combosContainer.innerHTML = entitlements.map((ent, idx) => {
