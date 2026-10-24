@@ -403,7 +403,7 @@ const getTodayStatsAndRecent = (req, res) => {
     const totalPending = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ? AND status = 'pending'").get(today).c;
     const totalDeliveries = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE date(delivered_at) = ? OR date('now') = ?").get(today, today).c;
 
-    const recentDeliveries = db.prepare(`
+    const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id, d.delivered_at, d.verification_method, d.override_reason,
         w.document_id, w.full_name, w.worker_type,
@@ -418,8 +418,40 @@ const getTodayStatsAndRecent = (req, res) => {
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
       WHERE date(d.delivered_at) = ? OR date('now') = ?
       ORDER BY d.delivered_at DESC
-      LIMIT 20
+      LIMIT 200
     `).all(today, today);
+
+    // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
+    const groupedMap = new Map();
+    for (const d of rawDeliveries) {
+      const timeKey = (d.delivered_at || '').substring(0, 19);
+      const groupKey = `${d.document_id}_${timeKey}`;
+
+      if (!groupedMap.has(groupKey)) {
+        groupedMap.set(groupKey, {
+          delivery_id: d.delivery_id,
+          delivered_at: d.delivered_at,
+          verification_method: d.verification_method,
+          override_reason: d.override_reason,
+          document_id: d.document_id,
+          full_name: d.full_name,
+          worker_type: d.worker_type,
+          department_name: d.department_name,
+          supervisor_name: d.supervisor_name,
+          combos_count: 0,
+          combos: []
+        });
+      }
+
+      const grp = groupedMap.get(groupKey);
+      grp.combos_count++;
+      grp.combos.push({
+        name: d.combo_name,
+        icon: d.combo_icon || '🍱'
+      });
+    }
+
+    const recentDeliveries = Array.from(groupedMap.values()).slice(0, 30);
 
     res.json({
       success: true,

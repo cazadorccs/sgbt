@@ -124,15 +124,15 @@ window.ManualDispatch = (function() {
     }
   }
 
-  // Renderizar despachos recientes
+  // Renderizar despachos recientes simplificados y agrupados por funcionario
   function renderRecentDeliveries(deliveries) {
     const tbody = document.getElementById('recentManualDeliveriesBody');
     const countBadge = document.getElementById('recentDeliveriesCount');
-    if (countBadge) countBadge.textContent = `${deliveries.length} registros`;
 
     if (!tbody) return;
 
-    if (deliveries.length === 0) {
+    if (!deliveries || deliveries.length === 0) {
+      if (countBadge) countBadge.textContent = '0 entregas';
       tbody.innerHTML = `
         <tr>
           <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
@@ -144,31 +144,78 @@ window.ManualDispatch = (function() {
       return;
     }
 
-    tbody.innerHTML = deliveries.map(d => {
+    // Normalizar a lista agrupada por funcionario y momento de entrega
+    const grouped = [];
+    const map = new Map();
+
+    for (const d of deliveries) {
+      if (d.combos && Array.isArray(d.combos)) {
+        grouped.push(d);
+      } else {
+        const timeKey = (d.delivered_at || '').substring(0, 19);
+        const groupKey = `${d.document_id}_${timeKey}`;
+        if (!map.has(groupKey)) {
+          const item = {
+            ...d,
+            combos_count: 0,
+            combos: []
+          };
+          map.set(groupKey, item);
+          grouped.push(item);
+        }
+        const grp = map.get(groupKey);
+        grp.combos_count++;
+        grp.combos.push({
+          name: d.combo_name,
+          icon: d.combo_icon || '🍱'
+        });
+      }
+    }
+
+    const totalCombosDelivered = grouped.reduce((sum, g) => sum + (g.combos_count || (g.combos ? g.combos.length : 1)), 0);
+    if (countBadge) {
+      countBadge.textContent = `${grouped.length} funcionarios atendidos (${totalCombosDelivered} combos)`;
+    }
+
+    tbody.innerHTML = grouped.map(d => {
       const timeStr = d.delivered_at ? new Date(d.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
       const badgeMethod = d.verification_method === 'manual_incorporation_rrhh'
         ? '<span class="badge" style="background: #8b5cf6; color: white;">Incorporación Directa</span>'
         : '<span class="badge" style="background: #0284c7; color: white;">Manual RRHH</span>';
 
+      const combosList = d.combos || [{ name: d.combo_name || 'Combo Alimenticio', icon: d.combo_icon || '🍱' }];
+      const count = d.combos_count || combosList.length;
+
       return `
-        <tr style="border-bottom: 1px solid rgba(226, 232, 240, 0.7);">
-          <td style="padding: 0.65rem 0.75rem; font-family: monospace; font-weight: 700; color: #0284c7;">
+        <tr style="border-bottom: 1px solid rgba(226, 232, 240, 0.7); transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+          <td style="padding: 0.75rem 0.75rem; font-family: monospace; font-weight: 700; color: #0284c7; white-space: nowrap; vertical-align: middle;">
             ${timeStr}
           </td>
-          <td style="padding: 0.65rem 0.75rem;">
-            <div style="font-weight: 700; color: #0f172a;">${escapeHtml(d.full_name)}</div>
-            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize;">${escapeHtml(d.worker_type || 'activo')}</span></div>
+          <td style="padding: 0.75rem 0.75rem; vertical-align: middle;">
+            <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">${escapeHtml(d.full_name)}</div>
+            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace; margin-top: 0.1rem;">
+              ${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; font-weight: 600;">${escapeHtml(d.worker_type || 'activo')}</span>
+            </div>
           </td>
-          <td style="padding: 0.65rem 0.75rem; font-size: 0.8rem; color: #334155;">
+          <td style="padding: 0.75rem 0.75rem; font-size: 0.8rem; color: #334155; vertical-align: middle; max-width: 250px;">
             ${escapeHtml(d.department_name || 'Nómina Central')}
           </td>
-          <td style="padding: 0.65rem 0.75rem;">
-            <span style="display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; font-size: 0.82rem; color: #047857; background: #ecfdf5; padding: 0.2rem 0.5rem; border-radius: 6px;">
-              <span>${d.combo_icon || '🍱'}</span>
-              <span>${escapeHtml(d.combo_name)}</span>
-            </span>
+          <td style="padding: 0.75rem 0.75rem; vertical-align: middle;">
+            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 800; font-size: 0.75rem; background: #0284c7; color: white; padding: 0.2rem 0.55rem; border-radius: 9999px;">
+                  📦 ${count} ${count === 1 ? 'combo' : 'combos'}
+                </span>
+                ${combosList.map(c => `
+                  <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 600;">
+                    <span>${c.icon}</span>
+                    <span>${escapeHtml(c.name)}</span>
+                  </span>
+                `).join('')}
+              </div>
+            </div>
           </td>
-          <td style="padding: 0.65rem 0.75rem;">
+          <td style="padding: 0.75rem 0.75rem; vertical-align: middle; white-space: nowrap;">
             ${badgeMethod}
           </td>
         </tr>
