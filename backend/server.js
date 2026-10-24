@@ -9,10 +9,14 @@ const cors = require('cors');
 const path = require('path');
 const { readyPromise } = require('./db');
 const { errorHandler } = require('./middleware/error.middleware');
+const { securityHardening } = require('./middleware/security.middleware');
 const apiRoutes = require('./routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Middleware de seguridad y mitigación de ataques de compresión (CVE-2026-111497)
+app.use(securityHardening);
 
 // Middlewares base
 app.use(cors());

@@ -249,3 +249,29 @@ Una vez completada la instalación:
 2. Inicie sesión con el usuario administrador institucional (`director@mippci.gob.ve`).
 3. Confirme que la base de datos indique `SQLite Local` o `PostgreSQL Cloud/On-Premise`.
 4. En **Gobernanza y Parámetros**, verifique que el switch de validación (NFC vs QR Supervisor) responda correctamente.
+
+---
+
+## 8. Seguridad Ministerial y Mitigación de Vulnerabilidades de Compresión (CVE-2026-111497)
+
+Para garantizar la protección de la infraestructura contra ataques de desbordamiento en memoria heap por descompresión no confiable (como la vulnerabilidad **CVE-2026-111497** en bibliotecas Brotli C de versiones Node.js < 1.2.1):
+
+1. **Blindaje en la Capa de Aplicación:**
+   - La API de SGBT incluye el middleware defensivo `backend/middleware/security.middleware.js` que rechaza automáticamente (`HTTP 415 Unsupported Media Type`) cualquier intento de envío de solicitudes con cabecera `Content-Encoding: br`, `brotli`, `gzip` o `deflate`.
+   - Adicionalmente, inyecta cabeceras `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN` y `Referrer-Policy: strict-origin-when-cross-origin`.
+
+2. **Blindaje Perimetral en Nginx:**
+   - Despliegue el archivo de configuración perimetral provisto en `deploy/nginx/sgbt_hardening.conf`.
+   - La directiva `map $http_content_encoding $block_brotli_payloads` descarta solicitudes con codificación Brotli en el borde perimetral antes de que alcancen el socket de Node.js.
+
+3. **Mantenimiento del Runtime Node.js:**
+   - Verifique periódicamente la versión de Brotli compilada en su entorno:
+     ```bash
+     node -p "process.versions.brotli"
+     ```
+   - Al liberarse parches de seguridad del canal Node.js LTS, actualice con:
+     ```bash
+     sudo apt update && sudo apt --only-upgrade install nodejs
+     pm2 restart sgbt-backend
+     ```
+

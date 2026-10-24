@@ -12,7 +12,9 @@ const {
   generateMagicLinkToken,
   verifyMagicLinkToken,
   generateDelegationToken,
-  verifyDelegationToken
+  verifyDelegationToken,
+  generateSessionToken,
+  verifySessionToken
 } = require('../crypto-utils');
 
 // ============================================================================
@@ -227,6 +229,13 @@ const login = async (req, res) => {
       documentId: worker.document_id
     }, 15);
 
+    // Generar token de sesión institucional firmado criptográficamente (12 horas)
+    const sessionToken = generateSessionToken({
+      userId: worker.id,
+      role: worker.role || 'worker',
+      documentId: worker.document_id
+    }, 12);
+
     const elapsed = Date.now() - startTime;
     const isSuperAdmin = worker.role === 'admin' || worker.role === 'director';
 
@@ -253,6 +262,8 @@ const login = async (req, res) => {
         has_passkey: Boolean(passkey),
         has_smartphone: Boolean(worker.has_smartphone)
       },
+      session_token: sessionToken,
+      token: sessionToken,
       entitlement: entitlement || null,
       entitlements: allEntitlements || [],
       onboarding_token: onboardingToken

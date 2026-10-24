@@ -194,6 +194,54 @@ function verifyDelegationToken(token) {
   }
 }
 
+const SESSION_SECRET = process.env.SESSION_JWT_SECRET || 'MIPPCI_SGBT_SESSION_SECRET_2026';
+
+/**
+ * Genera un token de sesión institucional firmado con HMAC-SHA256 (validez configurable, ej. 12 horas).
+ */
+function generateSessionToken({ userId, role, documentId }, expiresInHours = 12) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + (expiresInHours * 3600);
+  const jti = generateNonce(16);
+  const payload = Buffer.from(JSON.stringify({
+    sub: String(userId),
+    doc: String(documentId),
+    role: String(role || 'worker'),
+    typ: 'session_auth',
+    exp,
+    jti
+  })).toString('base64url');
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(`${header}.${payload}`).digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * Verifica la autenticidad y vigencia del token de sesión institucional.
+ */
+function verifySessionToken(token) {
+  try {
+    if (!token || typeof token !== 'string') return { valid: false, error: 'Token de sesión no provisto' };
+    const cleanToken = token.startsWith('Bearer ') ? token.slice(7).trim() : token.trim();
+    const parts = cleanToken.split('.');
+    if (parts.length !== 3) return { valid: false, error: 'Formato de token de sesión inválido' };
+    const [headerB64, payloadB64, sigB64] = parts;
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(`${headerB64}.${payloadB64}`).digest('base64url');
+    const bufA = Buffer.from(sigB64, 'utf8');
+    const bufB = Buffer.from(expectedSig, 'utf8');
+    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+      return { valid: false, error: 'Firma de sesión adulterada o inválida' };
+    }
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      return { valid: false, error: 'La sesión institucional ha expirado' };
+    }
+    return { valid: true, payload };
+  } catch (err) {
+    return { valid: false, error: err.message };
+  }
+}
+
 module.exports = {
   generateP256KeyPair,
   generateNonce,
@@ -206,5 +254,8 @@ module.exports = {
   generateMagicLinkToken,
   verifyMagicLinkToken,
   generateDelegationToken,
-  verifyDelegationToken
+  verifyDelegationToken,
+  generateSessionToken,
+  verifySessionToken
 };
+

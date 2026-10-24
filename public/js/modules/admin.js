@@ -599,6 +599,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btnExportAuditCsv')?.addEventListener('click', () => {
     const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
-    window.location.href = `/api/v1/admin/export?format=csv&campaign_id=${encodeURIComponent(campaignId)}`;
+    const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
+    window.location.href = `/api/v1/admin/export?format=csv&campaign_id=${encodeURIComponent(campaignId)}&session_token=${encodeURIComponent(token)}`;
+  });
+
+  document.getElementById('btnExportAuditActa')?.addEventListener('click', () => {
+    const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
+    const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
+    window.open(`/api/v1/admin/export?format=acta&campaign_id=${encodeURIComponent(campaignId)}&session_token=${encodeURIComponent(token)}`, '_blank');
   });
 });
+

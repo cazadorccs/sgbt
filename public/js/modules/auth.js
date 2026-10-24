@@ -137,6 +137,10 @@ async function executeLogin(rawDocId) {
 
     playAudioFeedback('success');
     const user = data.user;
+    if (data.session_token) {
+      sessionStorage.setItem('sgbt_session_token', data.session_token);
+      localStorage.setItem('sgbt_session_token', data.session_token);
+    }
     console.log(`[CLIENT AUTH] ✅ Sesión iniciada: ${user.full_name} | Rol: ${user.role}`);
     STATE.setCurrentUser(user);
     applyUserSession(user);
@@ -416,6 +420,8 @@ window.handleLogout = function(reason) {
   STATE.activeQrPayload = null;
   try {
     localStorage.removeItem('sgbt_active_qr_payload');
+    localStorage.removeItem('sgbt_session_token');
+    sessionStorage.removeItem('sgbt_session_token');
     sessionStorage.clear();
   } catch (e) {}
 

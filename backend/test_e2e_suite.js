@@ -57,6 +57,8 @@ function test(name, fn) {
 
 let testWorkerId = null;
 let testEntitlementId = null;
+let workerSessionToken = null;
+let adminSessionToken = null;
 
 // ----------------------------------------------------------------------------
 // 1. ASSETS Y ARQUITECTURA MODULAR ESTRUCTURAL
@@ -112,6 +114,7 @@ test('E2E-06: Verificación y Login de Trabajador Beneficiario (C.I. V-18456123)
   if (!res.data.success || !res.data.user) throw new Error('Respuesta inválida de login');
   testWorkerId = res.data.user.id;
   testEntitlementId = res.data.entitlement?.id || null;
+  workerSessionToken = res.data.session_token || res.data.token || null;
   console.log(`     [Trabajador: ${res.data.user.full_name}, Rol: ${res.data.user.role}, Passkey: ${res.data.user.has_passkey}]`);
 });
 
@@ -119,7 +122,9 @@ test('E2E-07: Login de Administrador Institucional (C.I. 13537582)', async () =>
   const res = await request('POST', '/api/v1/auth/login', { document_id: '13537582' });
   if (res.status !== 200) throw new Error(`HTTP ${res.status}: ${res.data?.error}`);
   if (!res.data.user || res.data.user.role !== 'admin') throw new Error('Usuario no tiene permisos de admin');
-  console.log(`     [Admin: ${res.data.user.full_name}, Rol: ${res.data.user.role}]`);
+  adminSessionToken = res.data.session_token || res.data.token || null;
+  if (!adminSessionToken) throw new Error('Servidor no generó session_token');
+  console.log(`     [Admin: ${res.data.user.full_name}, Rol: ${res.data.user.role}, Token: ${adminSessionToken.substring(0, 16)}...]`);
 });
 
 // ----------------------------------------------------------------------------
@@ -135,7 +140,8 @@ test('E2E-08: Desafío Criptográfico Passkey (Register Challenge)', async () =>
 
 test('E2E-09: Expediente Digital de Seguridad del Trabajador', async () => {
   if (!testWorkerId) throw new Error('testWorkerId no disponible');
-  const res = await request('GET', `/api/v1/admin/workers/${testWorkerId}/security-dossier`);
+  const headers = adminSessionToken ? { 'Authorization': `Bearer ${adminSessionToken}` } : {};
+  const res = await request('GET', `/api/v1/admin/workers/${testWorkerId}/security-dossier`, null, headers);
   if (res.status !== 200) throw new Error(`HTTP ${res.status}: ${res.data?.error}`);
   if (!res.data.worker) throw new Error('No retorna datos del trabajador en el expediente');
   console.log(`     [Expediente: ${res.data.worker.full_name}, Credenciales: ${res.data.credentials ? res.data.credentials.length : 0}]`);
@@ -162,7 +168,8 @@ test('E2E-11: Generación de QR Diario del Supervisor', async () => {
 // 6. GESTIÓN INSTITUCIONAL: COMBOS, JORNADAS Y PUNTOS DE DESPACHO
 // ----------------------------------------------------------------------------
 test('E2E-12: Catálogo de Combos y Beneficios Institucionales', async () => {
-  const res = await request('GET', '/api/v1/admin/combos');
+  const headers = adminSessionToken ? { 'Authorization': `Bearer ${adminSessionToken}` } : {};
+  const res = await request('GET', '/api/v1/admin/combos', null, headers);
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
   if (!Array.isArray(res.data)) throw new Error('Respuesta no es un array');
   console.log(`     [Combos activos en catálogo: ${res.data.length}]`);
@@ -177,7 +184,8 @@ test('E2E-13: Puntos de Distribución / Sedes Físicas', async () => {
 });
 
 test('E2E-14: Campañas / Jornadas de Despacho Planificadas', async () => {
-  const res = await request('GET', '/api/v1/admin/campaigns');
+  const headers = adminSessionToken ? { 'Authorization': `Bearer ${adminSessionToken}` } : {};
+  const res = await request('GET', '/api/v1/admin/campaigns', null, headers);
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
   if (!Array.isArray(res.data)) throw new Error('Respuesta no es un array');
   console.log(`     [Jornadas planificadas: ${res.data.length}]`);
@@ -210,7 +218,8 @@ test('E2E-16: Sincronización Batch de Despachos Offline', async () => {
 });
 
 test('E2E-17: Estadísticas de Auditoría y KPIs de Gestión', async () => {
-  const resKpis = await request('GET', '/api/v1/admin/kpis');
+  const headers = adminSessionToken ? { 'Authorization': `Bearer ${adminSessionToken}` } : {};
+  const resKpis = await request('GET', '/api/v1/admin/kpis', null, headers);
   if (resKpis.status !== 200) throw new Error(`HTTP ${resKpis.status} en /admin/kpis`);
   const k = resKpis.data.kpis || {};
   console.log(`     [Total Beneficiarios KPI: ${k.total_active_workers}, Adopción Passkeys: ${k.passkey_adoption_rate_pct}%]`);
@@ -282,6 +291,113 @@ test('E2E-20: Verificación de Estado de Despacho por Estaciones (/api/v1/auth/d
   if (typeof res.data.delivered !== 'boolean') throw new Error('Respuesta no incluye booleano delivered');
   console.log(`     [Status Entrega: delivered=${res.data.delivered}, S1=${res.data.station_1_delivered}, S2=${res.data.station_2_delivered}]`);
 });
+
+test('E2E-21: Seguridad y Control de Acceso RBAC (Rechazo 401 sin sesión y 403 con rol no autorizado)', async () => {
+  // 1. Petición sin token a ruta protegida -> Debe fallar con 401
+  const resNoAuth = await request('GET', '/api/v1/admin/workers');
+  if (resNoAuth.status !== 401) throw new Error(`Esperaba HTTP 401 sin token, pero recibí ${resNoAuth.status}`);
+
+  // 2. Petición con token de rol 'worker' a ruta restringida a admin -> Debe fallar con 403
+  if (workerSessionToken) {
+    const resForbidden = await request('GET', '/api/v1/admin/workers', null, {
+      'Authorization': `Bearer ${workerSessionToken}`
+    });
+    if (resForbidden.status !== 403) throw new Error(`Esperaba HTTP 403 para rol worker, pero recibí ${resForbidden.status}`);
+  }
+
+  // 3. Petición con token de 'admin' -> Debe responder 200
+  if (adminSessionToken) {
+    const resAllowed = await request('GET', '/api/v1/admin/workers', null, {
+      'Authorization': `Bearer ${adminSessionToken}`
+    });
+    if (resAllowed.status !== 200) throw new Error(`Esperaba HTTP 200 para admin, pero recibí ${resAllowed.status}`);
+  }
+
+  console.log('     [RBAC Activo: HTTP 401 sin token, HTTP 403 para beneficiario, HTTP 200 para administrador]');
+});
+
+test('E2E-22: Generación de Acta Oficial Ministerial de Despacho y Auditoría (/api/v1/admin/export?format=acta)', async () => {
+  const headers = adminSessionToken ? { 'Authorization': `Bearer ${adminSessionToken}` } : {};
+  const res = await request('GET', '/api/v1/admin/export?format=acta', null, headers);
+  if (res.status !== 200) throw new Error(`HTTP ${res.status} al solicitar Acta Oficial`);
+  if (typeof res.data !== 'string' || !res.data.includes('Acta Oficial de Despacho, Rendición y Auditoría Logística')) {
+    throw new Error('El contenido retornado no corresponde al formato oficial del Acta Ministerial');
+  }
+  if (!res.data.includes('Sello de Integridad Criptográfica de la Jornada (SHA-256)')) {
+    throw new Error('El acta no contiene el sello de integridad criptográfica');
+  }
+  console.log('     [Acta Oficial Generada Exitosamente: Membrete Ministerial, Tonelaje, Desglose por Dependencia y Sello SHA-256]');
+});
+
+test('E2E-23: Arquitectura PWA Background Sync e IndexedDB (Offline Engine)', async () => {
+  // 1. Validar presencia del script del motor IndexedDB
+  const resStore = await request('GET', '/js/core/offline_store.js');
+  if (resStore.status !== 200) throw new Error(`HTTP ${resStore.status} al solicitar offline_store.js`);
+  if (!resStore.data.includes('sgbt_offline_db') || !resStore.data.includes('enqueueDelivery')) {
+    throw new Error('offline_store.js no contiene la implementación completa de IndexedDB');
+  }
+
+  // 2. Validar soporte de Background Sync en sw.js
+  const resSw = await request('GET', '/sw.js');
+  if (resSw.status !== 200) throw new Error(`HTTP ${resSw.status} en sw.js`);
+  if (!resSw.data.includes('sgbt-sync-deliveries') || !resSw.data.includes('processBackgroundSyncDeliveries')) {
+    throw new Error('sw.js no contiene los manejadores de Background Sync API');
+  }
+
+  // 3. Validar importación en index.html
+  const resHtml = await request('GET', '/index.html');
+  if (!resHtml.data.includes('/js/core/offline_store.js')) {
+    throw new Error('index.html no importa /js/core/offline_store.js');
+  }
+
+  console.log('     [Background Sync PWA Activo: IndexedDB sgbt_offline_db, tag "sgbt-sync-deliveries" y auto-vaciado]');
+});
+
+test('E2E-24: Mitigación Activa CVE-2026-111497 (Brotli Heap Corruption) y Cabeceras OWASP', async () => {
+  // 1. Probar que una petición con 'Content-Encoding: br' es rechazada con HTTP 415 (Unsupported Media Type)
+  const resBrotli = await request('POST', '/api/v1/auth/login', {
+    username: 'test',
+    password: 'password'
+  }, {
+    'Content-Encoding': 'br'
+  });
+
+  if (resBrotli.status !== 415) {
+    throw new Error(`Se esperaba HTTP 415 al enviar 'Content-Encoding: br', pero se obtuvo HTTP ${resBrotli.status}`);
+  }
+  if (!resBrotli.data || resBrotli.data.code !== 'UNSUPPORTED_CONTENT_ENCODING') {
+    throw new Error(`Código de error inesperado al rechazar payload comprimido: ${JSON.stringify(resBrotli.data)}`);
+  }
+
+  // 2. Probar que 'Content-Encoding: gzip' también es rechazado con HTTP 415
+  const resGzip = await request('POST', '/api/v1/auth/login', {
+    username: 'test'
+  }, {
+    'Content-Encoding': 'gzip'
+  });
+  if (resGzip.status !== 415) {
+    throw new Error(`Se esperaba HTTP 415 al enviar 'Content-Encoding: gzip', pero se obtuvo HTTP ${resGzip.status}`);
+  }
+
+  // 3. Probar que una petición normal recibe cabeceras de seguridad defensivas OWASP
+  const resNormal = await request('GET', '/api/v1/campaigns/active');
+  const h = resNormal.headers;
+
+  if (h['x-content-type-options'] !== 'nosniff') {
+    throw new Error(`Cabecera X-Content-Type-Options esperada 'nosniff', obtenida '${h['x-content-type-options']}'`);
+  }
+  if (h['x-frame-options'] !== 'SAMEORIGIN') {
+    throw new Error(`Cabecera X-Frame-Options esperada 'SAMEORIGIN', obtenida '${h['x-frame-options']}'`);
+  }
+  if (!h['referrer-policy']) {
+    throw new Error(`Cabecera Referrer-Policy ausente`);
+  }
+
+  console.log('     [Blindaje Activo: Rechazo temprano HTTP 415 ante Brotli/Gzip y cabeceras OWASP nosniff/SAMEORIGIN inyectadas]');
+});
+
+
+
 
 
 // ----------------------------------------------------------------------------

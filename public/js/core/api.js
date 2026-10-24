@@ -37,6 +37,14 @@ window.API = {
 
   async request(url, options = {}) {
     try {
+      // Inyección automática del Token Criptográfico de Sesión Institucional (RBAC)
+      const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token');
+      const headers = { ...(options.headers || {}) };
+      if (token && !headers['Authorization'] && !headers['authorization']) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      options.headers = headers;
+
       const res = await fetch(url, options);
       const rawText = await res.text();
       let data;

@@ -19,7 +19,41 @@ window.setupDistributorSimulator = function() {
   document.getElementById('btnSimulateNfcTap')?.addEventListener('click', simulateNfcTap);
   document.getElementById('btnSimulateSupervisorDailyQr')?.addEventListener('click', simulateSupervisorDailyQrApproval);
   document.getElementById('btnDistributorShowSupervisorQr')?.addEventListener('click', loadAndShowSupervisorDailyQrModal);
-  document.getElementById('btnSyncDeferredQueue')?.addEventListener('click', syncDeferredQueue);
+  document.getElementById('btnSyncDeferredQueue')?.addEventListener('click', () => syncDeferredQueue(false));
+
+  // Restaurar entregas offline acumuladas desde IndexedDB al iniciar
+  if (window.OfflineStore && typeof window.OfflineStore.getAllPending === 'function') {
+    window.OfflineStore.getAllPending().then(pending => {
+      if (pending && pending.length > 0) {
+        STATE.localCache.syncQueue = pending;
+        updateSyncQueueUI();
+        console.log(`[DISTRIBUIDOR] 📦 ${pending.length} entregas offline recuperadas desde IndexedDB.`);
+      }
+    }).catch(e => console.warn('[OFFLINE RESTORE WARNING]', e));
+  }
+
+  // Escuchar evento online del navegador para auto-sincronización instantánea
+  window.addEventListener('online', () => {
+    console.log('[NETWORK EVENT] 📶 Conexión restablecida. Ejecutando auto-sincronización...');
+    STATE.isOnline = true;
+    syncDeferredQueue(true);
+  });
+
+  // Escuchar notificaciones de sincronización en segundo plano desde el Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', async (event) => {
+      if (event.data && event.data.type === 'BACKGROUND_SYNC_COMPLETE') {
+        console.log('[DISTRIBUIDOR] ☁️ Notificación recibida de Background Sync completado:', event.data);
+        STATE.localCache.syncQueue = [];
+        if (window.OfflineStore) {
+          await window.OfflineStore.clearAll();
+        }
+        updateSyncQueueUI();
+        if (typeof refreshPortalData === 'function') refreshPortalData();
+        window.showToast(`☁️ Sincronización Automática en Segundo Plano: ${event.data.processed} despachos sincronizados exitosamente.`, 'success');
+      }
+    });
+  }
   
   // Selector de Estaciones de Despacho (Estación 1: Víveres, Estación 2: Proteína, Unificado)
   setupStationTabs();
@@ -732,6 +766,9 @@ async function processQrPayload(payload, isLiveCamera = false) {
     STATE.localCache.deliveredEntitlements.add(payload.ent);
     STATE.localCache.deliveredEntitlements.add(stationCacheKey);
     STATE.localCache.syncQueue.push(offlineRecord);
+    if (window.OfflineStore && typeof window.OfflineStore.enqueueDelivery === 'function') {
+      window.OfflineStore.enqueueDelivery(offlineRecord).catch(e => console.warn('[OFFLINE ENQUEUE ERR]', e));
+    }
     updateSyncQueueUI();
 
     const isStation2Offline = qrStation === '2';
@@ -890,6 +927,9 @@ async function simulateNfcTap() {
 
   if (!STATE.isOnline) {
     STATE.localCache.syncQueue.push(deliveryRecord);
+    if (window.OfflineStore && typeof window.OfflineStore.enqueueDelivery === 'function') {
+      window.OfflineStore.enqueueDelivery(deliveryRecord).catch(e => console.warn('[OFFLINE ENQUEUE ERR]', e));
+    }
     updateSyncQueueUI();
     showDistributorFeedback(
       true,
@@ -981,6 +1021,9 @@ async function handleSupervisorDailyQrScan(payload) {
 
   if (!STATE.isOnline) {
     STATE.localCache.syncQueue.push(deliveryRecord);
+    if (window.OfflineStore && typeof window.OfflineStore.enqueueDelivery === 'function') {
+      window.OfflineStore.enqueueDelivery(deliveryRecord).catch(e => console.warn('[OFFLINE ENQUEUE ERR]', e));
+    }
     updateSyncQueueUI();
     showDistributorFeedback(
       true,
@@ -1169,6 +1212,9 @@ function recordContingencyDelivery(method, reason, supervisorId) {
 
   if (!STATE.isOnline) {
     STATE.localCache.syncQueue.push(deliveryRecord);
+    if (window.OfflineStore && typeof window.OfflineStore.enqueueDelivery === 'function') {
+      window.OfflineStore.enqueueDelivery(deliveryRecord).catch(e => console.warn('[OFFLINE ENQUEUE ERR]', e));
+    }
     updateSyncQueueUI();
     showDistributorFeedback(true, 'CONTINGENCIA REGISTRADA', `Autorizado con firma de Supervisor para ${worker.full_name}.`);
   } else {
@@ -1185,33 +1231,59 @@ function recordContingencyDelivery(method, reason, supervisorId) {
   }
 }
 
-async function syncDeferredQueue() {
-  if (STATE.localCache.syncQueue.length === 0) {
-    window.showToast('No hay transacciones pendientes en la cola diferida.', 'info');
+async function syncDeferredQueue(isAuto = false) {
+  let queue = [...STATE.localCache.syncQueue];
+
+  // Recuperar cualquier transacción guardada en IndexedDB
+  if (window.OfflineStore && typeof window.OfflineStore.getAllPending === 'function') {
+    try {
+      const dbQueue = await window.OfflineStore.getAllPending();
+      if (dbQueue && dbQueue.length > 0) {
+        const map = new Map();
+        queue.forEach(d => map.set(d.id, d));
+        dbQueue.forEach(d => map.set(d.id, d));
+        queue = Array.from(map.values());
+      }
+    } catch (e) {
+      console.warn('[OFFLINE DB MERGE WARNING]', e);
+    }
+  }
+
+  if (queue.length === 0) {
+    if (!isAuto) window.showToast('No hay transacciones pendientes en la cola diferida.', 'info');
     return;
   }
 
   if (!STATE.isOnline) {
-    window.showToast('No hay conexión de red. Restablezca la conexión para transmitir.', 'warning');
+    if (!isAuto) window.showToast('No hay conexión de red. Restablezca la conexión para transmitir.', 'warning');
     return;
   }
 
   try {
-    const queue = [...STATE.localCache.syncQueue];
     const data = await API.post('/api/v1/sync/batch-deliveries', {
       distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
       device_id: 'distributor_tablet_01',
       deliveries: queue
     });
 
-    window.showToast(`☁️ Sincronización en Lote:\n• Procesadas: ${data.processed}\n• Duplicados bloqueados: ${data.failed_duplicates}`, 'success');
+    const msg = isAuto
+      ? `☁️ Sincronización Automática en Segundo Plano:\n• Procesadas: ${data.processed}\n• Duplicados bloqueados: ${data.failed_duplicates}`
+      : `☁️ Sincronización en Lote:\n• Procesadas: ${data.processed}\n• Duplicados bloqueados: ${data.failed_duplicates}`;
+
+    window.showToast(msg, 'success');
+
+    if (window.OfflineStore && typeof window.OfflineStore.clearAll === 'function') {
+      await window.OfflineStore.clearAll();
+    }
     STATE.localCache.syncQueue = [];
     updateSyncQueueUI();
     if (typeof refreshPortalData === 'function') refreshPortalData();
   } catch (err) {
-    window.showToast('Error transmitiendo lote: ' + err.message, 'error');
+    if (!isAuto) window.showToast('Error transmitiendo lote: ' + err.message, 'error');
+    console.warn('[OFFLINE SYNC ERROR]', err);
   }
 }
+window.syncDeferredQueue = syncDeferredQueue;
 
 function updateSyncQueueUI() {
   const counter = document.getElementById('syncQueueCounter');

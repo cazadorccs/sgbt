@@ -203,6 +203,10 @@ function setupNetworkToggle() {
       }
       if (text) text.textContent = 'Online';
       if (dropdownLabel) dropdownLabel.textContent = 'Simular Desconexión';
+      // Auto-sincronizar cola acumulada al restablecer conexión
+      if (typeof window.syncDeferredQueue === 'function') {
+        window.syncDeferredQueue(true);
+      }
     } else {
       if (pill) {
         pill.className = 'status-pill status-pill-compact offline';
