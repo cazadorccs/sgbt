@@ -518,8 +518,8 @@ window.ManualDispatch = (function() {
         if (!comboIcon) {
           if (ent.category === 'bolsa_viveres' || nameLower.includes('víveres') || nameLower.includes('canasta')) comboIcon = '🌾';
           else if (ent.category === 'combo_proteico' || nameLower.includes('charcutería') || nameLower.includes('prote')) comboIcon = '🍗';
-          else if (nameLower.includes('limpieza') || nameLower.includes('aseo') || ent.category === 'combo_limpieza') comboIcon = '🧹';
-          else if (ent.category === 'combo_higienico' || nameLower.includes('higiene')) comboIcon = '🧼';
+          else if (nameLower.includes('limpieza')) comboIcon = '🧹';
+          else if (ent.category === 'combo_higienico' || nameLower.includes('higiene') || nameLower.includes('aseo')) comboIcon = '🧼';
           else if (ent.category === 'utiles_escolares' || nameLower.includes('escolar')) comboIcon = '🎒';
           else comboIcon = '📦';
         }
@@ -527,15 +527,19 @@ window.ManualDispatch = (function() {
         const shiftLabel = ent.mesa_name || (
           ent.shift === 'estacion_1' || ent.category === 'bolsa_viveres' ? 'Mesa 1 &middot; Víveres Secos' :
           ent.shift === 'estacion_2' || ent.category === 'combo_proteico' ? 'Mesa 2 &middot; Charcutería / Proteína' :
-          (ent.category === 'combo_higienico' || nameLower.includes('higiene') || nameLower.includes('limpieza')) ? 'Mesa 2 &middot; Higiene y Limpieza' :
+          nameLower.includes('limpieza') ? 'Mesa 4 &middot; Artículos de Limpieza' :
+          (ent.category === 'combo_higienico' || nameLower.includes('higiene')) ? 'Mesa 2 &middot; Higiene y Aseo Personal' :
           'Mesa de Despacho Institucional'
         );
 
-        const itemsDetailBadge = ent.items_detail 
-          ? `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (${escapeHtml(ent.items_detail)})</div>`
-          : ((nameLower.includes('higiene') || nameLower.includes('limpieza'))
-              ? `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (4 artículos esenciales incluidos)</div>`
-              : '');
+        let itemsDetailBadge = '';
+        if (ent.items_detail) {
+          itemsDetailBadge = `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (${escapeHtml(ent.items_detail)})</div>`;
+        } else if (nameLower.includes('higiene')) {
+          itemsDetailBadge = `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (4 artículos: Jabón, Crema Dental, Champú y Papel)</div>`;
+        } else if (nameLower.includes('limpieza')) {
+          itemsDetailBadge = `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (Artículos de limpieza del hogar)</div>`;
+        }
 
         return `
           <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-radius: 10px; border: 1.5px solid ${isClaimed ? '#cbd5e1' : '#bae6fd'}; background: ${isClaimed ? '#f8fafc' : '#ffffff'}; box-shadow: ${isClaimed ? 'none' : '0 2px 6px rgba(2, 132, 199, 0.06)'}; height: 100%; box-sizing: border-box; transition: transform 0.15s ease, box-shadow 0.15s ease;">

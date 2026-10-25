@@ -404,18 +404,35 @@ function initializeDatabase() {
     db.prepare("UPDATE combos SET weight_kg = 8.0 WHERE category = 'proteico' AND (weight_kg IS NULL OR weight_kg = 0 OR weight_kg = 14.0)").run();
     db.prepare("UPDATE combos SET weight_kg = 3.5 WHERE category = 'utiles_escolares' AND (weight_kg IS NULL OR weight_kg = 0 OR weight_kg = 14.0)").run();
     
-    // Unificación permanente: Combo de Higiene y Limpieza (1 combo compuesto por 4 artículos)
+    // Configuración oficial: Combos separados de Higiene Personal y Limpieza
     db.prepare(`
       UPDATE combos 
-      SET name = 'Combo de Higiene y Limpieza',
-          description = 'Combo único de 4 artículos: Jabón de Tocador, Crema Dental, Champú y Detergente Multiuso',
-          items_detail = '4 artículos: Jabón de Tocador, Crema Dental, Champú y Detergente Multiuso',
-          mesa_name = 'Mesa 2 - Higiene y Limpieza',
+      SET name = 'Combo de Higiene Personal',
+          description = 'Kit de higiene personal (4 artículos esenciales)',
+          items_detail = '4 artículos: 4 Jabones de Tocador, 1 Crema Dental, 1 Champú, 4 Rollos de Papel Higiénico',
+          mesa_name = 'Mesa 2 - Higiene y Aseo Personal',
           icon = '🧼',
           is_active = 1
       WHERE id = '3df50537-3333-4fce-8bdc-f4ecbb567adf'
     `).run();
-    db.prepare("UPDATE combos SET is_active = 0 WHERE id = '2e39c4a5-0611-4a03-b10c-08ef7e270684'").run();
+
+    db.prepare(`
+      UPDATE combos 
+      SET name = 'Combo de Limpieza',
+          description = 'Kit de artículos de limpieza y desinfección del hogar',
+          items_detail = 'Artículos de limpieza: 1 Detergente en Polvo (1kg), 1 Jabón Lavaplatos, Desinfectante y Cloro',
+          mesa_name = 'Mesa 4 - Artículos de Limpieza',
+          icon = '🧹',
+          is_active = 1
+      WHERE id = '2e39c4a5-0611-4a03-b10c-08ef7e270684'
+    `).run();
+
+    db.prepare(`
+      UPDATE combos 
+      SET icon = '🍗',
+          mesa_name = 'Mesa 2 - Charcutería / Proteína'
+      WHERE id = 'c1a2b3c4-1111-2222-3333-444455557777'
+    `).run();
   } catch (e) {}
 
   // Inicializar tenant_settings por defecto si está vacío
