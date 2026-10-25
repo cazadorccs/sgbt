@@ -8,12 +8,16 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const { readyPromise } = require('./db');
-const { errorHandler } = require('./middleware/error.middleware');
+const { errorHandler, rfc7807Middleware } = require('./middleware/error.middleware');
+const { idempotencyMiddleware } = require('./middleware/idempotency.middleware');
 const { securityHardening } = require('./middleware/security.middleware');
 const apiRoutes = require('./routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Soporte de formato estándar de errores RFC 7807
+app.use(rfc7807Middleware);
 
 // Middleware de seguridad y mitigación de ataques de compresión (CVE-2026-111497)
 app.use(securityHardening);
@@ -61,6 +65,9 @@ app.use(async (req, res, next) => {
 // Redirecciones amigables a la documentación interactiva OpenAPI 3.1
 app.get('/docs', (req, res) => res.redirect('/api/v1/docs'));
 app.get('/api/docs', (req, res) => res.redirect('/api/v1/docs'));
+
+// Soporte de idempotencia en peticiones mutadoras de la API (RFC / Idempotency-Key)
+app.use('/api', idempotencyMiddleware);
 
 // Montaje de rutas de la API REST v1
 app.use('/api/v1', apiRoutes);

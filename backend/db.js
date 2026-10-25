@@ -529,7 +529,15 @@ function initializeDatabase() {
     }
   } catch (e) {}
 
-  console.log('[DB] Esquema relacional verificado e inicializado con soporte Multi-Ente, Jornadas y Notificaciones.');
+  // Ejecutar migraciones declarativas versionadas (database-migrations)
+  try {
+    const { runMigrations } = require('./migrator');
+    runMigrations(db);
+  } catch (mErr) {
+    console.warn('[DB MIGRATIONS WARNING]', mErr.message);
+  }
+
+  console.log('[DB] Esquema relacional verificado e inicializado con soporte Multi-Ente, Jornadas, Migraciones e Idempotencia.');
 }
 
 // Almacén seguro en memoria para simulación de llaves privadas (Secure Enclave simulado)
