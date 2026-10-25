@@ -66,6 +66,34 @@
   --transition-normal: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Principios de Tipografía y Wrapping (make-interfaces-feel-better) */
+h1, h2, h3, h4, h5, h6,
+.brand-title, .modal-title, .card-title, .section-title, .hero-title {
+  text-wrap: balance;
+}
+
+p, .description, .modal-body, .toast-body, .alert-box, .status-desc {
+  text-wrap: pretty;
+}
+
+/* Tabular Numerals para evitar saltos en contadores y cédulas de identidad */
+.kpi-value, .metric-number, .worker-document, .table-cell-doc,
+.counter, .badge-count, .timer, .table-doc, [data-tabular="true"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Image Outlines sutiles para delimitar imágenes institucionales */
+img.brand-logo-img, .worker-avatar img, .combo-card img, .stamp-seal img {
+  outline: 1px solid rgba(15, 23, 42, 0.08);
+  outline-offset: -1px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -131,7 +159,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  transition: all var(--transition-normal);
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .brand-section {
@@ -154,7 +184,9 @@ body {
   border: 1px solid rgba(226, 232, 240, 0.9);
   overflow: hidden;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition-property: transform, border-color, box-shadow;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .brand-logo:hover {
@@ -196,8 +228,8 @@ body {
 /* 1. Botón Minimalista de Icono en Cabecera */
 .btn-icon-header {
   position: relative;
-  width: 38px;
-  height: 38px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -206,9 +238,15 @@ body {
   border: 1px solid #e2e8f0;
   color: #475569;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, color, box-shadow;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-xs);
   flex-shrink: 0;
+}
+
+.btn-icon-header:active {
+  transform: scale(0.96);
 }
 
 .btn-icon-header:hover {
@@ -256,7 +294,14 @@ body {
 
 .status-pill-compact {
   cursor: pointer;
-  transition: all var(--transition-fast);
+  min-height: 36px;
+  transition-property: transform, filter, border-color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.status-pill-compact:active {
+  transform: scale(0.97);
 }
 
 .status-pill-compact:hover {
@@ -291,8 +336,15 @@ body {
   border: 1px solid #e2e8f0;
   border-radius: 9999px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  min-height: 44px;
+  transition-property: transform, background-color, border-color, box-shadow;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: var(--shadow-xs);
+}
+
+.user-menu-trigger:active {
+  transform: scale(0.97);
 }
 
 .user-menu-trigger:hover,
@@ -441,7 +493,9 @@ body {
   color: #334155;
   cursor: pointer;
   text-align: left;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dropdown-item:hover {
@@ -494,7 +548,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-tab-btn:hover {
@@ -532,7 +588,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .portal-subtab:hover {
@@ -616,7 +674,9 @@ body {
   padding: 1.35rem;
   position: relative;
   box-shadow: var(--shadow-xs);
-  transition: all var(--transition-normal);
+  transition-property: transform, background-color, border-color, box-shadow;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   border-top: 3px solid transparent;
 }
 
@@ -857,7 +917,9 @@ body {
   padding: 0.3rem 0.65rem;
   border-radius: 9999px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: transform, background-color, border-color, color;
+  transition-duration: 0.2s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
   font-family: inherit;
   display: inline-flex;
@@ -915,13 +977,21 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.15rem;
+  min-height: 44px;
   border-radius: var(--radius-sm);
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all var(--transition-fast);
+  user-select: none;
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn:active {
+  transform: scale(0.97);
 }
 
 .btn-primary {
@@ -1069,7 +1139,9 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (max-width: 640px) {
@@ -1103,7 +1175,9 @@ body {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   cursor: pointer;
 }
 
@@ -1229,7 +1303,9 @@ body {
   justify-content: center;
   margin-bottom: 1rem;
   position: relative;
-  transition: all 0.3s ease;
+  transition-property: transform, box-shadow, border-color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
 }
 
 .qr-display-box.max-brightness {
@@ -1446,7 +1522,9 @@ body {
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .package-card:hover {
@@ -1588,7 +1666,9 @@ body {
   border: 1px solid #cbd5e1;
   cursor: pointer;
   user-select: none;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
@@ -1612,7 +1692,9 @@ body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: all var(--transition-fast);
+  transition-property: transform, background-color, border-color, box-shadow, color;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   font-size: 1rem;
   color: transparent;
   background: #ffffff;
@@ -1651,7 +1733,9 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 1rem;
-  transition: all 0.2s ease;
+  transition-property: transform, background-color, border-color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }
 
 .setting-item-card:hover {
@@ -2094,7 +2178,9 @@ body.senior-accessible-mode .feedback-subtitle {
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
-  transition: all 0.2s ease;
+  transition-property: transform, background-color, border-color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }
 
 .wizard-step-item.active .wizard-step-circle {
@@ -2144,7 +2230,9 @@ body.senior-accessible-mode .feedback-subtitle {
   color: #334155;
   border: 1px solid #cbd5e1;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition-property: transform, background-color, border-color, box-shadow;
+  transition-duration: 0.2s;
+  transition-timing-function: ease;
 }
 
 .wa-role-tab:hover {

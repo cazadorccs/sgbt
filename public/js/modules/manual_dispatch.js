@@ -55,10 +55,20 @@ window.ManualDispatch = (function() {
       btnDeliver.addEventListener('click', executeDelivery);
     }
 
+    // Feedback táctil al seleccionar/deseleccionar combos individuales
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.classList && e.target.classList.contains('manual-combo-checkbox')) {
+        if (typeof window.triggerHaptic === 'function') {
+          window.triggerHaptic('tick');
+        }
+      }
+    });
+
     // Botón para abrir modal de incorporación rápida
     const btnOpenIncorporate = document.getElementById('btnOpenFastIncorporate');
     if (btnOpenIncorporate) {
       btnOpenIncorporate.addEventListener('click', () => {
+        if (typeof window.triggerHaptic === 'function') window.triggerHaptic('tick');
         const searchInput = document.getElementById('inputManualCedula');
         const typedCedula = searchInput ? searchInput.value.trim() : '';
         openFastIncorporateModal(typedCedula);
@@ -606,8 +616,10 @@ window.ManualDispatch = (function() {
       const res = await API.post('/api/v1/manual-dispatch/deliver', payload);
 
       if (res.success) {
-        if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) {
-          SoundManager.playSuccess();
+        if (typeof window.playAudioFeedback === 'function') {
+          window.playAudioFeedback('delivery_approved');
+        } else if (typeof window.triggerHaptic === 'function') {
+          window.triggerHaptic('delivery_approved');
         }
         Toast.success(res.message);
 
@@ -623,10 +635,16 @@ window.ManualDispatch = (function() {
           setTimeout(() => searchInput.focus(), 80);
         }
       } else {
+        if (typeof window.playAudioFeedback === 'function') {
+          window.playAudioFeedback('error');
+        }
         Toast.error(res.error || 'Error al procesar la entrega.');
         if (btnDeliver) btnDeliver.disabled = false;
       }
     } catch (err) {
+      if (typeof window.playAudioFeedback === 'function') {
+        window.playAudioFeedback('error');
+      }
       Toast.error('Fallo de conexión o error: ' + err.message);
       if (btnDeliver) btnDeliver.disabled = false;
     }
