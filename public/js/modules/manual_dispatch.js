@@ -527,10 +527,15 @@ window.ManualDispatch = (function() {
         const shiftLabel = ent.mesa_name || (
           ent.shift === 'estacion_1' || ent.category === 'bolsa_viveres' ? 'Mesa 1 &middot; Víveres Secos' :
           ent.shift === 'estacion_2' || ent.category === 'combo_proteico' ? 'Mesa 2 &middot; Charcutería / Proteína' :
-          nameLower.includes('limpieza') ? 'Mesa 4 &middot; Artículos de Limpieza' :
-          ent.category === 'combo_higienico' ? 'Mesa 2 - Higiene y Aseo Personal' :
+          (ent.category === 'combo_higienico' || nameLower.includes('higiene') || nameLower.includes('limpieza')) ? 'Mesa 2 &middot; Higiene y Limpieza' :
           'Mesa de Despacho Institucional'
         );
+
+        const itemsDetailBadge = ent.items_detail 
+          ? `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (${escapeHtml(ent.items_detail)})</div>`
+          : ((nameLower.includes('higiene') || nameLower.includes('limpieza'))
+              ? `<div style="font-size: 0.70rem; color: #0369a1; margin-top: 0.25rem; font-weight: 600; line-height: 1.2;">📦 Unidad: 1 combo (4 artículos esenciales incluidos)</div>`
+              : '');
 
         return `
           <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-radius: 10px; border: 1.5px solid ${isClaimed ? '#cbd5e1' : '#bae6fd'}; background: ${isClaimed ? '#f8fafc' : '#ffffff'}; box-shadow: ${isClaimed ? 'none' : '0 2px 6px rgba(2, 132, 199, 0.06)'}; height: 100%; box-sizing: border-box; transition: transform 0.15s ease, box-shadow 0.15s ease;">
@@ -542,9 +547,10 @@ window.ManualDispatch = (function() {
                 <div style="font-weight: 700; color: #0f172a; font-size: 0.88rem; line-height: 1.25; word-break: break-word;">
                   ${escapeHtml(ent.combo_name)}
                 </div>
-                <div style="font-size: 0.74rem; color: #64748b; margin-top: 0.2rem; font-weight: 500;">
+                <div style="font-size: 0.74rem; color: #64748b; margin-top: 0.15rem; font-weight: 500;">
                   ${shiftLabel} ${ent.weight_kg ? `&middot; ~${ent.weight_kg} kg` : ''}
                 </div>
+                ${itemsDetailBadge}
               </div>
             </div>
             <div style="margin-left: 0.75rem; flex-shrink: 0;">
