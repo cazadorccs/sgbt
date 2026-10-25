@@ -508,18 +508,18 @@ window.ManualDispatch = (function() {
     }
   }
 
-  // Renderizar desglose de combos
+  // Renderizar desglose de combos en 2 columnas
     const combosContainer = document.getElementById('manualWorkerCombosList');
     if (combosContainer) {
       combosContainer.innerHTML = entitlements.map((ent, idx) => {
         const isClaimed = ent.status === 'claimed';
         const nameLower = (ent.combo_name || '').toLowerCase();
-        let comboIcon = ent.icon && ent.icon !== '🍱' ? ent.icon : null;
+        let comboIcon = ent.icon && ent.icon !== '🍱' && ent.icon !== '📦' ? ent.icon : null;
         if (!comboIcon) {
           if (ent.category === 'bolsa_viveres' || nameLower.includes('víveres') || nameLower.includes('canasta')) comboIcon = '🌾';
           else if (ent.category === 'combo_proteico' || nameLower.includes('charcutería') || nameLower.includes('prote')) comboIcon = '🍗';
-          else if (nameLower.includes('limpieza') || nameLower.includes('aseo')) comboIcon = '🧹';
-          else if (ent.category === 'combo_higienico' || nameLower.includes('higiene')) comboIcon = '🧴';
+          else if (nameLower.includes('limpieza') || nameLower.includes('aseo') || ent.category === 'combo_limpieza') comboIcon = '🧹';
+          else if (ent.category === 'combo_higienico' || nameLower.includes('higiene')) comboIcon = '🧼';
           else if (ent.category === 'utiles_escolares' || nameLower.includes('escolar')) comboIcon = '🎒';
           else comboIcon = '📦';
         }
@@ -528,28 +528,30 @@ window.ManualDispatch = (function() {
           ent.shift === 'estacion_1' || ent.category === 'bolsa_viveres' ? 'Mesa 1 &middot; Víveres Secos' :
           ent.shift === 'estacion_2' || ent.category === 'combo_proteico' ? 'Mesa 2 &middot; Charcutería / Proteína' :
           nameLower.includes('limpieza') ? 'Mesa 4 &middot; Artículos de Limpieza' :
-          ent.category === 'combo_higienico' ? 'Mesa 3 &middot; Higiene Personal' :
+          ent.category === 'combo_higienico' ? 'Mesa 2 - Higiene y Aseo Personal' :
           'Mesa de Despacho Institucional'
         );
 
         return `
-          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: 8px; border: 1px solid ${isClaimed ? '#cbd5e1' : '#bae6fd'}; background: ${isClaimed ? '#f8fafc' : '#f0f9ff'}; margin-bottom: 0.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <span style="font-size: 1.5rem;">${comboIcon}</span>
-              <div>
-                <div style="font-weight: 700; color: #0f172a; font-size: 0.88rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-radius: 10px; border: 1.5px solid ${isClaimed ? '#cbd5e1' : '#bae6fd'}; background: ${isClaimed ? '#f8fafc' : '#ffffff'}; box-shadow: ${isClaimed ? 'none' : '0 2px 6px rgba(2, 132, 199, 0.06)'}; height: 100%; box-sizing: border-box; transition: transform 0.15s ease, box-shadow 0.15s ease;">
+            <div style="display: flex; align-items: center; gap: 0.85rem; flex: 1; min-width: 0;">
+              <span style="font-size: 1.65rem; flex-shrink: 0; width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; background: ${isClaimed ? '#e2e8f0' : 'rgba(2, 132, 199, 0.08)'}; border-radius: 9px;">
+                ${comboIcon}
+              </span>
+              <div style="min-width: 0; flex: 1;">
+                <div style="font-weight: 700; color: #0f172a; font-size: 0.88rem; line-height: 1.25; word-break: break-word;">
                   ${escapeHtml(ent.combo_name)}
                 </div>
-                <div style="font-size: 0.72rem; color: #64748b;">
+                <div style="font-size: 0.74rem; color: #64748b; margin-top: 0.2rem; font-weight: 500;">
                   ${shiftLabel} ${ent.weight_kg ? `&middot; ~${ent.weight_kg} kg` : ''}
                 </div>
               </div>
             </div>
-            <div>
+            <div style="margin-left: 0.75rem; flex-shrink: 0;">
               ${isClaimed 
-                ? '<span class="badge badge-success" style="background: #10b981; color: white; font-size: 0.75rem;">✓ Entregado</span>'
-                : `<label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #0284c7;">
-                    <input type="checkbox" class="manual-combo-checkbox" value="${ent.entitlement_id}" checked style="width: 18px; height: 18px;" />
+                ? '<span class="badge badge-success" style="background: #10b981; color: white; font-size: 0.75rem; padding: 0.35rem 0.65rem; border-radius: 6px; font-weight: 700;">✓ Entregado</span>'
+                : `<label style="display: inline-flex; align-items: center; gap: 0.45rem; cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #0284c7; background: #f0f9ff; padding: 0.4rem 0.75rem; border-radius: 8px; border: 1.5px solid #bae6fd; user-select: none;">
+                    <input type="checkbox" class="manual-combo-checkbox" value="${ent.entitlement_id}" checked style="width: 17px; height: 17px; cursor: pointer; accent-color: #0284c7;" />
                     <span>Entregar</span>
                   </label>`
               }

@@ -2360,5 +2360,21 @@ body.senior-accessible-mode .feedback-subtitle {
   box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
 }
 
+/* ============================================================================
+   GRID DE COMBOS ASIGNADOS (DESPACHO MANUAL EN 2 COLUMNAS)
+   ============================================================================ */
+.manual-worker-combos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+@media (max-width: 680px) {
+  .manual-worker-combos-grid {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+}
+
 
 
