@@ -6,6 +6,7 @@
 window.ManualDispatch = (function() {
   let currentWorkerData = null;
   let departmentsCache = [];
+  let cachedGroupedDeliveries = [];
 
   // Inicialización del módulo
   async function init() {
@@ -86,6 +87,62 @@ window.ManualDispatch = (function() {
     if (btnRefresh) {
       btnRefresh.addEventListener('click', loadTodaySummary);
     }
+
+    // Botones para abrir modal de Registro de Despachos en Vivo
+    const btnOpenModalKpi = document.getElementById('btnOpenRecentDeliveriesModal');
+    const btnOpenModalBottom = document.getElementById('btnOpenRecentDeliveriesModalBottom');
+    if (btnOpenModalKpi) {
+      btnOpenModalKpi.addEventListener('click', openRecentDeliveriesModal);
+    }
+    if (btnOpenModalBottom) {
+      btnOpenModalBottom.addEventListener('click', openRecentDeliveriesModal);
+    }
+
+    // Botones para cerrar modal de Despachos en Vivo
+    const btnCloseModal = document.getElementById('btnCloseRecentDeliveriesModal');
+    const btnFooterCloseModal = document.getElementById('btnFooterCloseRecentDeliveriesModal');
+    if (btnCloseModal) {
+      btnCloseModal.addEventListener('click', closeRecentDeliveriesModal);
+    }
+    if (btnFooterCloseModal) {
+      btnFooterCloseModal.addEventListener('click', closeRecentDeliveriesModal);
+    }
+
+    // Botón de refrescar dentro del modal
+    const btnRefreshModal = document.getElementById('btnRefreshModalDeliveries');
+    if (btnRefreshModal) {
+      btnRefreshModal.addEventListener('click', async () => {
+        btnRefreshModal.disabled = true;
+        btnRefreshModal.textContent = '⏳ Cargando...';
+        await loadTodaySummary();
+        btnRefreshModal.disabled = false;
+        btnRefreshModal.textContent = '🔄 Actualizar';
+      });
+    }
+
+    // Cerrar modal al hacer clic en el backdrop fuera del diálogo
+    const modalBackdrop = document.getElementById('recentDeliveriesModalBackdrop');
+    if (modalBackdrop) {
+      modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) closeRecentDeliveriesModal();
+      });
+    }
+
+    // Cerrar modal con tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modalBackdrop && modalBackdrop.classList.contains('active')) {
+        closeRecentDeliveriesModal();
+      }
+    });
+
+    // Filtro en vivo dentro del modal
+    const inputFilter = document.getElementById('inputFilterRecentDeliveries');
+    if (inputFilter) {
+      inputFilter.addEventListener('input', () => {
+        const query = inputFilter.value.toLowerCase().trim();
+        filterAndRenderModalDeliveries(query);
+      });
+    }
   }
 
   // Cargar lista de departamentos para el select de incorporación
@@ -126,21 +183,14 @@ window.ManualDispatch = (function() {
 
   // Renderizar despachos recientes simplificados y agrupados por funcionario
   function renderRecentDeliveries(deliveries) {
-    const tbody = document.getElementById('recentManualDeliveriesBody');
     const countBadge = document.getElementById('recentDeliveriesCount');
-
-    if (!tbody) return;
+    const modalCountBadge = document.getElementById('modalRecentDeliveriesCount');
 
     if (!deliveries || deliveries.length === 0) {
+      cachedGroupedDeliveries = [];
       if (countBadge) countBadge.textContent = '0 entregas';
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
-            <div>No se han registrado entregas manuales todavía hoy. Las entregas están en 0.</div>
-          </td>
-        </tr>
-      `;
+      if (modalCountBadge) modalCountBadge.textContent = '0 entregas';
+      renderEmptyState();
       return;
     }
 
@@ -172,12 +222,39 @@ window.ManualDispatch = (function() {
       }
     }
 
+    cachedGroupedDeliveries = grouped;
+
     const totalCombosDelivered = grouped.reduce((sum, g) => sum + (g.combos_count || (g.combos ? g.combos.length : 1)), 0);
-    if (countBadge) {
-      countBadge.textContent = `${grouped.length} funcionarios atendidos (${totalCombosDelivered} combos)`;
+    const labelCount = `${grouped.length} funcionarios atendidos (${totalCombosDelivered} combos)`;
+    
+    if (countBadge) countBadge.textContent = labelCount;
+    if (modalCountBadge) modalCountBadge.textContent = labelCount;
+
+    // Renderizar en el modal y en tabla inline si existe
+    const modalTbody = document.getElementById('modalRecentDeliveriesBody');
+    const inlineTbody = document.getElementById('recentManualDeliveriesBody');
+
+    if (modalTbody) renderTableRows(modalTbody, grouped);
+    if (inlineTbody) renderTableRows(inlineTbody, grouped);
+  }
+
+  // Renderizar filas HTML en un elemento tbody
+  function renderTableRows(tbodyEl, list) {
+    if (!tbodyEl) return;
+
+    if (!list || list.length === 0) {
+      tbodyEl.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 2.5rem; color: #94a3b8;">
+            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📦</div>
+            <div style="font-size: 0.95rem; font-weight: 600;">No se encontraron registros de entregas para este filtro.</div>
+          </td>
+        </tr>
+      `;
+      return;
     }
 
-    tbody.innerHTML = grouped.map(d => {
+    tbodyEl.innerHTML = list.map(d => {
       const timeStr = d.delivered_at ? new Date(d.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
       const badgeMethod = d.verification_method === 'manual_incorporation_rrhh'
         ? '<span class="badge" style="background: #8b5cf6; color: white;">Incorporación Directa</span>'
@@ -188,19 +265,19 @@ window.ManualDispatch = (function() {
 
       return `
         <tr style="border-bottom: 1px solid rgba(226, 232, 240, 0.7); transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-          <td style="padding: 0.75rem 0.75rem; font-family: monospace; font-weight: 700; color: #0284c7; white-space: nowrap; vertical-align: middle;">
+          <td style="padding: 0.75rem 0.85rem; font-family: monospace; font-weight: 700; color: #0284c7; white-space: nowrap; vertical-align: middle;">
             ${timeStr}
           </td>
-          <td style="padding: 0.75rem 0.75rem; vertical-align: middle;">
+          <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
             <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">${escapeHtml(d.full_name)}</div>
             <div style="font-size: 0.75rem; color: #64748b; font-family: monospace; margin-top: 0.1rem;">
               ${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; font-weight: 600;">${escapeHtml(d.worker_type || 'activo')}</span>
             </div>
           </td>
-          <td style="padding: 0.75rem 0.75rem; font-size: 0.8rem; color: #334155; vertical-align: middle; max-width: 250px;">
+          <td style="padding: 0.75rem 0.85rem; font-size: 0.8rem; color: #334155; vertical-align: middle; max-width: 250px;">
             ${escapeHtml(d.department_name || 'Nómina Central')}
           </td>
-          <td style="padding: 0.75rem 0.75rem; vertical-align: middle;">
+          <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
             <div style="display: flex; flex-direction: column; gap: 0.35rem;">
               <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                 <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 800; font-size: 0.75rem; background: #0284c7; color: white; padding: 0.2rem 0.55rem; border-radius: 9999px;">
@@ -215,12 +292,68 @@ window.ManualDispatch = (function() {
               </div>
             </div>
           </td>
-          <td style="padding: 0.75rem 0.75rem; vertical-align: middle; white-space: nowrap;">
+          <td style="padding: 0.75rem 0.85rem; vertical-align: middle; white-space: nowrap;">
             ${badgeMethod}
           </td>
         </tr>
       `;
     }).join('');
+  }
+
+  // Renderizar estado vacío en las tablas
+  function renderEmptyState() {
+    const emptyHtml = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+          <div>No se han registrado entregas manuales todavía hoy. Las entregas están en 0.</div>
+        </td>
+      </tr>
+    `;
+    const modalTbody = document.getElementById('modalRecentDeliveriesBody');
+    const inlineTbody = document.getElementById('recentManualDeliveriesBody');
+    if (modalTbody) modalTbody.innerHTML = emptyHtml;
+    if (inlineTbody) inlineTbody.innerHTML = emptyHtml;
+  }
+
+  // Abrir modal de entregas en vivo
+  async function openRecentDeliveriesModal() {
+    const modal = document.getElementById('recentDeliveriesModalBackdrop');
+    if (!modal) return;
+
+    modal.classList.add('active');
+
+    // Limpiar filtro anterior
+    const inputFilter = document.getElementById('inputFilterRecentDeliveries');
+    if (inputFilter) {
+      inputFilter.value = '';
+      setTimeout(() => inputFilter.focus(), 100);
+    }
+
+    // Refrescar datos para mostrar siempre lo último
+    await loadTodaySummary();
+  }
+
+  // Cerrar modal de entregas en vivo
+  function closeRecentDeliveriesModal() {
+    const modal = document.getElementById('recentDeliveriesModalBackdrop');
+    if (modal) modal.classList.remove('active');
+  }
+
+  // Filtrar y renderizar entregas en el modal
+  function filterAndRenderModalDeliveries(query = '') {
+    const tbody = document.getElementById('modalRecentDeliveriesBody');
+    if (!tbody) return;
+
+    let items = cachedGroupedDeliveries;
+    if (query) {
+      items = cachedGroupedDeliveries.filter(d => {
+        const full = `${d.full_name || ''} ${d.document_id || ''} ${d.department_name || ''}`.toLowerCase();
+        return full.includes(query);
+      });
+    }
+
+    renderTableRows(tbody, items);
   }
 
   // Buscar trabajador por cédula
