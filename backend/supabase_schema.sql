@@ -207,16 +207,21 @@ ALTER TABLE daily_entitlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE deliveries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payroll_sync_logs ENABLE ROW LEVEL SECURITY;
 
--- Políticas de acceso para API pública y autenticada
-CREATE POLICY "Permitir todo a service_role y anon" ON departments FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON workers FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON passkey_credentials FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON nfc_cards FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON combos FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON distribution_points FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON daily_entitlements FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON deliveries FOR ALL USING (true);
-CREATE POLICY "Permitir todo a service_role y anon" ON payroll_sync_logs FOR ALL USING (true);
+-- Políticas de acceso de Menor Privilegio (Defense-in-Depth)
+-- 1. Tablas sensibles restringidas exclusivamente al backend autenticado (service_role)
+CREATE POLICY "Acceso exclusivo backend service_role" ON workers FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso exclusivo backend service_role" ON passkey_credentials FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso exclusivo backend service_role" ON nfc_cards FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso exclusivo backend service_role" ON daily_entitlements FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso exclusivo backend service_role" ON deliveries FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso exclusivo backend service_role" ON payroll_sync_logs FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso exclusivo backend service_role" ON departments FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- 2. Catálogos públicos de lectura para anon (solo lectura de activos)
+CREATE POLICY "Lectura pública de combos activos" ON combos FOR SELECT TO anon USING (is_active = true);
+CREATE POLICY "Lectura pública de sedes" ON distribution_points FOR SELECT TO anon USING (true);
+CREATE POLICY "Acceso total service_role combos" ON combos FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso total service_role distribution_points" ON distribution_points FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- =============================================================================
 -- 14. DATOS INICIALES (SEMILLA MINISTERIAL COMPLETA)

@@ -5,6 +5,10 @@ const crypto = require('crypto');
 const { db } = require('../db');
 const { verifyWebhookHmac } = require('../crypto-utils');
 
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction && !process.env.PAYROLL_WEBHOOK_SECRET) {
+  throw new Error('[CRITICAL DEVSECOPS SECURITY ERROR] La variable de entorno PAYROLL_WEBHOOK_SECRET debe estar configurada en producción.');
+}
 const WEBHOOK_SECRET = process.env.PAYROLL_WEBHOOK_SECRET || 'mippci_bolsa_secure_secret_key_2026';
 
 function parseCsvToWorkers(csvText) {
@@ -156,9 +160,15 @@ const handleBatchImport = (req, res) => {
   let { batch_id, source, workers, csvText } = req.body;
 
   if (csvText && typeof csvText === 'string') {
+    if (csvText.length > 10 * 1024 * 1024) { // Límite estricto de 10MB
+      return res.status(413).json({ error: 'El archivo CSV excede el tamaño máximo permitido de 10MB.' });
+    }
     workers = parseCsvToWorkers(csvText);
     source = source || 'csv_upload';
   } else if (typeof workers === 'string') {
+    if (workers.length > 10 * 1024 * 1024) {
+      return res.status(413).json({ error: 'La carga excede el tamaño máximo permitido de 10MB.' });
+    }
     try { 
       workers = JSON.parse(workers); 
     } catch (e) {
@@ -169,6 +179,12 @@ const handleBatchImport = (req, res) => {
 
   if (!workers || !Array.isArray(workers)) {
     return res.status(400).json({ error: 'Array de trabajadores o texto CSV requerido' });
+  }
+
+  if (workers.length > 5000) {
+    return res.status(413).json({ 
+      error: 'El lote excede el límite máximo permitido de 5,000 registros por carga. Divida el lote en bloques menores.' 
+    });
   }
 
   let processed = 0;

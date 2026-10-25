@@ -216,6 +216,8 @@
         </div>
 
         <form id="loginForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
+          <!-- Honeypot anti-bot invisible para humanos (DevSecOps) -->
+          <input type="text" name="website" id="loginHoneypot" style="display:none !important; position:absolute; left:-9999px;" tabindex="-1" autocomplete="off">
           <div>
             <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
               Cédula de Identidad del Trabajador

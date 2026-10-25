@@ -1,0 +1,84 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Flujo de Procesos Operativos y Pasos de Usuario - Sistema SGBT",
+    "animation": "trace",
+    "visual_preset": "signal-flow",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-procesos-sgbt-20261024-234800/sgbt-workflow.html"
+  },
+  "lanes": [
+    { "id": "beneficiary", "label": "Beneficiario / Funcionario Público" },
+    { "id": "distributor", "label": "Operador en Mesa de Despacho (Sótano)" },
+    { "id": "supervisor", "label": "Supervisor RRHH / Contingencias", "variant": "exception" },
+    { "id": "engine", "label": "Motor Offline & Servidor Central MIPPCI" }
+  ],
+  "phases": [
+    { "id": "intake", "label": "1. Presentación y Generación de Credencial", "fromCol": 0, "toCol": 1 },
+    { "id": "verification", "label": "2. Escaneo, Verificación Anti-Fraude y Checklist", "fromCol": 2, "toCol": 3, "variant": "emphasis" },
+    { "id": "fulfillment", "label": "3. Despacho Físico, Notificación y Sync Cloud", "fromCol": 4, "toCol": 5, "variant": "dashed" }
+  ],
+  "groups": [
+    { "id": "user_step", "label": "Acción del Beneficiario", "lane": "beneficiary", "fromCol": 0, "toCol": 1, "variant": "emphasis" },
+    { "id": "contingency_flow", "label": "Vía de Excepción y Terceros", "lane": "supervisor", "fromCol": 2, "toCol": 3, "variant": "security" },
+    { "id": "dispatch_table", "label": "Inspección Física de 4 Combos", "lane": "distributor", "fromCol": 2, "toCol": 4, "variant": "emphasis" },
+    { "id": "persistence_layer", "label": "Motor Transaccional Seguro", "lane": "engine", "fromCol": 2, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["ben_access", "ben_generate_qr", "dist_scan", "engine_validate", "dist_check_items", "dist_physical_handover", "engine_persist", "ben_notified"],
+  "nodes": [
+    { "id": "ben_access", "lane": "beneficiary", "col": 0, "type": "frontend", "label": "Acceso a la PWA", "sublabel": "Cédula o Magic Link", "width": 140 },
+    { "id": "ben_generate_qr", "lane": "beneficiary", "col": 1, "type": "security", "label": "Firma con Passkey", "sublabel": "Código QR Anti-Captura", "tag": "Vigencia 180s", "width": 140 },
+    { "id": "ben_notified", "lane": "beneficiary", "col": 5, "type": "frontend", "label": "Confirmación en Vivo", "sublabel": "Toast y Push SSE", "tag": "Retiro Concluido", "width": 140 },
+    { "id": "dist_scan", "lane": "distributor", "col": 2, "type": "frontend", "label": "Lectura en Mesa", "sublabel": "Cámara / QR / NFC", "tag": "Sub-segundo", "width": 140 },
+    { "id": "dist_check_items", "lane": "distributor", "col": 3, "type": "backend", "label": "Checklist de Combos", "sublabel": "Víveres, Prot, Hig, Limp", "tag": "4 Combos Reales", "width": 140 },
+    { "id": "dist_physical_handover", "lane": "distributor", "col": 4, "type": "messagebus", "label": "Despacho Físico", "sublabel": "Entrega de Bultos al Titular", "width": 140 },
+    { "id": "sup_contingency", "lane": "supervisor", "col": 2, "type": "security", "label": "Ruta Contingencia", "sublabel": "Adulto Mayor / Sin Móvil", "width": 140 },
+    { "id": "sup_override", "lane": "supervisor", "col": 3, "type": "security", "label": "Firma Biométrica", "sublabel": "Liberación en 1 Clic", "tag": "Clave Supervisor", "width": 140 },
+    { "id": "engine_validate", "lane": "engine", "col": 2, "type": "database", "label": "Validación Local", "sublabel": "ECDSA P-256 en Caché", "tag": "Modo 100% Offline", "width": 140 },
+    { "id": "engine_persist", "lane": "engine", "col": 4, "type": "database", "label": "Registro Atómico", "sublabel": "Deducción de Derecho", "tag": "idx_unique_daily_claim", "width": 140 },
+    { "id": "engine_sync", "lane": "engine", "col": 5, "type": "cloud", "label": "Sincronización Cloud", "sublabel": "Supabase & Background Sync", "tag": "Lote Asíncrono", "width": 140 }
+  ],
+  "edges": [
+    { "id": "e_access_to_qr", "from": "ben_access", "to": "ben_generate_qr", "variant": "default" },
+    { "id": "e_qr_to_scan", "from": "ben_generate_qr", "to": "dist_scan", "label": "Presentar token", "variant": "emphasis" },
+    { "id": "e_scan_to_val", "from": "dist_scan", "to": "engine_validate", "label": "Verificar firma", "variant": "emphasis" },
+    { "id": "e_scan_to_contingency", "from": "dist_scan", "to": "sup_contingency", "label": "Sin celular / Falla", "variant": "dashed", "role": "branch" },
+    { "id": "e_contingency_to_override", "from": "sup_contingency", "to": "sup_override", "variant": "security" },
+    { "id": "e_override_to_items", "from": "sup_override", "to": "dist_check_items", "label": "Aprobado supervisor", "variant": "security" },
+    { "id": "e_val_to_items", "from": "engine_validate", "to": "dist_check_items", "label": "Token auténtico", "variant": "emphasis" },
+    { "id": "e_items_to_handover", "from": "dist_check_items", "to": "dist_physical_handover", "label": "Verificación física", "variant": "default" },
+    { "id": "e_handover_to_persist", "from": "dist_physical_handover", "to": "engine_persist", "label": "Marcar entregado", "variant": "emphasis" },
+    { "id": "e_persist_to_sync", "from": "engine_persist", "to": "engine_sync", "label": "Cola diferida", "variant": "dashed" },
+    { "id": "e_persist_to_ben", "from": "engine_persist", "to": "ben_notified", "label": "Push en vivo (SSE)", "variant": "emphasis" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Experiencia del Beneficiario",
+      "items": [
+        "Generación inmediata de QR dinámico firmado con huella / FaceID",
+        "Validez de 180 segundos con protección contra capturas de pantalla",
+        "Recepción de notificación reactiva en tiempo real al concretar el retiro"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Mesa de Despacho y Logística",
+      "items": [
+        "Lectura sub-segundo en ráfaga con cámara trasera, lector USB o tarjeta NFC",
+        "Checklist interactivo de los 4 combos asignados (Víveres, Proteína, Higiene y Limpieza)",
+        "Despacho unificado o entrega segregada por estaciones/mesas independientes"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Gobernanza y Protocolos de Contingencia",
+      "items": [
+        "Atención prioritaria para jubilados y adultos mayores sin dispositivo móvil",
+        "Despacho delegado y autorización en 1 clic respaldada por firma de supervisor",
+        "Garantía estricta anti-duplicados (idx_unique_daily_claim) operable 100% offline"
+      ]
+    }
+  ]
+}

@@ -470,15 +470,16 @@ const getTodayStatsAndRecent = (req, res) => {
   }
 };
 
-// 5. Reiniciar todas las entregas a 0 (Acción protegida con clave de seguridad 0578)
+// 5. Reiniciar todas las entregas a 0 (Acción crítica protegida con clave de seguridad y RBAC)
 const resetDeliveriesAction = (req, res) => {
   const { key, pin, password } = req.body || {};
   const providedKey = String(key || pin || password || '').trim();
+  const configuredSecret = (process.env.SYSTEM_RESET_SECRET || '0578').trim();
 
-  if (providedKey !== '0578') {
+  if (!providedKey || providedKey !== configuredSecret) {
     return res.status(403).json({
       success: false,
-      error: 'Clave de seguridad inválida. Ingrese la clave correcta ("0578") para autorizar el reinicio a cero.'
+      error: 'Clave de seguridad de reinicio no válida o denegada.'
     });
   }
 

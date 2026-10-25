@@ -194,6 +194,10 @@ function verifyDelegationToken(token) {
   }
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction && !process.env.SESSION_JWT_SECRET) {
+  throw new Error('[CRITICAL DEVSECOPS SECURITY ERROR] La variable de entorno SESSION_JWT_SECRET debe estar configurada en producción.');
+}
 const SESSION_SECRET = process.env.SESSION_JWT_SECRET || 'MIPPCI_SGBT_SESSION_SECRET_2026';
 
 /**

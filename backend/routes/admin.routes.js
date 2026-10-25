@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
 const { requireRole } = require('../middleware/auth.middleware');
+const { validateWorkerRole } = require('../middleware/validator.middleware');
 
 // KPIs y Métricas de Auditoría
 router.get('/admin/kpis', requireRole('admin', 'director', 'supervisor', 'auditor'), adminController.getKpis);
@@ -14,7 +15,7 @@ router.get('/admin/export', requireRole('admin', 'director', 'supervisor', 'audi
 router.get('/admin/workers', requireRole('admin', 'director', 'supervisor'), adminController.getWorkers);
 router.post('/admin/workers', requireRole('admin', 'director'), adminController.createWorker);
 router.put('/admin/workers/:id', requireRole('admin', 'director'), adminController.updateWorker);
-router.put('/admin/workers/:id/role', requireRole('admin', 'director'), adminController.updateWorkerRole);
+router.put('/admin/workers/:id/role', requireRole('admin', 'director'), validateWorkerRole(), adminController.updateWorkerRole);
 router.delete('/admin/workers/:id', requireRole('admin', 'director'), adminController.deleteWorker);
 
 // Seguridad, Dossier y Contingencias

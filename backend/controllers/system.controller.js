@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const { db, seedDatabase, secureEnclaveSimulator } = require('../db');
 const { testSupabaseConnection, isSupabaseConfigured } = require('../supabase');
+const { getOutboxStats } = require('../services/outbox.service');
 
 const getStatus = async (req, res) => {
   try {
@@ -43,6 +44,7 @@ const getStatus = async (req, res) => {
       is_demo_mode: isDemoMode,
       has_admin: hasAdmin,
       tenant: tenantInfo,
+      outbox: getOutboxStats(),
       server_time: new Date().toISOString()
     });
   } catch (err) {
@@ -77,6 +79,13 @@ const exportBackup = (req, res) => {
 };
 
 const factoryReset = (req, res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction && !process.env.SYSTEM_RESET_SECRET) {
+    return res.status(500).json({
+      error: 'Operación bloqueada por política DevSecOps: SYSTEM_RESET_SECRET no está configurado en el entorno de producción.'
+    });
+  }
+
   const { phrase, pin, key, keep_templates } = req.body;
   const provided = (phrase || pin || key || '').trim();
   const configuredSecret = (process.env.SYSTEM_RESET_SECRET || '0578').trim();

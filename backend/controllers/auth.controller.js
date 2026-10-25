@@ -85,8 +85,14 @@ const deliveryStream = (req, res) => {
 };
 
 const login = async (req, res) => {
-  const { document_id } = req.body;
+  const { document_id, website, honeypot, admin_secret, passkey_proof } = req.body;
   const startTime = Date.now();
+
+  // 0. Detección anti-automatización: Campo trampa (Honeypot)
+  if (website || honeypot) {
+    console.warn(`[SECURITY HONEYPOT] Bot capturado rellenando campo oculto desde IP: ${req.ip || '127.0.0.1'}`);
+    return res.status(400).json({ error: 'Solicitud rechazada por política anti-automatización.' });
+  }
 
   if (!document_id || !document_id.trim()) {
     console.warn(`[AUTH] Intento de login rechazado: documento vacío`);
@@ -229,6 +235,37 @@ const login = async (req, res) => {
       documentId: worker.document_id
     }, 15);
 
+    const isSuperAdmin = worker.role === 'admin' || worker.role === 'director';
+    const isProd = process.env.NODE_ENV === 'production';
+    let isDemoMode = 0;
+    try {
+      isDemoMode = db.prepare('SELECT is_demo_mode FROM tenant_settings WHERE id = ?').get('current_tenant')?.is_demo_mode || 0;
+    } catch (e) {}
+
+    // Defensa en profundidad: Cuentas administrativas requieren verificación de credencial secundaria en producción
+    if (isSuperAdmin) {
+      const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+      if (isProd) {
+        if (!admin_secret && !passkey_proof) {
+          console.warn(`[SECURITY ALERT] Intento de acceso administrativo sin factor secundario en producción para C.I.: ${worker.document_id}`);
+          return res.status(403).json({
+            error: 'Acceso administrativo restringido: Se requiere verificación de clave de seguridad institucional o Passkey para este perfil.',
+            requires_mfa: true,
+            worker_id: worker.id
+          });
+        }
+        if (admin_secret && admin_secret.trim() !== configuredAdminSecret) {
+          console.warn(`[SECURITY ALERT] Clave de acceso administrativo errónea para C.I.: ${worker.document_id}`);
+          return res.status(401).json({ error: 'Clave de acceso administrativo incorrecta.' });
+        }
+      } else {
+        if (admin_secret && admin_secret.trim() !== configuredAdminSecret) {
+          return res.status(401).json({ error: 'Clave de acceso administrativo incorrecta.' });
+        }
+        res.setHeader('X-Security-Warning', 'Acceso administrativo sin MFA permitido exclusivamente en entorno de pruebas/demostración.');
+      }
+    }
+
     // Generar token de sesión institucional firmado criptográficamente (12 horas)
     const sessionToken = generateSessionToken({
       userId: worker.id,
@@ -236,8 +273,16 @@ const login = async (req, res) => {
       documentId: worker.document_id
     }, 12);
 
+    // Inyección de cookie de sesión segura HttpOnly + SameSite=Strict
+    res.cookie('sgbt_session', sessionToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 12 * 3600 * 1000
+    });
+
     const elapsed = Date.now() - startTime;
-    const isSuperAdmin = worker.role === 'admin' || worker.role === 'director';
 
     console.log(`✅ [AUTH LOGIN SUCCESS]`);
     console.log(`   Funcionario : ${worker.full_name}`);
@@ -417,6 +462,11 @@ const signOffline = (req, res) => {
   const { worker_id, entitlement_id, station } = req.body;
   if (!worker_id) {
     return res.status(400).json({ error: 'worker_id requerido' });
+  }
+
+  // Prevención IDOR: Beneficiarios regulares solo pueden firmar para sí mismos
+  if (req.user && req.user.role === 'worker' && req.user.id !== worker_id) {
+    return res.status(403).json({ error: 'No está autorizado para emitir credenciales offline en nombre de otro beneficiario.' });
   }
 
   // Resolver derecho del trabajador para la jornada actual según la estación solicitada
@@ -1159,6 +1209,14 @@ const getDeliveryStatus = (req, res) => {
     return res.status(400).json({ error: 'Debe suministrar worker_id, entitlement_id o nonce' });
   }
 
+  // Prevención IDOR / BOLA: Validar autorización al consultar por worker_id
+  if (worker_id && req.user) {
+    const allowedRoles = ['admin', 'director', 'supervisor', 'operator'];
+    if (!allowedRoles.includes(req.user.role) && req.user.id !== worker_id && req.user.document_id !== worker_id) {
+      return res.status(403).json({ error: 'No está autorizado para consultar el estatus de entrega de otro beneficiario.' });
+    }
+  }
+
   try {
     let query = `
       SELECT d.id as delivery_id, d.delivered_at, d.verification_method, d.worker_id, d.entitlement_id,
@@ -1265,9 +1323,39 @@ const getDeliveryStatus = (req, res) => {
   }
 };
 
+const logout = (req, res) => {
+  try {
+    const { extractToken } = require('../middleware/auth.middleware');
+    const token = extractToken(req);
+    if (token) {
+      const decoded = verifySessionToken(token);
+      if (decoded.valid && decoded.payload?.jti) {
+        const jti = decoded.payload.jti;
+        const exp = decoded.payload.exp || (Math.floor(Date.now() / 1000) + 12 * 3600);
+        const now = Math.floor(Date.now() / 1000);
+        db.prepare('INSERT OR REPLACE INTO revoked_tokens (jti, revoked_at, expires_at) VALUES (?, ?, ?)')
+          .run(jti, now, exp);
+      }
+    }
+
+    res.clearCookie('sgbt_session', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    return res.json({ success: true, message: 'Sesión institucional cerrada y token revocado exitosamente' });
+  } catch (err) {
+    console.warn('[LOGOUT ERROR]', err.message);
+    return res.json({ success: true, message: 'Sesión finalizada' });
+  }
+};
+
 module.exports = {
   login,
   magicLogin,
+  logout,
   registerChallenge,
   registerVerify,
   signOffline,

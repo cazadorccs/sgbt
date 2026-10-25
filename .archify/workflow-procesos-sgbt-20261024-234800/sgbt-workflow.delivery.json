@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "7609bd78-6366-4650-a684-22866ff978be",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\workflow-procesos-sgbt-20261024-234800\\candidate.json",
+  "output": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\workflow-procesos-sgbt-20261024-234800\\sgbt-workflow.html",
+  "specification": {
+    "sha256": "6438178c38a738411aef693ab332374e8360f9f153b22c86d276dc96e8bdd667",
+    "bytes": 6507
+  },
+  "artifact": {
+    "sha256": "d12c7e349429c0ed366660e5b8119729a30e762e575611d703aa7ea70a21129a",
+    "bytes": 836998
+  }
+}

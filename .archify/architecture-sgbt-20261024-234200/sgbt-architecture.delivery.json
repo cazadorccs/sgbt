@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "fd3892ce-6408-40f9-975f-1d50777be9f7",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\architecture-sgbt-20261024-234200\\candidate.json",
+  "output": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\architecture-sgbt-20261024-234200\\sgbt-architecture.html",
+  "specification": {
+    "sha256": "91e97e42f3ff72573eb2c617bda58e907db75409712c775b8a5f8846819f0638",
+    "bytes": 5212
+  },
+  "artifact": {
+    "sha256": "d4e04fb2002d8275acb5e626e3d88d333b929fcdd24ca45e698126965b2ff80b",
+    "bytes": 833717
+  }
+}

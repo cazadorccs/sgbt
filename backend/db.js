@@ -332,6 +332,14 @@ function initializeDatabase() {
       notification_type TEXT NOT NULL DEFAULT 'jornada', -- 'jornada', 'alerta', 'recordatorio'
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- 13. LISTA NEGRA / REVOCACIÓN DE SESIONES (TOKEN BLACKLIST / LOGOUT)
+    CREATE TABLE IF NOT EXISTS revoked_tokens (
+      jti TEXT PRIMARY KEY,
+      revoked_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_revoked_tokens_exp ON revoked_tokens(expires_at);
   `);
 
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes

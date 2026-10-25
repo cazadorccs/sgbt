@@ -123,9 +123,17 @@ async function executeLogin(rawDocId) {
     btnSubmit.textContent = '⏳ Verificando Identidad...';
   }
 
+  const honeypot = document.getElementById('loginHoneypot')?.value || '';
+
   try {
     console.log(`[CLIENT AUTH] ⏳ Iniciando verificación de identidad para:`, rawDocId);
-    const data = await API.post('/api/v1/auth/login', { document_id: rawDocId });
+    let payload = { document_id: rawDocId, honeypot };
+    if (window._pendingAdminSecret) {
+      payload.admin_secret = window._pendingAdminSecret;
+      delete window._pendingAdminSecret;
+    }
+
+    const data = await API.post('/api/v1/auth/login', payload);
     console.log(`[CLIENT AUTH] 📥 Respuesta recibida del servidor:`, data);
 
     if (!data.success) {
@@ -155,6 +163,16 @@ async function executeLogin(rawDocId) {
 
   } catch (err) {
     console.error('Error de login:', err);
+
+    // Detección de desafío de segundo factor administrativo (DevSecOps)
+    if (err.message && (err.message.includes('clave de seguridad') || err.message.includes('restringido'))) {
+      const pin = prompt('🛡️ AUTENTICACIÓN ADMINISTRATIVA OBLIGATORIA (MFA)\n\nPerfil con altos privilegios detectado.\nIngrese su Clave de Seguridad Institucional o PIN administrativo:');
+      if (pin && pin.trim()) {
+        window._pendingAdminSecret = pin.trim();
+        return executeLogin(rawDocId);
+      }
+    }
+
     showLoginAlert(err.message || 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.');
     playAudioFeedback('error');
   } finally {
@@ -418,6 +436,13 @@ window.handleLogout = function(reason) {
     STATE.qrTimerInterval = null;
   }
   STATE.activeQrPayload = null;
+  // Revocación de sesión en backend (Token Blacklist y limpieza de Cookie)
+  try {
+    if (window.API && typeof window.API.post === 'function') {
+      API.post('/api/v1/auth/logout', {}).catch(() => {});
+    }
+  } catch (e) {}
+
   try {
     localStorage.removeItem('sgbt_active_qr_payload');
     localStorage.removeItem('sgbt_session_token');

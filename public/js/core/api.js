@@ -44,6 +44,7 @@ window.API = {
         headers['Authorization'] = `Bearer ${token}`;
       }
       options.headers = headers;
+      options.credentials = options.credentials || 'same-origin';
 
       const res = await fetch(url, options);
       const rawText = await res.text();

@@ -5,10 +5,20 @@ const { verifySessionToken } = require('../crypto-utils');
 const { db } = require('../db');
 
 function extractToken(req) {
+  // 1. Cabecera Authorization: Bearer
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.slice(7).trim();
   }
+  // 2. Cookie segura HttpOnly (sgbt_session)
+  if (req.cookies && req.cookies.sgbt_session) {
+    return String(req.cookies.sgbt_session).trim();
+  }
+  if (req.headers && req.headers.cookie) {
+    const match = req.headers.cookie.match(/(?:^|;\s*)sgbt_session=([^;]+)/);
+    if (match) return decodeURIComponent(match[1].trim());
+  }
+  // 3. Cabeceras alternativas
   if (req.headers['x-session-token']) {
     return String(req.headers['x-session-token']).trim();
   }
@@ -19,6 +29,16 @@ function extractToken(req) {
     return String(req.query.session_token).trim();
   }
   return null;
+}
+
+function isTokenRevoked(jti) {
+  if (!jti) return false;
+  try {
+    const revoked = db.prepare('SELECT 1 FROM revoked_tokens WHERE jti = ?').get(jti);
+    return Boolean(revoked);
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -32,7 +52,7 @@ function authenticate(req, res, next) {
   }
 
   const result = verifySessionToken(token);
-  if (!result.valid) {
+  if (!result.valid || isTokenRevoked(result.payload?.jti)) {
     req.user = null;
     return next();
   }
@@ -64,7 +84,7 @@ function requireAuth(req, res, next) {
   const token = extractToken(req);
   if (!token) {
     return res.status(401).json({
-      error: 'Acceso no autorizado: Se requiere una sesión institucional activa (Token Bearer ausente).'
+      error: 'Acceso no autorizado: Se requiere una sesión institucional activa (Token Bearer o Cookie ausente).'
     });
   }
 
@@ -72,6 +92,12 @@ function requireAuth(req, res, next) {
   if (!result.valid) {
     return res.status(401).json({
       error: `Sesión no válida: ${result.error}`
+    });
+  }
+
+  if (isTokenRevoked(result.payload?.jti)) {
+    return res.status(401).json({
+      error: 'Sesión revocada: Este token de sesión ha sido invalidado mediante cierre de sesión.'
     });
   }
 
@@ -115,6 +141,12 @@ function requireRole(...allowedRoles) {
       if (!result.valid) {
         return res.status(401).json({
           error: `Sesión no válida: ${result.error}`
+        });
+      }
+
+      if (isTokenRevoked(result.payload?.jti)) {
+        return res.status(401).json({
+          error: 'Sesión revocada: Este token de sesión ha sido invalidado mediante cierre de sesión.'
         });
       }
 

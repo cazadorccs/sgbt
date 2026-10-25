@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Arquitectura del Sistema SGBT - MIPPCI",
+    "subtitle": "Plataforma de Despacho de Beneficios Alimenticios con Passkeys y Offline-First",
+    "output": ".archify/architecture-sgbt-20261024-234200/sgbt-architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "admin_ui", "type": "frontend", "label": "Portal de Gobernanza", "sublabel": "Auditoría, KPIs y Nómina", "pos": [60, 100], "size": [160, 64], "tag": "RBAC Token" },
+    { "id": "beneficiary_ui", "type": "frontend", "label": "PWA Beneficiario", "sublabel": "Token QR & SSE", "pos": [60, 240], "size": [160, 64], "tag": "Passkeys FIDO2" },
+    { "id": "distributor_ui", "type": "frontend", "label": "Mesa de Despacho", "sublabel": "Lector Cámara, QR y NFC", "pos": [60, 380], "size": [160, 64], "tag": "4 Mesas / Offline" },
+    { "id": "service_worker", "type": "security", "label": "Service Worker PWA", "sublabel": "Caché v2.6 & Sync", "pos": [320, 380], "size": [150, 64], "tag": "Background Sync" },
+    { "id": "indexed_db", "type": "database", "label": "IndexedDB Local", "sublabel": "sgbt_offline_db", "pos": [320, 520], "size": [150, 64], "tag": "Cola Diferida" },
+    { "id": "auth_passkey", "type": "security", "label": "Motor Criptográfico", "sublabel": "ECDSA P-256 (ES256)", "pos": [560, 100], "size": [170, 64], "tag": "Vigencia 180s" },
+    { "id": "api_gateway", "type": "backend", "label": "API REST Express", "sublabel": "Node.js :3000 / Vercel", "pos": [560, 240], "size": [170, 64], "tag": "Modular v1" },
+    { "id": "sse_stream", "type": "messagebus", "label": "Canal SSE Live", "sublabel": "Event Stream Push", "pos": [560, 380], "size": [170, 64], "tag": "Alerta Instantánea" },
+    { "id": "sqlite_db", "type": "database", "label": "SQLite Nativo", "sublabel": "better-sqlite3 Local", "pos": [820, 240], "size": [160, 64], "tag": "idx_unique_daily_claim" },
+    { "id": "supabase_cloud", "type": "cloud", "label": "Supabase Cloud", "sublabel": "PostgreSQL & Auth Sync", "pos": [1060, 240], "size": [160, 64], "tag": "Nube Central" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Navegadores & Dispositivos Móviles (Edge PWA)", "wraps": ["admin_ui", "beneficiary_ui", "distributor_ui", "service_worker", "indexed_db"] },
+    { "kind": "security-group", "label": "Infraestructura Segura de Servidores MIPPCI", "wraps": ["auth_passkey", "api_gateway", "sse_stream", "sqlite_db"] }
+  ],
+  "connections": [
+    { "id": "admin_to_api", "from": "admin_ui", "to": "api_gateway", "label": "Admin JWT", "variant": "security", "fromSide": "right", "toSide": "top" },
+    { "id": "ben_to_api", "from": "beneficiary_ui", "to": "api_gateway", "label": "HTTPS :443", "variant": "emphasis", "fromSide": "right", "toSide": "left" },
+    { "id": "dist_to_sw", "from": "distributor_ui", "to": "service_worker", "label": "Offline Fetch", "fromSide": "right", "toSide": "left" },
+    { "id": "sw_to_idb", "from": "service_worker", "to": "indexed_db", "label": "Encolar local", "variant": "dashed", "fromSide": "bottom", "toSide": "top" },
+    { "id": "sw_to_api", "from": "service_worker", "to": "api_gateway", "label": "Sync por lote", "variant": "emphasis", "fromSide": "top", "toSide": "left" },
+    { "id": "api_to_auth", "from": "api_gateway", "to": "auth_passkey", "label": "Validar firma", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "api_to_sql", "from": "api_gateway", "to": "sqlite_db", "label": "SQL local O(1)", "fromSide": "right", "toSide": "left" },
+    { "id": "api_to_sse", "from": "api_gateway", "to": "sse_stream", "label": "Evento entrega", "fromSide": "bottom", "toSide": "top" },
+    { "id": "sse_to_ben", "from": "sse_stream", "to": "beneficiary_ui", "label": "Push retiro OK", "variant": "dashed", "fromSide": "left", "toSide": "bottom" },
+    { "id": "sql_to_cloud", "from": "sqlite_db", "to": "supabase_cloud", "label": "Sync asíncrono", "variant": "dashed", "fromSide": "right", "toSide": "left" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Arquitectura Offline-First (Almacén Sótano)",
+      "items": [
+        "Escaneo de códigos QR y tarjetas NFC 100% operativo sin señal de red",
+        "Encolamiento transaccional en IndexedDB con sincronización automática Background Sync",
+        "Control anti-duplicados local y reconciliación garantizada en el servidor"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Seguridad y Criptografía Institucional",
+      "items": [
+        "Autenticación biométrica WebAuthn / Passkeys con claves ECDSA P-256",
+        "Códigos QR dinámicos con nonce criptográfico y caducidad de 180 segundos",
+        "Blindaje de entrega única respaldado por el índice relacional idx_unique_daily_claim"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Distribución Modular de Combos",
+      "items": [
+        "Catálogo de 4 combos reales concatenados por estaciones y mesas de entrega",
+        "Soporte de despacho simultáneo unificado o individual por mesa",
+        "Mecanismo de firma biométrica de supervisor para contingencias y delegaciones"
+      ]
+    }
+  ]
+}

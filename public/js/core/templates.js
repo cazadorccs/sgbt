@@ -3,6 +3,19 @@
 // Carga asíncrona optimizada para arquitectura Offline-First PWA
 // ============================================================================
 
+/**
+ * Sanitizador de texto contra inyección XSS en manipulación de DOM / innerHTML
+ */
+window.escapeHtml = function(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 window.loadTemplates = async function() {
   const container = document.getElementById('modals-container');
   if (!container) {
