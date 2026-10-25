@@ -4,85 +4,28 @@
 const crypto = require('crypto');
 const { db, secureEnclaveSimulator } = require('../db');
 const {
-  generateP256KeyPair,
   generateNonce,
-  generateWebAuthnChallenge,
-  signOfflinePayload,
-  verifyOfflineSignature,
   generateMagicLinkToken,
   verifyMagicLinkToken,
   generateDelegationToken,
   verifyDelegationToken,
   generateSessionToken,
-  verifySessionToken
+  verifySessionToken,
+  verifyOfflineSignature
 } = require('../crypto-utils');
 
-// ============================================================================
-// SERVIDOR EN TIEMPO REAL: SERVER-SENT EVENTS (SSE)
-// Notificación Push reactiva instantánea entre puestos de despacho y móviles
-// Permite actualización en tiempo real (0ms delay) sin recargar la página (F5)
-// ============================================================================
-const sseClients = new Map(); // worker_id -> Set of { res, id }
-
-function notifyDeliveryStream(worker_id, data) {
-  const jsonStr = JSON.stringify(data);
-  const targets = [];
-
-  if (worker_id && sseClients.has(worker_id)) {
-    targets.push(...sseClients.get(worker_id));
-  }
-  if (sseClients.has('*')) {
-    targets.push(...sseClients.get('*'));
-  }
-
-  targets.forEach(client => {
-    try {
-      client.res.write(`event: delivery_update\ndata: ${jsonStr}\n\n`);
-    } catch (e) {
-      if (worker_id && sseClients.has(worker_id)) {
-        sseClients.get(worker_id).delete(client);
-      }
-    }
-  });
-}
-
-const deliveryStream = (req, res) => {
-  const worker_id = req.query.worker_id || '*';
-
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('X-Accel-Buffering', 'no');
-  res.flushHeaders?.();
-
-  const clientId = crypto.randomUUID();
-  const clientObj = { res, id: clientId };
-
-  if (!sseClients.has(worker_id)) {
-    sseClients.set(worker_id, new Set());
-  }
-  sseClients.get(worker_id).add(clientObj);
-
-  res.write(`event: connected\ndata: ${JSON.stringify({ worker_id, status: 'streaming', timestamp: Date.now() })}\n\n`);
-
-  const heartbeat = setInterval(() => {
-    try {
-      res.write(': heartbeat\n\n');
-    } catch (e) {
-      clearInterval(heartbeat);
-    }
-  }, 15000);
-
-  req.on('close', () => {
-    clearInterval(heartbeat);
-    const set = sseClients.get(worker_id);
-    if (set) {
-      set.delete(clientObj);
-      if (set.size === 0) sseClients.delete(worker_id);
-    }
-  });
-};
+// Servicios de dominio modularizados
+const { notifyDeliveryStream, deliveryStream } = require('../services/sse.service');
+const {
+  createRegisterChallenge,
+  registerPasskeyCredential,
+  generateOfflinePasskeySignature
+} = require('../services/passkey.service');
+const {
+  generateSupervisorDailyQr,
+  createSupervisorDelegation,
+  processContingencyOverride
+} = require('../services/supervisor.service');
 
 const login = async (req, res) => {
   const { document_id, website, honeypot, admin_secret, passkey_proof } = req.body;
@@ -330,34 +273,11 @@ const registerChallenge = (req, res) => {
     return res.status(404).json({ error: 'Trabajador no encontrado' });
   }
 
-  const challenge = generateWebAuthnChallenge();
-  const options = {
-    challenge,
-    rp: {
-      name: 'Sistema Bienestar Social - Beneficios Alimenticios (MIPPCI)',
-      id: 'bienestar.ministerio.gob.ve'
-    },
-    user: {
-      id: Buffer.from(worker.id).toString('base64url'),
-      name: worker.email,
-      displayName: worker.full_name
-    },
-    pubKeyCredParams: [
-      { alg: -7, type: 'public-key' }
-    ],
-    authenticatorSelection: {
-      authenticatorAttachment: 'platform',
-      userVerification: 'required',
-      residentKey: 'preferred'
-    },
-    timeout: 60000,
-    attestation: 'none'
-  };
-
+  const options = createRegisterChallenge(worker);
   res.json(options);
 };
 
-const registerVerify = (req, res) => {
+const registerVerify = async (req, res) => {
   const { worker_id, credential, device_name } = req.body;
   if (!worker_id || !credential) {
     return res.status(400).json({ error: 'worker_id y credential son requeridos' });
@@ -368,94 +288,19 @@ const registerVerify = (req, res) => {
     return res.status(404).json({ error: 'Trabajador no encontrado' });
   }
 
-  let credentialId = credential.credential_id;
-  let publicKeyPem = credential.public_key_pem;
-
-  if (!publicKeyPem) {
-    const keyPair = generateP256KeyPair();
-    publicKeyPem = keyPair.publicKey;
-    credentialId = 'Passkey_SEC_' + crypto.randomBytes(12).toString('base64url');
-
-    secureEnclaveSimulator.set(worker_id, {
-      credentialId,
-      privateKeyPem: keyPair.privateKey,
-      publicKeyPem: keyPair.publicKey
-    });
-  }
-
-  const tx = db.transaction(() => {
-    db.prepare(`
-      UPDATE passkey_credentials
-      SET status = 'revoked'
-      WHERE worker_id = ? AND status = 'active'
-    `).run(worker_id);
-
-    const newId = crypto.randomUUID();
-    db.prepare(`
-      INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status)
-      VALUES (?, ?, ?, ?, 0, ?, 'active')
-    `).run(newId, worker_id, credentialId, publicKeyPem, device_name || 'Smartphone Corporativo');
-
-    db.prepare(`
-      UPDATE workers
-      SET has_smartphone = 1, contingency_reason = NULL, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(worker_id);
-
-    return { newId, credentialId, publicKeyPem };
-  });
-
-  const result = tx();
-
-  // Asignar beneficio para la jornada de hoy de forma automática si no posee
-  const today = new Date().toISOString().split('T')[0];
-  let ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker_id, today);
-  if (!ent) {
-    try {
-      const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
-      const wShift = db.prepare('SELECT shift FROM workers WHERE id = ?').get(worker_id)?.shift || 'jornada_continua';
-      const newEntId = crypto.randomUUID();
-      db.prepare(`
-        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-        VALUES (?, ?, ?, ?, ?, 'pending')
-      `).run(newEntId, worker_id, defaultCombo, today, wShift);
-      ent = { id: newEntId };
-    } catch (e) {}
-  }
-
-  // Respaldo asíncrono en Supabase Cloud
   try {
-    const { supabase, isSupabaseConfigured } = require('../supabase');
-    if (isSupabaseConfigured() && supabase) {
-      supabase.from('passkey_credentials').upsert([{
-        id: result.newId,
-        worker_id,
-        credential_id: result.credentialId,
-        public_key: result.publicKeyPem,
-        sign_count: 0,
-        device_name: device_name || 'Smartphone Corporativo',
-        status: 'active'
-      }], { onConflict: 'credential_id' }).catch(e => console.warn('[SUPABASE PASSKEY SYNC WARN]', e.message));
-
-      if (ent && ent.id) {
-        supabase.from('daily_entitlements').upsert([{
-          id: ent.id,
-          worker_id,
-          combo_id: 'c1a2b3c4-1111-2222-3333-444455556666',
-          valid_date: today,
-          status: 'pending'
-        }], { onConflict: 'worker_id,valid_date,shift,combo_id' }).catch(() => {});
-      }
-    }
-  } catch (e) {}
-
-  res.json({
-    status: 'success',
-    message: 'Validación en celular activada exitosamente',
-    credential_id: result.credentialId,
-    public_key: result.publicKeyPem,
-    entitlement_id: ent ? ent.id : null
-  });
+    const result = await registerPasskeyCredential({ worker_id, credential, device_name });
+    res.json({
+      status: 'success',
+      message: 'Validación en celular activada exitosamente',
+      credential_id: result.credentialId,
+      public_key: result.publicKeyPem,
+      entitlement_id: result.entitlementId
+    });
+  } catch (err) {
+    console.error('[PASSKEY VERIFY ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 const signOffline = (req, res) => {
@@ -464,163 +309,25 @@ const signOffline = (req, res) => {
     return res.status(400).json({ error: 'worker_id requerido' });
   }
 
-  // Prevención IDOR: Beneficiarios regulares solo pueden firmar para sí mismos
-  if (req.user && req.user.role === 'worker' && req.user.id !== worker_id) {
-    return res.status(403).json({ error: 'No está autorizado para emitir credenciales offline en nombre de otro beneficiario.' });
+  try {
+    const result = generateOfflinePasskeySignature({
+      worker_id,
+      entitlement_id,
+      station,
+      user: req.user
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
   }
-
-  // Resolver derecho del trabajador para la jornada actual según la estación solicitada
-  const today = new Date().toISOString().split('T')[0];
-  const isStation2 = String(station) === '2' || String(station) === 'estacion_2' || String(station) === 'proteina';
-  let targetEnt = null;
-
-  if (entitlement_id) {
-    targetEnt = db.prepare('SELECT id, shift, combo_id FROM daily_entitlements WHERE id = ?').get(entitlement_id);
-  }
-
-  if (!targetEnt) {
-    if (isStation2) {
-      targetEnt = db.prepare(`
-        SELECT e.id, e.shift FROM daily_entitlements e
-        JOIN combos c ON e.combo_id = c.id
-        WHERE e.worker_id = ? AND date(e.valid_date) = date(?)
-        AND (e.shift = 'estacion_2' OR c.category IN ('combo_proteico', 'proteico') OR c.name LIKE '%Prote%')
-        LIMIT 1
-      `).get(worker_id, today);
-
-      if (!targetEnt) {
-        const pCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-        if (pCombo) {
-          const newEntId = crypto.randomUUID();
-          try {
-            db.prepare(`
-              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-              VALUES (?, ?, ?, ?, 'estacion_2', 'pending')
-            `).run(newEntId, worker_id, pCombo.id, today);
-            targetEnt = { id: newEntId };
-          } catch (e) {}
-        }
-      }
-    } else {
-      targetEnt = db.prepare(`
-        SELECT e.id, e.shift FROM daily_entitlements e
-        JOIN combos c ON e.combo_id = c.id
-        WHERE e.worker_id = ? AND date(e.valid_date) = date(?)
-        AND (e.shift = 'estacion_1' OR c.category IN ('bolsa_viveres', 'almuerzo') OR c.name LIKE '%Víveres%')
-        LIMIT 1
-      `).get(worker_id, today);
-
-      if (!targetEnt) {
-        const vCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-        if (vCombo) {
-          const newEntId = crypto.randomUUID();
-          try {
-            db.prepare(`
-              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-              VALUES (?, ?, ?, ?, 'estacion_1', 'pending')
-            `).run(newEntId, worker_id, vCombo.id, today);
-            targetEnt = { id: newEntId };
-          } catch (e) {}
-        }
-      }
-    }
-  }
-
-  const finalEntId = (targetEnt && targetEnt.id) || entitlement_id || crypto.randomUUID();
-
-  const cred = db.prepare(`
-    SELECT credential_id, public_key, status
-    FROM passkey_credentials
-    WHERE worker_id = ? AND status = 'active'
-    ORDER BY enrolled_at DESC LIMIT 1
-  `).get(worker_id);
-
-  if (!cred) {
-    return res.status(403).json({ error: 'El trabajador no tiene activada la validación en su celular' });
-  }
-
-  let enclaveData = secureEnclaveSimulator.get(worker_id);
-  if (!enclaveData) {
-    const keyPair = generateP256KeyPair();
-    enclaveData = {
-      credentialId: cred.credential_id,
-      privateKeyPem: keyPair.privateKey,
-      publicKeyPem: keyPair.publicKey
-    };
-    secureEnclaveSimulator.set(worker_id, enclaveData);
-    db.prepare('UPDATE passkey_credentials SET public_key = ? WHERE credential_id = ?')
-      .run(keyPair.publicKey, cred.credential_id);
-  }
-
-  const ts = Math.floor(Date.now() / 1000);
-  const nonce = generateNonce(32);
-
-  const payload = {
-    wid: worker_id,
-    ent: finalEntId,
-    station: isStation2 ? '2' : '1',
-    ts,
-    nonce
-  };
-
-  const signature = signOfflinePayload(enclaveData.privateKeyPem, payload);
-
-  res.json({
-    qr_payload: {
-      ...payload,
-      sig: signature
-    },
-    qr_raw_string: JSON.stringify({ ...payload, sig: signature }),
-    expires_in_seconds: 60,
-    created_at: new Date(ts * 1000).toISOString()
-  });
 };
-
 
 const getSupervisorDailyQr = (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-
-    let supervisor = db.prepare("SELECT id, document_id, full_name, email, role FROM workers WHERE role IN ('supervisor', 'admin') AND status = 'active' LIMIT 1").get();
-    if (!supervisor) {
-      supervisor = db.prepare("SELECT id, document_id, full_name, email, role FROM workers LIMIT 1").get();
-    }
-
-    if (!supervisor) {
-      return res.status(404).json({ error: 'No se encontró un usuario supervisor o administrador registrado en el sistema.' });
-    }
-
-    const secretKey = 'SGBT_DAILY_SUPERVISOR_KEY_MIPPCI';
-    const hmacToken = crypto.createHmac('sha256', secretKey)
-      .update(`SUPERVISOR_APPROVAL_${supervisor.id}_${today}`)
-      .digest('hex');
-
-    const shortAuthCode = `SUP-${today.replace(/-/g, '').slice(2)}-${hmacToken.slice(0, 6).toUpperCase()}`;
-
-    const qrPayload = JSON.stringify({
-      protocol: 'SGBT_SUPERVISOR_DAILY_QR_V1',
-      action: 'APPROVE_NO_SMARTPHONE_DELIVERY',
-      date: today,
-      supervisor_id: supervisor.id,
-      supervisor_name: supervisor.full_name,
-      supervisor_doc: supervisor.document_id,
-      auth_code: shortAuthCode,
-      token: hmacToken.slice(0, 32),
-      expires_at: `${today}T23:59:59`
-    });
-
-    res.json({
-      success: true,
-      date: today,
-      auth_code: shortAuthCode,
-      supervisor,
-      token: hmacToken.slice(0, 32),
-      qr_payload: qrPayload,
-      expires_at: `${today}T23:59:59`
-    });
+    const result = generateSupervisorDailyQr();
+    res.json(result);
   } catch (err) {
-    console.error('[SUPERVISOR DAILY QR ERROR]', err);
-    res.status(500).json({ error: 'Error al generar el Código QR Diario del Supervisor' });
+    res.status(err.status || 500).json({ error: err.message });
   }
 };
 
@@ -1015,73 +722,25 @@ const magicLogin = (req, res) => {
  * Autorizado por supervisor para funcionarios de reposo o jubilados sin móvil.
  */
 const createDelegation = (req, res) => {
-  const { beneficiary_doc, delegate_doc, supervisor_id, reason, valid_hours = 24 } = req.body;
+  const { beneficiary_doc, delegate_doc, supervisor_id, reason, valid_hours = 24, delegate_name } = req.body;
 
   if (!beneficiary_doc || !delegate_doc) {
     return res.status(400).json({ error: 'Cédula del titular y Cédula del delegado son requeridas' });
   }
 
-  const cleanBenDoc = beneficiary_doc.trim().toUpperCase();
-  const digitsBen = cleanBenDoc.replace(/[^0-9]/g, '');
-  const beneficiary = db.prepare(`
-    SELECT id, document_id, full_name, worker_type, department_id FROM workers
-    WHERE UPPER(document_id) = ? 
-       OR id = ? 
-       OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
-  `).get(cleanBenDoc, cleanBenDoc, digitsBen, digitsBen);
-
-  if (!beneficiary) {
-    return res.status(404).json({ error: 'El titular no se encuentra registrado en la nómina de beneficiarios.' });
+  try {
+    const result = createSupervisorDelegation({
+      beneficiary_doc,
+      delegate_doc,
+      supervisor_id,
+      reason,
+      valid_hours,
+      delegate_name
+    });
+    return res.json(result);
+  } catch (err) {
+    return res.status(err.status || 500).json({ error: err.message });
   }
-
-  const cleanDelDoc = delegate_doc.trim().toUpperCase();
-  const digitsDel = cleanDelDoc.replace(/[^0-9]/g, '');
-  let delegate = db.prepare(`
-    SELECT id, document_id, full_name FROM workers
-    WHERE UPPER(document_id) = ? 
-       OR id = ? 
-       OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
-  `).get(cleanDelDoc, cleanDelDoc, digitsDel, digitsDel);
-
-  const delegateName = delegate ? delegate.full_name : (req.body.delegate_name || 'Compañero Autorizado');
-  const delegateDocFinal = delegate ? delegate.document_id : cleanDelDoc;
-
-  let supervisor = supervisor_id ? db.prepare('SELECT id, full_name FROM workers WHERE id = ?').get(supervisor_id) : null;
-  if (!supervisor) {
-    supervisor = db.prepare("SELECT id, full_name FROM workers WHERE role IN ('supervisor', 'admin') AND status = 'active' LIMIT 1").get();
-  }
-
-  const hours = Math.min(Math.max(Number(valid_hours) || 24, 1), 72);
-
-  const tokenData = {
-    beneficiary_id: beneficiary.id,
-    beneficiary_doc: beneficiary.document_id,
-    beneficiary_name: beneficiary.full_name,
-    delegate_id: delegate ? delegate.id : null,
-    delegate_doc: delegateDocFinal,
-    delegate_name: delegateName,
-    supervisor_id: supervisor ? supervisor.id : 'sup-admin',
-    supervisor_name: supervisor ? supervisor.full_name : 'Supervisor de Gestión Humana',
-    reason: reason || 'reposo_medico'
-  };
-
-  const token = generateDelegationToken(tokenData, hours);
-
-  const qrPayload = {
-    protocol: 'SGBT_DELEGATED_CLAIM_V1',
-    token,
-    ...tokenData,
-    valid_until: new Date(Date.now() + hours * 3600 * 1000).toISOString()
-  };
-
-  res.json({
-    success: true,
-    delegation: qrPayload,
-    qr_payload: qrPayload,
-    qr_string: JSON.stringify(qrPayload),
-    expires_in_hours: hours,
-    message: `Autorización de retiro generada exitosamente. Válida por ${hours} horas para ${delegateName}.`
-  });
 };
 
 /**
@@ -1094,113 +753,24 @@ const contingencyOverride = (req, res) => {
     return res.status(400).json({ error: 'La Cédula del beneficiario es requerida' });
   }
 
-  const cleanDoc = worker_document_id.trim().toUpperCase();
-  const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
-
-  const worker = db.prepare(`
-    SELECT w.*, d.name as department_name
-    FROM workers w
-    LEFT JOIN departments d ON w.department_id = d.id
-    WHERE UPPER(w.document_id) = ? 
-       OR w.id = ? 
-       OR (LENGTH(?) >= 5 AND REPLACE(REPLACE(REPLACE(REPLACE(UPPER(w.document_id), 'V-', ''), 'E-', ''), 'V', ''), '.', '') = ?)
-  `).get(cleanDoc, cleanDoc, digitsOnly, digitsOnly);
-
-  if (!worker) {
-    return res.status(404).json({
-      error: 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios.'
-    });
-  }
-
-  const today = new Date().toISOString().split('T')[0];
-  let ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker.id, today);
-  if (!ent) {
-    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
-    const newEntId = crypto.randomUUID();
-    db.prepare(`
-      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
-    `).run(newEntId, worker.id, defaultCombo, today);
-    ent = { id: newEntId };
-  }
-
-  // Verificar si ya fue entregado hoy (idx_unique_daily_claim)
-  const alreadyDelivered = db.prepare('SELECT id, delivered_at FROM deliveries WHERE worker_id = ? AND entitlement_id = ? LIMIT 1').get(worker.id, ent.id);
-  if (alreadyDelivered) {
-    return res.status(409).json({
-      error: '¡ALERTA DE SEGURIDAD! El beneficio de hoy para este trabajador ya fue entregado previamente.'
-    });
-  }
-
-  let supervisor = supervisor_id ? db.prepare('SELECT id, full_name FROM workers WHERE id = ?').get(supervisor_id) : null;
-  if (!supervisor) {
-    supervisor = db.prepare("SELECT id, full_name FROM workers WHERE role IN ('supervisor', 'admin') AND status = 'active' LIMIT 1").get();
-  }
-  const supId = supervisor ? supervisor.id : null;
-  const supName = supervisor ? supervisor.full_name : 'Supervisor de Gestión Humana';
-
-  const deliveryId = crypto.randomUUID();
-  const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
-  const campId = activeCamp ? activeCamp.id : null;
-
-  let distPoint = distribution_point_id 
-    ? db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(distribution_point_id) 
-    : db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
-  const finalPointId = distPoint ? distPoint.id : null;
-
   try {
-    db.prepare(`
-      INSERT INTO deliveries (
-        id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-        verification_method, signature_proof, challenge_nonce, supervisor_id, override_reason, is_offline_sync, delivered_at, campaign_id
-      ) VALUES (?, ?, ?, ?, ?, 'supervisor_override', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
-    `).run(
-      deliveryId,
-      ent.id,
-      worker.id,
-      finalPointId,
-      supId,
-      'FIDO2_SUPERVISOR_BIOMETRIC_ASSERTION_' + Date.now(),
-      generateNonce(16),
-      supId,
-      override_reason || (worker.worker_type === 'jubilado' ? 'adulto_mayor_sin_smartphone' : 'device_lost'),
-      campId
-    );
-
-    try {
-      db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(ent.id);
-    } catch (e) {}
-
-    const combo = db.prepare(`
-      SELECT c.name, c.category, c.description
-      FROM daily_entitlements e
-      JOIN combos c ON e.combo_id = c.id
-      WHERE e.id = ?
-    `).get(ent.id);
-
-    return res.json({
-      success: true,
-      delivery_id: deliveryId,
-      worker: {
-        id: worker.id,
-        full_name: worker.full_name,
-        document_id: worker.document_id,
-        worker_type: worker.worker_type,
-        department: worker.department_name
-      },
-      combo_name: combo ? combo.name : 'Bolsa de Víveres y Proteína',
-      supervisor_name: supName,
-      message: `¡Liberación por contingencia autorizada en 1 Clic con firma biométrica del supervisor (${supName})!`
+    const result = processContingencyOverride({
+      worker_document_id,
+      supervisor_id,
+      override_reason,
+      distribution_point_id
     });
+    return res.json(result);
   } catch (err) {
     if (err.message && (err.message.includes('UNIQUE constraint failed') || err.message.includes('idx_unique_daily_claim'))) {
       return res.status(409).json({
         error: '¡ALERTA DE SEGURIDAD! El beneficio de hoy ya fue reclamado previamente.'
       });
     }
-    return res.status(500).json({ error: err.message });
+    return res.status(err.status || 500).json({ error: err.message });
   }
 };
+
 
 const getDeliveryStatus = (req, res) => {
   const { worker_id, entitlement_id, nonce } = req.query;
