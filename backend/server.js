@@ -58,6 +58,10 @@ app.use(async (req, res, next) => {
   }
 });
 
+// Redirecciones amigables a la documentación interactiva OpenAPI 3.1
+app.get('/docs', (req, res) => res.redirect('/api/v1/docs'));
+app.get('/api/docs', (req, res) => res.redirect('/api/v1/docs'));
+
 // Montaje de rutas de la API REST v1
 app.use('/api/v1', apiRoutes);
 

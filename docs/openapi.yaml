@@ -1,0 +1,606 @@
+openapi: 3.1.0
+info:
+  title: API Plataforma Combos Alimenticios con Passkeys & Offline-First (SGBT / MIPPCI)
+  version: 2.1.0
+  description: >
+    Especificación OpenAPI 3.1 del API RESTful para la gestión y despacho seguro
+    de combos alimenticios con autenticación biométrica FIDO2 / WebAuthn,
+    criptografía asimétrica ECDSA P-256 y arquitectura de sincronización offline-first.
+  contact:
+    name: Dirección de Tecnología de la Información - MIPPCI
+    email: ti@mippci.gob.ve
+  license:
+    name: Propiedad del Estado Venezolano / MIPPCI
+
+servers:
+  - url: /api/v1
+    description: Servidor de Aplicación Local / Centro de Distribución
+  - url: https://sgbt-combos.gob.ve/api/v1
+    description: Servidor de Producción Centralizada (Nube)
+
+tags:
+  - name: Autenticación & Passkeys
+    description: Gestión de sesiones, login, logout, registro y autenticación WebAuthn FIDO2
+  - name: Supervisor & Jornadas
+    description: Desafíos QR diarios del supervisor y enrolamiento presencial de operadores
+  - name: Despacho & Verificación
+    description: Verificación QR en línea/offline, validación criptográfica y streaming de entregas (SSE)
+  - name: Despacho Manual & Contingencia
+    description: Búsqueda manual por cédula, consulta de combos y registro con firma digital de contingencia
+  - name: Sincronización Offline-First
+    description: Intercambio bidireccional de registros (pull y push) entre SQLite local y Supabase PostgreSQL
+  - name: Nómina & Beneficiarios
+    description: Carga de nómina CSV, gestión de beneficiarios y asignación de cuotas
+  - name: Sistema & Diagnóstico
+    description: Estado del motor criptográfico, catálogo de combos, backups y mantenimiento
+
+paths:
+  /auth/login:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Iniciar sesión con usuario y contraseña
+      description: Autentica un usuario (administrador, director o supervisor) emitiendo un JWT en cookie HttpOnly y cuerpo JSON.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: admin123
+      responses:
+        '200':
+          description: Autenticación exitosa
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: token=eyJhbGci...; Path=/; HttpOnly; SameSite=Strict
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  token:
+                    type: string
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/logout:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Cerrar sesión e invalidar token
+      description: Destruye la cookie de sesión y añade el token actual a la tabla de revocación persistente (revoked_tokens).
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Sesión cerrada y token revocado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Sesión cerrada exitosamente
+
+  /auth/passkey/register-challenge:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Solicitar desafío de registro WebAuthn
+      description: Genera las opciones de creación de credencial biométrica FIDO2 para un beneficiario o supervisor.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cedula
+              properties:
+                cedula:
+                  type: string
+                  example: "V-12345678"
+      responses:
+        '200':
+          description: Opciones de creación WebAuthn generadas
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenge:
+                    type: string
+                    example: "dGVzdC1jaGFsbGVuZ2UtYmFzZTY0"
+                  rp:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        example: "SGBT Combos MIPPCI"
+                      id:
+                        type: string
+                        example: "localhost"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      displayName:
+                        type: string
+                  pubKeyCredParams:
+                    type: array
+                    items:
+                      type: object
+
+  /auth/passkey/register-verify:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Verificar y almacenar credencial WebAuthn
+      description: Valida la firma del autenticador y registra la clave pública ECDSA P-256 en la base de datos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cedula
+                - registrationResponse
+              properties:
+                cedula:
+                  type: string
+                  example: "V-12345678"
+                registrationResponse:
+                  type: object
+      responses:
+        '200':
+          description: Passkey registrada con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Passkey registrada exitosamente
+
+  /auth/passkey/auth-challenge:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Solicitar desafío de autenticación WebAuthn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - cedula
+              properties:
+                cedula:
+                  type: string
+                  example: "V-12345678"
+      responses:
+        '200':
+          description: Desafío de autenticación generado
+
+  /auth/passkey/auth-verify:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Validar firma biométrica WebAuthn
+      responses:
+        '200':
+          description: Firma verificada y sesión concedida
+
+  /supervisor/daily-qr:
+    get:
+      tags:
+        - Supervisor & Jornadas
+      summary: Obtener código QR de jornada diario del supervisor
+      description: Genera un payload con firma criptográfica HMAC-SHA256 válido únicamente hasta las 23:59:59 del día en curso.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Payload firmado diario
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  qr_payload:
+                    type: string
+                    example: "SGBT:V1:SUP-01:2026-10-25:SIGNATURE_HMAC"
+                  supervisor_id:
+                    type: string
+                    example: "SUP-01"
+                  date:
+                    type: string
+                    example: "2026-10-25"
+                  expires_at:
+                    type: string
+                    example: "2026-10-25T23:59:59.000Z"
+
+  /verify/qr:
+    post:
+      tags:
+        - Despacho & Verificación
+      summary: Verificar código QR de reclamo de beneficiario
+      description: Valida la firma digital ECDSA P-256 o HMAC del código QR presentado, verifica elegibilidad y registra la entrega en base de datos.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qr_data
+              properties:
+                qr_data:
+                  type: string
+                  description: Cadena codificada en el código QR del beneficiario
+                  example: "SGBT:V1:V12345678:COMBO-01:SIG_BASE64"
+                distribution_point_id:
+                  type: integer
+                  example: 1
+      responses:
+        '200':
+          description: Entrega verificada y registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryRecord'
+        '400':
+          description: QR inválido, expirado o manipulado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: Beneficio ya reclamado hoy (Duplicado)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /auth/delivery-stream:
+    get:
+      tags:
+        - Despacho & Verificación
+      summary: Canal de eventos en tiempo real (Server-Sent Events)
+      description: Transmite eventos SSE instantáneos cada vez que se autoriza y confirma un despacho de combo.
+      responses:
+        '200':
+          description: Flujo de eventos continuo
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: "event: delivery\ndata: {\"id\":102,\"cedula\":\"V-12345678\",\"combo_name\":\"Bolsa Familiar\"}\n\n"
+
+  /manual-dispatch/combos:
+    get:
+      tags:
+        - Despacho Manual & Contingencia
+      summary: Listar combos alimenticios disponibles para entrega
+      responses:
+        '200':
+          description: Lista de combos activos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Combo'
+
+  /manual-dispatch/search-beneficiary:
+    get:
+      tags:
+        - Despacho Manual & Contingencia
+      summary: Buscar beneficiario por cédula para entrega manual
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Cédula o número de documento
+          example: "12345678"
+      responses:
+        '200':
+          description: Información del beneficiario y estado de retiro
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Beneficiary'
+        '404':
+          description: Beneficiario no registrado en nómina
+
+  /manual-dispatch/deliver:
+    post:
+      tags:
+        - Despacho Manual & Contingencia
+      summary: Procesar y registrar una entrega manual de contingencia
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - beneficiary_id
+                - combo_id
+              properties:
+                beneficiary_id:
+                  type: integer
+                  example: 15
+                combo_id:
+                  type: integer
+                  example: 1
+                observation:
+                  type: string
+                  example: "Entrega asistida por falta de teléfono móvil inteligente"
+      responses:
+        '201':
+          description: Despacho manual registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryRecord'
+        '409':
+          description: Conflicto por intento de duplicación en el mismo día
+
+  /manual-dispatch/history:
+    get:
+      tags:
+        - Despacho Manual & Contingencia
+      summary: Historial de despachos manuales del punto actual
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Lista histórica de entregas manuales
+
+  /sync/status:
+    get:
+      tags:
+        - Sincronización Offline-First
+      summary: Consultar estado de sincronización local vs remota
+      responses:
+        '200':
+          description: Métricas de sincronización
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pending_push_count:
+                    type: integer
+                    example: 3
+                  last_sync_timestamp:
+                    type: string
+                    example: "2026-10-25T01:30:00Z"
+                  is_online:
+                    type: boolean
+                    example: true
+
+  /sync/push:
+    post:
+      tags:
+        - Sincronización Offline-First
+      summary: Empujar transacciones locales offline a Supabase PostgreSQL
+      responses:
+        '200':
+          description: Lote de entregas sincronizado exitosamente
+
+  /sync/pull:
+    get:
+      tags:
+        - Sincronización Offline-First
+      summary: Descargar actualizaciones de nóminas y combos desde la nube
+      responses:
+        '200':
+          description: Datos actualizados y aplicados a la base local
+
+  /system/status:
+    get:
+      tags:
+        - Sistema & Diagnóstico
+      summary: Estado del servidor, motor criptográfico y base de datos
+      responses:
+        '200':
+          description: Telemetría del sistema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  db_type:
+                    type: string
+                    example: "SQLite (better-sqlite3)"
+                  crypto_engine:
+                    type: string
+                    example: "ECDSA P-256 (ES256)"
+                  timestamp:
+                    type: string
+                    example: "2026-10-25T06:30:00.000Z"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT provisto en la cabecera HTTP `Authorization: Bearer <token>`
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: Cookie de sesión protegida `HttpOnly; SameSite=Strict`
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        username:
+          type: string
+          example: "admin"
+        role:
+          type: string
+          enum: [admin, director, supervisor, operator]
+          example: "admin"
+        name:
+          type: string
+          example: "Administrador Central"
+
+    Combo:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Combo Clap Familiar Premium"
+        description:
+          type: string
+          example: "Arroz, harina de maíz, pasta, aceite, granos, leche en polvo"
+        category:
+          type: string
+          example: "Alimentos Secos"
+        weight_kg:
+          type: number
+          example: 15.5
+        is_active:
+          type: integer
+          enum: [0, 1]
+          example: 1
+
+    Beneficiary:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 104
+        cedula:
+          type: string
+          example: "V-18765432"
+        first_name:
+          type: string
+          example: "María"
+        last_name:
+          type: string
+          example: "González"
+        department:
+          type: string
+          example: "Dirección de Prensa y Comunicaciones"
+        has_passkey:
+          type: boolean
+          example: true
+        claimed_today:
+          type: boolean
+          example: false
+
+    DeliveryRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 541
+        beneficiary_id:
+          type: integer
+          example: 104
+        combo_id:
+          type: integer
+          example: 1
+        operator_id:
+          type: integer
+          example: 2
+        verification_method:
+          type: string
+          enum: [passkey_biometric, daily_qr, manual_contingency]
+          example: "passkey_biometric"
+        dispatched_at:
+          type: string
+          format: date-time
+          example: "2026-10-25T10:14:22Z"
+
+    ProblemDetails:
+      type: object
+      description: Formato estándar de errores HTTP conforme a RFC 7807
+      properties:
+        type:
+          type: string
+          example: "https://sgbt-combos.gob.ve/errors/duplicate-claim"
+        title:
+          type: string
+          example: "Beneficio ya reclamado hoy"
+        status:
+          type: integer
+          example: 409
+        detail:
+          type: string
+          example: "El beneficiario V-18765432 ya retiró su combo en el punto 1 a las 08:30 AM"
+        instance:
+          type: string
+          example: "/api/v1/verify/qr"
+
+  responses:
+    UnauthorizedError:
+      description: Credenciales inválidas o token expirado/revocado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
