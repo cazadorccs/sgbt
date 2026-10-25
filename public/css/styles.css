@@ -1417,7 +1417,7 @@ body {
 
 .modal-dialog {
   background: #ffffff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid rgba(226, 232, 240, 0.95);
   border-radius: var(--radius-lg);
   max-width: 540px;
   width: 100%;
@@ -1426,7 +1426,7 @@ body {
   overflow-x: hidden;
   box-sizing: border-box;
   padding: 1.75rem;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.05);
   animation: modalEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   color: #0f172a;
   position: relative;
@@ -1434,8 +1434,86 @@ body {
 }
 
 @keyframes modalEnter {
-  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Cabecera Estandarizada de Modales (make-interfaces-feel-better) */
+.modal-header-polished {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+}
+
+.modal-close-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  transition-property: background-color, color, border-color, transform;
+  transition-duration: 0.15s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.modal-close-btn:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+
+.modal-close-btn:active {
+  transform: scale(0.94);
+}
+
+/* Fila de cabecera nivelada para inputs en cuadrículas .form-grid-2 */
+.input-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  box-sizing: border-box;
+}
+
+.input-header-row > label {
+  font-size: 0.75rem;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.input-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.modal-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(241, 245, 249, 0.9);
 }
 
 .biometric-prompt-circle {

@@ -7,7 +7,7 @@
         <div class="panel-title" style="color: #f59e0b;">
           ⚠️ Autorización Biométrica Obligatoria (Supervisor Nivel 2)
         </div>
-        <button id="btnCloseSupervisorModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
+        <button id="btnCloseSupervisorModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
@@ -63,7 +63,7 @@
         <div class="panel-title">
           🛡️ Expediente Digital de Seguridad
         </div>
-        <button id="btnCloseDossierModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
+        <button id="btnCloseDossierModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div id="dossierContent" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
@@ -81,7 +81,7 @@
         <div id="comboModalTitle" class="panel-title" style="color: #0284c7; font-weight: 800; font-size: 1.15rem;">
           ⚙️ Configurar Beneficio Institucional
         </div>
-        <button id="btnCloseCreateComboModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
+        <button id="btnCloseCreateComboModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <form id="createComboForm" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
@@ -205,7 +205,7 @@
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
           <span>Configuración Institucional del Sistema</span>
         </div>
-        <button id="btnCloseGeneralSettingsModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseGeneralSettingsModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <!-- TABS INTERNOS DEL MODAL DE CONFIGURACIÓN -->
@@ -459,7 +459,7 @@
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
           <span>Confirmar Puesta a Cero</span>
         </div>
-        <button id="btnCloseFactoryResetConfirmModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
+        <button id="btnCloseFactoryResetConfirmModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div style="font-size: 0.85rem; color: #475569; line-height: 1.45; margin-bottom: 1rem;">
@@ -491,7 +491,7 @@
         <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
           ➕ Registrar Nuevo Beneficiario
         </div>
-        <button id="btnCloseCreateWorkerModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseCreateWorkerModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <form id="createWorkerForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -599,7 +599,7 @@
         <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
           📂 Carga Masiva de Nómina Institucional (CSV)
         </div>
-        <button id="btnCloseImportPayrollModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseImportPayrollModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem; line-height: 1.4;">
@@ -654,51 +654,59 @@
        MODAL 7: PLANIFICACIÓN DE NUEVA JORNADA DE DESPACHO
        ====================================================================== -->
   <div id="createCampaignModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 620px;">
-      <div class="panel-header" style="margin-bottom: 1.25rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.6rem; font-size: 1.15rem; font-weight: 700;">
-          <div style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: rgba(2, 132, 199, 0.1); color: var(--sea-pacific); flex-shrink: 0;">
+    <div class="modal-dialog" style="max-width: 640px;">
+      <div class="modal-header-polished">
+        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.65rem; font-size: 1.15rem; font-weight: 800;">
+          <div style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(2, 132, 199, 0.12); color: var(--sea-pacific); flex-shrink: 0;">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
           </div>
-          <span>Programar Nueva Jornada de Despacho</span>
+          <span style="letter-spacing: -0.015em;">Programar Nueva Jornada de Despacho</span>
         </div>
-        <button id="btnCloseCreateCampaignModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseCreateCampaignModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+          <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
       </div>
 
-      <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1rem;">
+      <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1.1rem;">
         <div class="input-group">
-          <label>Título / Nombre de la Jornada: *</label>
+          <label for="campaignNameInput">Título / Nombre de la Jornada: *</label>
           <input type="text" id="campaignNameInput" class="form-input" placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
         </div>
 
         <div class="form-grid-2">
           <div class="input-group">
-            <label>Fecha de Inicio: *</label>
+            <div class="input-header-row">
+              <label for="campaignStartDateInput">Fecha de Inicio: *</label>
+            </div>
             <input type="date" id="campaignStartDateInput" class="form-input" required />
           </div>
           <div class="input-group">
-            <label>Fecha de Cierre: *</label>
+            <div class="input-header-row">
+              <label for="campaignEndDateInput">Fecha de Cierre: *</label>
+            </div>
             <input type="date" id="campaignEndDateInput" class="form-input" required />
           </div>
         </div>
 
         <div class="form-grid-2">
           <div class="input-group">
-            <label>Combo / Beneficio Asignado: *</label>
+            <div class="input-header-row">
+              <label for="campaignComboSelect">Combo / Beneficio Asignado: *</label>
+            </div>
             <select id="campaignComboSelect" class="form-select">
               <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)</option>
               <option value="ae65fee7-79f6-48a3-bc41-a61c928876b5">🍗 Combo Proteico Fresco (Cadena de Frío)</option>
             </select>
           </div>
           <div class="input-group">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.15rem;">
-              <label style="margin-bottom: 0;">Punto / Sede: *</label>
-              <div style="display: flex; gap: 0.35rem;">
-                <button type="button" id="btnEditDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;" title="Modificar la sede seleccionada">
+            <div class="input-header-row">
+              <label for="campaignPointSelect">Punto / Sede: *</label>
+              <div class="input-header-actions">
+                <button type="button" id="btnEditDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;" title="Modificar la sede seleccionada">
                   <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                   <span>Editar</span>
                 </button>
-                <button type="button" id="btnAddDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.7rem; border-color: #0284c7; color: #0284c7; background: rgba(2, 132, 199, 0.04); font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;" title="Agregar nueva sede de despacho">
+                <button type="button" id="btnAddDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #0284c7; color: #0284c7; background: rgba(2, 132, 199, 0.05); font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;" title="Agregar nueva sede de despacho">
                   <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                   <span>Nueva</span>
                 </button>
@@ -711,33 +719,33 @@
         </div>
 
         <!-- PANEL INLINE PARA AGREGAR O MODIFICAR SEDE DE DESPACHO -->
-        <div id="distributionPointFormPanel" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-sm); padding: 0.85rem; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05); animation: modalEnter 0.15s ease;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
-            <div id="distributionPointFormTitle" style="font-size: 0.82rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+        <div id="distributionPointFormPanel" style="display: none; background: #f8fafc; border: 1.5px solid #bae6fd; border-radius: var(--radius-md); padding: 1rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); animation: modalEnter 0.15s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div id="distributionPointFormTitle" style="font-size: 0.84rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.45rem;">
               <svg class="icon-svg icon-xs" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
               <span id="distributionPointFormTitleText">Nueva Sede de Despacho</span>
             </div>
-            <button type="button" id="btnCancelDistributionPointForm" class="btn btn-outline" style="padding: 0.1rem 0.4rem; font-size: 0.7rem; border-color: transparent; color: #64748b;" title="Cerrar">✕</button>
+            <button type="button" id="btnCancelDistributionPointForm" class="modal-close-btn" style="width: 28px; height: 28px; min-width: 28px; min-height: 28px;" title="Cerrar">✕</button>
           </div>
           <input type="hidden" id="editPointId" value="" />
-          <div class="form-grid-2" style="margin-bottom: 0.5rem;">
+          <div class="form-grid-2" style="margin-bottom: 0.65rem;">
             <div class="input-group">
-              <label style="font-size: 0.7rem;">Nombre de la Sede / Punto: *</label>
+              <label for="pointNameInput" style="font-size: 0.72rem;">Nombre de la Sede / Punto: *</label>
               <input type="text" id="pointNameInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Comedor Mezzanina Torre Este" />
             </div>
             <div class="input-group">
-              <label style="font-size: 0.7rem;">Código de Ubicación: *</label>
+              <label for="pointCodeInput" style="font-size: 0.72rem;">Código de Ubicación: *</label>
               <input type="text" id="pointCodeInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem; text-transform: uppercase;" placeholder="Ej: COM-MTE" />
             </div>
           </div>
-          <div class="input-group" style="margin-bottom: 0.65rem;">
-            <label style="font-size: 0.7rem;">Dirección Física o Referencia:</label>
+          <div class="input-group" style="margin-bottom: 0.75rem;">
+            <label for="pointAddressInput" style="font-size: 0.72rem;">Dirección Física o Referencia:</label>
             <input type="text" id="pointAddressInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Piso 1, frente a torniquetes y ascensores 3 y 4" />
           </div>
           <div id="pointFormAlert" class="alert-box alert-danger" style="display: none; padding: 0.45rem 0.65rem; font-size: 0.75rem; margin-bottom: 0.5rem;"></div>
           <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-            <button type="button" id="btnClosePointPanel" class="btn btn-outline" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">Cancelar</button>
-            <button type="button" id="btnSaveDistributionPoint" class="btn btn-primary" style="padding: 0.35rem 0.9rem; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <button type="button" id="btnClosePointPanel" class="btn btn-outline" style="padding: 0.4rem 0.85rem; font-size: 0.78rem;">Cancelar</button>
+            <button type="button" id="btnSaveDistributionPoint" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
               <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
               <span id="btnSavePointText">Guardar y Asignar Sede</span>
             </button>
@@ -745,7 +753,7 @@
         </div>
 
         <div class="input-group">
-          <label>Población Objetivo / Criterio de Selección:</label>
+          <label for="campaignTargetSelect">Población Objetivo / Criterio de Selección:</label>
           <select id="campaignTargetSelect" class="form-select">
             <option value="all">Todo el Personal (Universal: Activos, Jubilados, Contratados)</option>
             <option value="activo">Exclusivo Personal Activo</option>
@@ -755,26 +763,27 @@
         </div>
 
         <div class="input-group">
-          <label>Descripción / Instrucciones de Retiro:</label>
+          <label for="campaignDescriptionInput">Descripción / Instrucciones de Retiro:</label>
           <textarea id="campaignDescriptionInput" class="form-input" rows="2" placeholder="Ej: Presentar documento de identidad o QR biométrico en la mesa central de 8:30 AM a 4:00 PM."></textarea>
         </div>
 
-        <div style="display: flex; flex-direction: column; gap: 0.4rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
-          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
-            <input type="checkbox" id="campaignAutoEntitlementsCheck" checked style="width: 16px; height: 16px; accent-color: var(--sea-pacific);" />
-            Generar asignaciones de beneficio automáticamente en el sistema para todos los trabajadores seleccionados.
+        <!-- OPCIONES AUTOMÁTICAS CON ALINEACIÓN ÓPTICA -->
+        <div style="display: flex; flex-direction: column; gap: 0.65rem; background: #f8fafc; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
+          <label style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
+            <input type="checkbox" id="campaignAutoEntitlementsCheck" checked style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
+            <span>Generar asignaciones de beneficio automáticamente en el sistema para todos los trabajadores seleccionados.</span>
           </label>
-          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
-            <input type="checkbox" id="campaignNotifyCheck" checked style="width: 16px; height: 16px; accent-color: var(--sea-pacific);" />
-            Activar notificación en la aplicación para convocar a los beneficiarios.
+          <label style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
+            <input type="checkbox" id="campaignNotifyCheck" checked style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
+            <span>Activar notificación en la aplicación para convocar a los beneficiarios.</span>
           </label>
         </div>
 
         <div id="campaignAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-          <button type="button" id="btnCancelCreateCampaign" class="btn btn-outline">Cancelar</button>
-          <button type="submit" id="btnSubmitCreateCampaign" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem;">
+        <div class="modal-footer-actions">
+          <button type="button" id="btnCancelCreateCampaign" class="btn btn-outline" style="min-height: 42px;">Cancelar</button>
+          <button type="submit" id="btnSubmitCreateCampaign" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700; min-height: 42px; display: inline-flex; align-items: center; gap: 0.4rem;">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
             <span>Publicar Jornada</span>
           </button>
@@ -793,7 +802,7 @@
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
           <span>Avisos y Notificaciones del Sistema</span>
         </div>
-        <button id="btnCloseNotificationsModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseNotificationsModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
@@ -840,7 +849,7 @@
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           <span>QR Diario del Supervisor de Entregas</span>
         </div>
-        <button id="btnCloseSupervisorDailyQrModal" class="btn btn-outline" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseSupervisorDailyQrModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1rem; text-align: left;">
@@ -908,7 +917,7 @@
             <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Envío de enlaces oficiales de instalación, retiro y supervisión (MIPPCI)</div>
           </div>
         </div>
-        <button id="btnCloseWhatsAppShareModal" class="btn btn-outline" onclick="if (typeof closeWhatsAppShareModal === 'function') closeWhatsAppShareModal();" style="padding: 0.25rem 0.6rem; border-color: #cbd5e1; color: #475569;" title="Cerrar">✕</button>
+        <button id="btnCloseWhatsAppShareModal" type="button" class="modal-close-btn" onclick="if (typeof closeWhatsAppShareModal === 'function') closeWhatsAppShareModal();" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <!-- PESTAÑAS POR ROL: BENEFICIARIO / DESPACHO / SUPERVISOR -->
@@ -1043,7 +1052,7 @@
             <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Permiso para compañeros de trabajo de personal en reposo o adultos mayores</div>
           </div>
         </div>
-        <button id="btnCloseDelegationModal" class="btn btn-outline" style="padding: 0.2rem 0.5rem;">✕</button>
+        <button id="btnCloseDelegationModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
 
       <div id="delegationFormSection">
