@@ -10,29 +10,28 @@ const getDailyPack = (req, res) => {
   const distribution_point_id = req.query.distribution_point_id || '550e8400-e29b-41d4-a716-446655440000';
   const targetDate = req.query.date || new Date().toISOString().split('T')[0];
 
-  const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-  const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-  const defaultViveresId = vCombo ? vCombo.id : 'c1a2b3c4-1111-2222-3333-444455556666';
-  const defaultProteicoId = pCombo ? pCombo.id : 'ae65fee7-79f6-48a3-bc41-a61c928876b5';
+  // 1. Obtener todos los combos activos del catálogo institucional
+  const activeCombos = db.prepare(`
+    SELECT id, name, description, category, icon, mesa_name, mesa_number, weight_kg, items_detail
+    FROM combos
+    WHERE is_active = 1
+    ORDER BY created_at ASC, id ASC
+  `).all();
 
-  // 1. Garantizar auto-asignación diaria para trabajadores activos en una sola transacción rápida
+  // 2. Garantizar auto-asignación diaria de TODOS los combos activos para trabajadores activos
   try {
     const existingEnts = db.prepare(`
-      SELECT de.worker_id, de.shift, c.name as combo_name
+      SELECT de.worker_id, de.combo_id
       FROM daily_entitlements de
-      JOIN combos c ON de.combo_id = c.id
       WHERE de.valid_date = ?
     `).all(targetDate);
 
-    const s1Set = new Set();
-    const s2Set = new Set();
+    const workerComboMap = new Map();
     for (const e of existingEnts) {
-      if (e.shift === 'estacion_1' || (e.combo_name && e.combo_name.toLowerCase().includes('víveres'))) {
-        s1Set.add(e.worker_id);
+      if (!workerComboMap.has(e.worker_id)) {
+        workerComboMap.set(e.worker_id, new Set());
       }
-      if (e.shift === 'estacion_2' || (e.combo_name && e.combo_name.toLowerCase().includes('prote'))) {
-        s2Set.add(e.worker_id);
-      }
+      workerComboMap.get(e.worker_id).add(e.combo_id);
     }
 
     const activeWorkerList = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
@@ -43,11 +42,12 @@ const getDailyPack = (req, res) => {
 
     const txSeed = db.transaction(() => {
       for (const w of activeWorkerList) {
-        if (!s1Set.has(w.id)) {
-          insertBatchEnt.run(crypto.randomUUID(), w.id, defaultViveresId, targetDate, 'estacion_1');
-        }
-        if (!s2Set.has(w.id)) {
-          insertBatchEnt.run(crypto.randomUUID(), w.id, defaultProteicoId, targetDate, 'estacion_2');
+        const assignedSet = workerComboMap.get(w.id);
+        for (const combo of activeCombos) {
+          if (!assignedSet || !assignedSet.has(combo.id)) {
+            const shiftName = combo.mesa_name ? combo.mesa_name.split(' - ')[0].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua';
+            insertBatchEnt.run(crypto.randomUUID(), w.id, combo.id, targetDate, shiftName);
+          }
         }
       }
     });
@@ -139,6 +139,7 @@ const getDailyPack = (req, res) => {
     sync_timestamp: new Date().toISOString(),
     valid_date: targetDate,
     total_workers: active_workers.length,
+    combos: activeCombos,
     active_workers
   });
 };

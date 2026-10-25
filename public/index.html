@@ -1858,54 +1858,35 @@
               </div>
             </div>
 
-            <!-- SELECTOR DE ESTACIÓN ACTIVA DE DESPACHO -->
+            <!-- SELECTOR DE ESTACIÓN ACTIVA DE DESPACHO (DINÁMICO CON COMBOS REALES) -->
             <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.85rem;">
-              <div class="flex-between" style="margin-bottom: 0.4rem;">
+              <div class="flex-between" style="margin-bottom: 0.45rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
-                  Estación de Despacho Activa:
+                  Estación / Combo de Despacho Activo:
                 </span>
-                <span id="activeStationBadge" class="badge badge-viveres" style="font-size: 0.65rem; background: #0284c7; color: #fff;">
-                  📦 Estación 1: Víveres
+                <span id="activeStationBadge" class="badge" style="font-size: 0.68rem; background: #4f46e5; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
+                  ⚡ Despacho Unificado
                 </span>
               </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.4rem;">
-                <button type="button" id="btnStationTab1" class="btn btn-outline active-station-tab" style="padding: 0.35rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
-                  📦 Estación 1<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Víveres Secos</span>
-                </button>
-                <button type="button" id="btnStationTab2" class="btn btn-outline" style="padding: 0.35rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
-                  🍗 Estación 2<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Cadena de Frío</span>
-                </button>
-                <button type="button" id="btnStationTabAll" class="btn btn-outline" style="padding: 0.35rem 0.2rem; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
-                  ⚡ Unificado<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Ambos Bultos</span>
+              <div id="distributorStationTabs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem;">
+                <!-- Se llena dinámicamente con los combos reales y la opción de despacho unificado -->
+                <button type="button" class="btn btn-outline active-station-tab-unificado" data-station="all" style="padding: 0.4rem 0.3rem; font-size: 0.7rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
+                  ⚡ Despacho Unificado<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Todas las Mesas</span>
                 </button>
               </div>
             </div>
 
-            <!-- CHECKLIST FÍSICO DE BULTOS A ENTREGAR (ALMACÉN SÓTANO) -->
+            <!-- CHECKLIST FÍSICO DE COMBOS A ENTREGAR (ALMACÉN SÓTANO) -->
             <div style="margin-bottom: 0.85rem;">
               <div class="flex-between" style="margin-bottom: 0.35rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-                  Bultos a Despachar (Verificación Física):
+                  Combos Asignados (Verificación Física en Mesa):
                 </span>
-                <span class="badge badge-viveres" style="font-size: 0.6rem;">2 Bultos Asignados</span>
+                <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">Cargando Combos...</span>
               </div>
 
               <div class="dispatch-checklist" id="dispatchChecklist">
-                <div class="checklist-card checked" id="checkBultoViveres" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
-                  <div class="checklist-checkbox">✓</div>
-                  <div class="checklist-info">
-                    <div class="checklist-title">📦 Bulto 1: Bolsa de Víveres Secos</div>
-                    <div class="checklist-subtitle">12 Rubros (Harina x4, Arroz x2, Pasta x2, Granos, Aceite, Azúcar)</div>
-                  </div>
-                </div>
-
-                <div class="checklist-card checked" id="checkBultoProteina" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
-                  <div class="checklist-checkbox">✓</div>
-                  <div class="checklist-info">
-                    <div class="checklist-title">🍗 Bulto 2: Combo Proteico Fresco</div>
-                    <div class="checklist-subtitle">Cadena de Frío (Pollo entero, Carne molida, Mortadela especial)</div>
-                  </div>
-                </div>
+                <!-- Se renderizan dinámicamente todos los combos reales de la jornada -->
               </div>
             </div>
 
@@ -2406,7 +2387,7 @@ Listo para recibir transacciones de nómina SSOT...
   <!-- Feature Modules -->
   <script src="/js/modules/auth.js?v=2.9"></script>
   <script src="/js/modules/beneficiary.js?v=2.9"></script>
-  <script src="/js/modules/distributor.js?v=2.9"></script>
+  <script src="/js/modules/distributor.js?v=3.6"></script>
   <script src="/js/modules/admin.js?v=2.9"></script>
   <script src="/js/modules/manual_dispatch.js?v=3.5"></script>
   <script src="/js/modules/payroll.js?v=2.9"></script>

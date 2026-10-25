@@ -124,46 +124,152 @@ window.setupDistributorSimulator = function() {
   setupRealtimeQrSyncListener();
 };
 
-function setupStationTabs() {
-  STATE.activeStation = STATE.activeStation || '1';
-  const tab1 = document.getElementById('btnStationTab1');
-  const tab2 = document.getElementById('btnStationTab2');
-  const tabAll = document.getElementById('btnStationTabAll');
+async function loadDistributorCombos() {
+  let combos = null;
+  // 1. Intentar desde STATE.localCache.combos
+  if (STATE.localCache && Array.isArray(STATE.localCache.combos) && STATE.localCache.combos.length > 0) {
+    combos = STATE.localCache.combos;
+  }
+  // 2. Si no, consultar /api/v1/combos
+  if (!combos) {
+    try {
+      combos = await API.get('/api/v1/combos');
+    } catch (e) {
+      console.warn('[DISTRIBUIDOR] No se pudo cargar /api/v1/combos:', e);
+    }
+  }
+  // 3. Si no, consultar localStorage
+  if (!combos) {
+    try {
+      const stored = localStorage.getItem('sgbt_cached_combos');
+      if (stored) combos = JSON.parse(stored);
+    } catch (e) {}
+  }
+  // 4. Fallback estándar a catálogo oficial
+  if (!combos || !Array.isArray(combos) || combos.length === 0) {
+    combos = [
+      { id: 'c1a2b3c4-1111-2222-3333-444455556666', name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)', icon: '🌾', mesa_name: 'Mesa 1', weight_kg: 14.5, items_detail: '4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros, 2 Sardinas' },
+      { id: 'c1a2b3c4-1111-2222-3333-444455557777', name: 'Combo Charcutería', icon: '🍗', mesa_name: 'Mesa 2 - Charcutería / Proteína', weight_kg: 14.0, items_detail: 'Cadena de frío: Pollo entero, Carne molida, Mortadela especial' },
+      { id: '3df50537-3333-4fce-8bdc-f4ecbb567adf', name: 'Combo de Higiene Personal', icon: '🧼', mesa_name: 'Mesa 2 - Higiene y Aseo Personal', weight_kg: 5.2, items_detail: '4 artículos: 4 Jabones de Tocador, 1 Crema Dental, 1 Champú, 4 Rollos de Papel Higiénico' },
+      { id: '2e39c4a5-0611-4a03-b10c-08ef7e270684', name: 'Combo de Limpieza', icon: '🧹', mesa_name: 'Mesa 4 - Artículos de Limpieza', weight_kg: 5.2, items_detail: 'Artículos de limpieza: 1 Detergente en Polvo (1kg), 1 Jabón Lavaplatos, Desinfectante y Cloro' }
+    ];
+  }
+
+  STATE.distributorCombos = combos;
+  if (!STATE.localCache) STATE.localCache = {};
+  STATE.localCache.combos = combos;
+  try { localStorage.setItem('sgbt_cached_combos', JSON.stringify(combos)); } catch (e) {}
+
+  renderDistributorCombos(combos);
+  return combos;
+}
+
+function renderDistributorCombos(combos) {
+  if (!combos || !Array.isArray(combos)) return;
+  const tabsContainer = document.getElementById('distributorStationTabs');
+  const checklistContainer = document.getElementById('dispatchChecklist');
+  const countBadge = document.getElementById('assignedCombosCountBadge');
+
+  if (countBadge) {
+    countBadge.textContent = `${combos.length} Combos Programados`;
+  }
+
+  // 1. Renderizar pestañas de estación / combo dinámicamente
+  if (tabsContainer) {
+    let tabsHtml = `
+      <button type="button" class="btn btn-outline ${(!STATE.activeStation || STATE.activeStation === 'all') ? 'active-station-tab-unificado' : ''}" data-station="all" style="padding: 0.4rem 0.3rem; font-size: 0.7rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
+        ⚡ Despacho Unificado<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Todas las Mesas</span>
+      </button>
+    `;
+
+    combos.forEach((c, idx) => {
+      const isSelected = STATE.activeStation === c.id;
+      const mesaShort = c.mesa_name ? c.mesa_name.split(' - ')[0] : `Mesa ${idx + 1}`;
+      tabsHtml += `
+        <button type="button" class="btn btn-outline ${isSelected ? 'active-station-tab' : ''}" data-station="${c.id}" style="padding: 0.4rem 0.3rem; font-size: 0.7rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
+          ${c.icon || '📦'} ${mesaShort}<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.name}</span>
+        </button>
+      `;
+    });
+
+    tabsContainer.innerHTML = tabsHtml;
+
+    tabsContainer.querySelectorAll('button[data-station]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const st = btn.getAttribute('data-station');
+        updateStationUI(st);
+      });
+    });
+  }
+
+  // 2. Renderizar checklist físico de combos a despachar
+  if (checklistContainer) {
+    checklistContainer.innerHTML = combos.map((c, idx) => `
+      <div class="checklist-card checked" data-combo-id="${c.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
+        <div class="checklist-checkbox">✓</div>
+        <div class="checklist-info">
+          <div class="checklist-title">
+            <span style="font-size: 1.1rem; margin-right: 0.2rem;">${c.icon || '📦'}</span>
+            <strong>${c.name}</strong>
+            <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-left: 0.35rem; padding: 0.15rem 0.4rem; border-radius: 4px;">${c.mesa_name || ('Mesa ' + (idx + 1))}</span>
+          </div>
+          <div class="checklist-subtitle" style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.15rem;">
+            ${c.items_detail || (c.weight_kg ? `Peso aprox: ~${c.weight_kg} kg &middot; Despacho institucional` : 'Despacho institucional')}
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  updateStationUI(STATE.activeStation || 'all');
+}
+
+function updateStationUI(st) {
+  STATE.activeStation = String(st || 'all');
+  const tabsContainer = document.getElementById('distributorStationTabs');
   const badge = document.getElementById('activeStationBadge');
+  const combos = STATE.distributorCombos || [];
 
-  function updateStationUI(st) {
-    STATE.activeStation = String(st);
-    if (tab1) tab1.className = 'btn btn-outline' + (STATE.activeStation === '1' ? ' active-station-tab' : '');
-    if (tab2) tab2.className = 'btn btn-outline' + (STATE.activeStation === '2' ? ' active-station-tab-proteina' : '');
-    if (tabAll) tabAll.className = 'btn btn-outline' + (STATE.activeStation === 'all' ? ' active-station-tab-unificado' : '');
+  if (tabsContainer) {
+    tabsContainer.querySelectorAll('button[data-station]').forEach(btn => {
+      const bSt = btn.getAttribute('data-station');
+      if (bSt === 'all') {
+        btn.className = 'btn btn-outline' + (STATE.activeStation === 'all' ? ' active-station-tab-unificado' : '');
+      } else {
+        btn.className = 'btn btn-outline' + (STATE.activeStation === bSt ? ' active-station-tab' : '');
+      }
+    });
+  }
 
-    if (badge) {
-      if (STATE.activeStation === '1') {
+  if (badge) {
+    if (STATE.activeStation === 'all') {
+      badge.className = 'badge';
+      badge.style.background = '#4f46e5';
+      badge.style.color = '#fff';
+      badge.textContent = `⚡ Despacho Unificado (${combos.length} Combos)`;
+    } else {
+      const selectedCombo = combos.find(c => c.id === STATE.activeStation);
+      if (selectedCombo) {
         badge.className = 'badge badge-viveres';
         badge.style.background = '#0284c7';
         badge.style.color = '#fff';
-        badge.textContent = '📦 Estación 1: Víveres';
-      } else if (STATE.activeStation === '2') {
-        badge.className = 'badge badge-proteina';
-        badge.style.background = '#059669';
-        badge.style.color = '#fff';
-        badge.textContent = '🍗 Estación 2: Proteínas';
+        badge.textContent = `${selectedCombo.icon || '📦'} ${selectedCombo.mesa_name ? selectedCombo.mesa_name.split(' - ')[0] + ': ' : ''}${selectedCombo.name}`;
       } else {
-        badge.className = 'badge badge-activo';
-        badge.style.background = '#4f46e5';
+        badge.className = 'badge';
+        badge.style.background = '#0284c7';
         badge.style.color = '#fff';
-        badge.textContent = '⚡ Despacho Unificado';
+        badge.textContent = `📦 Estación Seleccionada`;
       }
     }
   }
+}
 
+function setupStationTabs() {
+  STATE.activeStation = STATE.activeStation || 'all';
   window.updateDistributorStationUI = updateStationUI;
-
-  tab1?.addEventListener('click', () => updateStationUI('1'));
-  tab2?.addEventListener('click', () => updateStationUI('2'));
-  tabAll?.addEventListener('click', () => updateStationUI('all'));
-
-  updateStationUI(STATE.activeStation || '1');
+  window.renderDistributorCombos = renderDistributorCombos;
+  window.loadDistributorCombos = loadDistributorCombos;
+  loadDistributorCombos();
 }
 
 window.downloadDailyPack = downloadDailyPack;
@@ -856,6 +962,15 @@ async function downloadDailyPack() {
   try {
     const pack = await API.get('/api/v1/sync/daily-pack');
 
+    if (pack.combos && Array.isArray(pack.combos) && pack.combos.length > 0) {
+      STATE.localCache.combos = pack.combos;
+      STATE.distributorCombos = pack.combos;
+      try { localStorage.setItem('sgbt_cached_combos', JSON.stringify(pack.combos)); } catch (e) {}
+      if (typeof renderDistributorCombos === 'function') {
+        renderDistributorCombos(pack.combos);
+      }
+    }
+
     STATE.localCache.workers = pack.active_workers;
     STATE.localCache.publicKeys = {};
     STATE.localCache.nfcCards = {};
@@ -884,7 +999,7 @@ async function downloadDailyPack() {
     if (elWorkersCount) elWorkersCount.textContent = pack.total_workers;
     if (elKeysCount) elKeysCount.textContent = totalKeys;
 
-    console.log('[DISTRIBUIDOR] Paquete diario SQLite precargado con éxito.');
+    console.log('[DISTRIBUIDOR] Paquete diario SQLite precargado con éxito. Combos:', (pack.combos || []).length);
   } catch (err) {
     console.error('Error descargando daily pack:', err);
   }
@@ -1117,7 +1232,11 @@ async function searchContingencyWorker() {
 
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
           <span style="color: #94a3b8;">Beneficio del Día:</span>
-          <span style="color: #34d399; font-weight: 700;">📦 Bolsa Víveres Secos + Combo Proteico</span>
+          <span style="color: #34d399; font-weight: 700; text-align: right; max-width: 65%;">
+            ${(STATE.distributorCombos && STATE.distributorCombos.length > 0)
+              ? STATE.distributorCombos.map(c => `${c.icon || '📦'} ${c.name}`).join(' + ')
+              : '🌾 Bolsa Víveres + 🍗 Charcutería + 🧼 Higiene Personal + 🧹 Limpieza'}
+          </span>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
@@ -1343,11 +1462,29 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
           ${badgeHtml}
         </div>
         <div style="font-size: 0.85rem; font-weight: 700; color: #34d399;">
-          📦 Bultos Entregados en Mesa de Despacho:
+          📦 Combos Entregados en Mesa de Despacho:
         </div>
-        <div style="display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.8rem; color: #f8fafc; background: rgba(0,0,0,0.35); padding: 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-          <div>✅ <strong>Bolsa de Víveres Secos</strong> (Harina x4, Arroz x2, Pasta x2, Caraotas, Aceite, Azúcar, Leche)</div>
-          <div>✅ <strong>Combo Proteico Fresco</strong> (Pollo entero, Carne molida, Mortadela especial)</div>
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.8rem; color: #f8fafc; background: rgba(0,0,0,0.35); padding: 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+          ${(() => {
+            const list = (extraData && extraData.delivered_combos) || STATE.distributorCombos || [];
+            if (list.length > 0) {
+              return list.map(c => `
+                <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
+                  <span style="font-size: 1rem;">${c.icon || '✅'}</span>
+                  <div>
+                    <strong>${c.name}</strong> <span style="font-size: 0.7rem; color: #38bdf8;">(${c.mesa_name || 'Mesa de Entrega'})</span>
+                    ${c.items_detail ? `<div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem;">${c.items_detail}</div>` : ''}
+                  </div>
+                </div>
+              `).join('');
+            }
+            return `
+              <div>✅ <strong>Bolsa de Víveres Secos</strong> (Canasta Básica MIPPCI)</div>
+              <div>✅ <strong>Combo Charcutería / Proteína</strong> (Cadena de Frío)</div>
+              <div>✅ <strong>Combo de Higiene Personal</strong> (4 artículos de aseo)</div>
+              <div>✅ <strong>Combo de Limpieza</strong> (Artículos de limpieza)</div>
+            `;
+          })()}
         </div>
         <div class="text-mono" style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem;">
           ID Transacción: ${crypto.randomUUID()} &middot; Punto: Almacén Sótano 1
