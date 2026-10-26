@@ -136,6 +136,30 @@ const login = async (req, res) => {
       }
     }
 
+    // Sincronización proactiva de rol en tiempo real desde Supabase Cloud
+    // para garantizar que designaciones recientes (Mesa de Despacho / Supervisor) surtan efecto de inmediato
+    if (worker && worker.role === 'worker') {
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const queryPromise = supabase
+            .from('workers')
+            .select('role')
+            .eq('id', worker.id)
+            .single();
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase Role Sync')), 800));
+          const { data: remoteData } = await Promise.race([queryPromise, timeoutPromise]);
+          if (remoteData && remoteData.role && remoteData.role !== 'worker') {
+            worker.role = remoteData.role;
+            db.prepare('UPDATE workers SET role = ? WHERE id = ?').run(remoteData.role, worker.id);
+            console.log(`[AUTH ROLE SYNC] Rol de ${worker.document_id} actualizado en tiempo real desde Supabase a: ${remoteData.role}`);
+          }
+        }
+      } catch (e) {
+        // Fallback no bloqueante
+      }
+    }
+
     if (!worker) {
       console.warn(`❌ [AUTH LOGIN FAILED]`);
       console.warn(`   Motivo    : Identificador no registrado en nómina institucional`);
@@ -365,6 +389,43 @@ const verifyQr = (req, res) => {
   const { qr_payload, distribution_point_id, delivered_by_user_id, station } = req.body;
   if (!qr_payload) {
     return res.status(400).json({ error: 'Payload QR incompleto' });
+  }
+
+  // Soporte para Código QR de Contingencia (Validación de Supervisor para Retiro sin Celular)
+  if (qr_payload.protocol === 'SGBT_SUPERVISOR_CONTINGENCY_V1' || qr_payload.type === 'CONTINGENCY_APPROVAL_REQUEST') {
+    const workerDoc = qr_payload.worker_document_id || qr_payload.document_id;
+    if (!workerDoc) {
+      return res.status(400).json({ valid: false, error: 'Documento de beneficiario no especificado en QR de contingencia' });
+    }
+    try {
+      const result = processContingencyOverride({
+        worker_document_id: workerDoc,
+        supervisor_id: delivered_by_user_id || qr_payload.supervisor_id,
+        override_reason: qr_payload.reason || 'adulto_mayor_sin_smartphone',
+        distribution_point_id
+      });
+      return res.json({
+        valid: true,
+        delivery_id: result.delivery_id,
+        worker_name: result.worker.full_name,
+        document_id: result.worker.document_id,
+        is_contingency: true,
+        station: 1,
+        station_name: 'Mesa 1',
+        combo_name: result.combo_name || 'Combo de Útiles Escolares',
+        combo_icon: '🎒',
+        message: `¡Contingencia Validada por Supervisor! Entregar Combo de Útiles Escolares a ${result.worker.full_name}.`
+      });
+    } catch (cErr) {
+      if (cErr.message && (cErr.message.includes('UNIQUE constraint failed') || cErr.message.includes('idx_unique_daily_claim'))) {
+        return res.status(409).json({
+          valid: false,
+          code: 'DUPLICATE_DELIVERY_BLOCKED',
+          message: '¡ALERTA DE SEGURIDAD! El beneficio de este trabajador ya fue retirado el día de hoy.'
+        });
+      }
+      return res.status(cErr.status || 500).json({ valid: false, error: cErr.message });
+    }
   }
 
   // Soporte para Código QR de Delegación Criptográfica Temporal (Retiro por Terceros)

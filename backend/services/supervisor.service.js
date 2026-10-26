@@ -144,13 +144,23 @@ function processContingencyOverride({ worker_document_id, supervisor_id, overrid
   }
 
   const today = new Date().toISOString().split('T')[0];
-  let ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? LIMIT 1').get(worker.id, today);
+  let ent = db.prepare(`
+    SELECT e.id FROM daily_entitlements e 
+    JOIN combos c ON e.combo_id = c.id 
+    WHERE e.worker_id = ? AND date(e.valid_date) = date(?) AND (c.category = 'utiles_escolares' OR c.name LIKE '%utiles%' OR c.mesa_name LIKE '%Mesa 1%')
+    LIMIT 1
+  `).get(worker.id, today);
+
   if (!ent) {
-    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
+    ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND date(valid_date) = date(?) LIMIT 1').get(worker.id, today);
+  }
+
+  if (!ent) {
+    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category = 'utiles_escolares' AND is_active = 1 LIMIT 1").get()?.id || '0f74d741-6310-4d6c-b8e5-8cd6e76f9113';
     const newEntId = crypto.randomUUID();
     db.prepare(`
       INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+      VALUES (?, ?, ?, ?, 'mesa_1', 'pending')
     `).run(newEntId, worker.id, defaultCombo, today);
     ent = { id: newEntId };
   }

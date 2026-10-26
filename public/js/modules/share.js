@@ -603,12 +603,41 @@ window.handleUrlDeepLinks = function() {
         navigateTo('view-worker');
       }
     } else if (viewParam === 'distributor') {
-      if (STATE.currentUser && STATE.currentUser.role === 'operator') {
-        navigateTo('view-distributor');
+      const isOperatorRole = STATE.currentUser && (
+        STATE.currentUser.role === 'operator' || 
+        STATE.currentUser.role === 'distributor' || 
+        STATE.currentUser.role === 'admin' || 
+        STATE.currentUser.role === 'director' || 
+        STATE.currentUser.role === 'supervisor'
+      );
+
+      if (isOperatorRole) {
+        sessionStorage.setItem('sgbt_session_view_mode', 'operator');
+        if (typeof applyUserSession === 'function') {
+          applyUserSession(STATE.currentUser, 'operator');
+        } else {
+          navigateTo('view-distributor');
+        }
       } else if (!STATE.currentUser) {
+        sessionStorage.setItem('sgbt_intended_view', 'distributor');
         navigateTo('view-login');
+        const alertBox = document.getElementById('loginAlertBox');
+        if (alertBox) {
+          alertBox.className = 'alert-box alert-info';
+          alertBox.innerHTML = `📦 <strong>Mesa de Despacho (Distribución y Validación):</strong><br>Ingrese su Cédula de Identidad de operador para acceder al módulo de escaneo de QR y entregas de víveres.`;
+          alertBox.style.display = 'block';
+        }
+        const badgeStatus = document.getElementById('loginBadgeStatus');
+        if (badgeStatus) {
+          badgeStatus.textContent = '📦 Mesa de Despacho · Validación y Entregas';
+          badgeStatus.style.background = '#fef3c7';
+          badgeStatus.style.color = '#b45309';
+        }
       } else {
-        navigateTo('view-distributor');
+        navigateTo('view-worker');
+        if (typeof window.showToast === 'function') {
+          window.showToast('Su usuario está autenticado como Beneficiario Titular. Para operar la Mesa de Despacho, debe ingresar con un usuario designado como Operador.', 'warning');
+        }
       }
     } else if (viewParam === 'portal') {
       if (STATE.currentUser && (STATE.currentUser.role === 'admin' || STATE.currentUser.role === 'director' || STATE.currentUser.role === 'supervisor')) {

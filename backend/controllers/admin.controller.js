@@ -971,23 +971,25 @@ const exportDeliveries = (req, res) => {
   res.json({ exported_at: new Date().toISOString(), count: deliveries.length, deliveries });
 };
 
-const updateWorkerRole = (req, res) => {
+const updateWorkerRole = async (req, res) => {
   const { id } = req.params;
-  const { role } = req.body;
+  let { role } = req.body;
+
+  if (role === 'distributor') role = 'operator';
 
   if (!role || !['worker', 'operator', 'supervisor', 'admin'].includes(role)) {
     return res.status(400).json({ error: 'Rol inválido. Opciones: worker, operator, supervisor, admin' });
   }
 
   try {
-    const worker = db.prepare('SELECT id, document_id, full_name, role FROM workers WHERE id = ?').get(id);
+    const worker = db.prepare('SELECT id, document_id, full_name, role FROM workers WHERE id = ? OR document_id = ?').get(id, id);
     if (!worker) {
       return res.status(404).json({ error: 'Beneficiario no encontrado' });
     }
 
-    db.prepare('UPDATE workers SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(role, id);
+    db.prepare('UPDATE workers SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(role, worker.id);
 
-    // Persistir de inmediato en production_seed.json para que sobreviva reinicios y re-inicializaciones
+    // Persistir de inmediato en production_seed.json para que sobreviva reinicios locales
     try {
       const fs = require('fs');
       const path = require('path');
@@ -995,7 +997,7 @@ const updateWorkerRole = (req, res) => {
       if (fs.existsSync(seedPath)) {
         const seedData = JSON.parse(fs.readFileSync(seedPath, 'utf8'));
         if (Array.isArray(seedData.workers)) {
-          const sw = seedData.workers.find(w => w.id === id || w.document_id === worker.document_id);
+          const sw = seedData.workers.find(w => w.id === worker.id || w.document_id === worker.document_id);
           if (sw) {
             sw.role = role;
             sw.updated_at = new Date().toISOString();
@@ -1007,13 +1009,23 @@ const updateWorkerRole = (req, res) => {
       console.warn('[SEED UPDATE WARNING]', seedErr.message);
     }
 
-    // Respaldo asíncrono en Supabase
+    // Respaldo garantizado en Supabase Cloud con AWAIT (Indispensable para Vercel Serverless)
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
-        supabase.from('workers').update({ role, updated_at: new Date().toISOString() }).eq('id', id).catch(() => {});
+        const { error: sbErr } = await supabase
+          .from('workers')
+          .update({ role, updated_at: new Date().toISOString() })
+          .or(`id.eq.${worker.id},document_id.eq.${worker.document_id}`);
+        if (sbErr) {
+          console.warn('[SUPABASE UPDATE ROLE ERROR]', sbErr.message);
+        } else {
+          console.log(`[SUPABASE ROLE UPDATED] Funcionario ${worker.document_id} (${worker.full_name}) actualizado exitosamente a rol: ${role}`);
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[SUPABASE UPDATE ROLE EXCEPTION]', e.message);
+    }
 
     const roleNames = {
       worker: 'Beneficiario Titular',
@@ -1025,7 +1037,7 @@ const updateWorkerRole = (req, res) => {
     res.json({
       success: true,
       message: `Rol de ${worker.full_name} actualizado exitosamente a ${roleNames[role] || role}`,
-      worker: { id, role, role_name: roleNames[role] || role }
+      worker: { id: worker.id, document_id: worker.document_id, role, role_name: roleNames[role] || role }
     });
   } catch (err) {
     console.error('[UPDATE ROLE ERROR]', err);

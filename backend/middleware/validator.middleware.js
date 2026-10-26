@@ -56,11 +56,15 @@ function validateDocumentId(field = 'document_id') {
  * Valida roles institucionales válidos
  */
 function validateWorkerRole() {
-  const validRoles = ['worker', 'operator', 'supervisor', 'admin'];
+  const validRoles = ['worker', 'operator', 'distributor', 'supervisor', 'admin'];
   return (req, res, next) => {
-    const role = req.body && req.body.role;
+    let role = req.body && req.body.role;
     if (!role) {
       return res.status(400).json({ error: 'El campo "role" es requerido' });
+    }
+    if (role === 'distributor') {
+      role = 'operator';
+      req.body.role = 'operator';
     }
     if (!validRoles.includes(role)) {
       return res.status(400).json({

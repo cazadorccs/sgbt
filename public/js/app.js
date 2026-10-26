@@ -96,9 +96,18 @@ function navigateTo(viewId) {
   const navBtns = document.querySelectorAll('.nav-tab-btn');
   const views = document.querySelectorAll('.view-section');
 
-  if (STATE.currentUser && STATE.currentUser.role === 'worker') {
-    if (viewId !== 'view-worker' && viewId !== 'view-login') {
-      viewId = 'view-worker';
+  if (STATE.currentUser) {
+    const isWorker = STATE.currentUser.role === 'worker';
+    const isOp = STATE.currentUser.role === 'operator' || STATE.currentUser.role === 'distributor';
+
+    if (isWorker) {
+      if (viewId !== 'view-worker' && viewId !== 'view-login') {
+        viewId = 'view-worker';
+      }
+    } else if (isOp) {
+      if (viewId !== 'view-distributor' && viewId !== 'view-worker' && viewId !== 'view-login') {
+        viewId = 'view-distributor';
+      }
     }
   }
 

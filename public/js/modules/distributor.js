@@ -185,9 +185,10 @@ async function loadDistributorCombos() {
       if (stored) combos = JSON.parse(stored);
     } catch (e) {}
   }
-  // 4. Fallback estándar a catálogo oficial
+  // 4. Fallback estándar a catálogo oficial asegurando Combo de Útiles Escolares
   if (!combos || !Array.isArray(combos) || combos.length === 0) {
     combos = [
+      { id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113', name: 'Combo de Útiles Escolares', icon: '🎒', category: 'utiles_escolares', mesa_name: 'Mesa 1', mesa_number: 1, weight_kg: 3.5, items_detail: '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca' },
       { id: 'c1a2b3c4-1111-2222-3333-444455556666', name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)', icon: '🌾', mesa_name: 'Mesa 1', weight_kg: 14.5, items_detail: '4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros, 2 Sardinas' },
       { id: 'c1a2b3c4-1111-2222-3333-444455557777', name: 'Combo Charcutería', icon: '🍗', mesa_name: 'Mesa 2 - Charcutería / Proteína', weight_kg: 14.0, items_detail: 'Cadena de frío: Pollo entero, Carne molida, Mortadela especial' },
       { id: '3df50537-3333-4fce-8bdc-f4ecbb567adf', name: 'Combo de Higiene Personal', icon: '🧼', mesa_name: 'Mesa 2 - Higiene y Aseo Personal', weight_kg: 5.2, items_detail: '4 artículos: 4 Jabones de Tocador, 1 Crema Dental, 1 Champú, 4 Rollos de Papel Higiénico' },
@@ -209,98 +210,96 @@ function renderDistributorCombos(combos) {
   const tabsContainer = document.getElementById('distributorStationTabs');
   const checklistContainer = document.getElementById('dispatchChecklist');
   const countBadge = document.getElementById('assignedCombosCountBadge');
+  const badge = document.getElementById('activeStationBadge');
 
-  if (countBadge) {
-    countBadge.textContent = `${combos.length} Combos Programados`;
+  // Localizar el combo asignado a la Mesa 1 (Combo de Útiles Escolares)
+  let utilesCombo = combos.find(c => 
+    c.id === '0f74d741-6310-4d6c-b8e5-8cd6e76f9113' ||
+    c.category === 'utiles_escolares' ||
+    (c.name && (c.name.toLowerCase().includes('útiles') || c.name.toLowerCase().includes('utiles')))
+  );
+
+  if (!utilesCombo) {
+    utilesCombo = {
+      id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113',
+      name: 'Combo de Útiles Escolares',
+      icon: '🎒',
+      category: 'utiles_escolares',
+      mesa_name: 'Mesa 1',
+      mesa_number: 1,
+      weight_kg: 3.5,
+      items_detail: '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca'
+    };
+    combos.unshift(utilesCombo);
   }
 
-  // 1. Renderizar pestañas de estación / combo dinámicamente
+  STATE.assignedCombo = utilesCombo;
+  STATE.activeStation = utilesCombo.id;
+  STATE.activeStationName = 'Mesa 1';
+
+  // 1. "Estación / Combo de Despacho Activo:" Solo debe mostrar la Estacion a la que fue asignado: Mesa 1
   if (tabsContainer) {
-    let tabsHtml = `
-      <button type="button" class="btn btn-outline ${(!STATE.activeStation || STATE.activeStation === 'all') ? 'active-station-tab-unificado' : ''}" data-station="all" style="padding: 0.4rem 0.3rem; font-size: 0.7rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
-        ⚡ Despacho Unificado<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Todas las Mesas</span>
+    tabsContainer.innerHTML = `
+      <button type="button" class="btn btn-outline active-station-tab" data-station="${utilesCombo.id}" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
+        ${utilesCombo.icon || '🎒'} Mesa 1<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">${utilesCombo.name}</span>
       </button>
     `;
 
-    combos.forEach((c, idx) => {
-      const isSelected = STATE.activeStation === c.id;
-      const mesaShort = c.mesa_name ? c.mesa_name.split(' - ')[0] : `Mesa ${idx + 1}`;
-      tabsHtml += `
-        <button type="button" class="btn btn-outline ${isSelected ? 'active-station-tab' : ''}" data-station="${c.id}" style="padding: 0.4rem 0.3rem; font-size: 0.7rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
-          ${c.icon || '📦'} ${mesaShort}<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${c.name}</span>
-        </button>
-      `;
-    });
-
-    tabsContainer.innerHTML = tabsHtml;
-
     tabsContainer.querySelectorAll('button[data-station]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const st = btn.getAttribute('data-station');
-        updateStationUI(st);
+        updateStationUI(utilesCombo.id);
       });
     });
   }
 
-  // 2. Renderizar checklist físico de combos a despachar
+  if (badge) {
+    badge.className = 'badge badge-viveres';
+    badge.style.background = '#0284c7';
+    badge.style.color = '#fff';
+    badge.textContent = `${utilesCombo.icon || '🎒'} Mesa 1: ${utilesCombo.name}`;
+  }
+
+  // 2. "Combos Asignados (Verificación Física en Mesa):" Solo debe mostrar el asignado a dicha mesa: Combo de Útiles Escolares
+  if (countBadge) {
+    countBadge.textContent = '1 Combo Asignado (Mesa 1)';
+  }
+
   if (checklistContainer) {
-    checklistContainer.innerHTML = combos.map((c, idx) => `
-      <div class="checklist-card checked" data-combo-id="${c.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
+    checklistContainer.innerHTML = `
+      <div class="checklist-card checked" data-combo-id="${utilesCombo.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
         <div class="checklist-checkbox">✓</div>
         <div class="checklist-info">
           <div class="checklist-title">
-            <span style="font-size: 1.1rem; margin-right: 0.2rem;">${c.icon || '📦'}</span>
-            <strong>${c.name}</strong>
-            <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-left: 0.35rem; padding: 0.15rem 0.4rem; border-radius: 4px;">${c.mesa_name || ('Mesa ' + (idx + 1))}</span>
+            <span style="font-size: 1.2rem; margin-right: 0.3rem;">${utilesCombo.icon || '🎒'}</span>
+            <strong>${utilesCombo.name}</strong>
+            <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Mesa 1</span>
           </div>
-          <div class="checklist-subtitle" style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.15rem;">
-            ${c.items_detail || (c.weight_kg ? `Peso aprox: ~${c.weight_kg} kg &middot; Despacho institucional` : 'Despacho institucional')}
+          <div class="checklist-subtitle" style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem;">
+            ${utilesCombo.items_detail || '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca &middot; Peso aprox: ~3.5 kg &middot; Despacho institucional'}
           </div>
         </div>
       </div>
-    `).join('');
+    `;
   }
 
-  updateStationUI(STATE.activeStation || 'all');
+  updateStationUI(utilesCombo.id);
 }
 
 function updateStationUI(st) {
-  STATE.activeStation = String(st || 'all');
-  const tabsContainer = document.getElementById('distributorStationTabs');
+  const utilesCombo = STATE.assignedCombo || {
+    id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113',
+    name: 'Combo de Útiles Escolares',
+    icon: '🎒'
+  };
+  STATE.activeStation = utilesCombo.id;
+  STATE.activeStationName = 'Mesa 1';
+
   const badge = document.getElementById('activeStationBadge');
-  const combos = STATE.distributorCombos || [];
-
-  if (tabsContainer) {
-    tabsContainer.querySelectorAll('button[data-station]').forEach(btn => {
-      const bSt = btn.getAttribute('data-station');
-      if (bSt === 'all') {
-        btn.className = 'btn btn-outline' + (STATE.activeStation === 'all' ? ' active-station-tab-unificado' : '');
-      } else {
-        btn.className = 'btn btn-outline' + (STATE.activeStation === bSt ? ' active-station-tab' : '');
-      }
-    });
-  }
-
   if (badge) {
-    if (STATE.activeStation === 'all') {
-      badge.className = 'badge';
-      badge.style.background = '#4f46e5';
-      badge.style.color = '#fff';
-      badge.textContent = `⚡ Despacho Unificado (${combos.length} Combos)`;
-    } else {
-      const selectedCombo = combos.find(c => c.id === STATE.activeStation);
-      if (selectedCombo) {
-        badge.className = 'badge badge-viveres';
-        badge.style.background = '#0284c7';
-        badge.style.color = '#fff';
-        badge.textContent = `${selectedCombo.icon || '📦'} ${selectedCombo.mesa_name ? selectedCombo.mesa_name.split(' - ')[0] + ': ' : ''}${selectedCombo.name}`;
-      } else {
-        badge.className = 'badge';
-        badge.style.background = '#0284c7';
-        badge.style.color = '#fff';
-        badge.textContent = `📦 Estación Seleccionada`;
-      }
-    }
+    badge.className = 'badge badge-viveres';
+    badge.style.background = '#0284c7';
+    badge.style.color = '#fff';
+    badge.textContent = `${utilesCombo.icon || '🎒'} Mesa 1: ${utilesCombo.name}`;
   }
 }
 
@@ -807,6 +806,49 @@ async function processQrPayload(payload, isLiveCamera = false) {
     return handleSupervisorDailyQrScan(payload);
   }
 
+  // Soporte para Código QR de Contingencia Escaneado por Supervisor (Beneficiario sin Smartphone)
+  if (payload && (payload.protocol === 'SGBT_SUPERVISOR_CONTINGENCY_V1' || payload.type === 'CONTINGENCY_APPROVAL_REQUEST')) {
+    try {
+      const result = await API.post('/api/v1/verify/qr', {
+        qr_payload: payload,
+        delivered_by_user_id: STATE.operatorId
+      });
+
+      if (result.valid) {
+        if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+          showCameraScanHUD(
+            true,
+            'CONTINGENCIA VALIDADA POR SUPERVISOR',
+            `${result.worker_name} &middot; Combo Útiles Escolares`
+          );
+        } else {
+          showDistributorFeedback(
+            true,
+            'DESPACHO DE CONTINGENCIA AUTORIZADO POR SUPERVISOR',
+            `Beneficiario: <strong>${result.worker_name}</strong> (${result.document_id})<br>Estación: <strong>Mesa 1</strong> &middot; <strong>Combo de Útiles Escolares</strong><br><small style="color: #6ee7b7;">Firma y autorización del Supervisor registradas exitosamente.</small>`,
+            result
+          );
+        }
+        playAudioFeedback('success');
+        broadcastDeliveryApproval(result, payload);
+        if (typeof refreshPortalData === 'function') refreshPortalData();
+      } else {
+        if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+          showCameraScanHUD(false, 'ACCESO DENEGADO', result.message || 'Contingencia no autorizada');
+        } else {
+          showDistributorFeedback(false, 'ACCESO DENEGADO', result.message || 'Contingencia no autorizada');
+        }
+      }
+    } catch (err) {
+      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+        showCameraScanHUD(false, 'ERROR AL VALIDAR', err.message);
+      } else {
+        showDistributorFeedback(false, 'ERROR AL VALIDAR', err.message);
+      }
+    }
+    return;
+  }
+
   // Soporte para Código QR de Delegación Criptográfica Temporal (Retiro por Terceros)
   if (payload && payload.protocol === 'SGBT_DELEGATED_CLAIM_V1') {
     try {
@@ -1311,10 +1353,18 @@ async function searchContingencyWorker() {
   const workerId = worker.worker_id || worker.id;
   const isJubilado = worker.worker_type === 'jubilado' || worker.contingency_reason === 'adulto_mayor_sin_smartphone';
   const typeBadge = isJubilado 
-    ? '<span class="badge badge-jubilado" style="font-size: 0.68rem;">👴 Jubilado / Sin Móvil</span>'
-    : '<span class="badge badge-activo" style="font-size: 0.68rem;">🏢 Funcionario Activo</span>';
+    ? '<span class="badge badge-jubilado" style="font-size: 0.68rem;">👴 Adulto Mayor / Sin Celular</span>'
+    : '<span class="badge badge-activo" style="font-size: 0.68rem;">🏢 Beneficiario sin Smartphone</span>';
 
-  const isDelivered = STATE.localCache.deliveredEntitlements.has(workerId) || worker.today_claimed;
+  const isDelivered = STATE.localCache.deliveredEntitlements.has(workerId) || 
+                      STATE.localCache.deliveredEntitlements.has(workerId + '_station_1') || 
+                      worker.today_claimed;
+
+  const utilesCombo = STATE.assignedCombo || {
+    id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113',
+    name: 'Combo de Útiles Escolares',
+    icon: '🎒'
+  };
 
   if (resultBox) {
     resultBox.style.display = 'block';
@@ -1322,7 +1372,7 @@ async function searchContingencyWorker() {
       <div style="display: flex; flex-direction: column; gap: 0.65rem;">
         <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(56, 189, 248, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+            <div style="width: 38px; height: 38px; border-radius: 50%; background: rgba(245, 158, 11, 0.2); border: 1.5px solid #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
               👤
             </div>
             <div>
@@ -1334,75 +1384,178 @@ async function searchContingencyWorker() {
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
-          <span style="color: #94a3b8;">Beneficio del Día:</span>
-          <span style="color: #34d399; font-weight: 700; text-align: right; max-width: 65%;">
-            ${(STATE.distributorCombos && STATE.distributorCombos.length > 0)
-              ? STATE.distributorCombos.map(c => `${c.icon || '📦'} ${c.name}`).join(' + ')
-              : '🌾 Bolsa Víveres + 🍗 Charcutería + 🧼 Higiene Personal + 🧹 Limpieza'}
+          <span style="color: #94a3b8;">Mesa y Combo:</span>
+          <span style="color: #38bdf8; font-weight: 700; text-align: right;">
+            ${utilesCombo.icon || '🎒'} Mesa 1 &middot; ${utilesCombo.name}
           </span>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
           <span style="color: #94a3b8;">Estatus de Despacho:</span>
-          <span id="contingencyDeliveryStatusLabel" style="color: ${isDelivered ? '#f87171' : '#38bdf8'}; font-weight: 700;">
-            ${isDelivered ? '🔴 Ya retirado hoy' : '🟢 Pendiente por retirar'}
+          <span id="contingencyDeliveryStatusLabel" style="color: ${isDelivered ? '#f87171' : '#fbbf24'}; font-weight: 700;">
+            ${isDelivered ? '🔴 Ya retirado hoy en Mesa 1' : '🟡 Pendiente por retirar (Sin Smartphone)'}
           </span>
         </div>
 
-        <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <label style="font-size: 0.72rem; color: #cbd5e1; white-space: nowrap;">Motivo:</label>
-          <select id="contingencyOverrideReasonInput" class="form-select" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; flex: 1;">
-            <option value="adulto_mayor_sin_smartphone" ${isJubilado ? 'selected' : ''}>👴 Adulto mayor sin smartphone</option>
-            <option value="device_lost">📱 Dispositivo extraviado o robado</option>
-            <option value="battery_dead_screen_broken">🔋 Batería descargada / Pantalla rota</option>
-            <option value="reposo_medico">🏥 Reposo médico justificado</option>
-          </select>
-        </div>
+        ${!isDelivered ? `
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <label style="font-size: 0.72rem; color: #cbd5e1; white-space: nowrap;">Motivo:</label>
+            <select id="contingencyOverrideReasonInput" class="form-select" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; flex: 1;">
+              <option value="adulto_mayor_sin_smartphone" ${isJubilado ? 'selected' : ''}>👴 Adulto mayor sin smartphone</option>
+              <option value="device_not_present">📱 No posee teléfono celular presente</option>
+              <option value="battery_dead_screen_broken">🔋 Batería descargada / Pantalla rota</option>
+              <option value="device_lost">🚨 Teléfono extraviado o robado</option>
+            </select>
+          </div>
 
-        <button type="button" id="btnExecuteOneClickOverride" class="btn btn-primary" style="width: 100%; padding: 0.65rem; font-size: 0.82rem; font-weight: 800; background: ${isDelivered ? '#475569' : 'linear-gradient(135deg, #059669, #10b981)'}; border: none; border-radius: 6px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; gap: 0.4rem; cursor: pointer;" ${isDelivered ? 'disabled' : ''}>
-          <span>🛡️</span>
-          <span>${isDelivered ? 'Beneficio Ya Reclamado Hoy' : 'Liberar Combo con Huella del Supervisor (1 Clic)'}</span>
-        </button>
+          <button type="button" id="btnGenerateContingencyQr" class="btn btn-primary" style="width: 100%; padding: 0.65rem; font-size: 0.82rem; font-weight: 800; background: linear-gradient(135deg, #d97706, #f59e0b); border: none; border-radius: 6px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); display: flex; align-items: center; justify-content: center; gap: 0.4rem; cursor: pointer; color: #fff;">
+            <span>🛡️</span>
+            <span>Aprobación de Contingencia en 1 Clic (Generar Código QR)</span>
+          </button>
+
+          <!-- TARJETA DEL CÓDIGO QR GENERADO PARA EL SUPERVISOR -->
+          <div id="contingencyQrDisplayArea" style="margin-top: 0.65rem; background: #080d1a; border: 1.5px solid #f59e0b; border-radius: 10px; padding: 0.85rem; text-align: center;">
+            <div style="font-size: 0.82rem; font-weight: 800; color: #fbbf24; margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+              <span>🛡️</span> CÓDIGO QR DE CONTINGENCIA GENERADO
+            </div>
+            <p style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.65rem;">
+              Presente este código QR al <strong>Supervisor</strong> para validar la entrega en Mesa 1 (Beneficiario sin Smartphone):
+            </p>
+            
+            <div id="contingencyQrCanvasContainer" style="display: flex; justify-content: center; align-items: center; background: #ffffff; padding: 0.75rem; border-radius: 10px; width: fit-content; margin: 0 auto 0.65rem auto; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+            </div>
+
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.35); border-radius: 6px; padding: 0.45rem; font-size: 0.72rem; color: #fde68a; margin-bottom: 0.65rem; text-align: left;">
+              <div>👤 <strong>Beneficiario:</strong> ${worker.full_name} (${worker.document_id})</div>
+              <div>📦 <strong>Mesa Asignada:</strong> Mesa 1 &middot; Combo de Útiles Escolares</div>
+              <div>🔑 <strong>Token:</strong> <span id="contingencyTokenCode" class="text-mono" style="color: #38bdf8;"></span></div>
+            </div>
+
+            <div id="contingencyStatusNote" style="font-size: 0.75rem; font-weight: 700; color: #38bdf8; margin-bottom: 0.5rem;">
+              ⏳ Esperando validación del Supervisor...
+            </div>
+
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" id="btnConfirmSupervisorBiometric" class="btn btn-outline" style="flex: 1; font-size: 0.74rem; padding: 0.45rem; background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #34d399; font-weight: 700;">
+                ✍️ Validar con Supervisor Presente
+              </button>
+              <button type="button" id="btnHideContingencyQr" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.45rem; color: #94a3b8;">
+                ✕ Cerrar
+              </button>
+            </div>
+          </div>
+        ` : `
+          <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 6px; padding: 0.5rem; text-align: center; color: #fca5a5; font-size: 0.75rem; font-weight: 600;">
+            ⚠️ El beneficio de este trabajador ya fue retirado previamente hoy en Mesa 1.
+          </div>
+        `}
       </div>
     `;
 
-    const btnExec = resultBox.querySelector('#btnExecuteOneClickOverride');
-    btnExec?.addEventListener('click', async () => {
-      btnExec.disabled = true;
-      btnExec.innerHTML = '<span>⏳ Estampando Firma Biométrica de Supervisor...</span>';
+    if (!isDelivered) {
+      const btnGen = resultBox.querySelector('#btnGenerateContingencyQr');
+      const qrDisplayArea = resultBox.querySelector('#contingencyQrDisplayArea');
+      const qrCanvasContainer = resultBox.querySelector('#contingencyQrCanvasContainer');
+      const tokenLabel = resultBox.querySelector('#contingencyTokenCode');
+      const statusNote = resultBox.querySelector('#contingencyStatusNote');
 
-      try {
+      const doGenerateQr = () => {
         const reason = resultBox.querySelector('#contingencyOverrideReasonInput')?.value || 'adulto_mayor_sin_smartphone';
-        const res = await API.post('/api/v1/auth/supervisor/contingency-override', {
+        const contingencyPayload = {
+          protocol: 'SGBT_SUPERVISOR_CONTINGENCY_V1',
+          type: 'CONTINGENCY_APPROVAL_REQUEST',
+          worker_id: worker.worker_id || worker.id,
           worker_document_id: worker.document_id,
-          supervisor_id: STATE.currentUser?.id,
-          override_reason: reason
-        });
+          worker_name: worker.full_name,
+          department: worker.department_name || 'MIPPCI',
+          station: 'Mesa 1',
+          combo_id: utilesCombo.id,
+          combo_name: utilesCombo.name,
+          reason: reason,
+          operator_id: STATE.operatorId || (STATE.currentUser && STATE.currentUser.id),
+          created_at: Math.floor(Date.now() / 1000),
+          token: 'CONT-' + worker.document_id.replace(/[^0-9]/g, '') + '-' + Date.now().toString(36).toUpperCase()
+        };
 
-        playAudioFeedback('success');
-        window.showToast(res.message, 'success');
-        
-        const statusLabel = resultBox.querySelector('#contingencyDeliveryStatusLabel');
-        if (statusLabel) {
-          statusLabel.textContent = '✅ Despachado exitosamente';
-          statusLabel.style.color = '#34d399';
+        if (tokenLabel) tokenLabel.textContent = contingencyPayload.token;
+        if (qrCanvasContainer) {
+          qrCanvasContainer.innerHTML = '';
+          const tempId = 'contingencyCanvas_' + Date.now();
+          qrCanvasContainer.id = tempId;
+          if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+            window.QRCodeGenerator.render(tempId, JSON.stringify(contingencyPayload), { size: 210 });
+          } else if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+            const canvas = document.createElement('canvas');
+            QRCode.toCanvas(canvas, JSON.stringify(contingencyPayload), { width: 210, margin: 1 });
+            qrCanvasContainer.appendChild(canvas);
+          }
         }
 
-        btnExec.style.background = '#047857';
-        btnExec.innerHTML = '<span>✅ Despacho Autorizado con Huella del Supervisor</span>';
-        STATE.localCache.deliveredEntitlements.add(workerId);
+        if (qrDisplayArea) qrDisplayArea.style.display = 'block';
+        if (btnGen) {
+          btnGen.innerHTML = '<span>🔄 Regenerar Código QR de Contingencia</span>';
+          btnGen.style.background = '#475569';
+        }
 
-        broadcastDeliveryApproval(res, { wid: worker.id });
-        if (typeof refreshPortalData === 'function') refreshPortalData();
+        playAudioFeedback('info');
+        window.showToast('🛡️ Código QR de Contingencia generado para validación del Supervisor.', 'info');
+      };
 
-      } catch (err) {
-        console.error('Error liberando contingencia 1-clic:', err);
-        playAudioFeedback('error');
-        window.showToast(err.message || 'Error autorizando liberación', 'error');
-        btnExec.disabled = false;
-        btnExec.innerHTML = '<span>🔄 Reintentar Liberación con Huella</span>';
-      }
-    });
+      btnGen?.addEventListener('click', doGenerateQr);
+
+      // Generar automáticamente al buscar para lograr la "Aprobación en 1 Clic"
+      doGenerateQr();
+
+      const btnConfirm = resultBox.querySelector('#btnConfirmSupervisorBiometric');
+      btnConfirm?.addEventListener('click', async () => {
+        btnConfirm.disabled = true;
+        btnConfirm.innerHTML = '<span>⏳ Validando Firma de Supervisor...</span>';
+
+        try {
+          const reason = resultBox.querySelector('#contingencyOverrideReasonInput')?.value || 'adulto_mayor_sin_smartphone';
+          const res = await API.post('/api/v1/auth/supervisor/contingency-override', {
+            worker_document_id: worker.document_id,
+            supervisor_id: STATE.currentUser?.id,
+            override_reason: reason
+          });
+
+          playAudioFeedback('success');
+          window.showToast(res.message || '¡Contingencia autorizada con éxito!', 'success');
+
+          if (statusNote) {
+            statusNote.innerHTML = '✅ <strong>¡Aprobado por Supervisor!</strong> Entregar Combo de Útiles Escolares.';
+            statusNote.style.color = '#34d399';
+          }
+
+          const statusLabel = resultBox.querySelector('#contingencyDeliveryStatusLabel');
+          if (statusLabel) {
+            statusLabel.textContent = '✅ Despachado exitosamente en Mesa 1';
+            statusLabel.style.color = '#34d399';
+          }
+
+          STATE.localCache.deliveredEntitlements.add(workerId);
+          STATE.localCache.deliveredEntitlements.add(workerId + '_station_1');
+
+          btnConfirm.style.background = '#047857';
+          btnConfirm.style.borderColor = '#10b981';
+          btnConfirm.innerHTML = '<span>✅ Despacho de Útiles Escolares Entregado</span>';
+
+          broadcastDeliveryApproval(res, { wid: worker.id, station: 1, combo_name: utilesCombo.name });
+          if (typeof refreshPortalData === 'function') refreshPortalData();
+
+        } catch (err) {
+          console.error('Error validando contingencia:', err);
+          playAudioFeedback('error');
+          window.showToast(err.message || 'Error autorizando liberación', 'error');
+          btnConfirm.disabled = false;
+          btnConfirm.innerHTML = '<span>🔄 Reintentar Validación de Supervisor</span>';
+        }
+      });
+
+      resultBox.querySelector('#btnHideContingencyQr')?.addEventListener('click', () => {
+        if (qrDisplayArea) qrDisplayArea.style.display = 'none';
+      });
+    }
   }
 }
 

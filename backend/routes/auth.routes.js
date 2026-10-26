@@ -18,7 +18,7 @@ router.post('/auth/passkey/sign-offline', authenticate, authController.signOffli
 // Rutas de supervisión y contingencia protegidas por RBAC
 router.get('/supervisor/daily-qr', authController.getSupervisorDailyQr);
 router.post('/auth/supervisor/delegate', requireRole('supervisor', 'admin', 'director'), authController.createDelegation);
-router.post('/auth/supervisor/contingency-override', requireRole('supervisor', 'admin', 'director'), authController.contingencyOverride);
+router.post('/auth/supervisor/contingency-override', requireRole('supervisor', 'admin', 'director', 'operator', 'distributor'), authController.contingencyOverride);
 
 // Validación de QR y estado en tiempo real (Blindado contra IDOR con authenticate)
 router.post('/verify/qr', authController.verifyQr);

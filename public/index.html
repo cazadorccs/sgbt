@@ -99,6 +99,15 @@
               <span>🛡️ Ir al Panel Administrativo</span>
             </button>
 
+            <button id="btnSwitchToDistributorView" class="dropdown-item" style="display: none; color: #d97706;" title="Cambiar a Mesa de Despacho (Escáner y Entregas)">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span>📦 Mesa de Despacho</span>
+            </button>
+
             <button id="btnSwitchToBeneficiaryView" class="dropdown-item" style="display: none; color: #059669;" title="Cambiar a Mi Carnet Móvil de Beneficiario (Combos y QR)">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
                 <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
@@ -1980,35 +1989,48 @@
               </div>
             </div>
 
-            <!-- SELECTOR DE ESTACIÓN ACTIVA DE DESPACHO (DINÁMICO CON COMBOS REALES) -->
+            <!-- SELECTOR DE ESTACIÓN ACTIVA DE DESPACHO (ASIGNADA A MESA 1) -->
             <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.85rem;">
               <div class="flex-between" style="margin-bottom: 0.45rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
                   Estación / Combo de Despacho Activo:
                 </span>
-                <span id="activeStationBadge" class="badge" style="font-size: 0.68rem; background: #4f46e5; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
-                  ⚡ Despacho Unificado
+                <span id="activeStationBadge" class="badge badge-viveres" style="font-size: 0.68rem; background: #0284c7; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
+                  🎒 Mesa 1: Combo de Útiles Escolares
                 </span>
               </div>
               <div id="distributorStationTabs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem;">
-                <!-- Se llena dinámicamente con los combos reales y la opción de despacho unificado -->
-                <button type="button" class="btn btn-outline active-station-tab-unificado" data-station="all" style="padding: 0.4rem 0.3rem; font-size: 0.7rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2;">
-                  ⚡ Despacho Unificado<br><span style="font-size: 0.6rem; font-weight: 500; opacity: 0.9;">Todas las Mesas</span>
+                <!-- Solo muestra la Estación a la que fue asignado el operador: Mesa 1 -->
+                <button type="button" class="btn btn-outline active-station-tab" data-station="0f74d741-6310-4d6c-b8e5-8cd6e76f9113" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
+                  🎒 Mesa 1<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">Combo de Útiles Escolares</span>
                 </button>
               </div>
             </div>
 
-            <!-- CHECKLIST FÍSICO DE COMBOS A ENTREGAR (ALMACÉN SÓTANO) -->
+            <!-- CHECKLIST FÍSICO DE COMBOS A ENTREGAR (ALMACÉN SÓTANO - MESA 1) -->
             <div style="margin-bottom: 0.85rem;">
               <div class="flex-between" style="margin-bottom: 0.35rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
                   Combos Asignados (Verificación Física en Mesa):
                 </span>
-                <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">Cargando Combos...</span>
+                <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">1 Combo Asignado (Mesa 1)</span>
               </div>
 
               <div class="dispatch-checklist" id="dispatchChecklist">
-                <!-- Se renderizan dinámicamente todos los combos reales de la jornada -->
+                <!-- Solo muestra el combo asignado a dicha mesa: Combo de Útiles Escolares -->
+                <div class="checklist-card checked" data-combo-id="0f74d741-6310-4d6c-b8e5-8cd6e76f9113" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
+                  <div class="checklist-checkbox">✓</div>
+                  <div class="checklist-info">
+                    <div class="checklist-title">
+                      <span style="font-size: 1.2rem; margin-right: 0.3rem;">🎒</span>
+                      <strong>Combo de Útiles Escolares</strong>
+                      <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Mesa 1</span>
+                    </div>
+                    <div class="checklist-subtitle" style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem;">
+                      6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca &middot; Peso aprox: ~3.5 kg &middot; Despacho institucional
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2139,15 +2161,15 @@
                 <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; display: flex; align-items: center; gap: 0.3rem;">
                   <span>🛡️</span> Aprobación de Contingencia en 1 Clic
                 </span>
-                <span id="operatorOverridesCount" style="font-size: 0.65rem; color: var(--text-dim);">
-                  0 / 3 liberaciones de operador
+                <span id="operatorOverridesCount" style="font-size: 0.65rem; color: #fbbf24; font-weight: 600;">
+                  Generador QR Supervisor (Mesa 1)
                 </span>
               </div>
 
               <div class="input-group">
-                <input id="contingencyDocInput" type="text" class="form-input" placeholder="Ingresar Cédula para liberar en 1 Clic..." style="font-size: 0.8rem;">
-                <button id="btnSearchContingencyWorker" class="btn btn-outline" style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #fbbf24;">
-                  Buscar
+                <input id="contingencyDocInput" type="text" class="form-input" placeholder="Cédula de beneficiario sin celular (ej. V-18456123)..." style="font-size: 0.8rem;">
+                <button id="btnSearchContingencyWorker" class="btn btn-outline" style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.15); border-color: #f59e0b; color: #fbbf24; font-weight: 700;">
+                  Generar QR
                 </button>
               </div>
 

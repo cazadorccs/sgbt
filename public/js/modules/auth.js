@@ -279,12 +279,25 @@ async function executeLogin(rawDocId) {
     }
     console.log(`[CLIENT AUTH] ✅ Sesión iniciada: ${user.full_name} | Rol: ${user.role}`);
     STATE.setCurrentUser(user);
-    sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
-    applyUserSession(user, 'beneficiary');
+
+    const isOperator = (user.role === 'operator' || user.role === 'distributor');
+    const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor');
+    const intendedView = sessionStorage.getItem('sgbt_intended_view');
+
+    let targetMode = 'beneficiary';
+    if (isOperator || intendedView === 'distributor') {
+      targetMode = 'operator';
+    } else if (isAdmin && window.currentLoginMode === 'admin') {
+      targetMode = 'admin';
+    }
+
+    sessionStorage.removeItem('sgbt_intended_view');
+    sessionStorage.setItem('sgbt_session_view_mode', targetMode);
+    applyUserSession(user, targetMode);
     window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
 
-    // Auto-Enrolamiento mediante Magic Link / One-Click Onboarding SOLO para beneficiarios titulares
-    if (user.role === 'worker' && !user.has_passkey) {
+    // Auto-Enrolamiento mediante Magic Link / One-Click Onboarding SOLO para beneficiarios titulares puros
+    if (user.role === 'worker' && !isOperator && !isAdmin && targetMode === 'beneficiary' && !user.has_passkey) {
       setTimeout(() => {
         triggerOneClickPasskeyOnboarding(user, data.onboarding_token);
       }, 400);
@@ -476,7 +489,10 @@ window.switchSessionView = function(mode) {
     window.closeUserMenu();
   }
   window.applyUserSession(STATE.currentUser, mode);
-  window.showToast(mode === 'admin' ? '🛡️ Cambiado al Panel de Gestión Administrativa' : '📱 Cambiado a Mi Carnet de Beneficiario', 'info');
+  const msg = mode === 'admin' 
+    ? '🛡️ Cambiado al Panel de Gestión Administrativa' 
+    : (mode === 'operator' ? '📦 Cambiado a la Mesa de Despacho' : '📱 Cambiado a Mi Carnet de Beneficiario');
+  window.showToast(msg, 'info');
 };
 
 window.setupUserMenuDropdown = function() {
@@ -510,9 +526,12 @@ window.setupUserMenuDropdown = function() {
     if (e.key === 'Escape') closeDropdown();
   });
 
-  // Conmutadores de Modo de Vista para Perfiles Directivos / Administradores con asignación de combos
+  // Conmutadores de Modo de Vista
   document.getElementById('btnSwitchToAdminPortal')?.addEventListener('click', () => {
     window.switchSessionView('admin');
+  });
+  document.getElementById('btnSwitchToDistributorView')?.addEventListener('click', () => {
+    window.switchSessionView('operator');
   });
   document.getElementById('btnSwitchToBeneficiaryView')?.addEventListener('click', () => {
     window.switchSessionView('beneficiary');
@@ -544,28 +563,27 @@ window.applyUserSession = function(user, targetMode) {
   if (dropdownAvatar) dropdownAvatar.textContent = initials;
 
   const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor');
+  const isOperator = (user.role === 'operator' || user.role === 'distributor');
 
   // Determinar la vista destino:
-  // Si targetMode viene especificado, se respeta estrictamente.
-  // De lo contrario se consulta sessionStorage, o por defecto según el rol.
   let mode = targetMode || sessionStorage.getItem('sgbt_session_view_mode');
   if (!mode) {
-    mode = (user.role === 'worker' ? 'beneficiary' : (user.role === 'operator' ? 'operator' : 'admin'));
+    mode = isOperator ? 'operator' : (user.role === 'worker' ? 'beneficiary' : 'admin');
   }
   sessionStorage.setItem('sgbt_session_view_mode', mode);
 
-  const isBeneficiaryView = (mode === 'beneficiary' || user.role === 'worker') && user.role !== 'operator';
+  const isBeneficiaryView = mode === 'beneficiary' && !isOperator;
 
   let roleLabel = 'Beneficiario';
   let badgeClass = 'badge badge-activo';
 
-  if (isBeneficiaryView) {
+  if (isOperator || mode === 'operator') {
+    badgeClass = 'badge badge-passkey';
+    roleLabel = 'Mesa de Despacho (Operador)';
+  } else if (isBeneficiaryView) {
     const isJubilado = user.worker_type === 'jubilado';
     badgeClass = isJubilado ? 'badge badge-jubilado' : 'badge badge-activo';
     roleLabel = isJubilado ? 'Jubilado' : 'Beneficiario';
-  } else if (user.role === 'operator') {
-    badgeClass = 'badge badge-passkey';
-    roleLabel = 'Operador Almacén';
   } else if (user.role === 'admin' || user.role === 'director') {
     badgeClass = 'badge badge-override';
     roleLabel = 'Administrador Sistema';
@@ -588,6 +606,7 @@ window.applyUserSession = function(user, targetMode) {
   const btnSettings = document.getElementById('btnOpenGeneralSettings');
   const brandingSubtab = document.querySelector('.portal-subtab[data-subtab="subtab-branding"]');
   const btnSwitchToAdmin = document.getElementById('btnSwitchToAdminPortal');
+  const btnSwitchToDistributor = document.getElementById('btnSwitchToDistributorView');
   const btnSwitchToWorker = document.getElementById('btnSwitchToBeneficiaryView');
 
   if (btnSettings) {
@@ -597,10 +616,13 @@ window.applyUserSession = function(user, targetMode) {
     brandingSubtab.style.display = isAdmin ? 'inline-flex' : 'none';
   }
   if (btnSwitchToAdmin) {
-    btnSwitchToAdmin.style.display = (isAdmin && isBeneficiaryView) ? 'flex' : 'none';
+    btnSwitchToAdmin.style.display = (isAdmin && mode !== 'admin') ? 'flex' : 'none';
+  }
+  if (btnSwitchToDistributor) {
+    btnSwitchToDistributor.style.display = (isAdmin || isOperator) && mode !== 'operator' ? 'flex' : 'none';
   }
   if (btnSwitchToWorker) {
-    btnSwitchToWorker.style.display = (isAdmin && !isBeneficiaryView) ? 'flex' : 'none';
+    btnSwitchToWorker.style.display = (isAdmin || isOperator) && mode !== 'beneficiary' ? 'flex' : 'none';
   }
 
   if (typeof window.closeUserMenu === 'function') {
@@ -619,7 +641,7 @@ window.applyUserSession = function(user, targetMode) {
     }
     navigateTo('view-worker');
 
-  } else if (user.role === 'operator') {
+  } else if (isOperator || mode === 'operator') {
     if (masterNav) masterNav.style.display = 'none';
     STATE.operatorId = user.id;
 
@@ -718,7 +740,8 @@ window.checkAuthSession = function() {
         const user = JSON.parse(saved);
         if (user && user.id) {
           STATE.currentUser = user;
-          const savedMode = sessionStorage.getItem('sgbt_session_view_mode') || (user.role === 'worker' ? 'beneficiary' : (user.role === 'operator' ? 'operator' : 'admin'));
+          const isOp = (user.role === 'operator' || user.role === 'distributor');
+          const savedMode = sessionStorage.getItem('sgbt_session_view_mode') || (isOp ? 'operator' : (user.role === 'worker' ? 'beneficiary' : 'admin'));
           applyUserSession(user, savedMode);
           if (window.SessionManager) {
             window.SessionManager.startWatchdog();

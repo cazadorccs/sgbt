@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dossier Ejecutivo — Plataforma SGBT MIPPCI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --primary: #0284c7;
@@ -15,7 +18,7 @@
       --accent: #10b981;
       --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
       --dark: #0f172a;
-      
+
       /* NEUMORPHIC SYSTEM DESIGN TOKENS */
       --surface: #eef2f6;
       --surface-card: #f8fafc;
@@ -23,7 +26,7 @@
       --border-dark-subtle: 1px solid rgba(166, 180, 200, 0.35);
       --text: #334155;
       --text-muted: #64748b;
-      
+
       /* DUAL-SHADOW PHYSICAL EXTRUSIONS & INSETS */
       --neu-flat: 7px 7px 18px rgba(166, 180, 200, 0.45), -7px -7px 18px rgba(255, 255, 255, 0.95);
       --neu-flat-sm: 4px 4px 10px rgba(166, 180, 200, 0.38), -4px -4px 10px rgba(255, 255, 255, 0.95);
@@ -32,15 +35,23 @@
       --neu-pressed-deep: inset 4px 4px 9px rgba(166, 180, 200, 0.5), inset -4px -4px 9px rgba(255, 255, 255, 1);
       --neu-convex: linear-gradient(145deg, #ffffff, #e6ecf4);
       --neu-primary-shadow: 6px 6px 18px rgba(2, 132, 199, 0.38), -4px -4px 12px rgba(255, 255, 255, 0.9);
-      
+
       --radius-sm: 10px;
       --radius-md: 16px;
       --radius-lg: 22px;
       --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background-color: var(--surface);
@@ -50,7 +61,11 @@
       overflow-x: hidden;
     }
 
-    h1, h2, h3, h4, .brand-title {
+    h1,
+    h2,
+    h3,
+    h4,
+    .brand-title {
       font-family: 'Outfit', sans-serif;
       color: var(--dark);
       letter-spacing: -0.02em;
@@ -73,17 +88,20 @@
       box-shadow: 0 4px 14px rgba(166, 180, 200, 0.25);
       transition: all 0.3s var(--ease-lux);
     }
+
     .header-nav {
       height: 72px;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
+
     .brand {
       display: flex;
       align-items: center;
       gap: 0.85rem;
     }
+
     .brand-logo {
       width: 44px;
       height: 44px;
@@ -96,18 +114,30 @@
       border: var(--border-subtle);
       transition: transform 0.28s var(--ease-lux);
     }
+
     .brand:hover .brand-logo {
       transform: scale(1.05) rotate(-2deg);
     }
-    .brand-title { font-size: 1.12rem; font-weight: 700; color: var(--dark); line-height: 1.25; }
-    .brand-subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+    .brand-title {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: var(--dark);
+      line-height: 1.25;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
 
     .header-actions {
       display: flex;
       align-items: center;
       gap: 1rem;
     }
-    
+
     /* NEUMORPHIC BUTTONS CON MICRO-INTERACCIÓN RIPPLE */
     .btn {
       display: inline-flex;
@@ -125,30 +155,36 @@
       overflow: hidden;
       user-select: none;
     }
+
     .btn-primary {
       background: var(--primary-gradient);
       color: white;
       box-shadow: var(--neu-primary-shadow);
       border: 1px solid rgba(255, 255, 255, 0.25);
     }
+
     .btn-primary:hover {
       transform: translateY(-2px);
       box-shadow: 8px 8px 24px rgba(2, 132, 199, 0.45), -4px -4px 14px rgba(255, 255, 255, 0.9);
     }
+
     .btn-primary:active {
       transform: translateY(1px) scale(0.98);
       box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.35);
     }
+
     .btn-outline {
       background: var(--neu-convex);
       box-shadow: var(--neu-flat-sm);
       color: var(--dark);
     }
+
     .btn-outline:hover {
       transform: translateY(-2px);
       box-shadow: var(--neu-flat);
       background: #ffffff;
     }
+
     .btn-outline:active {
       transform: translateY(1px) scale(0.98);
       box-shadow: var(--neu-pressed);
@@ -162,6 +198,7 @@
       background-color: rgba(255, 255, 255, 0.4);
       pointer-events: none;
     }
+
     @keyframes rippleEffect {
       to {
         transform: scale(4);
@@ -174,6 +211,7 @@
       padding: 4.8rem 0 3.8rem;
       background: radial-gradient(circle at 80% 20%, rgba(2, 132, 199, 0.12) 0%, transparent 65%);
     }
+
     .badge-pill {
       display: inline-flex;
       align-items: center;
@@ -191,9 +229,11 @@
       border: var(--border-subtle);
       transition: transform 0.25s var(--ease-lux);
     }
+
     .badge-pill:hover {
       transform: translateY(-1px);
     }
+
     .hero-title {
       font-size: 2.75rem;
       font-weight: 800;
@@ -201,11 +241,13 @@
       margin-bottom: 1.25rem;
       color: var(--dark);
     }
+
     .hero-title span {
       background: var(--primary-gradient);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
     .hero-subtitle {
       font-size: 1.15rem;
       color: var(--text-muted);
@@ -221,6 +263,7 @@
       gap: 1.4rem;
       margin-bottom: 4rem;
     }
+
     .kpi-card {
       background: var(--neu-convex);
       padding: 1.65rem;
@@ -231,17 +274,22 @@
       overflow: hidden;
       transition: transform 0.3s var(--ease-lux), box-shadow 0.3s var(--ease-lux);
     }
+
     .kpi-card:hover {
       transform: translateY(-5px);
       box-shadow: var(--neu-lift);
     }
+
     .kpi-card::before {
       content: '';
       position: absolute;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       height: 4px;
       background: var(--primary-gradient);
     }
+
     .kpi-num {
       font-family: 'Outfit', sans-serif;
       font-size: 2.45rem;
@@ -251,12 +299,14 @@
       margin-bottom: 0.4rem;
       letter-spacing: -0.02em;
     }
+
     .kpi-label {
       font-size: 0.85rem;
       font-weight: 700;
       color: var(--text);
       margin-bottom: 0.25rem;
     }
+
     .kpi-desc {
       font-size: 0.76rem;
       color: var(--text-muted);
@@ -267,14 +317,17 @@
     .section {
       padding: 3.8rem 0;
     }
+
     .section-header {
       margin-bottom: 2.6rem;
     }
+
     .section-title {
       font-size: 1.95rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
     }
+
     .section-subtitle {
       font-size: 0.96rem;
       color: var(--text-muted);
@@ -288,6 +341,7 @@
       gap: 1.85rem;
       margin-bottom: 3.5rem;
     }
+
     .feature-card {
       background: var(--neu-convex);
       border: var(--border-subtle);
@@ -296,10 +350,12 @@
       box-shadow: var(--neu-flat);
       transition: transform 0.3s var(--ease-lux), box-shadow 0.3s var(--ease-lux);
     }
+
     .feature-card:hover {
       transform: translateY(-6px);
       box-shadow: var(--neu-lift);
     }
+
     .feature-icon {
       width: 52px;
       height: 52px;
@@ -314,14 +370,17 @@
       border: 1px solid rgba(255, 255, 255, 0.7);
       transition: transform 0.3s var(--ease-lux);
     }
+
     .feature-card:hover .feature-icon {
       transform: scale(1.08) rotate(3deg);
     }
+
     .feature-title {
       font-size: 1.22rem;
       font-weight: 700;
       margin-bottom: 0.65rem;
     }
+
     .feature-text {
       font-size: 0.88rem;
       color: var(--text-muted);
@@ -338,9 +397,11 @@
       box-shadow: var(--neu-flat);
       transition: box-shadow 0.3s var(--ease-lux), transform 0.3s var(--ease-lux);
     }
+
     .showcase-block:hover {
       box-shadow: var(--neu-lift);
     }
+
     .showcase-header {
       display: flex;
       justify-content: space-between;
@@ -349,8 +410,17 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
-    .showcase-title { font-size: 1.3rem; font-weight: 700; }
-    .showcase-desc { font-size: 0.85rem; color: var(--text-muted); }
+
+    .showcase-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .showcase-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
     .showcase-media {
       width: 100%;
       border-radius: 16px;
@@ -360,6 +430,7 @@
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.7);
     }
+
     .showcase-media img {
       width: 100%;
       display: block;
@@ -367,6 +438,7 @@
       border-radius: 10px;
       transition: transform 0.6s var(--ease-lux);
     }
+
     .showcase-block:hover .showcase-media img {
       transform: scale(1.015);
     }
@@ -377,6 +449,7 @@
       grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.6rem;
     }
+
     .diagram-card {
       background: var(--neu-convex);
       border: var(--border-subtle);
@@ -388,10 +461,12 @@
       box-shadow: var(--neu-flat);
       transition: transform 0.3s var(--ease-lux), box-shadow 0.3s var(--ease-lux);
     }
+
     .diagram-card:hover {
       transform: translateY(-5px);
       box-shadow: var(--neu-lift);
     }
+
     .diagram-badge {
       display: inline-block;
       font-size: 0.7rem;
@@ -405,8 +480,18 @@
       color: #1d4ed8;
       border: 1px solid rgba(255, 255, 255, 0.8);
     }
-    .diagram-card h4 { font-size: 1.15rem; margin-bottom: 0.5rem; }
-    .diagram-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5; }
+
+    .diagram-card h4 {
+      font-size: 1.15rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .diagram-card p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+      line-height: 1.5;
+    }
 
     /* UNIFIED DIAGRAMS HUB */
     .diagram-hub {
@@ -418,12 +503,14 @@
       transition: box-shadow 0.3s var(--ease-lux);
       margin-bottom: 2.2rem;
     }
+
     .diagram-hub-nav {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 1rem;
       margin-bottom: 1.25rem;
     }
+
     .diagram-tab {
       background: var(--surface);
       border: 1px solid rgba(255, 255, 255, 0.7);
@@ -437,17 +524,20 @@
       flex-direction: column;
       gap: 0.25rem;
     }
+
     .diagram-tab:hover {
       transform: translateY(-2px);
       box-shadow: var(--neu-lift);
       border-color: rgba(2, 132, 199, 0.4);
     }
+
     .diagram-tab.active {
       background: #ffffff;
       box-shadow: var(--neu-pressed-deep);
       border-color: #0284c7;
       transform: scale(0.99);
     }
+
     .diagram-tab .tab-kicker {
       font-size: 0.68rem;
       font-weight: 800;
@@ -455,24 +545,28 @@
       letter-spacing: 0.05em;
       color: #0284c7;
     }
+
     .diagram-tab .tab-title {
       font-family: 'Outfit', sans-serif;
       font-size: 0.98rem;
       font-weight: 700;
       color: #0f172a;
     }
+
     .diagram-tab .tab-sub {
       font-size: 0.75rem;
       color: #64748b;
       line-height: 1.35;
     }
+
     .diagram-viewer-shell {
       background: #0b1120;
       border-radius: 14px;
       overflow: hidden;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
     }
+
     .diagram-viewer-header {
       background: #1e293b;
       padding: 0.75rem 1.25rem;
@@ -483,9 +577,11 @@
       gap: 0.75rem;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
+
     .diagram-viewer-header #dossier-diagram-title {
       color: #f8fafc !important;
     }
+
     .viewer-status-pulse {
       width: 10px;
       height: 10px;
@@ -494,11 +590,13 @@
       box-shadow: 0 0 10px #10b981;
       display: inline-block;
     }
+
     .diagram-iframe-box {
       width: 100%;
       height: 680px;
       background: #090d16;
     }
+
     .diagram-iframe-box iframe {
       width: 100%;
       height: 100%;
@@ -514,6 +612,7 @@
       margin-top: 4rem;
       font-size: 0.85rem;
     }
+
     .footer-content {
       display: flex;
       justify-content: space-between;
@@ -521,7 +620,12 @@
       flex-wrap: wrap;
       gap: 1.5rem;
     }
-    .footer-brand { color: white; font-weight: 700; font-size: 1.1rem; }
+
+    .footer-brand {
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
 
     /* NEUMORPHIC OFFICIAL ACTA DELIVERABLE STYLES */
     .acta-sheet {
@@ -534,9 +638,11 @@
       margin-top: 1.5rem;
       transition: box-shadow 0.3s var(--ease-lux);
     }
+
     .acta-sheet:hover {
       box-shadow: 16px 16px 36px rgba(166, 180, 200, 0.52), -16px -16px 36px rgba(255, 255, 255, 1);
     }
+
     .acta-header-box {
       border-bottom: 2px solid #0f172a;
       padding-bottom: 1.35rem;
@@ -547,6 +653,7 @@
       flex-wrap: wrap;
       gap: 1rem;
     }
+
     .acta-titles h3 {
       font-size: 1.15rem;
       font-weight: 800;
@@ -555,19 +662,23 @@
       letter-spacing: 0.03em;
       margin-bottom: 0.25rem;
     }
+
     .acta-titles h4 {
       font-size: 0.95rem;
       font-weight: 600;
       color: #334155;
       margin-bottom: 0.25rem;
     }
+
     .acta-titles p {
       font-size: 0.8rem;
       color: #64748b;
     }
+
     .acta-badge-pill {
       text-align: right;
     }
+
     .acta-num-badge {
       display: inline-block;
       font-family: 'JetBrains Mono', monospace;
@@ -580,12 +691,13 @@
       padding: 0.4rem 0.85rem;
       border-radius: 8px;
     }
+
     .acta-date-sub {
       font-size: 0.75rem;
       color: #64748b;
       margin-top: 0.35rem;
     }
-    
+
     /* GAUGE-STYLE TACTILE TILES */
     .acta-metric-tiles {
       display: grid;
@@ -593,6 +705,7 @@
       gap: 1.15rem;
       margin-bottom: 2.2rem;
     }
+
     .acta-tile {
       background: var(--surface);
       box-shadow: var(--neu-pressed);
@@ -602,9 +715,11 @@
       text-align: center;
       transition: transform 0.25s var(--ease-lux);
     }
+
     .acta-tile:hover {
       transform: scale(1.02);
     }
+
     .acta-tile .tile-val {
       font-family: 'Outfit', sans-serif;
       font-size: 1.95rem;
@@ -613,6 +728,7 @@
       line-height: 1;
       margin-bottom: 0.35rem;
     }
+
     .acta-tile .tile-lbl {
       font-size: 0.75rem;
       font-weight: 700;
@@ -620,7 +736,7 @@
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
-    
+
     /* GRÁFICOS INTERACTIVOS EN ACTA */
     .charts-grid {
       display: grid;
@@ -628,6 +744,7 @@
       gap: 1.6rem;
       margin-bottom: 2.2rem;
     }
+
     .chart-panel {
       background: var(--neu-convex);
       box-shadow: var(--neu-flat);
@@ -636,9 +753,11 @@
       padding: 1.6rem;
       transition: transform 0.3s var(--ease-lux), box-shadow 0.3s var(--ease-lux);
     }
+
     .chart-panel:hover {
       box-shadow: var(--neu-lift);
     }
+
     .chart-panel h5 {
       font-size: 0.98rem;
       font-weight: 700;
@@ -648,9 +767,11 @@
       align-items: center;
       gap: 0.45rem;
     }
+
     .bar-chart-row {
       margin-bottom: 0.95rem;
     }
+
     .bar-label-line {
       display: flex;
       justify-content: space-between;
@@ -658,6 +779,7 @@
       font-weight: 600;
       margin-bottom: 0.35rem;
     }
+
     .bar-track {
       height: 12px;
       background: #e2e8f0;
@@ -666,10 +788,11 @@
       overflow: hidden;
       display: flex;
     }
+
     .bar-fill {
       height: 100%;
       border-radius: 999px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       transition: width 1.2s var(--ease-lux);
     }
 
@@ -684,6 +807,7 @@
       overflow: hidden;
       box-shadow: var(--neu-flat-sm);
     }
+
     .acta-table th {
       background: #f1f5f9;
       color: #334155;
@@ -695,14 +819,21 @@
       font-size: 0.72rem;
       letter-spacing: 0.03em;
     }
+
     .acta-table td {
       padding: 0.75rem 0.95rem;
       border-bottom: 1px solid #e2e8f0;
       color: #1e293b;
       transition: background 0.18s ease;
     }
-    .acta-table tr:nth-child(even) { background: #f8fafc; }
-    .acta-table tr:hover td { background: #e0f2fe; }
+
+    .acta-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .acta-table tr:hover td {
+      background: #e0f2fe;
+    }
 
     /* SELLO SHA-256 E INMUTABILIDAD */
     .crypto-seal-card {
@@ -716,6 +847,7 @@
       align-items: flex-start;
       box-shadow: var(--neu-flat);
     }
+
     .seal-icon-badge {
       width: 48px;
       height: 48px;
@@ -730,19 +862,32 @@
       box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
       animation: pulseSubtle 2.5s infinite ease-in-out;
     }
+
     @keyframes pulseSubtle {
-      0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); }
-      50% { transform: scale(1.06); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.65); }
+
+      0%,
+      100% {
+        transform: scale(1);
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+      }
+
+      50% {
+        transform: scale(1.06);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.65);
+      }
     }
+
     .seal-body {
       flex: 1;
     }
+
     .seal-title {
       font-size: 0.95rem;
       font-weight: 700;
       color: #166534;
       margin-bottom: 0.25rem;
     }
+
     .seal-hash {
       font-family: 'JetBrains Mono', Consolas, monospace;
       font-size: 0.78rem;
@@ -756,6 +901,7 @@
       word-break: break-all;
       margin: 0.4rem 0;
     }
+
     .seal-note {
       font-size: 0.74rem;
       color: #15803d;
@@ -771,20 +917,24 @@
       padding-top: 1rem;
       text-align: center;
     }
+
     .sig-block {
       border-top: 1.5px solid #64748b;
       padding-top: 0.85rem;
     }
+
     .sig-name {
       font-size: 0.88rem;
       font-weight: 700;
       color: #0f172a;
     }
+
     .sig-role {
       font-size: 0.75rem;
       color: #64748b;
       margin-top: 0.15rem;
     }
+
     .sig-digital-mark {
       font-size: 0.68rem;
       color: #0284c7;
@@ -799,20 +949,34 @@
       transition: opacity 0.75s var(--ease-lux), transform 0.75s var(--ease-lux);
       will-change: opacity, transform;
     }
+
     .reveal.is-visible {
       opacity: 1;
       transform: translateY(0);
     }
-    .delay-1 { transition-delay: 0.08s; }
-    .delay-2 { transition-delay: 0.16s; }
-    .delay-3 { transition-delay: 0.24s; }
-    .delay-4 { transition-delay: 0.32s; }
+
+    .delay-1 {
+      transition-delay: 0.08s;
+    }
+
+    .delay-2 {
+      transition-delay: 0.16s;
+    }
+
+    .delay-3 {
+      transition-delay: 0.24s;
+    }
+
+    .delay-4 {
+      transition-delay: 0.32s;
+    }
 
     /* RIPPLE EFFECT FOR BUTTONS */
     .btn {
       position: relative;
       overflow: hidden;
     }
+
     .ripple-span {
       position: absolute;
       border-radius: 50%;
@@ -821,6 +985,7 @@
       animation: rippleEffect 0.6s linear;
       pointer-events: none;
     }
+
     @keyframes rippleEffect {
       to {
         transform: scale(4);
@@ -829,13 +994,25 @@
     }
 
     @media (max-width: 768px) {
-      .hero-title { font-size: 2rem; }
-      .header-actions .btn-outline { display: none; }
-      .acta-sheet { padding: 1.5rem; }
-      .charts-grid { grid-template-columns: 1fr; }
+      .hero-title {
+        font-size: 2rem;
+      }
+
+      .header-actions .btn-outline {
+        display: none;
+      }
+
+      .acta-sheet {
+        padding: 1.5rem;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- HEADER -->
@@ -843,7 +1020,8 @@
     <div class="container header-nav">
       <div class="brand">
         <div class="brand-logo" style="padding: 2px; overflow: hidden; background: white; border: 1.5px solid #0284c7;">
-          <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo SGBT" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+          <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo SGBT"
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
         </div>
         <div>
           <div class="brand-title">Sistema de gestión de Beneficios a Trabajadores SGBT</div>
@@ -861,9 +1039,12 @@
   <section class="hero">
     <div class="container">
       <span class="badge-pill reveal">🛡️ GovTech & Enterprise Logistics &middot; Dossier Ejecutivo</span>
-      <h1 class="hero-title reveal delay-1">Automatización, Soberanía y Control en Despacho de Beneficios <span>100% Offline</span></h1>
+      <h1 class="hero-title reveal delay-1">Automatización, Soberanía y Control en Despacho de Beneficios <span>100%
+          Offline</span></h1>
       <p class="hero-subtitle reveal delay-2">
-        Elimine las colas, las hojas de Excel y el fraude por suplantación en almacenes y depósitos. SGBT garantiza verificación biométrica FIDO2 en menos de 2 segundos, cero duplicados y actas de auditoría con sello criptográfico.
+        Elimine las colas, las hojas de Excel y el fraude por suplantación en almacenes y depósitos. SGBT garantiza
+        verificación biométrica FIDO2 en menos de 2 segundos, cero duplicados y actas de auditoría con sello
+        criptográfico.
       </p>
 
       <!-- METRICAS / KPIS CLAVE -->
@@ -893,28 +1074,36 @@
   </section>
 
   <!-- PILARES DE LA SOLUCION -->
-  <section class="section" style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);">
+  <section class="section"
+    style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);">
     <div class="container">
       <div class="section-header reveal">
         <h2 class="section-title">Pilares Tecnológicos y Ventajas Competitivas</h2>
-        <p class="section-subtitle">Diseñado con estándares bancarios y criptográficos para garantizar soberanía y trazabilidad ante entes contralores.</p>
+        <p class="section-subtitle">Diseñado con estándares bancarios y criptográficos para garantizar soberanía y
+          trazabilidad ante entes contralores.</p>
       </div>
 
       <div class="features-grid">
         <div class="feature-card reveal delay-1">
           <div class="feature-icon">🔐</div>
           <h3 class="feature-title">Passkeys FIDO2 / ECDSA P-256 &middot; QR y NFC</h3>
-          <p class="feature-text">Autenticación biométrica anclada al chip físico del teléfono (Apple Secure Enclave o Android StrongBox). Admite doble presentación en mesa: escaneo óptico de QR dinámico (180s) o validación por proximidad NFC P2P al tocar el teléfono del beneficiario con el del despachador, evaluando la firma criptográfica al instante.</p>
+          <p class="feature-text">Autenticación biométrica anclada al chip físico del teléfono (Apple Secure Enclave o
+            Android StrongBox). Admite doble presentación en mesa: escaneo óptico de QR dinámico (180s) o validación por
+            proximidad NFC P2P al tocar el teléfono del beneficiario con el del despachador, evaluando la firma
+            criptográfica al instante.</p>
         </div>
         <div class="feature-card reveal delay-2">
           <div class="feature-icon">⚡</div>
           <h3 class="feature-title">Motor Offline-First e Idempotencia</h3>
-          <p class="feature-text">Almacenamiento local mediante Service Workers v2.6 e IndexedDB. Si la red parpadea durante la entrega, la cabecera <code>Idempotency-Key</code> garantiza que no se produzca doble descuento de inventario.</p>
+          <p class="feature-text">Almacenamiento local mediante Service Workers v2.6 e IndexedDB. Si la red parpadea
+            durante la entrega, la cabecera <code>Idempotency-Key</code> garantiza que no se produzca doble descuento de
+            inventario.</p>
         </div>
         <div class="feature-card reveal delay-3">
           <div class="feature-icon">📑</div>
           <h3 class="feature-title">Actas Oficiales y Trazabilidad Forense</h3>
-          <p class="feature-text">Generación inmediata de comprobantes digitales firmados criptográficamente y actas de despacho ministeriales desglosadas por dirección, tonelaje y tipo de combo.</p>
+          <p class="feature-text">Generación inmediata de comprobantes digitales firmados criptográficamente y actas de
+            despacho ministeriales desglosadas por dirección, tonelaje y tipo de combo.</p>
         </div>
       </div>
     </div>
@@ -925,7 +1114,8 @@
     <div class="container">
       <div class="section-header reveal">
         <h2 class="section-title">Experiencia de Usuario PWA y Gobernanza</h2>
-        <p class="section-subtitle">Diseño responsivo móvil y desktop optimizado con cabeceras fijas, retroalimentación táctil háptica y contención ergonómica de modales.</p>
+        <p class="section-subtitle">Diseño responsivo móvil y desktop optimizado con cabeceras fijas, retroalimentación
+          táctil háptica y contención ergonómica de modales.</p>
       </div>
 
       <!-- PORTAL ADMINISTRATIVO -->
@@ -933,7 +1123,8 @@
         <div class="showcase-header">
           <div>
             <h3 class="showcase-title">Portal de Gobernanza y Dashboard Administrativo</h3>
-            <p class="showcase-desc">Monitoreo de auditoría en tiempo real, métricas de adopción de Passkeys, importación de nómina y exportación oficial.</p>
+            <p class="showcase-desc">Monitoreo de auditoría en tiempo real, métricas de adopción de Passkeys,
+              importación de nómina y exportación oficial.</p>
           </div>
           <span class="badge-pill" style="margin-bottom:0;">Rol: Super Administrador</span>
         </div>
@@ -943,17 +1134,21 @@
       </div>
 
       <!-- PILARES VISUALES: BLINDAJE CRIPTOGRÁFICO Y LOGÍSTICA DE COMBOS -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.75rem; margin-bottom: 2rem;">
+      <div
+        style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.75rem; margin-bottom: 2rem;">
         <div class="showcase-block reveal delay-1" style="margin-bottom:0;">
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Blindaje Criptográfico y Biometría Passkeys FIDO2</h3>
-              <p class="showcase-desc">Escudo institucional de ciberdefensa con claves asimétricas P-256 ancladas en hardware seguro.</p>
+              <p class="showcase-desc">Escudo institucional de ciberdefensa con claves asimétricas P-256 ancladas en
+                hardware seguro.</p>
             </div>
-            <span class="badge-pill" style="margin-bottom:0; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;">Cero Suplantación</span>
+            <span class="badge-pill"
+              style="margin-bottom:0; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;">Cero Suplantación</span>
           </div>
           <div class="showcase-media" style="max-height: 340px;">
-            <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo Dorado de Seguridad y Ciberdefensa SGBT" loading="lazy" style="width: 100%; height: 340px; object-fit: cover;">
+            <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo Dorado de Seguridad y Ciberdefensa SGBT"
+              loading="lazy" style="width: 100%; height: 340px; object-fit: cover;">
           </div>
         </div>
 
@@ -961,12 +1156,15 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Logística y Despacho de Combos Alimenticios</h3>
-              <p class="showcase-desc">Organización en cajas de madera y estibas con víveres secos, proteínas y canasta básica.</p>
+              <p class="showcase-desc">Organización en cajas de madera y estibas con víveres secos, proteínas y canasta
+                básica.</p>
             </div>
-            <span class="badge-pill" style="margin-bottom:0; background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t Auditadas</span>
+            <span class="badge-pill"
+              style="margin-bottom:0; background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t Auditadas</span>
           </div>
           <div class="showcase-media" style="max-height: 340px;">
-            <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas de madera con combos alimenticios SGBT" loading="lazy" style="width: 100%; height: 340px; object-fit: cover;">
+            <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas de madera con combos alimenticios SGBT" loading="lazy"
+              style="width: 100%; height: 340px; object-fit: cover;">
           </div>
         </div>
       </div>
@@ -977,9 +1175,11 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Vista de la App del Beneficiario</h3>
-              <p class="showcase-desc">Consulta de combos asignados, detalle de rubros por canasta básica y carnet digital interactivo.</p>
+              <p class="showcase-desc">Consulta de combos asignados, detalle de rubros por canasta básica y carnet
+                digital interactivo.</p>
             </div>
-            <span class="badge-pill" style="margin-bottom:0; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">Autogestión PWA</span>
+            <span class="badge-pill"
+              style="margin-bottom:0; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">Autogestión PWA</span>
           </div>
           <div class="showcase-media">
             <img src="docs/app_beneficiario.png" alt="Vista de la App del Beneficiario SGBT" loading="lazy">
@@ -990,9 +1190,12 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Vista de la Mesa de Despacho</h3>
-              <p class="showcase-desc">Operación de entrega en almacén, verificación física por estación y respaldo local offline.</p>
+              <p class="showcase-desc">Operación de entrega en almacén, verificación física por estación y respaldo
+                local offline.</p>
             </div>
-            <span class="badge-pill" style="margin-bottom:0; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">Estación de Almacén</span>
+            <span class="badge-pill"
+              style="margin-bottom:0; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">Estación de
+              Almacén</span>
           </div>
           <div class="showcase-media">
             <img src="docs/mesa_despacho.png" alt="Vista de la Mesa de Despacho SGBT" loading="lazy">
@@ -1005,18 +1208,23 @@
   <!-- ======================================================================
        ENTREGABLE DE CIERRE: ACTA OFICIAL DE DESPACHO Y REPORTES CON GRÁFICOS
        ====================================================================== -->
-  <section class="section" style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);">
+  <section class="section"
+    style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 10px rgba(0,0,0,0.03);">
     <div class="container">
-      <div class="section-header reveal" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+      <div class="section-header reveal"
+        style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">🏛️ Entregable Oficial de Auditoría &middot; Cierre de Jornada</span>
+          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">🏛️ Entregable
+            Oficial de Auditoría &middot; Cierre de Jornada</span>
           <h2 class="section-title">Acta Oficial Ministerial y Rendición Logística</h2>
           <p class="section-subtitle">
-            Documento de valor legal y contralor generado automáticamente con sello criptográfico SHA-256 inmutable, tonelaje acumulado y desglose por dependencia.
+            Documento de valor legal y contralor generado automáticamente con sello criptográfico SHA-256 inmutable,
+            tonelaje acumulado y desglose por dependencia.
           </p>
         </div>
         <div>
-          <a href="acta_oficial.html" target="_blank" class="btn btn-primary" style="box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+          <a href="acta_oficial.html" target="_blank" class="btn btn-primary"
+            style="box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
             <span>🖨️ Ver / Imprimir Acta Oficial Completa ↗</span>
           </a>
         </div>
@@ -1029,7 +1237,8 @@
           <div class="acta-titles">
             <h3>MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN</h3>
             <h4>SGBT &bull; Acta Oficial de Despacho, Rendición y Auditoría Logística</h4>
-            <p>Gobierno Bolivariano de Venezuela &bull; Módulo de Control y Entrega Criptográfica &bull; Sede Central</p>
+            <p>Gobierno Bolivariano de Venezuela &bull; Módulo de Control y Entrega Criptográfica &bull; Sede Central
+            </p>
           </div>
           <div class="acta-badge-pill">
             <div class="acta-num-badge">ACTA-20261025-FD4DF29E</div>
@@ -1061,8 +1270,10 @@
         <div class="charts-grid">
           <!-- GRÁFICO 1: MÉTODOS DE VALIDACIÓN Y SEGURIDAD -->
           <div class="chart-panel reveal delay-1">
-            <div style="border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; height: 160px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
-              <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo Dorado de Seguridad y Biometría FIDO2" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            <div
+              style="border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; height: 160px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+              <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo Dorado de Seguridad y Biometría FIDO2"
+                style="width: 100%; height: 100%; object-fit: cover; display: block;">
             </div>
             <h5>
               Adopción por Método de Validación y Seguridad
@@ -1074,7 +1285,8 @@
                 <span style="color: #16a34a; font-weight: 700;">82% &middot; 931 entregas</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #10b981, #059669);" data-target-width="82%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #10b981, #059669);"
+                  data-target-width="82%"></div>
               </div>
             </div>
 
@@ -1084,7 +1296,8 @@
                 <span style="color: #0284c7; font-weight: 700;">11% &middot; 125 entregas</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #38bdf8, #0284c7);" data-target-width="11%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #38bdf8, #0284c7);"
+                  data-target-width="11%"></div>
               </div>
             </div>
 
@@ -1094,7 +1307,8 @@
                 <span style="color: #d97706; font-weight: 700;">5% &middot; 57 entregas</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #fbbf24, #d97706);" data-target-width="5%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #fbbf24, #d97706);"
+                  data-target-width="5%"></div>
               </div>
             </div>
 
@@ -1104,15 +1318,18 @@
                 <span style="color: #ea580c; font-weight: 700;">2% &middot; 23 entregas</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #fb923c, #ea580c);" data-target-width="2%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #fb923c, #ea580c);"
+                  data-target-width="2%"></div>
               </div>
             </div>
           </div>
 
           <!-- GRÁFICO 2: DISTRIBUCIÓN DE TONELAJE POR TIPO DE COMBO -->
           <div class="chart-panel reveal delay-2">
-            <div style="border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; height: 160px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
-              <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas de madera con combos alimenticios" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            <div
+              style="border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; border: 1px solid #e2e8f0; height: 160px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
+              <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas de madera con combos alimenticios"
+                style="width: 100%; height: 100%; object-fit: cover; display: block;">
             </div>
             <h5>
               Distribución de Volumen y Tonelaje Despachado
@@ -1124,7 +1341,8 @@
                 <span style="color: #0f172a; font-weight: 700;">12.47 t &middot; 75.7%</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #818cf8, #4f46e5);" data-target-width="75.7%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #818cf8, #4f46e5);"
+                  data-target-width="75.7%"></div>
               </div>
             </div>
 
@@ -1134,7 +1352,8 @@
                 <span style="color: #0f172a; font-weight: 700;">2.45 t &middot; 14.9%</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #c084fc, #9333ea);" data-target-width="14.9%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #c084fc, #9333ea);"
+                  data-target-width="14.9%"></div>
               </div>
             </div>
 
@@ -1144,7 +1363,8 @@
                 <span style="color: #0f172a; font-weight: 700;">0.85 t &middot; 5.2%</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #f472b6, #db2777);" data-target-width="5.2%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #f472b6, #db2777);"
+                  data-target-width="5.2%"></div>
               </div>
             </div>
 
@@ -1154,14 +1374,16 @@
                 <span style="color: #0f172a; font-weight: 700;">0.70 t &middot; 4.2%</span>
               </div>
               <div class="bar-track">
-                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #38bdf8, #0284c7);" data-target-width="4.2%"></div>
+                <div class="bar-fill" style="width: 0%; background: linear-gradient(90deg, #38bdf8, #0284c7);"
+                  data-target-width="4.2%"></div>
               </div>
             </div>
           </div>
         </div>
 
         <!-- TABLA DESGLOSADA POR DEPENDENCIAS MINISTERIALES -->
-        <h4 style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin-bottom: 0.85rem;">
+        <h4
+          style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin-bottom: 0.85rem;">
           Rendición Consolidada por Dependencia Ministerial
         </h4>
         <div style="overflow-x: auto; margin-bottom: 1.5rem;">
@@ -1183,7 +1405,8 @@
                 <td style="text-align: right; font-weight: 700;">248</td>
                 <td style="text-align: right;">3,596 kg</td>
                 <td style="text-align: right; font-weight: 700;">3.60 t</td>
-                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">Dirección de Servicios Generales y Mantenimiento</td>
@@ -1191,7 +1414,8 @@
                 <td style="text-align: right; font-weight: 700;">192</td>
                 <td style="text-align: right;">2,784 kg</td>
                 <td style="text-align: right; font-weight: 700;">2.78 t</td>
-                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">Oficina de Gestión Comunicacional (Protocolo)</td>
@@ -1199,7 +1423,8 @@
                 <td style="text-align: right; font-weight: 700;">165</td>
                 <td style="text-align: right;">2,392 kg</td>
                 <td style="text-align: right; font-weight: 700;">2.39 t</td>
-                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">Dirección General del Despacho del Ministro</td>
@@ -1207,7 +1432,8 @@
                 <td style="text-align: right; font-weight: 700;">142</td>
                 <td style="text-align: right;">2,059 kg</td>
                 <td style="text-align: right; font-weight: 700;">2.06 t</td>
-                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">Consultoría Jurídica y Responsabilidad Social</td>
@@ -1215,7 +1441,8 @@
                 <td style="text-align: right; font-weight: 700;">114</td>
                 <td style="text-align: right;">1,653 kg</td>
                 <td style="text-align: right; font-weight: 700;">1.65 t</td>
-                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span>
+                </td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">Otras Direcciones, Jubilados y Coordinaciones Regionales (OIR)</td>
@@ -1223,7 +1450,8 @@
                 <td style="text-align: right; font-weight: 700;">275</td>
                 <td style="text-align: right;">3,986 kg</td>
                 <td style="text-align: right; font-weight: 700;">3.99 t</td>
-                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span>
+                </td>
               </tr>
             </tbody>
             <tfoot>
@@ -1246,7 +1474,9 @@
             <div class="seal-title">Sello de Integridad Criptográfica de la Jornada (SHA-256)</div>
             <code class="seal-hash">fd4df29e4b6025d5d94c313667a1779145c42167bdda360747855dde45e59156</code>
             <div class="seal-note">
-              ✓ <strong>Inmutabilidad Matemática:</strong> Este hash se genera mediante la concatenación secuencial de cada registro de entrega, cédula y marca de tiempo micro-precisa. Cualquier intento de alteración posterior invalida matemáticamente el acta ante el cuerpo de auditores o tribunales competentes.
+              ✓ <strong>Inmutabilidad Matemática:</strong> Este hash se genera mediante la concatenación secuencial de
+              cada registro de entrega, cédula y marca de tiempo micro-precisa. Cualquier intento de alteración
+              posterior invalida matemáticamente el acta ante el cuerpo de auditores o tribunales competentes.
             </div>
           </div>
         </div>
@@ -1278,7 +1508,8 @@
     <div class="container">
       <div class="section-header reveal">
         <h2 class="section-title">Arquitectura e Ingeniería Documentada</h2>
-        <p class="section-subtitle">Modelos interactivos de alta fidelidad elaborados bajo la especificación Archify v3.2.0 (Showcase Quality).</p>
+        <p class="section-subtitle">Modelos interactivos de alta fidelidad elaborados bajo la especificación Archify
+          v3.2.0 (Showcase Quality).</p>
       </div>
 
       <!-- VISOR INTERACTIVO CENTRALIZADO (UN SOLO LUGAR) -->
@@ -1310,20 +1541,24 @@
               </span>
             </div>
             <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
-              <a id="dossier-diagram-fullscreen" href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; justify-content: center;">
+              <a id="dossier-diagram-fullscreen" href="diagrams/c4-containers.html" target="_blank"
+                class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; justify-content: center;">
                 Pantalla Completa ↗
               </a>
-              <a id="dossier-diagram-json" href="diagrams/c4-containers.json" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; justify-content: center;">
+              <a id="dossier-diagram-json" href="diagrams/c4-containers.json" target="_blank" class="btn btn-outline"
+                style="font-size: 0.8rem; padding: 0.45rem 0.9rem; justify-content: center;">
                 Ver JSON 📋
               </a>
-              <a href="diagrams/index.html" target="_blank" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.45rem 1rem; justify-content: center;">
+              <a href="diagrams/index.html" target="_blank" class="btn btn-primary"
+                style="font-size: 0.8rem; padding: 0.45rem 1rem; justify-content: center;">
                 Centro de Diagramas 🗺️
               </a>
             </div>
           </div>
 
           <div class="diagram-iframe-box">
-            <iframe id="dossier-diagram-iframe" src="diagrams/c4-containers.html" title="Visor de Arquitectura Archify"></iframe>
+            <iframe id="dossier-diagram-iframe" src="diagrams/c4-containers.html"
+              title="Visor de Arquitectura Archify"></iframe>
           </div>
         </div>
       </div>
@@ -1334,27 +1569,35 @@
           <div>
             <span class="diagram-badge">C4 Model &middot; Nivel 2</span>
             <h4>Arquitectura General de Contenedores</h4>
-            <p>Mapeo integral de actores (Beneficiario, Operador, Admin), capas PWA frontales, microservicios backend y persistencia híbrida SQLite WAL + Supabase.</p>
+            <p>Mapeo integral de actores (Beneficiario, Operador, Admin), capas PWA frontales, microservicios backend y
+              persistencia híbrida SQLite WAL + Supabase.</p>
           </div>
-          <a href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Diagrama C4 ↗</a>
+          <a href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline"
+            style="justify-content:center;">Abrir Diagrama C4 ↗</a>
         </div>
 
         <div class="diagram-card reveal delay-2">
           <div>
-            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia Criptográfica</span>
+            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia
+              Criptográfica</span>
             <h4>Flujo de Datos y User Journey</h4>
-            <p>Trazabilidad cronológica del retiro: biometría en Secure Enclave, QR dinámico o Proximidad NFC P2P, POST con Idempotency-Key y feedback háptico.</p>
+            <p>Trazabilidad cronológica del retiro: biometría en Secure Enclave, QR dinámico o Proximidad NFC P2P, POST
+              con Idempotency-Key y feedback háptico.</p>
           </div>
-          <a href="diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Flujo de Secuencia ↗</a>
+          <a href="diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline"
+            style="justify-content:center;">Abrir Flujo de Secuencia ↗</a>
         </div>
 
         <div class="diagram-card reveal delay-3">
           <div>
-            <span class="diagram-badge" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">Modelo Relacional</span>
+            <span class="diagram-badge" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">Modelo
+              Relacional</span>
             <h4>Modelo de Datos (ERD Simplificado)</h4>
-            <p>Estructura relacional en 3 dominios funcionales (Identidad, Beneficios y Auditoría Forense) con claves compuestas y tabla de idempotencia.</p>
+            <p>Estructura relacional en 3 dominios funcionales (Identidad, Beneficios y Auditoría Forense) con claves
+              compuestas y tabla de idempotencia.</p>
           </div>
-          <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Modelo ERD ↗</a>
+          <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline"
+            style="justify-content:center;">Abrir Modelo ERD ↗</a>
         </div>
       </div>
     </div>
@@ -1363,14 +1606,19 @@
   <!-- LLAMADO A LA ACCION / PILOTO -->
   <section class="section" style="text-align: center;">
     <div class="container reveal" style="max-width: 800px;">
-      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">🚀 Prueba de Concepto (PoC)</span>
-      <h2 class="section-title" style="font-size: 2.2rem; margin-top: 0.5rem;">¿Listo para una Demostración en Vivo de 5 Minutos?</h2>
+      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">🚀 Prueba de Concepto
+        (PoC)</span>
+      <h2 class="section-title" style="font-size: 2.2rem; margin-top: 0.5rem;">¿Listo para una Demostración en Vivo de 5
+        Minutos?</h2>
       <p class="section-subtitle" style="margin: 1rem auto 2rem; font-size: 1.05rem;">
-        Compruebe la efectividad del sistema en una jornada real. Ofrecemos un Piloto Controlado de 30 días para medir la reducción de tiempos de cola y la eliminación total de extravíos.
+        Compruebe la efectividad del sistema en una jornada real. Ofrecemos un Piloto Controlado de 30 días para medir
+        la reducción de tiempos de cola y la eliminación total de extravíos.
       </p>
       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Iniciar Entorno Demostración en la Nube ↗</a>
-        <a href="../Propuesta de Comercialización.md" target="_blank" class="btn btn-outline" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Leer Propuesta Comercial</a>
+        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary"
+          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Iniciar Entorno Demostración en la Nube ↗</a>
+        <a href="../Propuesta de Comercialización.md" target="_blank" class="btn btn-outline"
+          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Leer Propuesta Comercial</a>
       </div>
     </div>
   </section>
@@ -1380,7 +1628,8 @@
     <div class="container footer-content">
       <div>
         <div class="footer-brand">Sistema de gestión de Beneficios a Trabajadores SGBT</div>
-        <div style="margin-top: 0.35rem;">Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)</div>
+        <div style="margin-top: 0.35rem;">Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)
+        </div>
       </div>
       <div>
         Soberanía Tecnológica &middot; FIDO2 / WebAuthn &middot; SQLite WAL &middot; PWA Offline
@@ -1409,7 +1658,7 @@
       }
     };
 
-    window.selectDossierDiagram = function(type, btn) {
+    window.selectDossierDiagram = function (type, btn) {
       document.querySelectorAll('.diagram-tab').forEach(t => t.classList.remove('active'));
       if (btn) btn.classList.add('active');
       const d = dossierDiagrams[type];
@@ -1506,4 +1755,5 @@
   </script>
 
 </body>
+
 </html>
