@@ -153,6 +153,10 @@ window.ManualDispatch = (function() {
         filterAndRenderModalDeliveries(query);
       });
     }
+
+    // Carga inicial proactiva de datos de entregas y departamentos
+    loadTodaySummary();
+    loadDepartmentsList();
   }
 
   // Cargar lista de departamentos para el select de incorporación
@@ -171,7 +175,7 @@ window.ManualDispatch = (function() {
   // Cargar resumen de hoy y despachos recientes
   async function loadTodaySummary() {
     try {
-      const data = await API.get('/api/v1/manual-dispatch/today-summary');
+      const data = await API.get('/api/v1/manual-dispatch/today-summary?_t=' + Date.now());
       if (data && data.stats) {
         const elWorkers = document.getElementById('manualKpiWorkers');
         const elAssigned = document.getElementById('manualKpiAssigned');
@@ -187,7 +191,7 @@ window.ManualDispatch = (function() {
         renderRecentDeliveries(data.recent_deliveries || []);
       }
     } catch (err) {
-      console.error('Error cargando resumen manual:', err);
+      console.warn('Error cargando resumen manual:', err);
     }
   }
 

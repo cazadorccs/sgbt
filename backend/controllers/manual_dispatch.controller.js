@@ -433,15 +433,15 @@ const getTodayStatsAndRecent = (req, res) => {
     const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id, d.delivered_at, d.verification_method, d.override_reason,
-        w.document_id,
-        COALESCE(NULLIF(w.full_name, ''), 'Funcionario C.I. ' || w.document_id) as full_name,
-        w.worker_type,
-        dep.name as department_name,
+        COALESCE(w.document_id, 'V-00000000') as document_id,
+        COALESCE(NULLIF(w.full_name, ''), 'Funcionario C.I. ' || COALESCE(w.document_id, 'N/D')) as full_name,
+        COALESCE(w.worker_type, 'activo') as worker_type,
+        COALESCE(dep.name, 'Nómina Central') as department_name,
         COALESCE(c.name, 'Combo Institucional') as combo_name, 
         COALESCE(c.icon, '📦') as combo_icon,
         sup.full_name as supervisor_name
       FROM deliveries d
-      JOIN workers w ON d.worker_id = w.id
+      LEFT JOIN workers w ON d.worker_id = w.id
       LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
       LEFT JOIN combos c ON e.combo_id = c.id
       LEFT JOIN departments dep ON w.department_id = dep.id
@@ -451,7 +451,7 @@ const getTodayStatsAndRecent = (req, res) => {
          OR substr(d.delivered_at, 1, 10) IN (?, ?)
          OR d.delivered_at >= datetime('now', '-24 hours')
       ORDER BY d.delivered_at DESC
-      LIMIT 250
+      LIMIT 500
     `).all(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
 
     // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
@@ -484,7 +484,7 @@ const getTodayStatsAndRecent = (req, res) => {
       });
     }
 
-    const recentDeliveries = Array.from(groupedMap.values()).slice(0, 30);
+    const recentDeliveries = Array.from(groupedMap.values()).slice(0, 100);
 
     res.json({
       success: true,

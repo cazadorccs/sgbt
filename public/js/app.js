@@ -145,6 +145,10 @@ function navigateTo(viewId) {
     if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
       window.ManualDispatch.loadTodaySummary();
     }
+  } else if (viewId === 'view-distributor') {
+    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+      window.ManualDispatch.loadTodaySummary();
+    }
   }
 }
 
