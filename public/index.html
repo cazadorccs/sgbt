@@ -125,6 +125,15 @@
               <span>Configuración & Marca</span>
             </button>
 
+            <!-- Auditoría y Logs del Sistema en Tiempo Real -->
+            <button id="btnOpenSystemLogs" class="dropdown-item" title="Ver logs y diagnóstico de acciones en tiempo real" style="color: #38bdf8;">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+              <span>📋 Logs & Diagnóstico en Vivo</span>
+            </button>
+
             <!-- Simular Red / Offline -->
             <button id="btnToggleNetwork" class="dropdown-item" title="Conmutar entre modo online y desconexión local">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
@@ -1966,9 +1975,14 @@
                   </div>
                 </div>
               </div>
-              <button type="button" id="btnDistributorLogout" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.08);" title="Cerrar Sesión del Operador">
-                Salir 🚪
-              </button>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <button type="button" id="btnDistributorOpenLogs" onclick="window.openSystemLogsModal()" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(14, 165, 233, 0.1);" title="Ver logs y diagnóstico de escaneo en tiempo real">
+                  📋 Logs en Vivo
+                </button>
+                <button type="button" id="btnDistributorLogout" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.08);" title="Cerrar Sesión del Operador">
+                  Salir 🚪
+                </button>
+              </div>
             </div>
 
             <!-- CONTROLES OFFLINE-FIRST: PRECARGA & COLA DIFERIDA -->
@@ -2521,7 +2535,123 @@ Listo para recibir transacciones de nómina SSOT...
     </div>
   </div>
 
+  <!-- MODAL DE AUDITORÍA Y CAPTURA DE LOGS EN TIEMPO REAL -->
+  <div id="systemLogsModal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);">
+    <div class="modal-card" style="max-width: 1050px; width: 95%; max-height: 92vh; display: flex; flex-direction: column; background: #0b1329; border: 1px solid #1e293b; box-shadow: 0 25px 60px rgba(0,0,0,0.7); border-radius: 14px; overflow: hidden; padding: 1.25rem;">
+      
+      <!-- Cabecera del Visor de Logs -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.85rem; border-bottom: 1px solid #1e293b;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.4rem;">📋</span>
+          <div>
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.02em;">
+              Logs y Diagnóstico del Sistema en Tiempo Real
+            </h3>
+            <div style="font-size: 0.75rem; color: #94a3b8; display: flex; gap: 0.5rem; align-items: center; margin-top: 2px;">
+              <span>Captura universal de peticiones, escaneo QR, auditoría y telemetría</span>
+              <span id="logStreamStatusBadge" class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.68rem; font-weight: 700;">
+                🟢 Conectado en Vivo (SSE)
+              </span>
+              <span id="systemLogsCountBadge" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-size: 0.68rem;">
+                0 eventos
+              </span>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="btnHeaderCloseSystemLogsModal" class="btn btn-outline" style="border-radius: 50%; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; color: #94a3b8; border-color: #334155;">
+          ✕
+        </button>
+      </div>
+
+      <!-- Barra de Herramientas y Filtros -->
+      <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: space-between; align-items: center; margin: 0.85rem 0; padding: 0.6rem; background: rgba(255, 255, 255, 0.02); border: 1px solid #1e293b; border-radius: 8px;">
+        <!-- Buscador -->
+        <div style="flex: 1; min-width: 220px;">
+          <input 
+            type="text" 
+            id="inputSearchLogs" 
+            placeholder="🔍 Buscar por acción, endpoint, cédula, error..." 
+            style="width: 100%; box-sizing: border-box; background: #0f172a; border: 1px solid #334155; color: #f8fafc; font-size: 0.8rem; padding: 0.45rem 0.75rem; border-radius: 6px; font-family: monospace;"
+          />
+        </div>
+
+        <!-- Filtros Rápidos -->
+        <div style="display: flex; gap: 0.3rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline log-filter-btn active" data-level="ALL" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px;">Todos</button>
+          <button type="button" class="btn btn-outline log-filter-btn" data-level="SCAN" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #38bdf8;">📷 Escaneos</button>
+          <button type="button" class="btn btn-outline log-filter-btn" data-level="ERROR" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #f87171;">🛑 Errores</button>
+          <button type="button" class="btn btn-outline log-filter-btn" data-level="WARN" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #fbbf24;">⚠️ Alertas</button>
+          <button type="button" class="btn btn-outline log-filter-btn" data-level="HTTP" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #34d399;">🌐 HTTP API</button>
+          <button type="button" class="btn btn-outline log-filter-btn" data-level="CLIENT" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #c084fc;">📱 Cliente</button>
+        </div>
+
+        <!-- Acciones -->
+        <div style="display: flex; gap: 0.35rem;">
+          <button type="button" id="btnRefreshLogs" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #cbd5e1;" title="Actualizar lista">
+            🔄
+          </button>
+          <button type="button" id="btnDownloadServerLogs" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #38bdf8;" title="Descargar log consolidado del servidor (.log)">
+            📥 Descargar .log
+          </button>
+          <button type="button" id="btnDownloadClientLogs" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #c084fc;" title="Descargar log local del navegador">
+            📱 Log Cliente
+          </button>
+          <button type="button" id="btnClearLogsServer" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; border-radius: 6px; color: #f87171; border-color: rgba(239, 68, 68, 0.4);" title="Limpiar registros">
+            🧹 Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Logs con Consola Scrollable -->
+      <div style="overflow-y: auto; overflow-x: auto; flex: 1; min-height: 380px; max-height: 56vh; border: 1px solid #1e293b; border-radius: 8px; background: #030712;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+          <thead style="position: sticky; top: 0; background: #0f172a; z-index: 10; box-shadow: 0 1px 4px rgba(0,0,0,0.4);">
+            <tr style="border-bottom: 2px solid #1e293b; text-align: left; color: #94a3b8; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; font-family: monospace;">
+              <th style="padding: 0.6rem 0.65rem;">Hora</th>
+              <th style="padding: 0.6rem 0.65rem;">Nivel / Origen</th>
+              <th style="padding: 0.6rem 0.65rem;">Acción / Evento</th>
+              <th style="padding: 0.6rem 0.65rem;">Endpoint / Mensaje</th>
+              <th style="padding: 0.6rem 0.65rem; text-align: center;">Status</th>
+              <th style="padding: 0.6rem 0.65rem; text-align: right;">Detalle</th>
+            </tr>
+          </thead>
+          <tbody id="systemLogsTableBody">
+            <!-- Filas inyectadas por log_viewer.js -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pie del Modal -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.85rem; padding-top: 0.65rem; border-top: 1px solid #1e293b;">
+        <div style="font-size: 0.72rem; color: #64748b; font-family: monospace;">
+          Archivos de auditoría: <code>backend/logs/activity.log</code> &middot; Tabla relacional: <code>system_activity_logs</code>
+        </div>
+        <button type="button" id="btnCloseSystemLogsModal" class="btn btn-primary" style="padding: 0.4rem 1.2rem; font-weight: 700; font-size: 0.8rem; border-radius: 6px;">
+          Cerrar Visor
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MODAL SECUNDARIO: DETALLE DE LOG / PAYLOAD INSPECTOR -->
+  <div id="logDetailViewerModal" class="modal-backdrop" style="display: none; align-items: center; justify-content: center; z-index: 10050; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px);">
+    <div class="modal-card" style="max-width: 650px; width: 90%; max-height: 85vh; background: #0f172a; border: 1px solid #334155; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; padding: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.6rem; border-bottom: 1px solid #334155;">
+        <h4 id="logDetailViewerTitle" style="margin: 0; color: #f8fafc; font-size: 0.95rem; font-family: monospace;">Detalle del Evento</h4>
+        <button type="button" onclick="window.closeLogDetailModal()" class="btn btn-outline" style="border-radius: 50%; width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center; color: #94a3b8;">✕</button>
+      </div>
+      <div style="overflow-y: auto; flex: 1; margin: 0.85rem 0; padding: 0.75rem; background: #030712; border-radius: 6px; border: 1px solid #1e293b;">
+        <pre id="logDetailViewerContent" style="margin: 0; font-family: monospace; font-size: 0.75rem; color: #38bdf8; white-space: pre-wrap; word-break: break-all;"></pre>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" onclick="window.closeLogDetailModal()" class="btn btn-outline" style="padding: 0.35rem 1rem; font-size: 0.78rem;">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS Y NÚCLEO MODULAR V2.9 -->
+  <script src="/js/core/logger.js?v=2.9"></script>
   <script src="/js/qrcode.js?v=2.9"></script>
   <script src="/js/html5-qrcode.min.js?v=2.9"></script>
 
@@ -2545,6 +2675,7 @@ Listo para recibir transacciones de nómina SSOT...
   <script src="/js/modules/notifications.js?v=2.9"></script>
   <script src="/js/modules/share.js?v=2.9"></script>
   <script src="/js/modules/settings.js?v=2.9"></script>
+  <script src="/js/modules/log_viewer.js?v=2.9"></script>
 
   <!-- Main Orchestrator -->
   <script src="/js/app.js?v=2.9"></script>

@@ -145,24 +145,37 @@ function processContingencyOverride({ worker_document_id, supervisor_id, overrid
 
   const today = new Date().toISOString().split('T')[0];
   let ent = db.prepare(`
-    SELECT e.id FROM daily_entitlements e 
+    SELECT e.id, c.name as combo_name, c.icon as combo_icon 
+    FROM daily_entitlements e 
     JOIN combos c ON e.combo_id = c.id 
-    WHERE e.worker_id = ? AND date(e.valid_date) = date(?) AND (c.category = 'utiles_escolares' OR c.name LIKE '%utiles%' OR c.mesa_name LIKE '%Mesa 1%')
+    WHERE e.worker_id = ? AND date(e.valid_date) = date(?) AND c.is_active = 1 AND e.status = 'pending'
+    ORDER BY c.created_at ASC
     LIMIT 1
   `).get(worker.id, today);
 
   if (!ent) {
-    ent = db.prepare('SELECT id FROM daily_entitlements WHERE worker_id = ? AND date(valid_date) = date(?) LIMIT 1').get(worker.id, today);
+    ent = db.prepare(`
+      SELECT e.id, c.name as combo_name, c.icon as combo_icon 
+      FROM daily_entitlements e
+      JOIN combos c ON e.combo_id = c.id
+      WHERE e.worker_id = ? AND date(e.valid_date) = date(?) AND c.is_active = 1
+      LIMIT 1
+    `).get(worker.id, today);
   }
 
   if (!ent) {
-    const defaultCombo = db.prepare("SELECT id FROM combos WHERE category = 'utiles_escolares' AND is_active = 1 LIMIT 1").get()?.id || '0f74d741-6310-4d6c-b8e5-8cd6e76f9113';
+    const activeCombo = db.prepare("SELECT id, name, icon FROM combos WHERE is_active = 1 ORDER BY created_at ASC LIMIT 1").get();
+    if (!activeCombo) {
+      const err = new Error('No hay combos activos disponibles en el catálogo para despachar.');
+      err.status = 400;
+      throw err;
+    }
     const newEntId = crypto.randomUUID();
     db.prepare(`
       INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-      VALUES (?, ?, ?, ?, 'mesa_1', 'pending')
-    `).run(newEntId, worker.id, defaultCombo, today);
-    ent = { id: newEntId };
+      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+    `).run(newEntId, worker.id, activeCombo.id, today);
+    ent = { id: newEntId, combo_name: activeCombo.name, combo_icon: activeCombo.icon };
   }
 
   // Verificar si ya fue entregado hoy (idx_unique_daily_claim)
@@ -228,7 +241,9 @@ function processContingencyOverride({ worker_document_id, supervisor_id, overrid
       worker_type: worker.worker_type,
       department: worker.department_name
     },
-    combo_name: combo ? combo.name : 'Bolsa de Víveres y Proteína',
+    combo_name: combo ? combo.name : (ent.combo_name || 'Bolsa de Víveres y Proteína'),
+    combo_icon: combo ? combo.icon : (ent.combo_icon || '📦'),
+    combo_category: combo ? combo.category : 'bolsa_viveres',
     supervisor_name: supName,
     message: `¡Liberación por contingencia autorizada en 1 Clic con firma biométrica del supervisor (${supName})!`
   };

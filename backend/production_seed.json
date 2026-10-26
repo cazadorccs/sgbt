@@ -7027,13 +7027,13 @@
       "shift": "jornada_continua",
       "status": "active",
       "worker_type": "activo",
-      "role": "worker",
+      "role": "operator",
       "has_smartphone": 1,
       "contingency_reason": null,
       "phone_number": null,
       "avatar_url": null,
       "created_at": "2026-10-22T14:55:12.807669",
-      "updated_at": "2026-10-22T14:55:12.807669"
+      "updated_at": "2026-10-26T18:50:11.140Z"
     },
     {
       "id": "52d387e0-c393-4416-817d-1610a8151e3c",

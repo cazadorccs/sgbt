@@ -212,42 +212,50 @@ function renderDistributorCombos(combos) {
   const countBadge = document.getElementById('assignedCombosCountBadge');
   const badge = document.getElementById('activeStationBadge');
 
-  // Localizar el combo asignado a la Mesa 1 (Combo de Útiles Escolares)
-  let utilesCombo = combos.find(c => 
+  // Filtrar combos activos del catálogo
+  const activeList = Array.isArray(combos) 
+    ? combos.filter(c => c.is_active === undefined || c.is_active === 1 || c.is_active === true || c.is_active === '1')
+    : [];
+
+  // Localizar combo asignado: Primero Útiles Escolares si está activo, o el asignado a Mesa 1, o el primero activo
+  let activeStationCombo = activeList.find(c => 
     c.id === '0f74d741-6310-4d6c-b8e5-8cd6e76f9113' ||
     c.category === 'utiles_escolares' ||
     (c.name && (c.name.toLowerCase().includes('útiles') || c.name.toLowerCase().includes('utiles')))
   );
 
-  if (!utilesCombo) {
-    utilesCombo = {
-      id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113',
-      name: 'Combo de Útiles Escolares',
-      icon: '🎒',
-      category: 'utiles_escolares',
-      mesa_name: 'Mesa 1',
-      mesa_number: 1,
-      weight_kg: 3.5,
-      items_detail: '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca'
-    };
-    combos.unshift(utilesCombo);
+  if (!activeStationCombo) {
+    activeStationCombo = activeList.find(c => c.mesa_name && c.mesa_name.toLowerCase().includes('mesa 1')) || activeList[0];
   }
 
-  STATE.assignedCombo = utilesCombo;
-  STATE.activeStation = utilesCombo.id;
-  STATE.activeStationName = 'Mesa 1';
+  if (!activeStationCombo) {
+    activeStationCombo = {
+      id: 'c1a2b3c4-1111-2222-3333-444455556666',
+      name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)',
+      icon: '🌾',
+      category: 'bolsa_viveres',
+      mesa_name: 'Mesa 1',
+      mesa_number: 1,
+      weight_kg: 14.5,
+      items_detail: '4 kg Harina de Maíz, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, 1 kg Granos, 2 Sardinas'
+    };
+  }
+
+  STATE.assignedCombo = activeStationCombo;
+  STATE.activeStation = activeStationCombo.id;
+  STATE.activeStationName = activeStationCombo.mesa_name || 'Mesa 1';
 
   // 1. "Estación / Combo de Despacho Activo:" Solo debe mostrar la Estacion a la que fue asignado: Mesa 1
   if (tabsContainer) {
     tabsContainer.innerHTML = `
-      <button type="button" class="btn btn-outline active-station-tab" data-station="${utilesCombo.id}" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
-        ${utilesCombo.icon || '🎒'} Mesa 1<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">${utilesCombo.name}</span>
+      <button type="button" class="btn btn-outline active-station-tab" data-station="${activeStationCombo.id}" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
+        ${activeStationCombo.icon || '📦'} ${activeStationCombo.mesa_name || 'Mesa 1'}<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">${activeStationCombo.name}</span>
       </button>
     `;
 
     tabsContainer.querySelectorAll('button[data-station]').forEach(btn => {
       btn.addEventListener('click', () => {
-        updateStationUI(utilesCombo.id);
+        updateStationUI(activeStationCombo.id);
       });
     });
   }
@@ -256,50 +264,51 @@ function renderDistributorCombos(combos) {
     badge.className = 'badge badge-viveres';
     badge.style.background = '#0284c7';
     badge.style.color = '#fff';
-    badge.textContent = `${utilesCombo.icon || '🎒'} Mesa 1: ${utilesCombo.name}`;
+    badge.textContent = `${activeStationCombo.icon || '📦'} ${activeStationCombo.mesa_name || 'Mesa 1'}: ${activeStationCombo.name}`;
   }
 
-  // 2. "Combos Asignados (Verificación Física en Mesa):" Solo debe mostrar el asignado a dicha mesa: Combo de Útiles Escolares
+  // 2. "Combos Asignados (Verificación Física en Mesa):" Solo debe mostrar el asignado a dicha mesa
   if (countBadge) {
-    countBadge.textContent = '1 Combo Asignado (Mesa 1)';
+    countBadge.textContent = `1 Combo Asignado (${activeStationCombo.mesa_name || 'Mesa 1'})`;
   }
 
   if (checklistContainer) {
     checklistContainer.innerHTML = `
-      <div class="checklist-card checked" data-combo-id="${utilesCombo.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
+      <div class="checklist-card checked" data-combo-id="${activeStationCombo.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
         <div class="checklist-checkbox">✓</div>
         <div class="checklist-info">
           <div class="checklist-title">
-            <span style="font-size: 1.2rem; margin-right: 0.3rem;">${utilesCombo.icon || '🎒'}</span>
-            <strong>${utilesCombo.name}</strong>
-            <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Mesa 1</span>
+            <span style="font-size: 1.2rem; margin-right: 0.3rem;">${activeStationCombo.icon || '📦'}</span>
+            <strong>${activeStationCombo.name}</strong>
+            <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">${activeStationCombo.mesa_name || 'Mesa 1'}</span>
           </div>
           <div class="checklist-subtitle" style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem;">
-            ${utilesCombo.items_detail || '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca &middot; Peso aprox: ~3.5 kg &middot; Despacho institucional'}
+            ${activeStationCombo.items_detail || 'Artículos y víveres asignados &middot; Despacho oficial'}
           </div>
         </div>
       </div>
     `;
   }
 
-  updateStationUI(utilesCombo.id);
+  updateStationUI(activeStationCombo.id);
 }
 
 function updateStationUI(st) {
-  const utilesCombo = STATE.assignedCombo || {
-    id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113',
-    name: 'Combo de Útiles Escolares',
-    icon: '🎒'
+  const currentCombo = STATE.assignedCombo || {
+    id: 'c1a2b3c4-1111-2222-3333-444455556666',
+    name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)',
+    icon: '🌾',
+    mesa_name: 'Mesa 1'
   };
-  STATE.activeStation = utilesCombo.id;
-  STATE.activeStationName = 'Mesa 1';
+  STATE.activeStation = currentCombo.id;
+  STATE.activeStationName = currentCombo.mesa_name || 'Mesa 1';
 
   const badge = document.getElementById('activeStationBadge');
   if (badge) {
     badge.className = 'badge badge-viveres';
     badge.style.background = '#0284c7';
     badge.style.color = '#fff';
-    badge.textContent = `${utilesCombo.icon || '🎒'} Mesa 1: ${utilesCombo.name}`;
+    badge.textContent = `${currentCombo.icon || '📦'} ${currentCombo.mesa_name || 'Mesa 1'}: ${currentCombo.name}`;
   }
 }
 
@@ -483,6 +492,55 @@ async function toggleCameraFacing() {
 }
 window.toggleCameraFacing = toggleCameraFacing;
 
+function cleanAndParseQrPayload(rawInput) {
+  if (!rawInput) return null;
+  const clean = String(rawInput).trim();
+
+  // 1. JSON directo
+  if (clean.startsWith('{') && clean.endsWith('}')) {
+    try { return JSON.parse(clean); } catch (e) {}
+  }
+
+  // 2. URL-encoded (%7B...%7D)
+  if (clean.startsWith('%7B') || clean.startsWith('%7b')) {
+    try { return JSON.parse(decodeURIComponent(clean)); } catch (e) {}
+  }
+
+  // 3. URL completa con parámetros (?qr= o ?payload=)
+  if (clean.includes('?qr=') || clean.includes('&qr=') || clean.includes('?payload=') || clean.includes('&payload=')) {
+    try {
+      const u = new URL(clean.startsWith('http') ? clean : ('https://sgbt.app/' + clean));
+      const param = u.searchParams.get('qr') || u.searchParams.get('payload');
+      if (param) {
+        const decodedParam = decodeURIComponent(param);
+        return cleanAndParseQrPayload(decodedParam);
+      }
+    } catch (e) {}
+  }
+
+  // 4. Base64
+  try {
+    const decodedB64 = atob(clean);
+    if (decodedB64 && decodedB64.startsWith('{') && decodedB64.endsWith('}')) {
+      return JSON.parse(decodedB64);
+    }
+  } catch (e) {}
+
+  // 5. Cédula directa escaneada (código de barras en carnet físico)
+  const cleanDoc = clean.replace(/\s+/g, '').toUpperCase();
+  if (/^[VEve]?[-]?\d{5,9}$/.test(cleanDoc)) {
+    return {
+      protocol: 'SGBT_SUPERVISOR_CONTINGENCY_V1',
+      worker_document_id: cleanDoc,
+      reason: 'escaneo_codigo_barras_cedula'
+    };
+  }
+
+  // 6. Último intento de parseo JSON estándar
+  return JSON.parse(clean);
+}
+window.cleanAndParseQrPayload = cleanAndParseQrPayload;
+
 async function startLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
@@ -614,17 +672,9 @@ async function startLiveCameraScanner() {
       isScanCooldown = true;
 
       try {
-        let payload;
-        if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
-          payload = JSON.parse(cleanText);
-        } else if (cleanText.startsWith('%7B') || cleanText.startsWith('%7b')) {
-          payload = JSON.parse(decodeURIComponent(cleanText));
-        } else {
-          try {
-            payload = JSON.parse(atob(cleanText));
-          } catch (e) {
-            payload = JSON.parse(cleanText);
-          }
+        const payload = cleanAndParseQrPayload(cleanText);
+        if (window.AppLogger) {
+          window.AppLogger.scan(cleanText, payload, true, 'Código QR detectado correctamente por cámara');
         }
 
         // Modo Ráfaga Continuo: Procesa el QR sin apagar la cámara
@@ -632,6 +682,9 @@ async function startLiveCameraScanner() {
 
       } catch (err) {
         console.error('[QR PARSE ERROR]', err, decodedText);
+        if (window.AppLogger) {
+          window.AppLogger.error('CAMERA_QR_PARSE_ERROR', err.message, err, { rawText: cleanText });
+        }
         showCameraScanHUD(false, 'FORMATO NO RECONOCIDO', 'El código escaneado no corresponde al protocolo SGBT.');
       } finally {
         setTimeout(() => {
@@ -710,23 +763,19 @@ async function handleQrImageUpload(e) {
     const decodedText = await scanner.scanFile(file, true);
     scanner.clear();
 
-    playAudioFeedback('success');
-    let payload;
     const cleanText = decodedText.trim();
-    if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
-      payload = JSON.parse(cleanText);
-    } else {
-      try {
-        payload = JSON.parse(atob(cleanText));
-      } catch (err) {
-        payload = JSON.parse(cleanText);
-      }
+    const payload = cleanAndParseQrPayload(cleanText);
+    if (window.AppLogger) {
+      window.AppLogger.scan(cleanText, payload, true, 'Código QR detectado desde archivo de imagen');
     }
 
     await processQrPayload(payload);
 
   } catch (err) {
     console.error('[FILE SCAN ERROR]', err);
+    if (window.AppLogger) {
+      window.AppLogger.error('FILE_SCAN_ERROR', err.message, err);
+    }
     window.showToast('No se detectó un código QR válido en la imagen: ' + (err.message || err), 'error');
   } finally {
     e.target.value = '';
@@ -738,15 +787,15 @@ async function handleManualQrPaste() {
   if (!rawInput || !rawInput.trim()) return;
 
   try {
-    const clean = rawInput.trim();
-    let payload;
-    if (clean.startsWith('{') && clean.endsWith('}')) {
-      payload = JSON.parse(clean);
-    } else {
-      payload = JSON.parse(atob(clean));
+    const payload = cleanAndParseQrPayload(rawInput);
+    if (window.AppLogger) {
+      window.AppLogger.scan(rawInput.trim(), payload, true, 'Código QR ingresado manualmente');
     }
     await processQrPayload(payload);
   } catch (err) {
+    if (window.AppLogger) {
+      window.AppLogger.error('MANUAL_QR_PARSE_ERROR', err.message, err, { rawInput });
+    }
     window.showToast('Error decodificando QR manual: ' + err.message, 'error');
   }
 }
@@ -902,11 +951,14 @@ async function processQrPayload(payload, isLiveCamera = false) {
 
   const now = Math.floor(Date.now() / 1000);
 
-  if (Math.abs(now - payload.ts) > 180) {
+  if (payload.ts && Math.abs(now - payload.ts) > 900) {
+    if (window.AppLogger) {
+      window.AppLogger.warn('QR_EXPIRED_CLIENT', 'Código QR superó tolerancia de 15 minutos', { now, ts: payload.ts, diff: Math.abs(now - payload.ts) });
+    }
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-      showCameraScanHUD(false, 'QR EXPIRADO', 'Vigencia de 180s superada');
+      showCameraScanHUD(false, 'QR EXPIRADO', 'Vigencia de 15 min superada');
     } else {
-      showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 180 segundos de validez anti-captura.');
+      showDistributorFeedback(false, 'QR EXPIRADO', 'El código QR ha superado los 15 minutos de validez anti-captura.');
     }
     return;
   }
@@ -917,6 +969,9 @@ async function processQrPayload(payload, isLiveCamera = false) {
   if (STATE.localCache.deliveredEntitlements.has(payload.ent) || STATE.localCache.deliveredEntitlements.has(stationCacheKey)) {
     const isStation2 = qrStation === '2';
     const comboLabel = isStation2 ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto de Víveres Secos';
+    if (window.AppLogger) {
+      window.AppLogger.warn('DUPLICATE_DELIVERY_CLIENT_BLOCKED', `${comboLabel} ya entregado hoy`, { payload });
+    }
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
       showCameraScanHUD(false, 'INTENTO DE DUPLICADO', `${comboLabel} ya entregado hoy`);
     } else {
@@ -969,6 +1024,10 @@ async function processQrPayload(payload, isLiveCamera = false) {
       ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada offline.'
       : 'Entrega validada correctamente en Almacén Sótano 1.';
 
+    if (window.AppLogger) {
+      window.AppLogger.info('OFFLINE_DELIVERY_ENQUEUED', 'Despacho registrado offline en cola', offlineRecord);
+    }
+
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
       showCameraScanHUD(
         true,
@@ -1000,6 +1059,10 @@ async function processQrPayload(payload, isLiveCamera = false) {
         STATE.localCache.deliveredEntitlements.add(payload.ent);
         STATE.localCache.deliveredEntitlements.add(stationCacheKey);
         STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_' + (result.station || activeStation));
+
+        if (window.AppLogger) {
+          window.AppLogger.info('VERIFY_QR_APPROVED', `Despacho aprobado para ${result.worker_name} (${result.document_id}) - ${result.combo_name}`, result);
+        }
 
         // Notificación Toast exacta por estación
         const toastMsg = result.toast_message || (result.station === 2 
@@ -1033,6 +1096,9 @@ async function processQrPayload(payload, isLiveCamera = false) {
         if (typeof refreshPortalData === 'function') refreshPortalData();
       } else {
         const errMsg = result.message || 'Código QR no autorizado o beneficio ya reclamado';
+        if (window.AppLogger) {
+          window.AppLogger.warn('VERIFY_QR_REJECTED', errMsg, { result, payload });
+        }
         window.showToast(errMsg, 'error');
         playAudioFeedback('error');
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
@@ -1043,6 +1109,9 @@ async function processQrPayload(payload, isLiveCamera = false) {
       }
     } catch (err) {
       const errMsg = err.message || 'Error al validar código QR en el servidor central';
+      if (window.AppLogger) {
+        window.AppLogger.error('VERIFY_QR_SERVER_ERROR', errMsg, err, { payload });
+      }
       window.showToast(errMsg, 'error');
       playAudioFeedback('error');
       if (isLiveCamera && typeof showCameraScanHUD === 'function') {

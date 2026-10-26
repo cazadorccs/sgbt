@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { db, seedDatabase, secureEnclaveSimulator } = require('../db');
 const { testSupabaseConnection, isSupabaseConfigured } = require('../supabase');
 const { getOutboxStats } = require('../services/outbox.service');
+const loggerService = require('../services/logger.service');
 
 const getStatus = async (req, res) => {
   try {
@@ -390,11 +391,88 @@ const toggleDemoMode = (req, res) => {
   }
 };
 
+// ----------------------------------------------------------------------------
+// SISTEMA DE AUDITORÍA, DIAGNÓSTICO Y STREAMING DE LOGS EN TIEMPO REAL
+// ----------------------------------------------------------------------------
+
+const getLogs = (req, res) => {
+  try {
+    const { limit, level, action, search, source } = req.query;
+    const logs = loggerService.getRecentLogs({ limit, level, action, search, source });
+    res.json({
+      success: true,
+      count: logs.length,
+      total: logs.length,
+      logs
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error consultando logs: ' + err.message });
+  }
+};
+
+const streamLogs = (req, res) => {
+  try {
+    loggerService.addStreamClient(req, res);
+  } catch (err) {
+    res.status(500).json({ error: 'Error abriendo stream de logs: ' + err.message });
+  }
+};
+
+const downloadLogs = (req, res) => {
+  try {
+    const fs = require('fs');
+    if (fs.existsSync(loggerService.ACTIVITY_LOG_PATH)) {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="sgbt_activity_${new Date().toISOString().split('T')[0]}.log"`);
+      return res.sendFile(loggerService.ACTIVITY_LOG_PATH);
+    }
+    const logs = loggerService.getRecentLogs({ limit: 500 });
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="sgbt_logs_${new Date().toISOString().split('T')[0]}.json"`);
+    res.send(JSON.stringify(logs, null, 2));
+  } catch (err) {
+    res.status(500).json({ error: 'Error descargando archivo de log: ' + err.message });
+  }
+};
+
+const receiveClientLog = (req, res) => {
+  try {
+    const { level, action, message, payload, error, source } = req.body;
+    const logged = loggerService.logActivity({
+      level: level || (error ? 'ERROR' : 'INFO'),
+      source: source || 'client',
+      action: action || 'CLIENT_EVENT',
+      ipAddress: req.ip || req.headers['x-forwarded-for'],
+      userId: req.user ? req.user.id : null,
+      userName: req.user ? req.user.full_name : null,
+      requestPayload: payload,
+      errorMessage: message || error
+    });
+    res.status(200).json({ success: true, status: 'logged', id: logged.id });
+  } catch (err) {
+    res.status(500).json({ error: 'Error guardando log de cliente: ' + err.message });
+  }
+};
+
+const clearSystemLogs = (req, res) => {
+  try {
+    const result = loggerService.clearLogs();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al limpiar logs: ' + err.message });
+  }
+};
+
 module.exports = {
   getStatus,
   exportBackup,
   factoryReset,
   initializeSetup,
   samplePayrollCsv,
-  toggleDemoMode
+  toggleDemoMode,
+  getLogs,
+  streamLogs,
+  downloadLogs,
+  receiveClientLog,
+  clearSystemLogs
 };

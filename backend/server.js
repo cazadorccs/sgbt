@@ -39,7 +39,10 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
 app.use('/docs/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
 
-// Middleware de auditoría y traza de peticiones HTTP
+const { auditLoggerMiddleware } = require('./middleware/audit_logger.middleware');
+
+// Middleware de auditoría universal y traza de peticiones HTTP
+app.use(auditLoggerMiddleware);
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     const t0 = Date.now();
