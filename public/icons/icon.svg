@@ -1,55 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#040d16"/>
-      <stop offset="50%" stop-color="#081827"/>
-      <stop offset="100%" stop-color="#001e33"/>
+      <stop offset="0%" stop-color="#0a192f"/>
+      <stop offset="50%" stop-color="#0f2b48"/>
+      <stop offset="100%" stop-color="#021424"/>
     </linearGradient>
-    <linearGradient id="seaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#66ccff"/>
-      <stop offset="50%" stop-color="#0099cc"/>
-      <stop offset="100%" stop-color="#006699"/>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="35%" stop-color="#eab308"/>
+      <stop offset="70%" stop-color="#ca8a04"/>
+      <stop offset="100%" stop-color="#854d0e"/>
     </linearGradient>
-    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#e5ffff"/>
-      <stop offset="100%" stop-color="#99e6ff"/>
+    <linearGradient id="shieldNavy" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="50%" stop-color="#0f265c"/>
+      <stop offset="100%" stop-color="#071330"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="16" result="blur"/>
+    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
       <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
   <!-- Fondo redondeado estilo App Icon -->
   <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
-  <rect width="496" height="496" x="8" y="8" rx="104" fill="none" stroke="#0099cc" stroke-width="4" stroke-opacity="0.4"/>
+  <rect width="496" height="496" x="8" y="8" rx="104" fill="none" stroke="url(#goldGrad)" stroke-width="5" stroke-opacity="0.8"/>
 
-  <!-- Halo de resplandor -->
-  <circle cx="256" cy="240" r="140" fill="#0099cc" opacity="0.18" filter="url(#glow)"/>
+  <!-- Halo de resplandor dorado -->
+  <circle cx="256" cy="240" r="140" fill="#eab308" opacity="0.16" filter="url(#goldGlow)"/>
 
-  <!-- Escudo Institucional / Silueta de Bulto Proteico & Víveres -->
-  <path d="M256 90 L390 145 C390 270 330 350 256 405 C182 350 122 270 122 145 Z" 
-        fill="url(#seaGrad)" opacity="0.95" filter="url(#glow)"/>
+  <!-- Escudo Institucional Dorado (Misma Forma del Escudo SVG Oficial M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z) -->
+  <!-- Borde exterior dorado -->
+  <path d="M256 80 L395 138 C395 272 332 355 256 415 C180 355 117 272 117 138 Z" 
+        fill="url(#goldGrad)" filter="url(#goldGlow)"/>
 
-  <!-- Detalle interior del escudo -->
-  <path d="M256 115 L365 160 C365 260 315 330 256 375 C197 330 147 260 147 160 Z" 
-        fill="#040d16" opacity="0.7"/>
+  <!-- Cuerpo interior azul noche -->
+  <path d="M256 98 L378 150 C378 262 322 338 256 392 C190 338 134 262 134 150 Z" 
+        fill="url(#shieldNavy)"/>
 
-  <!-- Caja de Despacho / Símbolo de Beneficio Institucional -->
-  <g transform="translate(186, 175) scale(0.27)">
-    <!-- Cubo Isométrico / Paquete de Víveres y Proteína -->
-    <path d="M256 60 L450 170 L256 280 L62 170 Z" fill="#66ccff" opacity="0.95"/>
-    <path d="M62 170 L256 280 L256 470 L62 360 Z" fill="#0099cc"/>
-    <path d="M450 170 L256 280 L256 470 L450 360 Z" fill="#006699"/>
-    <!-- Cinta de amarre / sello -->
-    <path d="M256 60 L256 280 L256 470" stroke="#e5ffff" stroke-width="18" opacity="0.8"/>
+  <!-- Filete interior de oro -->
+  <path d="M256 112 L364 160 C364 254 314 324 256 374 C198 324 148 254 148 160 Z" 
+        fill="none" stroke="url(#goldGrad)" stroke-width="3" opacity="0.85"/>
+
+  <!-- Laurel dorado izquierdo -->
+  <path d="M125 210 Q145 280 200 340 M135 240 Q155 260 175 255 M148 280 Q170 295 190 285 M168 318 Q190 328 210 310" 
+        stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round" fill="none"/>
+  
+  <!-- Laurel dorado derecho -->
+  <path d="M387 210 Q367 280 312 340 M377 240 Q357 260 337 255 M364 280 Q342 295 322 285 M344 318 Q322 328 302 310" 
+        stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+  <!-- Símbolo Biométrico / Clave Criptográfica Central en Oro -->
+  <g transform="translate(196, 170) scale(0.47)">
+    <!-- Castillo / Torre de Soberanía -->
+    <path d="M100 40 L156 40 L156 70 L140 70 L140 56 L116 56 L116 70 L100 70 Z" fill="url(#goldGrad)"/>
+    <!-- Surcos Biométricos FIDO2 -->
+    <circle cx="128" cy="140" r="30" fill="none" stroke="url(#goldGrad)" stroke-width="8"/>
+    <path d="M88 140 A40 40 0 0 1 168 140" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M72 140 A56 56 0 0 1 184 140" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M56 140 A72 72 0 0 1 200 140" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round"/>
+    <path d="M40 140 A88 88 0 0 1 216 140" fill="none" stroke="url(#goldGrad)" stroke-width="8" stroke-linecap="round"/>
   </g>
 
-  <!-- Ondas biométricas / Passkey TouchID en la base del escudo -->
-  <path d="M216 325 Q256 305 296 325" stroke="#e5ffff" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.9"/>
-  <path d="M200 345 Q256 320 312 345" stroke="#66ccff" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.85"/>
-  <path d="M226 362 Q256 345 286 362" stroke="#99e6ff" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.75"/>
-
-  <!-- Letras MIPPCI en la base -->
-  <text x="256" y="465" font-family="'Segoe UI', Roboto, Helvetica, sans-serif" font-size="28" font-weight="900" fill="#99e6ff" text-anchor="middle" letter-spacing="4">MIPPCI BIENESTAR</text>
+  <!-- Cinta dorada en la base -->
+  <path d="M150 420 L256 400 L362 420 L345 445 L256 430 L167 445 Z" fill="url(#goldGrad)"/>
+  <text x="256" y="475" font-family="'Plus Jakarta Sans', Outfit, sans-serif" font-size="24" font-weight="900" fill="#fef08a" text-anchor="middle" letter-spacing="3">SGBT &bull; MIPPCI</text>
 </svg>
