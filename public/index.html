@@ -91,6 +91,22 @@
 
           <!-- Lista de Acciones del Sistema -->
           <div class="dropdown-menu-list">
+            <!-- Conmutadores de Modo de Vista (Para Administradores / Directores con beneficio de combo) -->
+            <button id="btnSwitchToAdminPortal" class="dropdown-item" style="display: none; color: #0284c7;" title="Cambiar a Vista de Gestión y Administración del Sistema">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>🛡️ Ir al Panel Administrativo</span>
+            </button>
+
+            <button id="btnSwitchToBeneficiaryView" class="dropdown-item" style="display: none; color: #059669;" title="Cambiar a Mi Carnet Móvil de Beneficiario (Combos y QR)">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+              <span>📱 Mi Carnet de Beneficiario</span>
+            </button>
+
             <!-- Configuración & Marca (Solo Administradores) -->
             <button id="btnOpenGeneralSettings" class="dropdown-item" style="display: none;" title="Configuración del Sistema y Marca Institucional (Solo Administradores)">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
@@ -165,22 +181,34 @@
          ====================================================================== -->
     <section id="view-login" class="view-section active-view" style="display: flex; justify-content: center; align-items: center; min-height: 70vh; padding: 1.5rem 0;">
       <div class="glass-panel" style="width: 100%; max-width: 480px; box-shadow: var(--shadow-floating); border: 1px solid rgba(2, 132, 199, 0.2);">
-        <div style="text-align: center; margin-bottom: 1.5rem;">
-          <div style="width: 58px; height: 58px; margin: 0 auto 0.85rem; border-radius: 16px; background: linear-gradient(135deg, #0284c7, #0369a1); display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 8px 20px rgba(2, 132, 199, 0.25); border: 1px solid rgba(255, 255, 255, 0.2);">
-            <svg class="icon-svg icon-lg" viewBox="0 0 24 24">
+        <div style="text-align: center; margin-bottom: 1.25rem;">
+          <div id="loginCardIconWrapper" style="width: 58px; height: 58px; margin: 0 auto 0.85rem; border-radius: 16px; background: linear-gradient(135deg, #0284c7, #0369a1); display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 8px 20px rgba(2, 132, 199, 0.25); border: 1px solid rgba(255, 255, 255, 0.2); transition: all 0.3s ease;">
+            <svg id="loginCardIcon" class="icon-svg icon-lg" viewBox="0 0 24 24">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               <path d="M9 12l2 2 4-4"></path>
             </svg>
           </div>
-          <div style="display: inline-block; padding: 0.2rem 0.65rem; background: #e0f2fe; color: #0284c7; font-size: 0.68rem; font-weight: 700; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+          <div id="loginBadgeStatus" style="display: inline-block; padding: 0.2rem 0.65rem; background: #e0f2fe; color: #0284c7; font-size: 0.68rem; font-weight: 700; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; transition: all 0.3s ease;">
             Validación Segura &middot; Huella o FaceID
           </div>
-          <h2 style="font-size: 1.35rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
+          <h2 id="loginTitle" style="font-size: 1.35rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
             BIENESTAR ALIMENTARIO MIPPCI
           </h2>
-          <p style="font-size: 0.82rem; color: #64748b; line-height: 1.4;">
+          <p id="loginSubtitle" style="font-size: 0.82rem; color: #64748b; line-height: 1.4;">
             Acceso Institucional por Rol &middot; Beneficiarios, Almacén y Supervisión
           </p>
+        </div>
+
+        <!-- CONMUTADOR DE TIPO DE ACCESO (BENEFICIARIO VS ADMINISTRACIÓN) -->
+        <div class="login-mode-tabs" style="display: flex; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 1.25rem; gap: 4px; border: 1px solid #e2e8f0;">
+          <button type="button" id="tabModeBeneficiary" class="login-tab-btn active" style="flex: 1; padding: 0.65rem 0.5rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.45rem; background: #ffffff; color: #0284c7; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Beneficiario / Almacén</span>
+          </button>
+          <button type="button" id="tabModeAdmin" class="login-tab-btn" style="flex: 1; padding: 0.65rem 0.5rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.45rem; background: transparent; color: #64748b;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>🛡️ Administrar Sistema</span>
+          </button>
         </div>
 
         <!-- TARJETA DESTACADA: BOTÓN DE INSTALACIÓN Y PRIMERA CONFIGURACIÓN -->
@@ -218,7 +246,9 @@
         <form id="loginForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
           <!-- Honeypot anti-bot invisible para humanos (DevSecOps) -->
           <input type="text" name="website" id="loginHoneypot" style="display:none !important; position:absolute; left:-9999px;" tabindex="-1" autocomplete="off">
-          <div>
+
+          <!-- CONTENEDOR 1: ACCESO BENEFICIARIO / ALMACÉN -->
+          <div id="beneficiaryFieldsContainer">
             <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
               Cédula de Identidad del Trabajador
             </label>
@@ -234,21 +264,89 @@
                 class="form-input text-mono" 
                 placeholder="Ej: 18456123" 
                 style="flex: 1; font-size: 1.05rem; letter-spacing: 0.05em; font-weight: 700;"
-                required
                 autocomplete="username"
               >
             </div>
             <div id="loginDocHint" style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;">
               Ingrese su número de Cédula de Identidad para verificar su beneficio o ingresar.
             </div>
+
+            <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700; gap: 0.5rem;">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+              <span>Ingresar / Consultar Beneficio</span>
+            </button>
+
+            <div style="margin-top: 0.85rem; text-align: center;">
+              <button type="button" id="btnSwitchToAdminLogin" style="background: none; border: none; font-size: 0.76rem; color: #0284c7; cursor: pointer; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <span>🔒 ¿Desea administrar el sistema? Ingrese aquí</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENEDOR 2: ACCESO DE ADMINISTRACIÓN Y SUPERVISIÓN -->
+          <div id="adminFieldsContainer" style="display: none;">
+            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 0.95rem; font-size: 0.78rem; color: #0369a1; display: flex; align-items: center; gap: 0.55rem;">
+              <span style="font-size: 1.25rem;">🛡️</span>
+              <div>
+                <strong style="color: #0369a1; font-size: 0.82rem;">Módulo de Administración del Sistema</strong>
+                <div style="font-size: 0.7rem; color: #0284c7;">Gestión Humana, Control de Entregas, Catálogo y Reportes.</div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 0.85rem;">
+              <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
+                Cédula o Correo Institucional
+              </label>
+              <div style="position: relative;">
+                <input 
+                  id="adminDocNumber" 
+                  type="text" 
+                  class="form-input" 
+                  placeholder="Ej: 13537582 o sfranco@mippci.gob.ve" 
+                  style="width: 100%; box-sizing: border-box; font-size: 0.95rem; font-weight: 600; padding: 0.65rem 0.85rem;"
+                  autocomplete="username"
+                >
+              </div>
+              <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;">
+                Cédula de Identidad o correo oficial (@mippci.gob.ve) del administrador.
+              </div>
+            </div>
+
+            <div style="margin-bottom: 0.85rem;">
+              <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
+                Clave o PIN de Seguridad Administrativa
+              </label>
+              <div style="position: relative; display: flex; align-items: center;">
+                <input 
+                  id="adminSecretKey" 
+                  type="password" 
+                  class="form-input text-mono" 
+                  placeholder="PIN o Clave de Acceso" 
+                  style="width: 100%; box-sizing: border-box; font-size: 1rem; font-weight: 700; padding: 0.65rem 2.6rem 0.65rem 0.85rem; letter-spacing: 0.08em;"
+                  autocomplete="current-password"
+                >
+                <button type="button" id="btnToggleAdminSecretVisibility" style="position: absolute; right: 0.6rem; background: none; border: none; cursor: pointer; font-size: 1.05rem; color: #64748b; padding: 0.25rem;" title="Mostrar/Ocultar clave">
+                  👁️
+                </button>
+              </div>
+              <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.35rem;">
+                Clave de seguridad autorizada para la gestión institucional.
+              </div>
+            </div>
+
+            <button id="btnAdminLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; margin-top: 0.75rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 800; background: linear-gradient(135deg, #0284c7, #0f172a); border: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35); gap: 0.5rem;">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              <span>Ingresar como Administrador</span>
+            </button>
+
+            <div style="margin-top: 0.85rem; text-align: center;">
+              <button type="button" id="btnSwitchToBeneficiaryLogin" style="background: none; border: none; font-size: 0.76rem; color: #64748b; cursor: pointer; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <span>← Volver a acceso de beneficiarios y almacén</span>
+              </button>
+            </div>
           </div>
 
           <div id="loginAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
-
-          <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem; font-weight: 700; gap: 0.5rem;">
-            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-            <span>Ingresar al Sistema</span>
-          </button>
         </form>
 
         <!-- ACCESO RÁPIDO PARA PRUEBAS Y DEMOSTRACIÓN DE ROLES (OCULTO EN MODO PRODUCCIÓN) -->
@@ -327,9 +425,14 @@
           </div>
         </div>
 
-        <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-          <span>Sistema Oficial Protegido &middot; Ministerio del Poder Popular para la Comunicación y la Información</span>
+        <div style="margin-top: 1.25rem; text-align: center; font-size: 0.7rem; color: #64748b; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.4rem;">
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Sistema Oficial Protegido &middot; Ministerio del Poder Popular para la Comunicación y la Información</span>
+          </div>
+          <div style="margin-top: 0.25rem;">
+            <a href="dossier.html" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: 600; font-size: 0.72rem;">📄 Ver Dossier Ejecutivo / One-Pager</a>
+          </div>
         </div>
 
         <!-- CONTROL DE CONMUTACIÓN DE MODO DEMOSTRACIÓN -->
@@ -1072,7 +1175,7 @@
             </select>
           </div>
 
-          <div class="table-responsive">
+          <div class="table-responsive table-scroll-container">
             <table class="modern-table">
               <thead>
                 <tr>
@@ -1294,7 +1397,7 @@
             </div>
           </div>
 
-          <div class="table-responsive">
+          <div class="table-responsive table-scroll-container">
             <table class="modern-table">
               <thead>
                 <tr>

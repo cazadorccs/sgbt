@@ -2,14 +2,108 @@
 // MODULE: AUTHENTICATION & RBAC (ROLE-BASED ACCESS CONTROL)
 // ============================================================================
 
+window.currentLoginMode = 'beneficiary';
+
+window.setLoginMode = function(mode) {
+  window.currentLoginMode = mode;
+  const alertBox = document.getElementById('loginAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+
+  const tabBeneficiary = document.getElementById('tabModeBeneficiary');
+  const tabAdmin = document.getElementById('tabModeAdmin');
+  const beneficiaryFields = document.getElementById('beneficiaryFieldsContainer');
+  const adminFields = document.getElementById('adminFieldsContainer');
+  const iconWrapper = document.getElementById('loginCardIconWrapper');
+  const badgeStatus = document.getElementById('loginBadgeStatus');
+
+  if (mode === 'admin') {
+    if (tabAdmin) {
+      tabAdmin.classList.add('active');
+      tabAdmin.style.background = '#ffffff';
+      tabAdmin.style.color = '#0284c7';
+      tabAdmin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+    }
+    if (tabBeneficiary) {
+      tabBeneficiary.classList.remove('active');
+      tabBeneficiary.style.background = 'transparent';
+      tabBeneficiary.style.color = '#64748b';
+      tabBeneficiary.style.boxShadow = 'none';
+    }
+    if (beneficiaryFields) beneficiaryFields.style.display = 'none';
+    if (adminFields) adminFields.style.display = 'block';
+
+    if (iconWrapper) {
+      iconWrapper.style.background = 'linear-gradient(135deg, #0284c7, #0f172a)';
+    }
+    if (badgeStatus) {
+      badgeStatus.textContent = '🛡️ Acceso de Administración y Control';
+      badgeStatus.style.background = '#e0f2fe';
+      badgeStatus.style.color = '#0369a1';
+    }
+    const adminDoc = document.getElementById('adminDocNumber');
+    if (adminDoc) adminDoc.focus();
+  } else {
+    if (tabBeneficiary) {
+      tabBeneficiary.classList.add('active');
+      tabBeneficiary.style.background = '#ffffff';
+      tabBeneficiary.style.color = '#0284c7';
+      tabBeneficiary.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+    }
+    if (tabAdmin) {
+      tabAdmin.classList.remove('active');
+      tabAdmin.style.background = 'transparent';
+      tabAdmin.style.color = '#64748b';
+      tabAdmin.style.boxShadow = 'none';
+    }
+    if (beneficiaryFields) beneficiaryFields.style.display = 'block';
+    if (adminFields) adminFields.style.display = 'none';
+
+    if (iconWrapper) {
+      iconWrapper.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+    }
+    if (badgeStatus) {
+      badgeStatus.textContent = 'Validación Segura · Huella o FaceID';
+      badgeStatus.style.background = '#e0f2fe';
+      badgeStatus.style.color = '#0284c7';
+    }
+    const loginDoc = document.getElementById('loginDocNumber');
+    if (loginDoc) loginDoc.focus();
+  }
+};
+
 window.setupAuth = function() {
   const loginForm = document.getElementById('loginForm');
   const btnSubmit = document.getElementById('btnLoginSubmit');
+  const btnAdminSubmit = document.getElementById('btnAdminLoginSubmit');
+  const tabBeneficiary = document.getElementById('tabModeBeneficiary');
+  const tabAdmin = document.getElementById('tabModeAdmin');
+  const btnSwitchToAdmin = document.getElementById('btnSwitchToAdminLogin');
+  const btnSwitchToBeneficiary = document.getElementById('btnSwitchToBeneficiaryLogin');
+  const btnTogglePin = document.getElementById('btnToggleAdminSecretVisibility');
   const quickBtns = document.querySelectorAll('.quick-login-btn');
   const btnLogout = document.getElementById('btnLogout');
   const btnWorkerMobileLogout = document.getElementById('btnWorkerMobileLogout');
 
-  // Submit manual
+  // Conmutadores de Modo
+  tabBeneficiary?.addEventListener('click', () => setLoginMode('beneficiary'));
+  tabAdmin?.addEventListener('click', () => setLoginMode('admin'));
+  btnSwitchToAdmin?.addEventListener('click', () => setLoginMode('admin'));
+  btnSwitchToBeneficiary?.addEventListener('click', () => setLoginMode('beneficiary'));
+
+  // Visibilidad de contraseña/PIN
+  btnTogglePin?.addEventListener('click', () => {
+    const pinInput = document.getElementById('adminSecretKey');
+    if (!pinInput) return;
+    if (pinInput.type === 'password') {
+      pinInput.type = 'text';
+      btnTogglePin.textContent = '🙈';
+    } else {
+      pinInput.type = 'password';
+      btnTogglePin.textContent = '👁️';
+    }
+  });
+
+  // Submit manual beneficiario
   const doLogin = () => {
     const docType = document.getElementById('loginDocType')?.value || 'V';
     const docNum = document.getElementById('loginDocNumber')?.value.trim();
@@ -20,26 +114,60 @@ window.setupAuth = function() {
     executeLogin(`${docType}-${docNum}`);
   };
 
+  // Submit manual administrador
+  const doAdminLogin = () => {
+    const identifier = document.getElementById('adminDocNumber')?.value.trim();
+    const secret = document.getElementById('adminSecretKey')?.value.trim();
+    if (!identifier) {
+      showLoginAlert('Por favor ingrese su Cédula de Identidad o Correo Institucional.');
+      return;
+    }
+    if (!secret) {
+      showLoginAlert('Por favor ingrese su Clave o PIN de Seguridad Administrativa.');
+      return;
+    }
+    executeAdminLogin(identifier, secret);
+  };
+
   btnSubmit?.addEventListener('click', doLogin);
+  btnAdminSubmit?.addEventListener('click', doAdminLogin);
+
   loginForm?.addEventListener('submit', (e) => {
     e.preventDefault();
-    doLogin();
+    if (window.currentLoginMode === 'admin') {
+      doAdminLogin();
+    } else {
+      doLogin();
+    }
   });
 
   // Acceso Rápido / Demo Chips con un solo clic
   quickBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const doc = btn.getAttribute('data-doc');
-      if (doc) {
-        const parts = doc.split('-');
-        if (parts.length === 2) {
-          const typeSelect = document.getElementById('loginDocType');
-          const numInput = document.getElementById('loginDocNumber');
-          if (typeSelect) typeSelect.value = parts[0];
-          if (numInput) numInput.value = parts[1];
-        }
-        executeLogin(doc);
+      if (!doc) return;
+
+      const isAdminProfile = doc === '13537582' || doc === 'V-11123987' || doc === 'V-13222333';
+      if (isAdminProfile && window.currentLoginMode === 'admin') {
+        const adminDoc = document.getElementById('adminDocNumber');
+        const adminPin = document.getElementById('adminSecretKey');
+        if (adminDoc) adminDoc.value = doc;
+        if (adminPin) adminPin.value = '0578';
+        executeAdminLogin(doc, '0578');
+        return;
       }
+
+      const parts = doc.split('-');
+      if (parts.length === 2) {
+        const typeSelect = document.getElementById('loginDocType');
+        const numInput = document.getElementById('loginDocNumber');
+        if (typeSelect) typeSelect.value = parts[0];
+        if (numInput) numInput.value = parts[1];
+      } else {
+        const numInput = document.getElementById('loginDocNumber');
+        if (numInput) numInput.value = doc;
+      }
+      executeLogin(doc);
     });
   });
 
@@ -151,7 +279,8 @@ async function executeLogin(rawDocId) {
     }
     console.log(`[CLIENT AUTH] ✅ Sesión iniciada: ${user.full_name} | Rol: ${user.role}`);
     STATE.setCurrentUser(user);
-    applyUserSession(user);
+    sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
+    applyUserSession(user, 'beneficiary');
     window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
 
     // Auto-Enrolamiento mediante Magic Link / One-Click Onboarding SOLO para beneficiarios titulares
@@ -179,6 +308,62 @@ async function executeLogin(rawDocId) {
     if (btnSubmit) {
       btnSubmit.disabled = false;
       btnSubmit.textContent = '🚀 Ingresar al Sistema';
+    }
+  }
+}
+
+async function executeAdminLogin(identifier, secret) {
+  const alertBox = document.getElementById('loginAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+
+  const btnAdmin = document.getElementById('btnAdminLoginSubmit');
+  if (btnAdmin) {
+    btnAdmin.disabled = true;
+    btnAdmin.textContent = '⏳ Verificando Credenciales...';
+  }
+
+  const honeypot = document.getElementById('loginHoneypot')?.value || '';
+
+  try {
+    console.log(`[CLIENT AUTH] 🛡️ Iniciando acceso administrativo para:`, identifier);
+    const data = await API.post('/api/v1/auth/login', {
+      document_id: identifier,
+      admin_secret: secret,
+      require_admin: true,
+      honeypot
+    });
+
+    if (!data.success) {
+      console.warn(`[CLIENT AUTH] ❌ Acceso administrativo denegado:`, data.error);
+      showLoginAlert(data.error || 'Credenciales administrativas inválidas.');
+      playAudioFeedback('error');
+      return;
+    }
+
+    playAudioFeedback('success');
+    const user = data.user;
+    if (data.session_token) {
+      sessionStorage.setItem('sgbt_session_token', data.session_token);
+      localStorage.setItem('sgbt_session_token', data.session_token);
+    }
+
+    console.log(`[CLIENT AUTH] ✅ Sesión de Administración Iniciada: ${user.full_name} | Rol: ${user.role}`);
+    STATE.setCurrentUser(user);
+    sessionStorage.setItem('sgbt_session_view_mode', 'admin');
+    applyUserSession(user, 'admin');
+    window.showToast(`Bienvenido(a) Administrador(a), ${user.full_name}`, 'success');
+
+  } catch (err) {
+    console.error('Error de login administrativo:', err);
+    showLoginAlert(err.message || 'Error al validar credenciales administrativas.');
+    playAudioFeedback('error');
+  } finally {
+    if (btnAdmin) {
+      btnAdmin.disabled = false;
+      btnAdmin.innerHTML = `
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <span>Ingresar como Administrador</span>
+      `;
     }
   }
 }
@@ -284,6 +469,16 @@ function triggerOneClickPasskeyOnboarding(user, onboardingToken) {
   });
 }
 
+window.switchSessionView = function(mode) {
+  if (!STATE.currentUser) return;
+  sessionStorage.setItem('sgbt_session_view_mode', mode);
+  if (typeof window.closeUserMenu === 'function') {
+    window.closeUserMenu();
+  }
+  window.applyUserSession(STATE.currentUser, mode);
+  window.showToast(mode === 'admin' ? '🛡️ Cambiado al Panel de Gestión Administrativa' : '📱 Cambiado a Mi Carnet de Beneficiario', 'info');
+};
+
 window.setupUserMenuDropdown = function() {
   const trigger = document.getElementById('btnUserMenuTrigger');
   const dropdown = document.getElementById('userMenuDropdown');
@@ -314,9 +509,17 @@ window.setupUserMenuDropdown = function() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDropdown();
   });
+
+  // Conmutadores de Modo de Vista para Perfiles Directivos / Administradores con asignación de combos
+  document.getElementById('btnSwitchToAdminPortal')?.addEventListener('click', () => {
+    window.switchSessionView('admin');
+  });
+  document.getElementById('btnSwitchToBeneficiaryView')?.addEventListener('click', () => {
+    window.switchSessionView('beneficiary');
+  });
 };
 
-window.applyUserSession = function(user) {
+window.applyUserSession = function(user, targetMode) {
   const masterNav = document.getElementById('masterNav');
   const userPill = document.getElementById('userSessionPill');
   const userName = document.getElementById('userSessionName');
@@ -340,10 +543,23 @@ window.applyUserSession = function(user) {
   if (avatarCircle) avatarCircle.textContent = initials;
   if (dropdownAvatar) dropdownAvatar.textContent = initials;
 
+  const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor');
+
+  // Determinar la vista destino:
+  // Si targetMode viene especificado, se respeta estrictamente.
+  // De lo contrario se consulta sessionStorage, o por defecto según el rol.
+  let mode = targetMode || sessionStorage.getItem('sgbt_session_view_mode');
+  if (!mode) {
+    mode = (user.role === 'worker' ? 'beneficiary' : (user.role === 'operator' ? 'operator' : 'admin'));
+  }
+  sessionStorage.setItem('sgbt_session_view_mode', mode);
+
+  const isBeneficiaryView = (mode === 'beneficiary' || user.role === 'worker') && user.role !== 'operator';
+
   let roleLabel = 'Beneficiario';
   let badgeClass = 'badge badge-activo';
 
-  if (user.role === 'worker') {
+  if (isBeneficiaryView) {
     const isJubilado = user.worker_type === 'jubilado';
     badgeClass = isJubilado ? 'badge badge-jubilado' : 'badge badge-activo';
     roleLabel = isJubilado ? 'Jubilado' : 'Beneficiario';
@@ -371,20 +587,27 @@ window.applyUserSession = function(user) {
 
   const btnSettings = document.getElementById('btnOpenGeneralSettings');
   const brandingSubtab = document.querySelector('.portal-subtab[data-subtab="subtab-branding"]');
-  const isAdmin = (user.role === 'admin' || user.role === 'director');
+  const btnSwitchToAdmin = document.getElementById('btnSwitchToAdminPortal');
+  const btnSwitchToWorker = document.getElementById('btnSwitchToBeneficiaryView');
 
   if (btnSettings) {
-    btnSettings.style.display = isAdmin ? 'flex' : 'none';
+    btnSettings.style.display = (isAdmin && !isBeneficiaryView) ? 'flex' : 'none';
   }
   if (brandingSubtab) {
     brandingSubtab.style.display = isAdmin ? 'inline-flex' : 'none';
+  }
+  if (btnSwitchToAdmin) {
+    btnSwitchToAdmin.style.display = (isAdmin && isBeneficiaryView) ? 'flex' : 'none';
+  }
+  if (btnSwitchToWorker) {
+    btnSwitchToWorker.style.display = (isAdmin && !isBeneficiaryView) ? 'flex' : 'none';
   }
 
   if (typeof window.closeUserMenu === 'function') {
     window.closeUserMenu();
   }
 
-  if (user.role === 'worker') {
+  if (isBeneficiaryView) {
     if (masterNav) masterNav.style.display = 'none';
     if (simSelector) simSelector.style.display = 'none';
     if (techPanel) techPanel.style.display = 'none';
@@ -460,6 +683,10 @@ window.handleLogout = function(reason) {
 
   const docInput = document.getElementById('loginDocNumber');
   if (docInput) docInput.value = '';
+  const adminDocInput = document.getElementById('adminDocNumber');
+  if (adminDocInput) adminDocInput.value = '';
+  const adminSecretInput = document.getElementById('adminSecretKey');
+  if (adminSecretInput) adminSecretInput.value = '';
 
   const alertBox = document.getElementById('loginAlertBox');
   if (alertBox) {
@@ -491,7 +718,8 @@ window.checkAuthSession = function() {
         const user = JSON.parse(saved);
         if (user && user.id) {
           STATE.currentUser = user;
-          applyUserSession(user);
+          const savedMode = sessionStorage.getItem('sgbt_session_view_mode') || (user.role === 'worker' ? 'beneficiary' : (user.role === 'operator' ? 'operator' : 'admin'));
+          applyUserSession(user, savedMode);
           if (window.SessionManager) {
             window.SessionManager.startWatchdog();
           }

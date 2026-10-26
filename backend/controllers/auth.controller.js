@@ -28,7 +28,7 @@ const {
 } = require('../services/supervisor.service');
 
 const login = async (req, res) => {
-  const { document_id, website, honeypot, admin_secret, passkey_proof } = req.body;
+  const { document_id, website, honeypot, admin_secret, passkey_proof, require_admin, is_admin_login } = req.body;
   const startTime = Date.now();
 
   // 0. Detección anti-automatización: Campo trampa (Honeypot)
@@ -39,37 +39,50 @@ const login = async (req, res) => {
 
   if (!document_id || !document_id.trim()) {
     console.warn(`[AUTH] Intento de login rechazado: documento vacío`);
-    return res.status(400).json({ error: 'La Cédula de Identidad es requerida' });
+    return res.status(400).json({ error: 'La Cédula de Identidad o Correo Institucional es requerida' });
   }
 
   const cleanDoc = document_id.trim().toUpperCase();
+  const isEmail = cleanDoc.includes('@');
   const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
 
   console.log(`\n================================================================`);
   console.log(`🔑 [AUTH LOGIN ATTEMPT]`);
   console.log(`   Hora        : ${new Date().toLocaleTimeString()} (${new Date().toISOString()})`);
   console.log(`   Doc Entrada : "${document_id}"`);
-  console.log(`   Doc Limpio  : "${cleanDoc}" (Dígitos: "${digitsOnly}")`);
+  console.log(`   Tipo        : ${isEmail ? 'Correo Electrónico' : 'Cédula de Identidad'}`);
+  console.log(`   Modo Admin  : ${Boolean(require_admin || is_admin_login)}`);
   console.log(`   IP Origen   : ${req.ip || req.socket?.remoteAddress || '127.0.0.1'}`);
 
   try {
-    // 1. Búsqueda indexada ultra-rápida directa (<1ms)
-    let worker = db.prepare(`
-      SELECT w.*, d.name as department_name, d.code as department_code
-      FROM workers w
-      LEFT JOIN departments d ON w.department_id = d.id
-      WHERE w.document_id IN (?, ?, ?, ?) OR w.id = ?
-    `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
-
-    // 2. Si no coincide exacto, intentar búsqueda parcial local rápida
-    if (!worker && digitsOnly.length >= 5) {
+    let worker = null;
+    if (isEmail) {
       worker = db.prepare(`
         SELECT w.*, d.name as department_name, d.code as department_code
         FROM workers w
         LEFT JOIN departments d ON w.department_id = d.id
-        WHERE w.document_id LIKE ? OR w.document_id LIKE ?
+        WHERE LOWER(w.email) = LOWER(?)
         LIMIT 1
-      `).get(`%${digitsOnly}%`, `%${cleanDoc}%`);
+      `).get(document_id.trim());
+    } else {
+      // 1. Búsqueda indexada ultra-rápida directa (<1ms)
+      worker = db.prepare(`
+        SELECT w.*, d.name as department_name, d.code as department_code
+        FROM workers w
+        LEFT JOIN departments d ON w.department_id = d.id
+        WHERE w.document_id IN (?, ?, ?, ?) OR w.id = ?
+      `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
+
+      // 2. Si no coincide exacto, intentar búsqueda parcial local rápida
+      if (!worker && digitsOnly.length >= 5) {
+        worker = db.prepare(`
+          SELECT w.*, d.name as department_name, d.code as department_code
+          FROM workers w
+          LEFT JOIN departments d ON w.department_id = d.id
+          WHERE w.document_id LIKE ? OR w.document_id LIKE ?
+          LIMIT 1
+        `).get(`%${digitsOnly}%`, `%${cleanDoc}%`);
+      }
     }
 
     // Fallback de consulta en tiempo real a Supabase SOLO si la base de datos local no contiene la nómina o con timeout estricto
@@ -125,12 +138,14 @@ const login = async (req, res) => {
 
     if (!worker) {
       console.warn(`❌ [AUTH LOGIN FAILED]`);
-      console.warn(`   Motivo    : Cédula no registrada en nómina institucional`);
+      console.warn(`   Motivo    : Identificador no registrado en nómina institucional`);
       console.warn(`   Documento : "${cleanDoc}"`);
       console.warn(`   Latencia  : ${Date.now() - startTime}ms`);
       console.log(`================================================================\n`);
       return res.status(404).json({
-        error: 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.'
+        error: isEmail
+          ? 'El correo electrónico no se encuentra registrado en el sistema.'
+          : 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.'
       });
     }
 
@@ -185,8 +200,23 @@ const login = async (req, res) => {
       isDemoMode = db.prepare('SELECT is_demo_mode FROM tenant_settings WHERE id = ?').get('current_tenant')?.is_demo_mode || 0;
     } catch (e) {}
 
-    // Defensa en profundidad: Cuentas administrativas requieren verificación de credencial secundaria en producción
-    if (isSuperAdmin) {
+    // Validación explícita de Acceso de Administración del Sistema
+    if (require_admin || is_admin_login) {
+      const isAdminRole = worker.role === 'admin' || worker.role === 'director' || worker.role === 'supervisor';
+      if (!isAdminRole) {
+        console.warn(`[SECURITY ALERT] Intento de acceso administrativo denegado para usuario sin privilegios (Rol: ${worker.role}) para: ${cleanDoc}`);
+        return res.status(403).json({
+          error: 'Acceso denegado: El usuario no cuenta con privilegios administrativos en el sistema.'
+        });
+      }
+
+      const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+      if (!admin_secret || admin_secret.trim() !== configuredAdminSecret) {
+        console.warn(`[SECURITY ALERT] Clave de acceso administrativo incorrecta para: ${cleanDoc}`);
+        return res.status(401).json({ error: 'Clave o PIN de seguridad administrativa incorrecto.' });
+      }
+    } else if (isSuperAdmin) {
+      // Defensa en profundidad: Cuentas administrativas generales requieren verificación de credencial secundaria en producción
       const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
       if (isProd) {
         if (!admin_secret && !passkey_proof) {

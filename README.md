@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
 [![Architecture](https://img.shields.io/badge/Architecture-Modular%20v3.0-brightgreen.svg)]()
-[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-33%2F33%20Passed-success.svg)]()
+[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-34%2F34%20Passed-success.svg)]()
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-v3.1.0-orange.svg)](http://localhost:3000/docs)
 [![Security](https://img.shields.io/badge/Security-FIDO2%20%2F%20ECDSA%20P--256-blueviolet.svg)]()
 
@@ -44,8 +44,18 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
    - Áreas táctiles mínimas de 44x44px (WCAG 2.2 AA) y alineación simétrica en ventanas modales.
 
 6. **Gobernanza Viva y Documentación OpenAPI 3.1:**
-   - 7 Decisiones de Arquitectura Formales (ADRs) documentadas en `docs/adr/`.
+   - 8 Decisiones de Arquitectura Formales (ADRs) documentadas en `docs/adr/`.
    - Explorador interactivo visual Swagger UI integrado en `/docs` y especificación OpenAPI 3.1 descargable en `/api/v1/docs/openapi.yaml`.
+
+7. **Doble Modalidad de Login y Control de Acceso RBAC Estricto:**
+   - Acceso conmutado en interfaz: **Beneficiarios / Almacén** (ingreso directo a su carnet de beneficiario mediante Cédula) vs. **Administrar Sistema** (exige validación de rol de administración y verificación de clave/PIN de seguridad institucional `ADMIN_ACCESS_SECRET`).
+   - Previene que beneficiarios con cédulas registradas en el padrón visualicen el panel de gobernanza sin previa autenticación administrativa secundaria.
+
+8. **Diseño Responsivo, Contención de Modales y Ergonomía de Scroll (ADR-0008):**
+   - Contención estricta en 15 ventanas modales con `max-width: min(calc(100vw - 1rem), ...)` y `max-height: min(92vh, 92dvh)`.
+   - Cabeceras fijas (`position: sticky; top: -1rem; z-index: 30;`) en modales para que el botón de cerrar y título permanezcan permanentemente visibles al hacer scroll.
+   - Contenedores con altura delimitada `.table-scroll-container` (`max-height: clamp(380px, 58vh, 620px)`) y encabezados fijos (`thead th` sticky) para tablas masivas de nómina (1,136 trabajadores) y auditoría, erradicando el scroll vertical global infinito.
+   - Barra de subpestañas móviles con deslizamiento horizontal táctil nativo sin desborde ni amontonamiento de filas.
 
 ---
 
@@ -69,10 +79,10 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   ├── db.js                   # Abstracción híbrida SQLite / Supabase
 │   ├── migrator.js             # Motor declarativo de migraciones versionadas
 │   ├── server.js               # Bootstrap modular del servidor Express
-│   └── test_e2e_suite.js       # Suite E2E de arquitectura (24/24 pruebas)
+│   └── test_e2e_suite.js       # Suite E2E de arquitectura (25/25 pruebas)
 │
 ├── docs/
-│   ├── adr/                    # Architecture Decision Records (0001 - 0007)
+│   ├── adr/                    # Architecture Decision Records (0001 - 0008)
 │   │   ├── 0001-fido2-passkeys-como-factor-de-identidad.md
 │   │   ├── 0002-arquitectura-dual-sqlite-wasm-supabase.md
 │   │   ├── 0003-estrategia-revocacion-jwt-cookies-httponly.md
@@ -80,6 +90,7 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   │   ├── 0005-modularizacion-servicios-backend.md
 │   │   ├── 0006-idempotencia-http-y-estandar-rfc-7807.md
 │   │   ├── 0007-sistema-declarativo-migraciones-versionadas.md
+│   │   ├── 0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md
 │   │   ├── README.md
 │   │   └── template.md
 │   └── openapi.yaml            # Contrato OpenAPI 3.1 oficial de la API REST
@@ -93,14 +104,14 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   └── e2e_offline_flow.test.js # Suite E2E Offline, Idempotencia y RFC 7807 (9/9)
 │
 ├── public/
-│   ├── css/styles.css          # Design System institucional sin transition: all
+│   ├── css/styles.css          # Design System responsivo sin transition: all, contención modal y sticky tables
 │   ├── js/core/                # Motor de audio/háptica, estado reactivo, API y toast
 │   ├── js/modules/             # Módulos de beneficiario, despacho, admin y nómina
-│   ├── templates/modals.html   # 15 ventanas modales accesibles (.modal-close-btn)
+│   ├── templates/modals.html   # 15 ventanas modales accesibles (.modal-close-btn) y responsivas
 │   ├── sw.js                   # Service Worker Offline-First (Caché PWA)
 │   └── manifest.json           # Manifiesto PWA instalable
 │
-├── DOCUMENTACION_CAMBIOS_ARQUITECTURA_V3.md # Informe técnico maestro de cambios v3.0
+├── DOCUMENTACION_CAMBIOS_ARQUITECTURA_V3.md # Informe técnico maestro de cambios v3.0 y v3.1
 └── package.json
 ```
 
@@ -133,15 +144,25 @@ La documentación interactiva de la API está disponible en `http://localhost:30
 
 ---
 
+## 🗺️ Diagramas de Arquitectura e Ingeniería (Archify)
+
+El proyecto incluye diagramas visuales e interactivos elaborados bajo el estándar **Archify v3.2.0** (`showcase quality`) agrupados en el directorio [`docs/diagrams/`](docs/diagrams/README.md):
+
+1. **[Diagrama de Arquitectura C4 (Nivel 2 - Contenedores)](docs/diagrams/c4-containers.html):** Mapeo de actores institucionales, capas PWA, servicios backend (Cripto, Idempotencia, SSE) y persistencia híbrida SQLite + Supabase.
+2. **[Diagrama de Secuencia y User Journey](docs/diagrams/user-journey-sequence.html):** Flujo de retiro cronológico paso a paso con Passkeys FIDO2, Secure Enclave, escaneo de QR dinámico y feedback sensorial háptico.
+3. **[Diagrama de Modelo de Datos Relacional (ERD)](docs/diagrams/modelo-datos-erd.html):** Estructura relacional SQLite / Supabase dividida en 3 dominios funcionales (Identidad, Beneficios y Auditoría) con integridad referencial e idempotencia.
+
+---
+
 ## 🧪 Ejecución de Pruebas Automatizadas
 
 El proyecto cuenta con dos suites de pruebas automatizadas que verifican el 100% de la funcionalidad del sistema:
 
 ```bash
-# Ejecutar todas las suites de pruebas (33/33 pruebas en verde)
+# Ejecutar todas las suites de pruebas (34/34 pruebas en verde)
 npm test
 
-# Ejecutar únicamente la suite de arquitectura y RBAC (24 pruebas)
+# Ejecutar únicamente la suite de arquitectura y RBAC (25 pruebas)
 node backend/test_e2e_suite.js
 
 # Ejecutar únicamente la suite de flujo offline, idempotencia y migraciones (9 pruebas)

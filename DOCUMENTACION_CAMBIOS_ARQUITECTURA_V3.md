@@ -1,8 +1,8 @@
-# Documentación Integral de Cambios y Arquitectura v3.0
+# Documentación Integral de Cambios y Arquitectura v3.0 & v3.1
 ### Sistema de Gestión de Bienestar y Transferencias (SGBT / MIPPCI)
 **Fecha:** 25 de Octubre de 2026  
 **Entorno:** Producción Institucional / Almacenes Offline-First  
-**Nivel de Cobertura de Pruebas:** 33/33 Pruebas Automatizadas Pasando (100% Éxito)
+**Nivel de Cobertura de Pruebas:** 34/34 Pruebas Automatizadas Pasando (100% Éxito)
 
 ---
 
@@ -12,10 +12,12 @@
 2. [Fases y Opciones de Mejora Implementadas](#2-fases-y-opciones-de-mejora-implementadas)
    - [Opción A: Modularización del Backend y Capa de Servicios](#opción-a-modularización-del-backend-y-capa-de-servicios)
    - [Opción B: Ergonomía Háptica, Micro-animaciones y Modales Accesibles](#opción-b-ergonomía-háptica-micro-animaciones-y-modales-accesibles)
-   - [Opción C: Gobernanza, ADRs (0001-0007) y OpenAPI 3.1 / Swagger UI](#opción-c-gobernanza-adrs-0001-0007-y-openapi-31--swagger-ui)
+   - [Opción C: Gobernanza, ADRs (0001-0008) y OpenAPI 3.1 / Swagger UI](#opción-c-gobernanza-adrs-0001-0008-y-openapi-31--swagger-ui)
    - [Opción D: Prevención de Duplicados vía `Idempotency-Key` y Errores RFC 7807](#opción-d-prevención-de-duplicados-vía-idempotency-key-y-errores-rfc-7807)
    - [Opción E: Gestor Declarativo de Migraciones de Base de Datos](#opción-e-gestor-declarativo-de-migraciones-de-base-de-datos)
    - [Opción F: Suite de Pruebas Automatizadas E2E y Flujo Offline](#opción-f-suite-de-pruebas-automatizadas-e2e-y-flujo-offline)
+   - [Opción G: Doble Modalidad de Login y Blindaje RBAC Administrativo](#opción-g-doble-modalidad-de-login-y-blindaje-rbac-administrativo)
+   - [Opción H: Diseño Responsivo, Contención de Modales y Ergonomía de Scroll](#opción-h-diseño-responsivo-contención-de-modales-y-ergonomía-de-scroll)
 3. [Matriz de Archivos Creados y Modificados](#3-matriz-de-archivos-creados-y-modificados)
 4. [Guía de Comandos y Operación](#4-guía-de-comandos-y-operación)
 
@@ -23,7 +25,7 @@
 
 ## 1. Resumen Ejecutivo
 
-El presente ciclo de modernización y aseguramiento arquitectónico ha elevado la madurez tecnológica de la plataforma **SGBT / MIPPCI** a la **versión 3.0**. Se subsanaron vulnerabilidades críticas de seguridad, se desacopló la lógica de negocio en servicios especializados, se transformó la experiencia de usuario de los operarios de campo con retroalimentación sensorial háptica y se blindó el sistema frente a redes inestables mediante idempotencia transaccional y migraciones de esquema declarativas verificadas criptográficamente.
+El presente ciclo de modernización y aseguramiento arquitectónico ha elevado la madurez tecnológica de la plataforma **SGBT / MIPPCI** a la **versión 3.1**. Se subsanaron vulnerabilidades críticas de seguridad, se desacopló la lógica de negocio en servicios especializados, se transformó la experiencia de usuario de los operarios de campo con retroalimentación sensorial háptica, se blindó el sistema frente a redes inestables mediante idempotencia transaccional y migraciones de esquema declarativas, y se perfeccionó la interfaz con contención estricta de modales, doble modalidad de acceso administrativo con PIN y ergonomía contra el scroll excesivo.
 
 ---
 
@@ -89,7 +91,28 @@ El presente ciclo de modernización y aseguramiento arquitectónico ha elevado l
 - **Objetivo:** Validar automáticamente que el sistema sea resistente a cortes de red y compatible con PWA offline.
 - **Implementación:**
   - `tests/e2e_offline_flow.test.js`: Suite de 9 pruebas automatizadas cubriendo Service Worker (`sw.js`), manifiesto PWA, hashes de migración, endpoints OpenAPI, Swagger UI, mecanismo de idempotencia (Miss y Hit), formato de error RFC 7807 y consistencia de ADRs.
-  - Integración en `package.json` mediante `npm test`, ejecutando tanto la suite arquitectónica de 24 pruebas como la suite offline de 9 pruebas: **33/33 pruebas pasando en verde (100% éxito)**.
+  - Integración en `package.json` mediante `npm test`, ejecutando tanto la suite arquitectónica de 25 pruebas como la suite offline de 9 pruebas: **34/34 pruebas pasando en verde (100% éxito)**.
+
+---
+
+### Opción G: Doble Modalidad de Login y Blindaje RBAC Administrativo
+- **Objetivo:** Eliminar la ambigüedad en el acceso según el rol del usuario, asegurando que los beneficiarios ingresen directamente a su carnet institucional y los administradores deban validar un factor secundario (PIN o clave de seguridad).
+- **Implementación:**
+  - Pestañas conmutadas en interfaz de login: `#tabModeBeneficiary` y `#tabModeAdmin`.
+  - Endpoint `/api/v1/auth/login` con soporte para banderas `is_admin_login: true` y validación estricta de `admin_secret` contra `ADMIN_ACCESS_SECRET`.
+  - Prueba automatizada `E2E-25: Autenticación de Administración del Sistema` en `backend/test_e2e_suite.js`.
+
+---
+
+### Opción H: Diseño Responsivo, Contención de Modales y Ergonomía de Scroll (ADR-0008)
+- **Objetivo:** Erradicar el desbordamiento de ventanas modales en smartphones, evitar el scroll vertical excesivo en listas masivas y aplicar las directrices `make-interfaces-feel-better` y `frontend-design-direction`.
+- **Implementación:**
+  - Contención estricta en 15 ventanas modales con `max-width: min(calc(100vw - 1rem), 540px) !important;` y límites por clase (`modal-sm`, `modal-md`, `modal-lg`, `modal-xl`).
+  - Cabeceras fijas (`position: sticky; top: -1rem; z-index: 30;`) en modales para mantener accesible el botón de cerrar (`X`) sin importar la profundidad del scroll.
+  - Contenedores con altura delimitada `.table-scroll-container` (`max-height: clamp(380px, 58vh, 620px); overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch;`) con `thead th` sticky para el Directorio de Empleados (1,136 trabajadores) y Padrón de Auditoría.
+  - Barra de subpestañas móviles con deslizamiento horizontal táctil (`overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;`).
+  - Botones de acción apilables en móvil (`flex-direction: column-reverse; width: 100%;`) con hit areas mínimas de 44x44px.
+  - Números tabulares (`font-variant-numeric: tabular-nums`) en tablas y cédulas, y balance de texto (`text-wrap: balance`) en títulos.
 
 ---
 
@@ -113,19 +136,20 @@ El presente ciclo de modernización y aseguramiento arquitectónico ha elevado l
 | `docs/adr/0005-modularizacion-servicios-backend.md` | Nuevo | ADR-0005: Desacoplamiento de Servicios |
 | `docs/adr/0006-idempotencia-http-y-estandar-rfc-7807.md` | Nuevo | ADR-0006: Idempotencia y Formato RFC 7807 |
 | `docs/adr/0007-sistema-declarativo-migraciones-versionadas.md` | Nuevo | ADR-0007: Migraciones Declarativas Versionadas |
-| `docs/adr/README.md` | Nuevo | Índice centralizado de decisiones de arquitectura |
+| `docs/adr/0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md` | Nuevo | ADR-0008: Responsividad, Contención Modal y Ergonomía de Scroll |
+| `docs/adr/README.md` | Modificado | Índice centralizado con 8 decisiones de arquitectura |
 | `docs/adr/template.md` | Nuevo | Plantilla estándar para registrar futuros ADRs |
-| `docs/openapi.yaml` | Nuevo | Especificación completa OpenAPI 3.1 de la API REST |
-| `tests/e2e_offline_flow.test.js` | Nuevo | Suite E2E de offline, idempotencia y migraciones |
+| `docs/openapi.yaml` | Modificado | Contrato OpenAPI 3.1 actualizado con login dual y RFC 7807 |
+| `tests/e2e_offline_flow.test.js` | Nuevo | Suite E2E de offline, idempotencia y migraciones (9/9) |
+| `backend/test_e2e_suite.js` | Modificado | Suite E2E de arquitectura y seguridad RBAC (25/25) |
+| `backend/controllers/auth.controller.js` | Modificado | Soporte de login administrativo con PIN y modo beneficiario |
 | `backend/routes/system.routes.js` | Modificado | Rutas para servir OpenAPI YAML y Swagger UI |
 | `backend/server.js` | Modificado | Montaje de middleware de idempotencia, RFC 7807 y Swagger UI |
 | `backend/db.js` | Modificado | Integración automática de `runMigrations(db)` al arrancar |
-| `public/js/core/audio.js` | Modificado | Patrones hápticos sensoriales para almacén |
-| `public/js/core/toast.js` | Modificado | Notificaciones con SVG y vibración automática |
-| `public/js/modules/manual_dispatch.js` | Modificado | Feedback háptico en selección y entrega |
-| `public/templates/modals.html` | Modificado | Botones `.modal-close-btn` y alineación simétrica |
-| `public/css/styles.css` | Modificado | Erradicación de `transition: all` y clase `.input-header-row` |
-| `package.json` | Modificado | Scripts `db:migrate`, `test:offline` y suite `test` |
+| `public/index.html` | Modificado | Conmutador de login, contención `.table-scroll-container` y menú móvil |
+| `public/templates/modals.html` | Modificado | Botones `.modal-close-btn`, grid adaptativo y `overflow-x: auto;` |
+| `public/css/styles.css` | Modificado | Reglas de contención de modales, sticky headers, subtabs móviles y tabla con scroll acotado |
+| `package.json` | Modificado | Scripts `db:migrate`, `test:offline` y suite `test` (34 pruebas) |
 
 ---
 

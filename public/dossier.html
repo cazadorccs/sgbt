@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dossier Ejecutivo — Plataforma SGBT MIPPCI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      --accent: #10b981;
+      --accent-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      --dark: #0f172a;
+      --card-bg: #ffffff;
+      --surface: #f8fafc;
+      --border: #e2e8f0;
+      --text: #334155;
+      --text-muted: #64748b;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.06);
+      --radius-md: 14px;
+      --radius-lg: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--surface);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, .brand-title {
+      font-family: 'Outfit', sans-serif;
+      color: var(--dark);
+      letter-spacing: -0.02em;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      background-color: rgba(255, 255, 255, 0.95);
+    }
+    .header-nav {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+    .brand-logo {
+      width: 42px;
+      height: 42px;
+      background: var(--primary-gradient);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.3);
+    }
+    .brand-title { font-size: 1.25rem; font-weight: 700; color: var(--dark); }
+    .brand-subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: white;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.35);
+    }
+    .btn-outline {
+      background: white;
+      border: 1px solid var(--border);
+      color: var(--dark);
+    }
+    .btn-outline:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    /* HERO */
+    .hero {
+      padding: 4.5rem 0 3.5rem;
+      background: radial-gradient(circle at 80% 20%, rgba(2, 132, 199, 0.08) 0%, transparent 60%);
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 1.25rem;
+      border: 1px solid #bae6fd;
+    }
+    .hero-title {
+      font-size: 2.75rem;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+      color: var(--dark);
+    }
+    .hero-title span {
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 820px;
+      margin-bottom: 2.25rem;
+      line-height: 1.6;
+    }
+
+    /* STATS / KPIS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 4rem;
+    }
+    .kpi-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: var(--primary-gradient);
+    }
+    .kpi-num {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--dark);
+      line-height: 1;
+      margin-bottom: 0.35rem;
+    }
+    .kpi-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .kpi-desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* SECTION */
+    .section {
+      padding: 3.5rem 0;
+    }
+    .section-header {
+      margin-bottom: 2.5rem;
+    }
+    .section-title {
+      font-size: 1.9rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .section-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 680px;
+    }
+
+    /* FEATURE CARDS */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.75rem;
+      margin-bottom: 3.5rem;
+    }
+    .feature-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 2rem;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.25rem;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+    }
+    .feature-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.65rem;
+    }
+    .feature-text {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* GALLERY & DIAGRAMS */
+    .showcase-block {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--shadow-md);
+    }
+    .showcase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .showcase-title { font-size: 1.3rem; font-weight: 700; }
+    .showcase-desc { font-size: 0.85rem; color: var(--text-muted); }
+    .showcase-media {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      background: #0f172a;
+    }
+    .showcase-media img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    /* ARCHIFY DIAGRAMS LIST */
+    .diagram-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .diagram-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 1.75rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+    }
+    .diagram-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .diagram-card h4 { font-size: 1.15rem; margin-bottom: 0.5rem; }
+    .diagram-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5; }
+
+    /* FOOTER */
+    footer {
+      background: var(--dark);
+      color: #94a3b8;
+      padding: 3rem 0;
+      margin-top: 4rem;
+      font-size: 0.85rem;
+    }
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+    .footer-brand { color: white; font-weight: 700; font-size: 1.1rem; }
+
+    /* OFFICIAL ACTA DELIVERABLE STYLES */
+    .acta-sheet {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      padding: 2.5rem;
+      position: relative;
+      margin-top: 1.5rem;
+    }
+    .acta-header-box {
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 1.25rem;
+      margin-bottom: 1.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .acta-titles h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-bottom: 0.25rem;
+    }
+    .acta-titles h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.25rem;
+    }
+    .acta-titles p {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .acta-badge-pill {
+      text-align: right;
+    }
+    .acta-num-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace, monospace;
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #0284c7;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+    }
+    .acta-date-sub {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.35rem;
+    }
+    .acta-metric-tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .acta-tile {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1.1rem;
+      text-align: center;
+    }
+    .acta-tile .tile-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .acta-tile .tile-lbl {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    
+    /* GRÁFICOS INTERACTIVOS EN ACTA */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .chart-panel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .chart-panel h5 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .bar-chart-row {
+      margin-bottom: 0.85rem;
+    }
+    .bar-label-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+    }
+    .bar-track {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.6s ease;
+    }
+
+    /* TABLA MINISTERIAL */
+    .acta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2rem;
+      font-size: 0.85rem;
+    }
+    .acta-table th {
+      background: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      text-align: left;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid #cbd5e1;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+    }
+    .acta-table td {
+      padding: 0.7rem 0.85rem;
+      border: 1px solid #cbd5e1;
+      color: #1e293b;
+    }
+    .acta-table tr:nth-child(even) { background: #f8fafc; }
+    .acta-table tr:hover { background: #f1f5f9; }
+
+    /* SELLO SHA-256 E INMUTABILIDAD */
+    .crypto-seal-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin: 2rem 0;
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+    }
+    .seal-icon-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #16a34a;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
+    }
+    .seal-body {
+      flex: 1;
+    }
+    .seal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #166534;
+      margin-bottom: 0.25rem;
+    }
+    .seal-hash {
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 0.78rem;
+      color: #14532d;
+      background: #dcfce7;
+      padding: 0.4rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid #bbf7d0;
+      display: block;
+      word-break: break-all;
+      margin: 0.4rem 0;
+    }
+    .seal-note {
+      font-size: 0.74rem;
+      color: #15803d;
+      line-height: 1.4;
+    }
+
+    /* BLOQUE DE FIRMAS MINISTERIALES */
+    .ministerial-signatures {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin-top: 3.5rem;
+      padding-top: 1rem;
+      text-align: center;
+    }
+    .sig-block {
+      border-top: 1.5px solid #64748b;
+      padding-top: 0.75rem;
+    }
+    .sig-name {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .sig-role {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.15rem;
+    }
+    .sig-digital-mark {
+      font-size: 0.68rem;
+      color: #0284c7;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 0.35rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title { font-size: 2rem; }
+      .header-actions .btn-outline { display: none; }
+      .acta-sheet { padding: 1.5rem; }
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="container header-nav">
+      <div class="brand">
+        <div class="brand-logo">S</div>
+        <div>
+          <div class="brand-title">SGBT Institutional</div>
+          <div class="brand-subtitle">Bienestar Social & Despacho con Passkeys FIDO2</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="../docs/diagrams/c4-containers.html" target="_blank" class="btn btn-outline">Ver Diagrama C4</a>
+        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary">Abrir Aplicativo Demo ↗</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <div class="container">
+      <span class="badge-pill">🛡️ GovTech & Enterprise Logistics &middot; Dossier Ejecutivo</span>
+      <h1 class="hero-title">Automatización, Soberanía y Control en Despacho de Beneficios <span>100% Offline</span></h1>
+      <p class="hero-subtitle">
+        Elimine las colas, las hojas de Excel y el fraude por suplantación en almacenes y depósitos. SGBT garantiza verificación biométrica FIDO2 en menos de 2 segundos, cero duplicados y actas de auditoría con sello criptográfico.
+      </p>
+
+      <!-- METRICAS / KPIS CLAVE -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-num">&lt; 2s</div>
+          <div class="kpi-label">Tiempo de Verificación</div>
+          <div class="kpi-desc">Escaneo óptico y deducción instantánea en mesa de almacén.</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-num">100%</div>
+          <div class="kpi-label">Operatividad Offline</div>
+          <div class="kpi-desc">Funciona sin Internet ni cobertura celular en sótanos.</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-num">0%</div>
+          <div class="kpi-label">Duplicidad de Entregas</div>
+          <div class="kpi-desc">Garantía matemática con Idempotency-Key y clave relacional única.</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-num">1,136+</div>
+          <div class="kpi-label">Padrón Activo Demostrado</div>
+          <div class="kpi-desc">MIPPCI: Trabajadores activos, jubilados y contratados.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PILARES DE LA SOLUCION -->
+  <section class="section" style="background: white; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Pilares Tecnológicos y Ventajas Competitivas</h2>
+        <p class="section-subtitle">Diseñado con estándares bancarios y criptográficos para garantizar soberanía y trazabilidad ante entes contralores.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3 class="feature-title">Passkeys FIDO2 / ECDSA P-256</h3>
+          <p class="feature-text">Autenticación biométrica anclada al chip físico del teléfono (Apple Secure Enclave o Android StrongBox). El servidor jamás recibe datos biométricos y el QR dinámico expira a los 180 segundos impidiendo capturas de pantalla.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3 class="feature-title">Motor Offline-First e Idempotencia</h3>
+          <p class="feature-text">Almacenamiento local mediante Service Workers v2.6 e IndexedDB. Si la red parpadea durante la entrega, la cabecera <code>Idempotency-Key</code> garantiza que no se produzca doble descuento de inventario.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📑</div>
+          <h3 class="feature-title">Actas Oficiales y Trazabilidad Forense</h3>
+          <p class="feature-text">Generación inmediata de comprobantes digitales firmados criptográficamente y actas de despacho ministeriales desglosadas por dirección, tonelaje y tipo de combo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CAPTURAS DE INTERFAZ PWA -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Experiencia de Usuario PWA y Gobernanza</h2>
+        <p class="section-subtitle">Diseño responsivo móvil y desktop optimizado con cabeceras fijas, retroalimentación táctil háptica y contención ergonómica de modales.</p>
+      </div>
+
+      <!-- PORTAL ADMINISTRATIVO -->
+      <div class="showcase-block">
+        <div class="showcase-header">
+          <div>
+            <h3 class="showcase-title">Portal de Gobernanza y Dashboard Administrativo</h3>
+            <p class="showcase-desc">Monitoreo de auditoría en tiempo real, métricas de adopción de Passkeys, importación de nómina y exportación oficial.</p>
+          </div>
+          <span class="badge-pill" style="margin-bottom:0;">Rol: Super Administrador</span>
+        </div>
+        <div class="showcase-media">
+          <img src="docs/admin_dashboard.png" alt="Portal Administrativo SGBT" loading="lazy">
+        </div>
+      </div>
+
+      <!-- CARNET DIGITAL Y BENEFICIARIO -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.75rem;">
+        <div class="showcase-block" style="margin-bottom:0;">
+          <div class="showcase-header">
+            <div>
+              <h3 class="showcase-title">Carnet Digital del Beneficiario</h3>
+              <p class="showcase-desc">Generación de QR dinámico temporal y detalle de combos.</p>
+            </div>
+          </div>
+          <div class="showcase-media">
+            <img src="docs/beneficiary_view.png" alt="Carnet del Beneficiario SGBT" loading="lazy">
+          </div>
+        </div>
+
+        <div class="showcase-block" style="margin-bottom:0;">
+          <div class="showcase-header">
+            <div>
+              <h3 class="showcase-title">Directorio de Nómina y Modales Contenidos</h3>
+              <p class="showcase-desc">Exploración de nómina de 1,136 funcionarios con scroll contenido.</p>
+            </div>
+          </div>
+          <div class="showcase-media">
+            <img src="docs/workers_directory.png" alt="Directorio de Nómina SGBT" loading="lazy">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       ENTREGABLE DE CIERRE: ACTA OFICIAL DE DESPACHO Y REPORTES CON GRÁFICOS
+       ====================================================================== -->
+  <section class="section" style="background: #f1f5f9; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">🏛️ Entregable Oficial de Auditoría &middot; Cierre de Jornada</span>
+          <h2 class="section-title">Acta Oficial Ministerial y Rendición Logística</h2>
+          <p class="section-subtitle">
+            Documento de valor legal y contralor generado automáticamente con sello criptográfico SHA-256 inmutable, tonelaje acumulado y desglose por dependencia.
+          </p>
+        </div>
+        <div>
+          <a href="acta_oficial.html" target="_blank" class="btn btn-primary" style="box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+            <span>🖨️ Ver / Imprimir Acta Oficial Completa ↗</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- HOJA FORMAL DEL ACTA CON MEMBRETE -->
+      <div class="acta-sheet">
+        <!-- MEMBRETE OFICIAL INSTITUCIONAL -->
+        <div class="acta-header-box">
+          <div class="acta-titles">
+            <h3>MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN</h3>
+            <h4>SGBT &bull; Acta Oficial de Despacho, Rendición y Auditoría Logística</h4>
+            <p>Gobierno Bolivariano de Venezuela &bull; Módulo de Control y Entrega Criptográfica &bull; Sede Central</p>
+          </div>
+          <div class="acta-badge-pill">
+            <div class="acta-num-badge">ACTA-20261025-FD4DF29E</div>
+            <div class="acta-date-sub">Fecha de Emisión: 25 de Octubre de 2026 &bull; 07:25 PM</div>
+          </div>
+        </div>
+
+        <!-- TILES DE RESUMEN EJECUTIVO (METRICAS CONSOLIDADAS) -->
+        <div class="acta-metric-tiles">
+          <div class="acta-tile">
+            <div class="tile-val" style="color: #0284c7;">1,136</div>
+            <div class="tile-lbl">Beneficiarios Registrados</div>
+          </div>
+          <div class="acta-tile">
+            <div class="tile-val" style="color: #059669;">1,136</div>
+            <div class="tile-lbl">Combos Despachados</div>
+          </div>
+          <div class="acta-tile">
+            <div class="tile-val" style="color: #7c3aed;">16.47 t</div>
+            <div class="tile-lbl">Tonelaje Total Métrico</div>
+          </div>
+          <div class="acta-tile">
+            <div class="tile-val" style="color: #0f172a;">0.00%</div>
+            <div class="tile-lbl">Mermas / Duplicados</div>
+          </div>
+        </div>
+
+        <!-- GRÁFICOS VISUALES DEL INFORME -->
+        <div class="charts-grid">
+          <!-- GRÁFICO 1: MÉTODOS DE VALIDACIÓN Y SEGURIDAD -->
+          <div class="chart-panel">
+            <h5>
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24" style="color: #0284c7;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              Adopción por Método de Validación y Seguridad
+            </h5>
+
+            <div class="bar-chart-row">
+              <div class="bar-label-line">
+                <span>Passkeys FIDO2 (Biometría Asimétrica P-256)</span>
+                <span style="color: #16a34a; font-weight: 700;">82% &middot; 931 entregas</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 82%; background: linear-gradient(90deg, #10b981, #059669);"></div>
+              </div>
+            </div>
+
+            <div class="bar-chart-row">
+              <div class="bar-label-line">
+                <span>Tarjeta Física de Proximidad NFC / RFID</span>
+                <span style="color: #0284c7; font-weight: 700;">11% &middot; 125 entregas</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 11%; background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
+              </div>
+            </div>
+
+            <div class="bar-chart-row">
+              <div class="bar-label-line">
+                <span>QR Dinámico Diario del Supervisor</span>
+                <span style="color: #d97706; font-weight: 700;">5% &middot; 57 entregas</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 5%; background: linear-gradient(90deg, #fbbf24, #d97706);"></div>
+              </div>
+            </div>
+
+            <div class="bar-chart-row" style="margin-bottom:0;">
+              <div class="bar-label-line">
+                <span>Contingencia Auditada (Override con Motivo)</span>
+                <span style="color: #ea580c; font-weight: 700;">2% &middot; 23 entregas</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 2%; background: linear-gradient(90deg, #fb923c, #ea580c);"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GRÁFICO 2: DISTRIBUCIÓN DE TONELAJE POR TIPO DE COMBO -->
+          <div class="chart-panel">
+            <h5>
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24" style="color: #7c3aed;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+              Distribución de Volumen y Tonelaje Despachado
+            </h5>
+
+            <div class="bar-chart-row">
+              <div class="bar-label-line">
+                <span>Bolsa Víveres Secos (14.5 kg &bull; Canasta Básica)</span>
+                <span style="color: #0f172a; font-weight: 700;">12.47 t &middot; 75.7%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 75.7%; background: linear-gradient(90deg, #818cf8, #4f46e5);"></div>
+              </div>
+            </div>
+
+            <div class="bar-chart-row">
+              <div class="bar-label-line">
+                <span>Combo Charcutería y Proteínas (14.0 kg)</span>
+                <span style="color: #0f172a; font-weight: 700;">2.45 t &middot; 14.9%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 14.9%; background: linear-gradient(90deg, #c084fc, #9333ea);"></div>
+              </div>
+            </div>
+
+            <div class="bar-chart-row">
+              <div class="bar-label-line">
+                <span>Combo de Higiene Personal (5.2 kg)</span>
+                <span style="color: #0f172a; font-weight: 700;">0.85 t &middot; 5.2%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 5.2%; background: linear-gradient(90deg, #f472b6, #db2777);"></div>
+              </div>
+            </div>
+
+            <div class="bar-chart-row" style="margin-bottom:0;">
+              <div class="bar-label-line">
+                <span>Combo de Limpieza Institucional (5.2 kg)</span>
+                <span style="color: #0f172a; font-weight: 700;">0.70 t &middot; 4.2%</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: 4.2%; background: linear-gradient(90deg, #38bdf8, #0284c7);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLA DESGLOSADA POR DEPENDENCIAS MINISTERIALES -->
+        <h4 style="font-size: 0.95rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin-bottom: 0.85rem;">
+          Rendición Consolidada por Dependencia Ministerial
+        </h4>
+        <div style="overflow-x: auto; margin-bottom: 1.5rem;">
+          <table class="acta-table">
+            <thead>
+              <tr>
+                <th>Dependencia / Dirección General</th>
+                <th style="text-align: right;">Beneficiarios</th>
+                <th style="text-align: right;">Combos</th>
+                <th style="text-align: right;">Peso Total</th>
+                <th style="text-align: right;">Tonelaje</th>
+                <th style="text-align: center;">Estatus Auditoría</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-weight: 600;">Dirección General de Comunicación Digital</td>
+                <td style="text-align: right;">248</td>
+                <td style="text-align: right; font-weight: 700;">248</td>
+                <td style="text-align: right;">3,596 kg</td>
+                <td style="text-align: right; font-weight: 700;">3.60 t</td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Dirección de Servicios Generales y Mantenimiento</td>
+                <td style="text-align: right;">192</td>
+                <td style="text-align: right; font-weight: 700;">192</td>
+                <td style="text-align: right;">2,784 kg</td>
+                <td style="text-align: right; font-weight: 700;">2.78 t</td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Oficina de Gestión Comunicacional (Protocolo)</td>
+                <td style="text-align: right;">165</td>
+                <td style="text-align: right; font-weight: 700;">165</td>
+                <td style="text-align: right;">2,392 kg</td>
+                <td style="text-align: right; font-weight: 700;">2.39 t</td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Dirección General del Despacho del Ministro</td>
+                <td style="text-align: right;">142</td>
+                <td style="text-align: right; font-weight: 700;">142</td>
+                <td style="text-align: right;">2,059 kg</td>
+                <td style="text-align: right; font-weight: 700;">2.06 t</td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Consultoría Jurídica y Responsabilidad Social</td>
+                <td style="text-align: right;">114</td>
+                <td style="text-align: right; font-weight: 700;">114</td>
+                <td style="text-align: right;">1,653 kg</td>
+                <td style="text-align: right; font-weight: 700;">1.65 t</td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+              </tr>
+              <tr>
+                <td style="font-weight: 600;">Otras Direcciones, Jubilados y Coordinaciones Regionales (OIR)</td>
+                <td style="text-align: right;">275</td>
+                <td style="text-align: right; font-weight: 700;">275</td>
+                <td style="text-align: right;">3,986 kg</td>
+                <td style="text-align: right; font-weight: 700;">3.99 t</td>
+                <td style="text-align: center;"><span style="color: #16a34a; font-weight: 700;">✓ Conciliado 100%</span></td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr style="background: #e2e8f0; font-weight: 800;">
+                <td>TOTAL CONSOLIDADO GENERAL</td>
+                <td style="text-align: right;">1,136</td>
+                <td style="text-align: right;">1,136</td>
+                <td style="text-align: right;">16,470 kg</td>
+                <td style="text-align: right; color: #0369a1;">16.47 t</td>
+                <td style="text-align: center; color: #166534;">100% AUDITADO</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- SELLO DE INTEGRIDAD DIGITAL INMUTABLE SHA-256 -->
+        <div class="crypto-seal-card">
+          <div class="seal-icon-badge">🔒</div>
+          <div class="seal-body">
+            <div class="seal-title">Sello de Integridad Criptográfica de la Jornada (SHA-256)</div>
+            <code class="seal-hash">fd4df29e4b6025d5d94c313667a1779145c42167bdda360747855dde45e59156</code>
+            <div class="seal-note">
+              ✓ <strong>Inmutabilidad Matemática:</strong> Este hash se genera mediante la concatenación secuencial de cada registro de entrega, cédula y marca de tiempo micro-precisa. Cualquier intento de alteración posterior invalida matemáticamente el acta ante el cuerpo de auditores o tribunales competentes.
+            </div>
+          </div>
+        </div>
+
+        <!-- FIRMAS OFICIALES -->
+        <div class="ministerial-signatures">
+          <div class="sig-block">
+            <div class="sig-name">Msc. Sahib A Franco</div>
+            <div class="sig-role">Super Administrador &bull; Dirección de Tecnología</div>
+            <div class="sig-digital-mark">Firmado Digitalmente &bull; Token ID: 13537582</div>
+          </div>
+          <div class="sig-block">
+            <div class="sig-name">Lic. Claudia Patricia Vega</div>
+            <div class="sig-role">Supervisora General de Mesa de Despacho</div>
+            <div class="sig-digital-mark">Autorizado con QR Diario &bull; C.I. V-13222333</div>
+          </div>
+          <div class="sig-block">
+            <div class="sig-name">Auditoría Interna Ministerial</div>
+            <div class="sig-role">Cuerpo de Contraloría Institucional (MIPPCI)</div>
+            <div class="sig-digital-mark">Verificación Hash OK &bull; Cero Observaciones</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIAGRAMAS DE INGENIERIA (ARCHIFY) -->
+  <section class="section" style="background: white; border-top: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header">
+        <h2 class="section-title">Arquitectura e Ingeniería Documentada</h2>
+        <p class="section-subtitle">Modelos interactivos de alta fidelidad elaborados bajo la especificación Archify v3.2.0 (Showcase Quality).</p>
+      </div>
+
+      <div class="diagram-cards">
+        <div class="diagram-card">
+          <div>
+            <span class="diagram-badge">C4 Model &middot; Nivel 2</span>
+            <h4>Arquitectura General de Contenedores</h4>
+            <p>Mapeo integral de actores (Beneficiario, Operador, Admin), capas PWA frontales, microservicios backend y persistencia híbrida SQLite WAL + Supabase.</p>
+          </div>
+          <a href="../docs/diagrams/c4-containers.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Diagrama C4 ↗</a>
+        </div>
+
+        <div class="diagram-card">
+          <div>
+            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia Criptográfica</span>
+            <h4>Flujo de Datos y User Journey</h4>
+            <p>Trazabilidad cronológica del retiro: biometría en Secure Enclave, nonce temporal, POST con Idempotency-Key y feedback háptico al operador.</p>
+          </div>
+          <a href="../docs/diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Flujo de Secuencia ↗</a>
+        </div>
+
+        <div class="diagram-card">
+          <div>
+            <span class="diagram-badge" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">Modelo Relacional</span>
+            <h4>Modelo de Datos (ERD Simplificado)</h4>
+            <p>Estructura relacional en 3 dominios funcionales (Identidad, Beneficios y Auditoría Forense) con claves compuestas y tabla de idempotencia.</p>
+          </div>
+          <a href="../docs/diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Modelo ERD ↗</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LLAMADO A LA ACCION / PILOTO -->
+  <section class="section" style="text-align: center;">
+    <div class="container" style="max-width: 800px;">
+      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">🚀 Prueba de Concepto (PoC)</span>
+      <h2 class="section-title" style="font-size: 2.2rem; margin-top: 0.5rem;">¿Listo para una Demostración en Vivo de 5 Minutos?</h2>
+      <p class="section-subtitle" style="margin: 1rem auto 2rem; font-size: 1.05rem;">
+        Compruebe la efectividad del sistema en una jornada real. Ofrecemos un Piloto Controlado de 30 días para medir la reducción de tiempos de cola y la eliminación total de extravíos.
+      </p>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Iniciar Entorno Demostración en la Nube ↗</a>
+        <a href="../Propuesta de Comercialización.md" target="_blank" class="btn btn-outline" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Leer Propuesta Comercial</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-content">
+      <div>
+        <div class="footer-brand">SGBT MIPPCI</div>
+        <div style="margin-top: 0.35rem;">Sistema de Gestión de Bienestar y Transferencias Institucionales</div>
+      </div>
+      <div>
+        Soberanía Tecnológica &middot; FIDO2 / WebAuthn &middot; SQLite WAL &middot; PWA Offline
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

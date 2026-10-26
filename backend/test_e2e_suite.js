@@ -396,9 +396,48 @@ test('E2E-24: Mitigación Activa CVE-2026-111497 (Brotli Heap Corruption) y Cabe
   console.log('     [Blindaje Activo: Rechazo temprano HTTP 415 ante Brotli/Gzip y cabeceras OWASP nosniff/SAMEORIGIN inyectadas]');
 });
 
+test('E2E-25: Autenticación de Administración del Sistema (Cédula/Email, PIN y Control RBAC)', async () => {
+  // 1. Acceso exitoso con Cédula y PIN administrativo correcto
+  const resAdminCi = await request('POST', '/api/v1/auth/login', {
+    document_id: '13537582',
+    admin_secret: '0578',
+    require_admin: true
+  });
+  if (resAdminCi.status !== 200) throw new Error(`HTTP ${resAdminCi.status} en login admin por C.I.`);
+  if (!resAdminCi.data.user || resAdminCi.data.user.role !== 'admin') {
+    throw new Error('El usuario autenticado no posee rol administrativo');
+  }
 
+  // 2. Acceso exitoso con Correo Institucional
+  const resAdminEmail = await request('POST', '/api/v1/auth/login', {
+    document_id: 'Sfranco@mippci.gob.ve',
+    admin_secret: '0578',
+    require_admin: true
+  });
+  if (resAdminEmail.status !== 200) throw new Error(`HTTP ${resAdminEmail.status} en login admin por correo`);
 
+  // 3. Rechazo ante PIN de seguridad erróneo (HTTP 401)
+  const resWrongPin = await request('POST', '/api/v1/auth/login', {
+    document_id: '13537582',
+    admin_secret: 'clave_invalida',
+    require_admin: true
+  });
+  if (resWrongPin.status !== 401) {
+    throw new Error(`Se esperaba HTTP 401 por clave incorrecta, obtenido ${resWrongPin.status}`);
+  }
 
+  // 4. Rechazo ante beneficiario sin rol administrativo (HTTP 403)
+  const resWorkerForbidden = await request('POST', '/api/v1/auth/login', {
+    document_id: 'V-18456123',
+    admin_secret: '0578',
+    require_admin: true
+  });
+  if (resWorkerForbidden.status !== 403) {
+    throw new Error(`Se esperaba HTTP 403 para trabajador normal, obtenido ${resWorkerForbidden.status}`);
+  }
+
+  console.log('     [Autenticación Administrativa Verificada: Cédula/Email, Validación PIN y Bloqueo RBAC]');
+});
 
 // ----------------------------------------------------------------------------
 // EJECUTOR DE LA SUITE

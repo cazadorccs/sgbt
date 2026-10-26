@@ -25,7 +25,10 @@ window.setupWorkerSimulator = function() {
       });
       workerSelect.appendChild(fragment);
 
-      if (currentSelected && data.workers.some(w => w.id === currentSelected)) {
+      if (STATE.currentUser && STATE.currentUser.id) {
+        STATE.selectedWorkerId = STATE.currentUser.id;
+        if (workerSelect) workerSelect.value = STATE.currentUser.id;
+      } else if (currentSelected && data.workers.some(w => w.id === currentSelected)) {
         workerSelect.value = currentSelected;
         STATE.selectedWorkerId = currentSelected;
       } else if (data.workers.length > 0) {
@@ -49,14 +52,22 @@ window.setupWorkerSimulator = function() {
   });
 
   async function updateWorkerCard() {
+    if (!STATE.selectedWorkerId && STATE.currentUser) {
+      STATE.selectedWorkerId = STATE.currentUser.id;
+    }
     if (!STATE.selectedWorkerId) return;
+
+    // Actualización visual inmediata de identidad con el usuario autenticado
+    const headerIdEl = document.getElementById('workerHeaderIdentity');
+    if (headerIdEl && STATE.currentUser && STATE.currentUser.id === STATE.selectedWorkerId) {
+      headerIdEl.textContent = `${STATE.currentUser.full_name} (${STATE.currentUser.document_id})`;
+    }
 
     try {
       const data = await API.get(`/api/v1/admin/workers/${STATE.selectedWorkerId}/security-dossier`);
       const { worker, passkeys } = data;
 
       // Actualizar nombre y cédula en la barra superior móvil del beneficiario
-      const headerIdEl = document.getElementById('workerHeaderIdentity');
       if (headerIdEl) {
         headerIdEl.textContent = `${worker.full_name} (${worker.document_id})`;
       }
@@ -75,6 +86,9 @@ window.setupWorkerSimulator = function() {
         } else if (worker.worker_type === 'contratado') {
           condBadgeEl.className = 'badge badge-contratado';
           condBadgeEl.innerHTML = '📋 Personal Contratado';
+        } else if (worker.role === 'admin' || worker.role === 'director') {
+          condBadgeEl.className = 'badge badge-activo';
+          condBadgeEl.innerHTML = '🏛️ Personal Directivo';
         } else {
           condBadgeEl.className = 'badge badge-activo';
           condBadgeEl.innerHTML = '🏢 Funcionario Activo';

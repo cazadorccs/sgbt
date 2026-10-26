@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "erd",
+  "quality": "showcase",
+  "specification": {
+    "path": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\erd-modelo-datos-20261025-130500\\candidate.json",
+    "sha256": "4fd8cf0b64566b1140ea6b041439fdfe66ca9687e8cab558964670901b00b75e",
+    "bytes": 9282
+  },
+  "artifact": {
+    "path": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\erd-modelo-datos-20261025-130500\\modelo-datos-erd.html",
+    "sha256": "c5681517207b6fe4a97783649faf1abba4b923d0b5f912bcbc6177f4634ad45a",
+    "bytes": 860598
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\erd-modelo-datos-20261025-130500\\modelo-datos-erd.finalize.json",
+    "summaryReceipt": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\erd-modelo-datos-20261025-130500\\modelo-datos-erd.finalize-summary.json",
+    "browserCheckReceipt": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\erd-modelo-datos-20261025-130500\\modelo-datos-erd.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.2.0",
+    "availableVersion": "3.2.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-25T03:41:41.888Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 4073,
+  "browserCheck": {
+    "requested": true,
+    "ran": true
+  }
+}

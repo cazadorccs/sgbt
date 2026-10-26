@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "81348b31-1509-44c3-b6a2-344e2b180837",
+  "status": "current",
+  "command": "deliver",
+  "type": "sequence",
+  "input": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\sequence-user-journey-20261025-130500\\candidate.json",
+  "output": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\.archify\\sequence-user-journey-20261025-130500\\user-journey-sequence.html",
+  "specification": {
+    "sha256": "3338da0baf1d5d474d60ffd66dde0fc7065f49dd89b791ee072be55bd7fdfeb6",
+    "bytes": 5335
+  },
+  "artifact": {
+    "sha256": "aa8abc5a8671f4d28687519e27e864a44b59540c165b2236079e8951f620bca1",
+    "bytes": 825690
+  }
+}

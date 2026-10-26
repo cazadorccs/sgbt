@@ -1,1137 +1,1469 @@
-  <!-- ======================================================================
+<!-- ======================================================================
        MODAL 1: FIRMA BIOMÉTRICA DEL SUPERVISOR (CONTINGENCIA NIVEL 2)
        ====================================================================== -->
-  <div id="supervisorModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog">
-      <div class="panel-header">
-        <div class="panel-title" style="color: #f59e0b;">
-          ⚠️ Autorización Biométrica Obligatoria (Supervisor Nivel 2)
-        </div>
-        <button id="btnCloseSupervisorModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+<div id="supervisorModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog">
+    <div class="panel-header">
+      <div class="panel-title" style="color: #f59e0b;">
+        ⚠️ Autorización Biométrica Obligatoria (Supervisor Nivel 2)
       </div>
+      <button id="btnCloseSupervisorModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
 
-      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-        Se requiere la firma biométrica de un Supervisor registrado para liberar la contingencia:
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+      Se requiere la firma biométrica de un Supervisor registrado para liberar la contingencia:
+    </div>
+
+    <div
+      style="background: rgba(0,0,0,0.3); border: 1px solid var(--bg-card-border); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
+      <div style="font-size: 0.8rem; margin-bottom: 0.25rem;">
+        Beneficiario: <strong id="modalBeneficiaryName" style="color: #fff;">--</strong>
       </div>
-
-      <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--bg-card-border); border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
-        <div style="font-size: 0.8rem; margin-bottom: 0.25rem;">
-          Beneficiario: <strong id="modalBeneficiaryName" style="color: #fff;">--</strong>
-        </div>
-        <div style="font-size: 0.8rem; margin-bottom: 0.25rem;">
-          Cédula: <span id="modalBeneficiaryDoc" class="text-mono">--</span>
-        </div>
-        <div style="font-size: 0.8rem;">
-          Combo Asignado: <span id="modalBeneficiaryCombo" style="color: #34d399; font-weight: 600;">--</span>
-        </div>
+      <div style="font-size: 0.8rem; margin-bottom: 0.25rem;">
+        Cédula: <span id="modalBeneficiaryDoc" class="text-mono">--</span>
       </div>
-
-      <div style="margin-bottom: 1rem;">
-        <label style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">
-          Motivo de la Contingencia:
-        </label>
-        <select id="modalOverrideReasonSelect" class="form-select" style="width: 100%; margin-top: 0.25rem;">
-          <option value="device_lost">Dispositivo extraviado o robado</option>
-          <option value="battery_dead_screen_broken">Batería descargada o pantalla rota</option>
-          <option value="no_smartphone">Trabajador sin smartphone compatible</option>
-          <option value="biometrics_failed">Falla de sensor biométrico del beneficiario</option>
-        </select>
-      </div>
-
-      <div class="biometric-prompt-circle">
-        👆
-      </div>
-
-      <p style="font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-bottom: 1.25rem;">
-        La autorización del supervisor queda registrada de forma segura e inalterable en el sistema.
-      </p>
-
-      <div style="display: flex; gap: 0.5rem;">
-        <button id="btnAuthorizeSupervisorOverride" class="btn btn-primary" style="flex: 1;">
-          🔐 Autorizar con Huella / Clave de Supervisor
-        </button>
+      <div style="font-size: 0.8rem;">
+        Combo Asignado: <span id="modalBeneficiaryCombo" style="color: #34d399; font-weight: 600;">--</span>
       </div>
     </div>
-  </div>
 
-  <!-- ======================================================================
+    <div style="margin-bottom: 1rem;">
+      <label style="font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">
+        Motivo de la Contingencia:
+      </label>
+      <select id="modalOverrideReasonSelect" class="form-select" style="width: 100%; margin-top: 0.25rem;">
+        <option value="device_lost">Dispositivo extraviado o robado</option>
+        <option value="battery_dead_screen_broken">Batería descargada o pantalla rota</option>
+        <option value="no_smartphone">Trabajador sin smartphone compatible</option>
+        <option value="biometrics_failed">Falla de sensor biométrico del beneficiario</option>
+      </select>
+    </div>
+
+    <div class="biometric-prompt-circle">
+      👆
+    </div>
+
+    <p style="font-size: 0.75rem; color: var(--text-dim); text-align: center; margin-bottom: 1.25rem;">
+      La autorización del supervisor queda registrada de forma segura e inalterable en el sistema.
+    </p>
+
+    <div style="display: flex; gap: 0.5rem;">
+      <button id="btnAuthorizeSupervisorOverride" class="btn btn-primary" style="flex: 1;">
+        🔐 Autorizar con Huella / Clave de Supervisor
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
        MODAL 2: EXPEDIENTE DE SEGURIDAD Y ASIGNACIÓN DE TARJETA NFC
        ====================================================================== -->
-  <div id="securityDossierModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 600px;">
-      <div class="panel-header">
-        <div class="panel-title">
-          🛡️ Expediente Digital de Seguridad
-        </div>
-        <button id="btnCloseDossierModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+<div id="securityDossierModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 600px;">
+    <div class="panel-header">
+      <div class="panel-title">
+        🛡️ Expediente Digital de Seguridad
       </div>
+      <button id="btnCloseDossierModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
 
-      <div id="dossierContent" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
-        <!-- Se inyecta dinámicamente -->
-      </div>
+    <div id="dossierContent" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.85rem;">
+      <!-- Se inyecta dinámicamente -->
     </div>
   </div>
+</div>
 
-  <!-- ======================================================================
+<!-- ======================================================================
        MODAL 3: CONFIGURADOR DE NUEVO COMBO / BENEFICIO INSTITUCIONAL
        ====================================================================== -->
-  <div id="createComboModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); border: 2px solid rgba(2, 132, 199, 0.3);">
-      <div class="panel-header">
-        <div id="comboModalTitle" class="panel-title" style="color: #0284c7; font-weight: 800; font-size: 1.15rem;">
-          ⚙️ Configurar Beneficio Institucional
-        </div>
-        <button id="btnCloseCreateComboModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+<div id="createComboModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog"
+    style="max-width: 600px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45); border: 2px solid rgba(2, 132, 199, 0.3);">
+    <div class="panel-header">
+      <div id="comboModalTitle" class="panel-title" style="color: #0284c7; font-weight: 800; font-size: 1.15rem;">
+        ⚙️ Configurar Beneficio Institucional
+      </div>
+      <button id="btnCloseCreateComboModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
+
+    <form id="createComboForm" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
+      <input type="hidden" id="comboIdInput" value="" />
+
+      <div class="input-group">
+        <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+          Nombre del Beneficio o Combo: *
+        </label>
+        <input type="text" id="comboNameInput" class="form-input"
+          placeholder="Ej: Bolsa de Víveres Secos (Canasta Básica MIPPCI)" required style="font-weight: 700;" />
       </div>
 
-      <form id="createComboForm" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 0.5rem;">
-        <input type="hidden" id="comboIdInput" value="" />
-
+      <div class="form-grid-2">
         <div class="input-group">
           <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Nombre del Beneficio o Combo: *
+            Categoría del Beneficio: *
           </label>
-          <input type="text" id="comboNameInput" class="form-input" placeholder="Ej: Bolsa de Víveres Secos (Canasta Básica MIPPCI)" required style="font-weight: 700;" />
-        </div>
-
-        <div class="form-grid-2">
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Categoría del Beneficio: *
-            </label>
-            <select id="comboCategorySelect" class="form-select" required style="font-weight: 600;">
-              <option value="bolsa_viveres">📦 Bolsa de Víveres Secos</option>
-              <option value="combo_proteico">🍗 Combo Proteico Fresco</option>
-              <option value="utiles_escolares">🎒 Útiles Escolares & Morrales</option>
-              <option value="combo_higienico">🧼 Combo Higiénico & Aseo</option>
-              <option value="dotacion_uniformes">🦺 Dotación, Calzado & Uniformes</option>
-              <option value="combo_navideno">🎁 Combo Especial Navideño</option>
-              <option value="combo_salud">💊 Botiquín & Salud</option>
-              <option value="combo_especial">⭐ Otro Beneficio Especial</option>
-            </select>
-          </div>
-
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Logística / Almacenamiento:
-            </label>
-            <select id="comboLogisticSelect" class="form-select">
-              <option value="Almacén Seco / Logística Estándar">Almacén Seco Estándar (Ambiente)</option>
-              <option value="Cadena de Frío / Refrigerado">Cadena de Frío (-18°C)</option>
-              <option value="Material Delicado / Controlado">Material Controlado / Frágil</option>
-              <option value="Entrega Especial In Situ">Entrega Especial In Situ</option>
-            </select>
-          </div>
+          <select id="comboCategorySelect" class="form-select" required style="font-weight: 600;">
+            <option value="bolsa_viveres">📦 Bolsa de Víveres Secos</option>
+            <option value="combo_proteico">🍗 Combo Proteico Fresco</option>
+            <option value="utiles_escolares">🎒 Útiles Escolares & Morrales</option>
+            <option value="combo_higienico">🧼 Combo Higiénico & Aseo</option>
+            <option value="dotacion_uniformes">🦺 Dotación, Calzado & Uniformes</option>
+            <option value="combo_navideno">🎁 Combo Especial Navideño</option>
+            <option value="combo_salud">💊 Botiquín & Salud</option>
+            <option value="combo_especial">⭐ Otro Beneficio Especial</option>
+          </select>
         </div>
 
         <div class="input-group">
           <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Desglose de Rubros y Artículos Incluidos: *
+            Logística / Almacenamiento:
           </label>
-          <textarea id="comboItemsInput" class="form-input" rows="3" placeholder="Ej: 4 kg Harina de Maíz, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, 1 kg Granos, 2 Latas Sardinas..." required style="resize: vertical;"></textarea>
-          <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">
-            Estos rubros aparecerán automáticamente en la pantalla del operador y beneficiario para su verificación en mesa.
-          </div>
+          <select id="comboLogisticSelect" class="form-select">
+            <option value="Almacén Seco / Logística Estándar">Almacén Seco Estándar (Ambiente)</option>
+            <option value="Cadena de Frío / Refrigerado">Cadena de Frío (-18°C)</option>
+            <option value="Material Delicado / Controlado">Material Controlado / Frágil</option>
+            <option value="Entrega Especial In Situ">Entrega Especial In Situ</option>
+          </select>
         </div>
+      </div>
 
-        <div class="form-grid-2">
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Mesa de Despacho (Ubicación Logística):
-            </label>
-            <input type="text" id="comboMesaInput" class="form-input" placeholder="Ej: Mesa 1 - Víveres Secos" />
-          </div>
-
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Peso Estimado (kg):
-            </label>
-            <input type="number" step="0.1" id="comboWeightInput" class="form-input" placeholder="Ej: 14.5" value="14.0" />
-          </div>
+      <div class="input-group">
+        <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+          Desglose de Rubros y Artículos Incluidos: *
+        </label>
+        <textarea id="comboItemsInput" class="form-input" rows="3"
+          placeholder="Ej: 4 kg Harina de Maíz, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, 1 kg Granos, 2 Latas Sardinas..."
+          required style="resize: vertical;"></textarea>
+        <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">
+          Estos rubros aparecerán automáticamente en la pantalla del operador y beneficiario para su verificación en
+          mesa.
         </div>
+      </div>
 
-        <div class="form-grid-2">
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Población Asignada Objetivo:
-            </label>
-            <select id="comboTargetGroupSelect" class="form-select">
-              <option value="Todos los Trabajadores (Universal)">Universal (Todos los Funcionarios)</option>
-              <option value="Personal con Hijos / Cargas Familiares">Personal con Hijos / Estudiantes</option>
-              <option value="Personal Activo Exclusivamente">Personal Activo</option>
-              <option value="Personal Jubilado y Pensionado">Personal Jubilado y Pensionado</option>
-            </select>
-          </div>
-
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Valor de Referencia / Calorías:
-            </label>
-            <input type="number" id="comboCaloriesInput" class="form-input" placeholder="0" value="0" />
-          </div>
-        </div>
-
-        <!-- Estado Activo / Inactivo -->
-        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem;">
-          <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin: 0;">
-            <div>
-              <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a;">Estado de Disponibilidad del Combo:</div>
-              <div style="font-size: 0.72rem; color: #64748b;">Habilita o deshabilita este beneficio para las asignaciones de despacho activas.</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="checkbox" id="comboActiveCheckbox" checked style="width: 20px; height: 20px; cursor: pointer;" />
-              <span id="comboActiveLabel" style="font-size: 0.8rem; font-weight: 800; color: #16a34a;">ACTIVO</span>
-            </div>
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Mesa de Despacho (Ubicación Logística):
           </label>
+          <input type="text" id="comboMesaInput" class="form-input" placeholder="Ej: Mesa 1 - Víveres Secos" />
         </div>
 
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-          <button type="button" id="btnCancelCreateCombo" class="btn btn-outline">Cancelar</button>
-          <button type="submit" id="btnSubmitCreateCombo" class="btn btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); font-weight: 800; padding: 0.65rem 1.4rem;">
-            💾 Guardar Beneficio
-          </button>
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Peso Estimado (kg):
+          </label>
+          <input type="number" step="0.1" id="comboWeightInput" class="form-input" placeholder="Ej: 14.5"
+            value="14.0" />
         </div>
-      </form>
-    </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Población Asignada Objetivo:
+          </label>
+          <select id="comboTargetGroupSelect" class="form-select">
+            <option value="Todos los Trabajadores (Universal)">Universal (Todos los Funcionarios)</option>
+            <option value="Personal con Hijos / Cargas Familiares">Personal con Hijos / Estudiantes</option>
+            <option value="Personal Activo Exclusivamente">Personal Activo</option>
+            <option value="Personal Jubilado y Pensionado">Personal Jubilado y Pensionado</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Valor de Referencia / Calorías:
+          </label>
+          <input type="number" id="comboCaloriesInput" class="form-input" placeholder="0" value="0" />
+        </div>
+      </div>
+
+      <!-- Estado Activo / Inactivo -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 1rem;">
+        <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin: 0;">
+          <div>
+            <div style="font-size: 0.82rem; font-weight: 800; color: #0f172a;">Estado de Disponibilidad del Combo:</div>
+            <div style="font-size: 0.72rem; color: #64748b;">Habilita o deshabilita este beneficio para las asignaciones
+              de despacho activas.</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <input type="checkbox" id="comboActiveCheckbox" checked
+              style="width: 20px; height: 20px; cursor: pointer;" />
+            <span id="comboActiveLabel" style="font-size: 0.8rem; font-weight: 800; color: #16a34a;">ACTIVO</span>
+          </div>
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+        <button type="button" id="btnCancelCreateCombo" class="btn btn-outline">Cancelar</button>
+        <button type="submit" id="btnSubmitCreateCombo" class="btn btn-primary"
+          style="background: linear-gradient(135deg, #0284c7, #0369a1); font-weight: 800; padding: 0.65rem 1.4rem;">
+          💾 Guardar Beneficio
+        </button>
+      </div>
+    </form>
   </div>
+</div>
 
-  <!-- ======================================================================
+<!-- ======================================================================
        MODAL 4: CONFIGURACIÓN GENERAL DEL SISTEMA & MARCA BLANCA (ADMINISTRADORES)
        ====================================================================== -->
-  <div id="generalSettingsModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 680px;">
-      <div class="panel-header" style="margin-bottom: 1rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span>Configuración Institucional del Sistema</span>
-        </div>
-        <button id="btnCloseGeneralSettingsModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+<div id="generalSettingsModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 680px;">
+    <div class="panel-header" style="margin-bottom: 1rem;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
+        </svg>
+        <span>Configuración Institucional del Sistema</span>
+      </div>
+      <button id="btnCloseGeneralSettingsModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
+
+    <!-- TABS INTERNOS DEL MODAL DE CONFIGURACIÓN -->
+    <div class="portal-subtab-bar" style="margin-bottom: 1.25rem;">
+      <button type="button" id="btnSettingsTabBranding" class="portal-subtab active"
+        style="flex: 1; justify-content: center;">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+          <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+          <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+          <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+          <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+          <path
+            d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z">
+          </path>
+        </svg>
+        <span>Marca & Logos (B2G)</span>
+      </button>
+      <button type="button" id="btnSettingsTabPreferences" class="portal-subtab"
+        style="flex: 1; justify-content: center;">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line>
+          <line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+        <span>Preferencias Generales</span>
+      </button>
+      <button type="button" id="btnSettingsTabDanger" class="portal-subtab"
+        style="flex: 1; justify-content: center; color: #dc2626;">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>Zona de Peligro</span>
+      </button>
+    </div>
+
+    <!-- SECCIÓN 1: MARCA Y LOGOS (SOLO ADMIN) -->
+    <div id="settingsSectionBranding" style="display: block;">
+      <div
+        style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-xs); padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.78rem; color: #0369a1; display: flex; align-items: center; gap: 0.4rem;">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span><strong>Módulo Reservado a Administradores:</strong> Configure la identidad de cualquier ente
+          gubernamental, gobernación o ministerio.</span>
       </div>
 
-      <!-- TABS INTERNOS DEL MODAL DE CONFIGURACIÓN -->
-      <div class="portal-subtab-bar" style="margin-bottom: 1.25rem;">
-        <button type="button" id="btnSettingsTabBranding" class="portal-subtab active" style="flex: 1; justify-content: center;">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
-          <span>Marca & Logos (B2G)</span>
-        </button>
-        <button type="button" id="btnSettingsTabPreferences" class="portal-subtab" style="flex: 1; justify-content: center;">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
-          <span>Preferencias Generales</span>
-        </button>
-        <button type="button" id="btnSettingsTabDanger" class="portal-subtab" style="flex: 1; justify-content: center; color: #dc2626;">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          <span>Zona de Peligro</span>
-        </button>
-      </div>
-
-      <!-- SECCIÓN 1: MARCA Y LOGOS (SOLO ADMIN) -->
-      <div id="settingsSectionBranding" style="display: block;">
-        <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: var(--radius-xs); padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.78rem; color: #0369a1; display: flex; align-items: center; gap: 0.4rem;">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          <span><strong>Módulo Reservado a Administradores:</strong> Configure la identidad de cualquier ente gubernamental, gobernación o ministerio.</span>
-        </div>
-
-        <form id="settingsBrandingForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div>
-              <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
-                Nombre Oficial del Ente: *
-              </label>
-              <input id="settingsEntityNameInput" type="text" class="form-input" placeholder="Ej: Ministerio del Poder Popular de Alimentación" required />
-            </div>
-            <div>
-              <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
-                Siglas / Acrónimo: *
-              </label>
-              <input id="settingsEntityShortInput" type="text" class="form-input" placeholder="Ej: MINAL / GOB-BOLIVAR" style="font-weight: 700; text-transform: uppercase;" required />
-            </div>
-          </div>
-
+      <form id="settingsBrandingForm" onsubmit="event.preventDefault();"
+        style="display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
           <div>
-            <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
-              Lema o Cintillo Institucional:
+            <label
+              style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+              Nombre Oficial del Ente: *
             </label>
-            <input id="settingsSloganInput" type="text" class="form-input" placeholder="Ej: Bienestar y Soberanía Alimentaria Institucional" />
+            <input id="settingsEntityNameInput" type="text" class="form-input"
+              placeholder="Ej: Ministerio del Poder Popular de Alimentación" required />
           </div>
-
-          <!-- LOGOTIPO INSTITUCIONAL -->
-          <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem; background: #f8fafc;">
-            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.5rem;">
-              Logotipo Oficial del Ente:
+          <div>
+            <label
+              style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+              Siglas / Acrónimo: *
             </label>
-            <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-              <div id="settingsLogoPreviewBox" style="width: 120px; height: 80px; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: #ffffff; overflow: hidden; padding: 0.4rem;">
-                <svg class="icon-svg icon-lg" style="color: #94a3b8;" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
+            <input id="settingsEntityShortInput" type="text" class="form-input" placeholder="Ej: MINAL / GOB-BOLIVAR"
+              style="font-weight: 700; text-transform: uppercase;" required />
+          </div>
+        </div>
+
+        <div>
+          <label
+            style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; margin-bottom: 0.35rem;">
+            Lema o Cintillo Institucional:
+          </label>
+          <input id="settingsSloganInput" type="text" class="form-input"
+            placeholder="Ej: Bienestar y Soberanía Alimentaria Institucional" />
+        </div>
+
+        <!-- LOGOTIPO INSTITUCIONAL -->
+        <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem; background: #f8fafc;">
+          <label
+            style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.5rem;">
+            Logotipo Oficial del Ente:
+          </label>
+          <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <div id="settingsLogoPreviewBox"
+              style="width: 120px; height: 80px; border: 2px dashed #cbd5e1; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: #ffffff; overflow: hidden; padding: 0.4rem;">
+              <svg class="icon-svg icon-lg" style="color: #94a3b8;" viewBox="0 0 24 24">
+                <path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z" />
+              </svg>
+            </div>
+            <div style="flex: 1; min-width: 220px;">
+              <input type="file" id="settingsLogoFileInput" accept="image/*" style="display: none;" />
+              <button type="button" id="btnSettingsSelectLogo" class="btn btn-primary"
+                style="font-size: 0.75rem; padding: 0.4rem 0.8rem; margin-bottom: 0.4rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <span>Subir Imagen de Logo (PNG, SVG, JPG)</span>
+              </button>
+              <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.35rem;">O enlace URL directo del logo:
               </div>
-              <div style="flex: 1; min-width: 220px;">
-                <input type="file" id="settingsLogoFileInput" accept="image/*" style="display: none;" />
-                <button type="button" id="btnSettingsSelectLogo" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; margin-bottom: 0.4rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                  <span>Subir Imagen de Logo (PNG, SVG, JPG)</span>
-                </button>
-                <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.35rem;">O enlace URL directo del logo:</div>
-                <input id="settingsLogoUrlInput" type="url" class="form-input" placeholder="https://ejemplo.gob.ve/logo.png" style="font-size: 0.75rem;" />
-              </div>
+              <input id="settingsLogoUrlInput" type="url" class="form-input"
+                placeholder="https://ejemplo.gob.ve/logo.png" style="font-size: 0.75rem;" />
             </div>
           </div>
+        </div>
 
-          <!-- COLORES INSTITUCIONALES -->
-          <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem; background: #f8fafc;">
-            <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.6rem;">
-              Colores Corporativos:
-            </label>
-            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
-              <div class="color-picker-group">
-                <input type="color" id="settingsPrimaryColorInput" class="color-input-circle" value="#0284c7" />
-                <div>
-                  <strong style="font-size: 0.8rem; color: #0f172a; display: block;">Color Principal</strong>
-                  <span style="font-size: 0.7rem; color: #64748b;">Botones, cabecera y acentos</span>
-                </div>
-              </div>
-              <div class="color-picker-group">
-                <input type="color" id="settingsSecondaryColorInput" class="color-input-circle" value="#0ea5e9" />
-                <div>
-                  <strong style="font-size: 0.8rem; color: #0f172a; display: block;">Color Secundario</strong>
-                  <span style="font-size: 0.7rem; color: #64748b;">Bordes y degradados</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div id="settingsBrandingAlertBox" class="alert-box alert-success" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
-
-          <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-            <button type="button" id="btnSettingsResetBranding" class="btn btn-outline" style="font-size: 0.78rem; background: #fff;">
-              Restablecer Valores
-            </button>
-            <button type="submit" id="btnSettingsSaveBranding" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.5rem 1.25rem; font-weight: 700;">
-              Guardar Identidad Institucional
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- SECCIÓN 2: PREFERENCIAS GENERALES -->
-      <div id="settingsSectionPreferences" style="display: none;">
-        <div style="display: flex; flex-direction: column; gap: 1rem;">
-          <!-- Card 1: Accesibilidad / Alto Contraste -->
-          <div class="setting-item-card">
-            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #0284c7;">
-                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path></svg>
-              </div>
+        <!-- COLORES INSTITUCIONALES -->
+        <div style="border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1rem; background: #f8fafc;">
+          <label
+            style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #0f172a; font-weight: 800; margin-bottom: 0.6rem;">
+            Colores Corporativos:
+          </label>
+          <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+            <div class="color-picker-group">
+              <input type="color" id="settingsPrimaryColorInput" class="color-input-circle" value="#0284c7" />
               <div>
-                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Alto Contraste / Fuente Grande</div>
-                <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
-                  Aumenta el tamaño tipográfico y refuerza los contrastes visuales para adultos mayores o despachadores en almacén.
-                </div>
+                <strong style="font-size: 0.8rem; color: #0f172a; display: block;">Color Principal</strong>
+                <span style="font-size: 0.7rem; color: #64748b;">Botones, cabecera y acentos</span>
               </div>
             </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
-              <label class="toggle-switch">
-                <input type="checkbox" id="toggleHighContrastSetting" />
-                <span class="toggle-slider"></span>
-              </label>
-              <span id="labelHighContrastStatus" style="font-size: 0.7rem; font-weight: 700; color: #64748b;">Desactivado</span>
-            </div>
-          </div>
-
-          <!-- Card 2: Seguridad de Sesión y Cierre Automático (Estilo Bancario) -->
-          <div class="setting-item-card">
-            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #f59e0b;">
-                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-              </div>
+            <div class="color-picker-group">
+              <input type="color" id="settingsSecondaryColorInput" class="color-input-circle" value="#0ea5e9" />
               <div>
-                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Cierre Automático de Sesión (Estilo Bancario)</div>
-                <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
-                  Cierra la sesión automáticamente ante inactividad o cuando se abandona / minimiza la ventana, protegiendo asignaciones y datos.
-                </div>
-                <div style="font-size: 0.72rem; color: #0284c7; font-weight: 700; margin-top: 0.35rem; display: flex; align-items: center; gap: 0.3rem;">
-                  <span>🛡️</span>
-                  <span>Exención Activa: El perfil de Super Administrador / Director no se cierra por inactividad.</span>
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
-              <select id="selectSessionTimeoutSetting" class="form-select" style="font-size: 0.75rem; padding: 0.3rem 0.5rem; font-weight: 700;">
-                <option value="5">5 Minutos (Alta Seguridad)</option>
-                <option value="10" selected>10 Minutos (Recomendado)</option>
-                <option value="15">15 Minutos (Estándar)</option>
-                <option value="30">30 Minutos (Extendido)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Card 3: Entorno y Conectividad -->
-          <div class="setting-item-card">
-            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #10b981;">
-                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-              </div>
-              <div>
-                <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Funcionamiento Sin Conexión</div>
-                <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
-                  Las entregas se registran de forma segura en este equipo y se actualizan automáticamente cuando hay conexión.
-                </div>
-              </div>
-            </div>
-            <div style="text-align: right;">
-              <span class="badge badge-activo" style="font-size: 0.7rem;">Sincronizado</span>
-            </div>
-          </div>
-
-          <!-- Card 3: Información de Plataforma -->
-          <div class="setting-item-card" style="background: #f1f5f9;">
-            <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
-              <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #64748b;">
-                <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-              </div>
-              <div>
-                <div style="font-weight: 700; color: #334155; font-size: 0.85rem;">SGBT Bienestar Alimentario v2.2</div>
-                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
-                  Protección Biométrica y Control de Entregas Institucionales
-                </div>
+                <strong style="font-size: 0.8rem; color: #0f172a; display: block;">Color Secundario</strong>
+                <span style="font-size: 0.7rem; color: #64748b;">Bordes y degradados</span>
               </div>
             </div>
           </div>
         </div>
 
-        <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
-          <button type="button" id="btnApplyGeneralSettings" class="btn btn-primary" style="padding: 0.45rem 1.25rem; font-size: 0.8rem;">
-            Aceptar
+        <div id="settingsBrandingAlertBox" class="alert-box alert-success"
+          style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
+          <button type="button" id="btnSettingsResetBranding" class="btn btn-outline"
+            style="font-size: 0.78rem; background: #fff;">
+            Restablecer Valores
           </button>
-        </div>
-      </div>
-
-      <!-- SECCIÓN 3: PUESTA A CERO / ZONA DE PELIGRO (SOLO ADMIN) -->
-      <div id="settingsSectionDanger" style="display: none;">
-        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
-          <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
-            <div style="color: #dc2626; flex-shrink: 0; padding-top: 0.1rem;">
-              <svg class="icon-svg icon-md" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            </div>
-            <div>
-              <div style="font-weight: 800; color: #991b1b; font-size: 0.92rem;">Puesta a Cero de la Base de Datos (Modo Productivo)</div>
-              <p style="font-size: 0.8rem; color: #b91c1c; margin-top: 0.35rem; line-height: 1.45;">
-                Esta acción eliminará de forma irreversible <strong>todos los beneficiarios de muestra</strong>, registros biométricos, códigos QR, despachos, auditorías y jornadas planificadas. Se descargará automáticamente un archivo de respaldo (backup JSON) en su equipo antes de la ejecución.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
-          <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.82rem; color: #0f172a;">
-            <input type="checkbox" id="checkKeepTemplatesReset" checked style="width: 17px; height: 17px; accent-color: var(--sea-pacific); margin-top: 0.15rem;" />
-            <span>
-              <strong>Conservar combos y sedes como plantillas editables (Opción A.1 Recomendada)</strong><br />
-              <span style="color: #64748b; font-size: 0.76rem;">Mantiene el catálogo base de bolsas/víveres para que no tenga que crearlos desde cero en la nueva configuración.</span>
-            </span>
-          </label>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
-            <div>
-              <span style="font-size: 0.78rem; font-weight: 700; color: #334155;">Descargar Respaldo Preventivo:</span>
-              <div style="font-size: 0.72rem; color: #64748b;">Descarga manual de la base de datos actual en formato JSON</div>
-            </div>
-            <button type="button" id="btnDownloadBackupManual" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.45rem 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
-              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span>Descargar Backup JSON</span>
-            </button>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-          <button type="button" id="btnOpenFactoryResetConfirmModal" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700; padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.45rem;">
-            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            <span>Puesta a Cero y Configuración Inicial</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL DE CONFIRMACIÓN ESTRICTA: PUESTA A CERO -->
-  <div id="factoryResetConfirmModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 490px; border-top: 4px solid #dc2626;">
-      <div class="panel-header" style="margin-bottom: 1rem;">
-        <div class="panel-title" style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700;">
-          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          <span>Confirmar Puesta a Cero</span>
-        </div>
-        <button id="btnCloseFactoryResetConfirmModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-      </div>
-
-      <div style="font-size: 0.85rem; color: #475569; line-height: 1.45; margin-bottom: 1rem;">
-        Esta acción es <strong>irreversible</strong>. Todos los datos de prueba serán purgados y el sistema entrará en modo de <strong>Primera Configuración (Asistente de Activación)</strong>.
-      </div>
-
-      <div class="input-group" style="margin-bottom: 1.25rem;">
-        <label style="font-size: 0.75rem; color: #0f172a; font-weight: 700;">Para confirmar, escriba la clave: <span style="color: #dc2626; font-family: monospace; font-size: 0.95rem; font-weight: 800;">0578</span> (o <span style="color: #475569; font-family: monospace; font-size: 0.8rem;">REINICIAR SISTEMA</span>)</label>
-        <input type="text" id="inputFactoryResetPhrase" class="form-input" placeholder="0578" autocomplete="off" />
-      </div>
-
-      <div id="factoryResetAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem; font-size: 0.8rem; margin-bottom: 1rem;"></div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-        <button type="button" id="btnCancelFactoryResetConfirm" class="btn btn-outline">Cancelar</button>
-        <button type="button" id="btnExecuteFactoryResetConfirm" class="btn btn-primary" style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700;" disabled>
-          Proceder con la Puesta a Cero
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======================================================================
-       MODAL 5: REGISTRAR NUEVO BENEFICIARIO (NÓMINA INDIVIDUAL)
-       ====================================================================== -->
-  <div id="createWorkerModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 600px;">
-      <div class="panel-header" style="margin-bottom: 1.25rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          ➕ Registrar Nuevo Beneficiario
-        </div>
-        <button id="btnCloseCreateWorkerModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-      </div>
-
-      <form id="createWorkerForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
-        <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.75rem;">
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Nacionalidad: *
-            </label>
-            <select id="newWorkerDocType" class="form-select" style="font-weight: 700;">
-              <option value="V">V- (Venezolano)</option>
-              <option value="E">E- (Extranjero)</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Cédula de Identidad: *
-            </label>
-            <input type="text" id="newWorkerDocNumber" class="form-input text-mono" placeholder="Ej: 19876543" required style="font-weight: 700;" />
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Nombres y Apellidos Completos: *
-          </label>
-          <input type="text" id="newWorkerFullName" class="form-input" placeholder="Ej: Carmen Teresa Rodríguez" required />
-        </div>
-
-        <div class="form-grid-2">
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Condición Laboral: *
-            </label>
-            <select id="newWorkerType" class="form-select" required>
-              <option value="activo">🏢 Funcionario Activo</option>
-              <option value="jubilado">👴 Jubilado / Pensionado</option>
-              <option value="contratado">📄 Personal Contratado</option>
-              <option value="comision">💼 Comisión de Servicio</option>
-            </select>
-          </div>
-
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Departamento / Dirección:
-            </label>
-            <select id="newWorkerDepartment" class="form-select">
-              <!-- Se puebla dinámicamente -->
-            </select>
-          </div>
-        </div>
-
-        <div class="input-group">
-          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Rol / Perfil Operativo: *
-          </label>
-          <select id="newWorkerRole" class="form-select" required style="font-weight: 600; border-color: #cbd5e1;">
-            <option value="worker" selected>👤 Beneficiario Titular (Nómina General)</option>
-            <option value="operator">📦 Mesa de Despacho (Operador de Escáner)</option>
-            <option value="supervisor">🛡️ Supervisor de Jornada / RRHH (Autorizaciones)</option>
-            <option value="admin">👑 Administrador General del Sistema</option>
-          </select>
-        </div>
-
-        <div class="form-grid-2">
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Teléfono Celular / WhatsApp:
-            </label>
-            <input type="tel" id="newWorkerPhone" class="form-input" placeholder="+58 412 1234567" />
-          </div>
-
-          <div class="input-group">
-            <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-              Correo Electrónico Institucional:
-            </label>
-            <input type="email" id="newWorkerEmail" class="form-input" placeholder="ejemplo@mippci.gob.ve" />
-          </div>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
-          <input type="checkbox" id="newWorkerHasSmartphone" checked style="width: 18px; height: 18px; accent-color: var(--sea-pacific);" />
-          <label for="newWorkerHasSmartphone" style="font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
-            Posee Teléfono Inteligente (Habilitar retiro con Huella / FaceID)
-          </label>
-        </div>
-
-        <div id="newWorkerAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
-
-        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-          <button type="button" id="btnCancelCreateWorker" class="btn btn-outline">Cancelar</button>
-          <button type="submit" id="btnSubmitCreateWorker" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700;">
-            💾 Registrar en el Padrón
+          <button type="submit" id="btnSettingsSaveBranding" class="btn btn-primary"
+            style="font-size: 0.78rem; padding: 0.5rem 1.25rem; font-weight: 700;">
+            Guardar Identidad Institucional
           </button>
         </div>
       </form>
     </div>
-  </div>
 
-  <!-- ======================================================================
-       MODAL 6: IMPORTACIÓN MASIVA DE NÓMINA (CSV / EXCEL)
-       ====================================================================== -->
-  <div id="importPayrollModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 650px;">
-      <div class="panel-header" style="margin-bottom: 1.25rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          📂 Carga Masiva de Nómina Institucional (CSV)
-        </div>
-        <button id="btnCloseImportPayrollModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-      </div>
-
-      <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem; line-height: 1.4;">
-        Importe la nómina del ministerio o ente público en formato CSV. Los trabajadores quedarán habilitados de forma inmediata para retirar sus beneficios.
-      </div>
-
-      <div class="file-dropzone" id="csvFileDropzone">
-        <div class="file-dropzone-icon">📥</div>
-        <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">
-          Haga clic o arrastre su archivo CSV aquí
-        </div>
-        <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
-          Formatos compatibles: .csv, .txt con separación por comas o punto y coma
-        </div>
-        <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" style="display: none;" />
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
-        <button type="button" id="btnDownloadCsvSample" class="btn btn-outline" style="font-size: 0.75rem; background: #fff;">
-          📄 Descargar Plantilla CSV de Ejemplo
-        </button>
-        <span id="csvFileStatusText" style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Ningún archivo seleccionado</span>
-      </div>
-
-      <!-- TABLA PREVIA DE IMPORTACIÓN -->
-      <div id="csvPreviewContainer" style="display: none; margin-top: 1rem; max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
-        <table class="modern-table" style="font-size: 0.78rem;">
-          <thead>
-            <tr>
-              <th>Cédula</th>
-              <th>Nombre</th>
-              <th>Condición</th>
-              <th>Teléfono</th>
-            </tr>
-          </thead>
-          <tbody id="csvPreviewTableBody"></tbody>
-        </table>
-      </div>
-
-      <div id="csvAlertBox" class="alert-box alert-info" style="display: none; margin-top: 1rem; padding: 0.75rem; font-size: 0.8rem;"></div>
-
-      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
-        <button type="button" id="btnCancelImportPayroll" class="btn btn-outline">Cancelar</button>
-        <button type="button" id="btnExecuteBatchImport" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700;" disabled>
-          🚀 Importar Beneficiarios
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ======================================================================
-       MODAL 7: PLANIFICACIÓN DE NUEVA JORNADA DE DESPACHO
-       ====================================================================== -->
-  <div id="createCampaignModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 640px;">
-      <div class="modal-header-polished">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.65rem; font-size: 1.15rem; font-weight: 800;">
-          <div style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(2, 132, 199, 0.12); color: var(--sea-pacific); flex-shrink: 0;">
-            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-          </div>
-          <span style="letter-spacing: -0.015em;">Programar Nueva Jornada de Despacho</span>
-        </div>
-        <button id="btnCloseCreateCampaignModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
-          <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        </button>
-      </div>
-
-      <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1.1rem;">
-        <div class="input-group">
-          <label for="campaignNameInput">Título / Nombre de la Jornada: *</label>
-          <input type="text" id="campaignNameInput" class="form-input" placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
-        </div>
-
-        <div class="form-grid-2">
-          <div class="input-group">
-            <div class="input-header-row">
-              <label for="campaignStartDateInput">Fecha de Inicio: *</label>
+    <!-- SECCIÓN 2: PREFERENCIAS GENERALES -->
+    <div id="settingsSectionPreferences" style="display: none;">
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        <!-- Card 1: Accesibilidad / Alto Contraste -->
+        <div class="setting-item-card">
+          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+            <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #0284c7;">
+              <svg class="icon-svg icon-md" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              </svg>
             </div>
-            <input type="date" id="campaignStartDateInput" class="form-input" required />
-          </div>
-          <div class="input-group">
-            <div class="input-header-row">
-              <label for="campaignEndDateInput">Fecha de Cierre: *</label>
-            </div>
-            <input type="date" id="campaignEndDateInput" class="form-input" required />
-          </div>
-        </div>
-
-        <div class="form-grid-2">
-          <div class="input-group">
-            <div class="input-header-row">
-              <label for="campaignComboSelect">Combo / Beneficio Asignado: *</label>
-            </div>
-            <select id="campaignComboSelect" class="form-select">
-              <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)</option>
-              <option value="ae65fee7-79f6-48a3-bc41-a61c928876b5">🍗 Combo Proteico Fresco (Cadena de Frío)</option>
-            </select>
-          </div>
-          <div class="input-group">
-            <div class="input-header-row">
-              <label for="campaignPointSelect">Punto / Sede: *</label>
-              <div class="input-header-actions">
-                <button type="button" id="btnEditDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;" title="Modificar la sede seleccionada">
-                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                  <span>Editar</span>
-                </button>
-                <button type="button" id="btnAddDistributionPoint" class="btn btn-outline" style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #0284c7; color: #0284c7; background: rgba(2, 132, 199, 0.05); font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;" title="Agregar nueva sede de despacho">
-                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                  <span>Nueva</span>
-                </button>
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Alto Contraste / Fuente Grande</div>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
+                Aumenta el tamaño tipográfico y refuerza los contrastes visuales para adultos mayores o despachadores en
+                almacén.
               </div>
             </div>
-            <select id="campaignPointSelect" class="form-select">
-              <option value="b12f492f-ebb3-430f-bc20-26ca4aa5b865">Almacén Central - Sede Principal MIPPCI (ALM-MIPPCI)</option>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+            <label class="toggle-switch">
+              <input type="checkbox" id="toggleHighContrastSetting" />
+              <span class="toggle-slider"></span>
+            </label>
+            <span id="labelHighContrastStatus"
+              style="font-size: 0.7rem; font-weight: 700; color: #64748b;">Desactivado</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Seguridad de Sesión y Cierre Automático (Estilo Bancario) -->
+        <div class="setting-item-card">
+          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+            <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #f59e0b;">
+              <svg class="icon-svg icon-md" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Cierre Automático de Sesión (Estilo
+                Bancario)</div>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
+                Cierra la sesión automáticamente ante inactividad o cuando se abandona / minimiza la ventana,
+                protegiendo asignaciones y datos.
+              </div>
+              <div
+                style="font-size: 0.72rem; color: #0284c7; font-weight: 700; margin-top: 0.35rem; display: flex; align-items: center; gap: 0.3rem;">
+                <span>🛡️</span>
+                <span>Exención Activa: El perfil de Super Administrador / Director no se cierra por inactividad.</span>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem;">
+            <select id="selectSessionTimeoutSetting" class="form-select"
+              style="font-size: 0.75rem; padding: 0.3rem 0.5rem; font-weight: 700;">
+              <option value="5">5 Minutos (Alta Seguridad)</option>
+              <option value="10" selected>10 Minutos (Recomendado)</option>
+              <option value="15">15 Minutos (Estándar)</option>
+              <option value="30">30 Minutos (Extendido)</option>
             </select>
           </div>
         </div>
 
-        <!-- PANEL INLINE PARA AGREGAR O MODIFICAR SEDE DE DESPACHO -->
-        <div id="distributionPointFormPanel" style="display: none; background: #f8fafc; border: 1.5px solid #bae6fd; border-radius: var(--radius-md); padding: 1rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); animation: modalEnter 0.15s ease;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <div id="distributionPointFormTitle" style="font-size: 0.84rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.45rem;">
-              <svg class="icon-svg icon-xs" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-              <span id="distributionPointFormTitleText">Nueva Sede de Despacho</span>
+        <!-- Card 3: Entorno y Conectividad -->
+        <div class="setting-item-card">
+          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+            <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #10b981;">
+              <svg class="icon-svg icon-md" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                </path>
+              </svg>
             </div>
-            <button type="button" id="btnCancelDistributionPointForm" class="modal-close-btn" style="width: 28px; height: 28px; min-width: 28px; min-height: 28px;" title="Cerrar">✕</button>
-          </div>
-          <input type="hidden" id="editPointId" value="" />
-          <div class="form-grid-2" style="margin-bottom: 0.65rem;">
-            <div class="input-group">
-              <label for="pointNameInput" style="font-size: 0.72rem;">Nombre de la Sede / Punto: *</label>
-              <input type="text" id="pointNameInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Comedor Mezzanina Torre Este" />
-            </div>
-            <div class="input-group">
-              <label for="pointCodeInput" style="font-size: 0.72rem;">Código de Ubicación: *</label>
-              <input type="text" id="pointCodeInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem; text-transform: uppercase;" placeholder="Ej: COM-MTE" />
+            <div>
+              <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">Funcionamiento Sin Conexión</div>
+              <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem; line-height: 1.35;">
+                Las entregas se registran de forma segura en este equipo y se actualizan automáticamente cuando hay
+                conexión.
+              </div>
             </div>
           </div>
-          <div class="input-group" style="margin-bottom: 0.75rem;">
-            <label for="pointAddressInput" style="font-size: 0.72rem;">Dirección Física o Referencia:</label>
-            <input type="text" id="pointAddressInput" class="form-input" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Piso 1, frente a torniquetes y ascensores 3 y 4" />
-          </div>
-          <div id="pointFormAlert" class="alert-box alert-danger" style="display: none; padding: 0.45rem 0.65rem; font-size: 0.75rem; margin-bottom: 0.5rem;"></div>
-          <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-            <button type="button" id="btnClosePointPanel" class="btn btn-outline" style="padding: 0.4rem 0.85rem; font-size: 0.78rem;">Cancelar</button>
-            <button type="button" id="btnSaveDistributionPoint" class="btn btn-primary" style="padding: 0.4rem 1rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
-              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span id="btnSavePointText">Guardar y Asignar Sede</span>
-            </button>
+          <div style="text-align: right;">
+            <span class="badge badge-activo" style="font-size: 0.7rem;">Sincronizado</span>
           </div>
         </div>
 
-        <div class="input-group">
-          <label for="campaignTargetSelect">Población Objetivo / Criterio de Selección:</label>
-          <select id="campaignTargetSelect" class="form-select">
-            <option value="all">Todo el Personal (Universal: Activos, Jubilados, Contratados)</option>
-            <option value="activo">Exclusivo Personal Activo</option>
-            <option value="jubilado">Exclusivo Jubilados y Pensionados</option>
-            <option value="contratado">Exclusivo Personal Contratado</option>
-          </select>
+        <!-- Card 3: Información de Plataforma -->
+        <div class="setting-item-card" style="background: #f1f5f9;">
+          <div style="display: flex; gap: 0.85rem; align-items: flex-start; flex: 1;">
+            <div style="font-size: 1.4rem; line-height: 1; padding: 0.2rem; color: #64748b;">
+              <svg class="icon-svg icon-md" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; color: #334155; font-size: 0.85rem;">SGBT Bienestar Alimentario v2.2</div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                Protección Biométrica y Control de Entregas Institucionales
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div class="input-group">
-          <label for="campaignDescriptionInput">Descripción / Instrucciones de Retiro:</label>
-          <textarea id="campaignDescriptionInput" class="form-input" rows="2" placeholder="Ej: Presentar documento de identidad o QR biométrico en la mesa central de 8:30 AM a 4:00 PM."></textarea>
-        </div>
-
-        <!-- OPCIONES AUTOMÁTICAS CON ALINEACIÓN ÓPTICA -->
-        <div style="display: flex; flex-direction: column; gap: 0.65rem; background: #f8fafc; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
-          <label style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
-            <input type="checkbox" id="campaignAutoEntitlementsCheck" checked style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
-            <span>Generar asignaciones de beneficio automáticamente en el sistema para todos los trabajadores seleccionados.</span>
-          </label>
-          <label style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
-            <input type="checkbox" id="campaignNotifyCheck" checked style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
-            <span>Activar notificación en la aplicación para convocar a los beneficiarios.</span>
-          </label>
-        </div>
-
-        <div id="campaignAlertBox" class="alert-box alert-danger" style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
-
-        <div class="modal-footer-actions">
-          <button type="button" id="btnCancelCreateCampaign" class="btn btn-outline" style="min-height: 42px;">Cancelar</button>
-          <button type="submit" id="btnSubmitCreateCampaign" class="btn btn-primary" style="padding: 0.6rem 1.4rem; font-weight: 700; min-height: 42px; display: inline-flex; align-items: center; gap: 0.4rem;">
-            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-            <span>Publicar Jornada</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ======================================================================
-       MODAL 8: BANDEJA DE NOTIFICACIONES Y AVISOS DE JORNADA
-       ====================================================================== -->
-  <div id="notificationsModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 580px;">
-      <div class="panel-header" style="margin-bottom: 1.25rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          <span>Avisos y Notificaciones del Sistema</span>
-        </div>
-        <button id="btnCloseNotificationsModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-        <span style="font-size: 0.8rem; color: #64748b;">Avisos institucionales sobre convocatorias y entregas:</span>
-        <button id="btnToggleNewAlertForm" class="btn btn-outline" style="font-size: 0.75rem; background: #fff; display: inline-flex; align-items: center; gap: 0.35rem;">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          <span>Redactar Aviso</span>
-        </button>
-      </div>
-
-      <!-- FORMULARIO RÁPIDO PARA REDACTAR AVISO -->
-      <div id="newAlertFormBlock" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
-        <div style="font-weight: 700; color: #0f172a; font-size: 0.82rem; margin-bottom: 0.5rem;">
-          Enviar Nuevo Aviso a los Beneficiarios:
-        </div>
-        <input id="quickAlertTitleInput" type="text" class="form-input" placeholder="Título del aviso (ej: Extensión de horario de retiro)" style="margin-bottom: 0.5rem; font-size: 0.82rem;" />
-        <textarea id="quickAlertMessageInput" class="form-input" rows="2" placeholder="Detalle del aviso..." style="margin-bottom: 0.5rem; font-size: 0.82rem;"></textarea>
-        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
-          <button type="button" id="btnCancelQuickAlert" class="btn btn-outline" style="font-size: 0.75rem;">Cancelar</button>
-          <button type="button" id="btnSendQuickAlert" class="btn btn-primary" style="font-size: 0.75rem;">Publicar Notificación</button>
-        </div>
-      </div>
-
-      <!-- LISTA DE NOTIFICACIONES -->
-      <div id="notificationsListContainer" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 380px; overflow-y: auto;">
-        <!-- Se inyecta dinámicamente -->
       </div>
 
       <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
-        <button type="button" id="btnCloseNotificationsModalBtn" class="btn btn-primary" style="padding: 0.45rem 1.25rem;">
-          Cerrar
+        <button type="button" id="btnApplyGeneralSettings" class="btn btn-primary"
+          style="padding: 0.45rem 1.25rem; font-size: 0.8rem;">
+          Aceptar
+        </button>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 3: PUESTA A CERO / ZONA DE PELIGRO (SOLO ADMIN) -->
+    <div id="settingsSectionDanger" style="display: none;">
+      <div
+        style="background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+          <div style="color: #dc2626; flex-shrink: 0; padding-top: 0.1rem;">
+            <svg class="icon-svg icon-md" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          </div>
+          <div>
+            <div style="font-weight: 800; color: #991b1b; font-size: 0.92rem;">Puesta a Cero de la Base de Datos (Modo
+              Productivo)</div>
+            <p style="font-size: 0.8rem; color: #b91c1c; margin-top: 0.35rem; line-height: 1.45;">
+              Esta acción eliminará de forma irreversible <strong>todos los beneficiarios de muestra</strong>, registros
+              biométricos, códigos QR, despachos, auditorías y jornadas planificadas. Se descargará automáticamente un
+              archivo de respaldo (backup JSON) en su equipo antes de la ejecución.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
+        <label
+          style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.82rem; color: #0f172a;">
+          <input type="checkbox" id="checkKeepTemplatesReset" checked
+            style="width: 17px; height: 17px; accent-color: var(--sea-pacific); margin-top: 0.15rem;" />
+          <span>
+            <strong>Conservar combos y sedes como plantillas editables (Opción A.1 Recomendada)</strong><br />
+            <span style="color: #64748b; font-size: 0.76rem;">Mantiene el catálogo base de bolsas/víveres para que no
+              tenga que crearlos desde cero en la nueva configuración.</span>
+          </span>
+        </label>
+
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <span style="font-size: 0.78rem; font-weight: 700; color: #334155;">Descargar Respaldo Preventivo:</span>
+            <div style="font-size: 0.72rem; color: #64748b;">Descarga manual de la base de datos actual en formato JSON
+            </div>
+          </div>
+          <button type="button" id="btnDownloadBackupManual" class="btn btn-outline"
+            style="font-size: 0.78rem; padding: 0.45rem 0.85rem; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            <span>Descargar Backup JSON</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" id="btnOpenFactoryResetConfirmModal" class="btn btn-primary"
+          style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700; padding: 0.6rem 1.25rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+          <span>Puesta a Cero y Configuración Inicial</span>
         </button>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ======================================================================
+<!-- MODAL DE CONFIRMACIÓN ESTRICTA: PUESTA A CERO -->
+<div id="factoryResetConfirmModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 490px; border-top: 4px solid #dc2626;">
+    <div class="panel-header" style="margin-bottom: 1rem;">
+      <div class="panel-title"
+        style="color: #991b1b; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700;">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>Confirmar Puesta a Cero</span>
+      </div>
+      <button id="btnCloseFactoryResetConfirmModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
+
+    <div style="font-size: 0.85rem; color: #475569; line-height: 1.45; margin-bottom: 1rem;">
+      Esta acción es <strong>irreversible</strong>. Todos los datos de prueba serán purgados y el sistema entrará en
+      modo de <strong>Primera Configuración (Asistente de Activación)</strong>.
+    </div>
+
+    <div class="input-group" style="margin-bottom: 1.25rem;">
+      <label style="font-size: 0.75rem; color: #0f172a; font-weight: 700;">Para confirmar, escriba la clave: <span
+          style="color: #dc2626; font-family: monospace; font-size: 0.95rem; font-weight: 800;">0578</span> (o <span
+          style="color: #475569; font-family: monospace; font-size: 0.8rem;">REINICIAR SISTEMA</span>)</label>
+      <input type="text" id="inputFactoryResetPhrase" class="form-input" placeholder="0578" autocomplete="off" />
+    </div>
+
+    <div id="factoryResetAlertBox" class="alert-box alert-danger"
+      style="display: none; padding: 0.6rem; font-size: 0.8rem; margin-bottom: 1rem;"></div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+      <button type="button" id="btnCancelFactoryResetConfirm" class="btn btn-outline">Cancelar</button>
+      <button type="button" id="btnExecuteFactoryResetConfirm" class="btn btn-primary"
+        style="background: #dc2626; border-color: #dc2626; color: #fff; font-weight: 700;" disabled>
+        Proceder con la Puesta a Cero
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+       MODAL 5: REGISTRAR NUEVO BENEFICIARIO (NÓMINA INDIVIDUAL)
+       ====================================================================== -->
+<div id="createWorkerModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 600px;">
+    <div class="panel-header" style="margin-bottom: 1.25rem;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+        ➕ Registrar Nuevo Beneficiario
+      </div>
+      <button id="btnCloseCreateWorkerModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
+
+    <form id="createWorkerForm" onsubmit="event.preventDefault();"
+      style="display: flex; flex-direction: column; gap: 1rem;">
+      <div style="display: grid; grid-template-columns: 140px 1fr; gap: 0.75rem;">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Nacionalidad: *
+          </label>
+          <select id="newWorkerDocType" class="form-select" style="font-weight: 700;">
+            <option value="V">V- (Venezolano)</option>
+            <option value="E">E- (Extranjero)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Cédula de Identidad: *
+          </label>
+          <input type="text" id="newWorkerDocNumber" class="form-input text-mono" placeholder="Ej: 19876543" required
+            style="font-weight: 700;" />
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+          Nombres y Apellidos Completos: *
+        </label>
+        <input type="text" id="newWorkerFullName" class="form-input" placeholder="Ej: Carmen Teresa Rodríguez"
+          required />
+      </div>
+
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Condición Laboral: *
+          </label>
+          <select id="newWorkerType" class="form-select" required>
+            <option value="activo">🏢 Funcionario Activo</option>
+            <option value="jubilado">👴 Jubilado / Pensionado</option>
+            <option value="contratado">📄 Personal Contratado</option>
+            <option value="comision">💼 Comisión de Servicio</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Departamento / Dirección:
+          </label>
+          <select id="newWorkerDepartment" class="form-select">
+            <!-- Se puebla dinámicamente -->
+          </select>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+          Rol / Perfil Operativo: *
+        </label>
+        <select id="newWorkerRole" class="form-select" required style="font-weight: 600; border-color: #cbd5e1;">
+          <option value="worker" selected>👤 Beneficiario Titular (Nómina General)</option>
+          <option value="operator">📦 Mesa de Despacho (Operador de Escáner)</option>
+          <option value="supervisor">🛡️ Supervisor de Jornada / RRHH (Autorizaciones)</option>
+          <option value="admin">👑 Administrador General del Sistema</option>
+        </select>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Teléfono Celular / WhatsApp:
+          </label>
+          <input type="tel" id="newWorkerPhone" class="form-input" placeholder="+58 412 1234567" />
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Correo Electrónico Institucional:
+          </label>
+          <input type="email" id="newWorkerEmail" class="form-input" placeholder="ejemplo@mippci.gob.ve" />
+        </div>
+      </div>
+
+      <div
+        style="display: flex; align-items: center; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
+        <input type="checkbox" id="newWorkerHasSmartphone" checked
+          style="width: 18px; height: 18px; accent-color: var(--sea-pacific);" />
+        <label for="newWorkerHasSmartphone"
+          style="font-size: 0.8rem; color: #0f172a; font-weight: 600; cursor: pointer;">
+          Posee Teléfono Inteligente (Habilitar retiro con Huella / FaceID)
+        </label>
+      </div>
+
+      <div id="newWorkerAlertBox" class="alert-box alert-danger"
+        style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+        <button type="button" id="btnCancelCreateWorker" class="btn btn-outline">Cancelar</button>
+        <button type="submit" id="btnSubmitCreateWorker" class="btn btn-primary"
+          style="padding: 0.6rem 1.4rem; font-weight: 700;">
+          💾 Registrar en el Padrón
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================================================================
+       MODAL 6: IMPORTACIÓN MASIVA DE NÓMINA (CSV / EXCEL)
+       ====================================================================== -->
+<div id="importPayrollModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 650px;">
+    <div class="panel-header" style="margin-bottom: 1.25rem;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+        📂 Carga Masiva de Nómina Institucional (CSV)
+      </div>
+      <button id="btnCloseImportPayrollModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
+
+    <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem; line-height: 1.4;">
+      Importe la nómina del ministerio o ente público en formato CSV. Los trabajadores quedarán habilitados de forma
+      inmediata para retirar sus beneficios.
+    </div>
+
+    <div class="file-dropzone" id="csvFileDropzone">
+      <div class="file-dropzone-icon">📥</div>
+      <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">
+        Haga clic o arrastre su archivo CSV aquí
+      </div>
+      <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
+        Formatos compatibles: .csv, .txt con separación por comas o punto y coma
+      </div>
+      <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" style="display: none;" />
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+      <button type="button" id="btnDownloadCsvSample" class="btn btn-outline"
+        style="font-size: 0.75rem; background: #fff;">
+        📄 Descargar Plantilla CSV de Ejemplo
+      </button>
+      <span id="csvFileStatusText" style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Ningún archivo
+        seleccionado</span>
+    </div>
+
+    <!-- TABLA PREVIA DE IMPORTACIÓN -->
+    <div id="csvPreviewContainer"
+      style="display: none; margin-top: 1rem; max-height: 200px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
+      <table class="modern-table" style="font-size: 0.78rem;">
+        <thead>
+          <tr>
+            <th>Cédula</th>
+            <th>Nombre</th>
+            <th>Condición</th>
+            <th>Teléfono</th>
+          </tr>
+        </thead>
+        <tbody id="csvPreviewTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="csvAlertBox" class="alert-box alert-info"
+      style="display: none; margin-top: 1rem; padding: 0.75rem; font-size: 0.8rem;"></div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem;">
+      <button type="button" id="btnCancelImportPayroll" class="btn btn-outline">Cancelar</button>
+      <button type="button" id="btnExecuteBatchImport" class="btn btn-primary"
+        style="padding: 0.6rem 1.4rem; font-weight: 700;" disabled>
+        🚀 Importar Beneficiarios
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+       MODAL 7: PLANIFICACIÓN DE NUEVA JORNADA DE DESPACHO
+       ====================================================================== -->
+<div id="createCampaignModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 640px;">
+    <div class="modal-header-polished">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.65rem; font-size: 1.15rem; font-weight: 800;">
+        <div
+          style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(2, 132, 199, 0.12); color: var(--sea-pacific); flex-shrink: 0;">
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </div>
+        <span style="letter-spacing: -0.015em;">Programar Nueva Jornada de Despacho</span>
+      </div>
+      <button id="btnCloseCreateCampaignModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1.1rem;">
+      <div class="input-group">
+        <label for="campaignNameInput">Título / Nombre de la Jornada: *</label>
+        <input type="text" id="campaignNameInput" class="form-input"
+          placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
+      </div>
+
+      <div class="form-grid-2">
+        <div class="input-group">
+          <div class="input-header-row">
+            <label for="campaignStartDateInput">Fecha de Inicio: *</label>
+          </div>
+          <input type="date" id="campaignStartDateInput" class="form-input" required />
+        </div>
+        <div class="input-group">
+          <div class="input-header-row">
+            <label for="campaignEndDateInput">Fecha de Cierre: *</label>
+          </div>
+          <input type="date" id="campaignEndDateInput" class="form-input" required />
+        </div>
+      </div>
+
+      <div class="form-grid-2">
+        <div class="input-group">
+          <div class="input-header-row">
+            <label for="campaignComboSelect">Combo / Beneficio Asignado: *</label>
+          </div>
+          <select id="campaignComboSelect" class="form-select">
+            <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)
+            </option>
+            <option value="ae65fee7-79f6-48a3-bc41-a61c928876b5">🍗 Combo Proteico Fresco (Cadena de Frío)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <div class="input-header-row">
+            <label for="campaignPointSelect">Punto / Sede: *</label>
+            <div class="input-header-actions">
+              <button type="button" id="btnEditDistributionPoint" class="btn btn-outline"
+                style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;"
+                title="Modificar la sede seleccionada">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+                <span>Editar</span>
+              </button>
+              <button type="button" id="btnAddDistributionPoint" class="btn btn-outline"
+                style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #0284c7; color: #0284c7; background: rgba(2, 132, 199, 0.05); font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;"
+                title="Agregar nueva sede de despacho">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Nueva</span>
+              </button>
+            </div>
+          </div>
+          <select id="campaignPointSelect" class="form-select">
+            <option value="b12f492f-ebb3-430f-bc20-26ca4aa5b865">Almacén Central - Sede Principal MIPPCI (ALM-MIPPCI)
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PANEL INLINE PARA AGREGAR O MODIFICAR SEDE DE DESPACHO -->
+      <div id="distributionPointFormPanel"
+        style="display: none; background: #f8fafc; border: 1.5px solid #bae6fd; border-radius: var(--radius-md); padding: 1rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); animation: modalEnter 0.15s ease;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div id="distributionPointFormTitle"
+            style="font-size: 0.84rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.45rem;">
+            <svg class="icon-svg icon-xs" style="color: var(--sea-pacific);" viewBox="0 0 24 24">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+              <circle cx="12" cy="10" r="3"></circle>
+            </svg>
+            <span id="distributionPointFormTitleText">Nueva Sede de Despacho</span>
+          </div>
+          <button type="button" id="btnCancelDistributionPointForm" class="modal-close-btn"
+            style="width: 28px; height: 28px; min-width: 28px; min-height: 28px;" title="Cerrar">✕</button>
+        </div>
+        <input type="hidden" id="editPointId" value="" />
+        <div class="form-grid-2" style="margin-bottom: 0.65rem;">
+          <div class="input-group">
+            <label for="pointNameInput" style="font-size: 0.72rem;">Nombre de la Sede / Punto: *</label>
+            <input type="text" id="pointNameInput" class="form-input"
+              style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Comedor Mezzanina Torre Este" />
+          </div>
+          <div class="input-group">
+            <label for="pointCodeInput" style="font-size: 0.72rem;">Código de Ubicación: *</label>
+            <input type="text" id="pointCodeInput" class="form-input"
+              style="padding: 0.45rem 0.65rem; font-size: 0.8rem; text-transform: uppercase;"
+              placeholder="Ej: COM-MTE" />
+          </div>
+        </div>
+        <div class="input-group" style="margin-bottom: 0.75rem;">
+          <label for="pointAddressInput" style="font-size: 0.72rem;">Dirección Física o Referencia:</label>
+          <input type="text" id="pointAddressInput" class="form-input"
+            style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
+            placeholder="Ej: Piso 1, frente a torniquetes y ascensores 3 y 4" />
+        </div>
+        <div id="pointFormAlert" class="alert-box alert-danger"
+          style="display: none; padding: 0.45rem 0.65rem; font-size: 0.75rem; margin-bottom: 0.5rem;"></div>
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" id="btnClosePointPanel" class="btn btn-outline"
+            style="padding: 0.4rem 0.85rem; font-size: 0.78rem;">Cancelar</button>
+          <button type="button" id="btnSaveDistributionPoint" class="btn btn-primary"
+            style="padding: 0.4rem 1rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="btnSavePointText">Guardar y Asignar Sede</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="campaignTargetSelect">Población Objetivo / Criterio de Selección:</label>
+        <select id="campaignTargetSelect" class="form-select">
+          <option value="all">Todo el Personal (Universal: Activos, Jubilados, Contratados)</option>
+          <option value="activo">Exclusivo Personal Activo</option>
+          <option value="jubilado">Exclusivo Jubilados y Pensionados</option>
+          <option value="contratado">Exclusivo Personal Contratado</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="campaignDescriptionInput">Descripción / Instrucciones de Retiro:</label>
+        <textarea id="campaignDescriptionInput" class="form-input" rows="2"
+          placeholder="Ej: Presentar documento de identidad o QR biométrico en la mesa central de 8:30 AM a 4:00 PM."></textarea>
+      </div>
+
+      <!-- OPCIONES AUTOMÁTICAS CON ALINEACIÓN ÓPTICA -->
+      <div
+        style="display: flex; flex-direction: column; gap: 0.65rem; background: #f8fafc; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
+        <label
+          style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
+          <input type="checkbox" id="campaignAutoEntitlementsCheck" checked
+            style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
+          <span>Generar asignaciones de beneficio automáticamente en el sistema para todos los trabajadores
+            seleccionados.</span>
+        </label>
+        <label
+          style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
+          <input type="checkbox" id="campaignNotifyCheck" checked
+            style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
+          <span>Activar notificación en la aplicación para convocar a los beneficiarios.</span>
+        </label>
+      </div>
+
+      <div id="campaignAlertBox" class="alert-box alert-danger"
+        style="display: none; padding: 0.6rem 0.8rem; font-size: 0.8rem;"></div>
+
+      <div class="modal-footer-actions">
+        <button type="button" id="btnCancelCreateCampaign" class="btn btn-outline"
+          style="min-height: 42px;">Cancelar</button>
+        <button type="submit" id="btnSubmitCreateCampaign" class="btn btn-primary"
+          style="padding: 0.6rem 1.4rem; font-weight: 700; min-height: 42px; display: inline-flex; align-items: center; gap: 0.4rem;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span>Publicar Jornada</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================================================================
+       MODAL 8: BANDEJA DE NOTIFICACIONES Y AVISOS DE JORNADA
+       ====================================================================== -->
+<div id="notificationsModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 580px;">
+    <div class="panel-header" style="margin-bottom: 1.25rem;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+        </svg>
+        <span>Avisos y Notificaciones del Sistema</span>
+      </div>
+      <button id="btnCloseNotificationsModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+      <span style="font-size: 0.8rem; color: #64748b;">Avisos institucionales sobre convocatorias y entregas:</span>
+      <button id="btnToggleNewAlertForm" class="btn btn-outline"
+        style="font-size: 0.75rem; background: #fff; display: inline-flex; align-items: center; gap: 0.35rem;">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Redactar Aviso</span>
+      </button>
+    </div>
+
+    <!-- FORMULARIO RÁPIDO PARA REDACTAR AVISO -->
+    <div id="newAlertFormBlock"
+      style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
+      <div style="font-weight: 700; color: #0f172a; font-size: 0.82rem; margin-bottom: 0.5rem;">
+        Enviar Nuevo Aviso a los Beneficiarios:
+      </div>
+      <input id="quickAlertTitleInput" type="text" class="form-input"
+        placeholder="Título del aviso (ej: Extensión de horario de retiro)"
+        style="margin-bottom: 0.5rem; font-size: 0.82rem;" />
+      <textarea id="quickAlertMessageInput" class="form-input" rows="2" placeholder="Detalle del aviso..."
+        style="margin-bottom: 0.5rem; font-size: 0.82rem;"></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <button type="button" id="btnCancelQuickAlert" class="btn btn-outline"
+          style="font-size: 0.75rem;">Cancelar</button>
+        <button type="button" id="btnSendQuickAlert" class="btn btn-primary" style="font-size: 0.75rem;">Publicar
+          Notificación</button>
+      </div>
+    </div>
+
+    <!-- LISTA DE NOTIFICACIONES -->
+    <div id="notificationsListContainer"
+      style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 380px; overflow-y: auto;">
+      <!-- Se inyecta dinámicamente -->
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+      <button type="button" id="btnCloseNotificationsModalBtn" class="btn btn-primary"
+        style="padding: 0.45rem 1.25rem;">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
        MODAL 9: CÓDIGO QR DIARIO DEL SUPERVISOR (VALIDACIÓN SIN SMARTPHONE)
        ====================================================================== -->
-  <div id="supervisorDailyQrModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 520px; text-align: center;">
-      <div class="panel-header" style="margin-bottom: 1rem; text-align: left;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
-          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-          <span>QR Diario del Supervisor de Entregas</span>
-        </div>
-        <button id="btnCloseSupervisorDailyQrModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+<div id="supervisorDailyQrModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 520px; text-align: center;">
+    <div class="panel-header" style="margin-bottom: 1rem; text-align: left;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        <span>QR Diario del Supervisor de Entregas</span>
       </div>
+      <button id="btnCloseSupervisorDailyQrModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
 
-      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1rem; text-align: left;">
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-          <span class="badge" style="background: #16a34a; color: white; font-size: 0.7rem; font-weight: 700;">🟢 CÓDIGO ACTIVO DE LA JORNADA</span>
-          <span id="supervisorDailyQrDate" style="font-size: 0.75rem; color: #166534; font-weight: 600;"></span>
-        </div>
-        <div style="font-size: 0.76rem; color: #15803d; line-height: 1.4;">
-          Este código QR está en <strong>posesión exclusiva del supervisor de entregas</strong> para autorizar el despacho de beneficiarios que no poseen smartphone ni teléfono móvil.
-        </div>
+    <div
+      style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1rem; text-align: left;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <span class="badge" style="background: #16a34a; color: white; font-size: 0.7rem; font-weight: 700;">🟢 CÓDIGO
+          ACTIVO DE LA JORNADA</span>
+        <span id="supervisorDailyQrDate" style="font-size: 0.75rem; color: #166534; font-weight: 600;"></span>
       </div>
-
-      <!-- CONTENEDOR QR GENERADO -->
-      <div style="background: #ffffff; border: 2px dashed #0284c7; border-radius: 12px; padding: 1.5rem; display: inline-block; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);">
-        <div id="targetSupervisorDailyQr" style="display: flex; justify-content: center; align-items: center; min-height: 220px; min-width: 220px;">
-          <!-- SVG o Canvas generado con QRCodeGenerator -->
-        </div>
-        <div style="margin-top: 0.75rem; font-family: monospace; font-size: 0.88rem; font-weight: 700; color: #0369a1; letter-spacing: 1px;" id="supervisorAuthCodeDisplay">
-          CARGANDO CÓDIGO...
-        </div>
-      </div>
-
-      <!-- DETALLES DEL SUPERVISOR Y VENCIMIENTO -->
-      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; text-align: left; font-size: 0.78rem; color: #334155; margin-bottom: 1.25rem;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
-          <span style="color: #64748b;">Supervisor Responsable:</span>
-          <strong id="supervisorNameDisplay" style="color: #0f172a;">Ing. Carlos Mendoza (TI MIPPCI)</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
-          <span style="color: #64748b;">Cédula de Identidad:</span>
-          <span id="supervisorDocDisplay" class="text-mono" style="font-weight: 600;">V-18452109</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="color: #64748b;">Vigencia:</span>
-          <span id="supervisorExpiryDisplay" style="color: #b45309; font-weight: 600;">Solo hoy hasta las 23:59 VET</span>
-        </div>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" id="btnCopySupervisorDailyQrToken" class="btn btn-outline" style="font-size: 0.78rem; flex: 1;">
-          📋 Copiar Código de Autorización
-        </button>
-        <button type="button" id="btnPrintSupervisorDailyQr" class="btn btn-outline" style="font-size: 0.78rem; flex: 1;">
-          🖨️ Imprimir Ficha de Mesa
-        </button>
-        <button type="button" id="btnCloseSupervisorDailyQrModalBtn" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.5rem 1.25rem;">
-          Entendido
-        </button>
+      <div style="font-size: 0.76rem; color: #15803d; line-height: 1.4;">
+        Este código QR está en <strong>posesión exclusiva del supervisor de entregas</strong> para autorizar el despacho
+        de beneficiarios que no poseen smartphone ni teléfono móvil.
       </div>
     </div>
-  </div>
 
-  <!-- ======================================================================
+    <!-- CONTENEDOR QR GENERADO -->
+    <div
+      style="background: #ffffff; border: 2px dashed #0284c7; border-radius: 12px; padding: 1.5rem; display: inline-block; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);">
+      <div id="targetSupervisorDailyQr"
+        style="display: flex; justify-content: center; align-items: center; min-height: 220px; min-width: 220px;">
+        <!-- SVG o Canvas generado con QRCodeGenerator -->
+      </div>
+      <div
+        style="margin-top: 0.75rem; font-family: monospace; font-size: 0.88rem; font-weight: 700; color: #0369a1; letter-spacing: 1px;"
+        id="supervisorAuthCodeDisplay">
+        CARGANDO CÓDIGO...
+      </div>
+    </div>
+
+    <!-- DETALLES DEL SUPERVISOR Y VENCIMIENTO -->
+    <div
+      style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; text-align: left; font-size: 0.78rem; color: #334155; margin-bottom: 1.25rem;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="color: #64748b;">Supervisor Responsable:</span>
+        <strong id="supervisorNameDisplay" style="color: #0f172a;">Ing. Carlos Mendoza (TI MIPPCI)</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
+        <span style="color: #64748b;">Cédula de Identidad:</span>
+        <span id="supervisorDocDisplay" class="text-mono" style="font-weight: 600;">V-18452109</span>
+      </div>
+      <div style="display: flex; justify-content: space-between;">
+        <span style="color: #64748b;">Vigencia:</span>
+        <span id="supervisorExpiryDisplay" style="color: #b45309; font-weight: 600;">Solo hoy hasta las 23:59 VET</span>
+      </div>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+      <button type="button" id="btnCopySupervisorDailyQrToken" class="btn btn-outline"
+        style="font-size: 0.78rem; flex: 1;">
+        📋 Copiar Código de Autorización
+      </button>
+      <button type="button" id="btnPrintSupervisorDailyQr" class="btn btn-outline" style="font-size: 0.78rem; flex: 1;">
+        🖨️ Imprimir Ficha de Mesa
+      </button>
+      <button type="button" id="btnCloseSupervisorDailyQrModalBtn" class="btn btn-primary"
+        style="font-size: 0.78rem; padding: 0.5rem 1.25rem;">
+        Entendido
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
        MODAL 10: CENTRO DE DIFUSIÓN Y ENLACES WHATSAPP (INSTALACIÓN Y ACCESO)
        ====================================================================== -->
-  <div id="whatsappShareModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 620px;">
-      <div class="panel-header" style="margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; color: white;">
-            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-          </div>
-          <div>
-            <div>Centro de Difusión por WhatsApp</div>
-            <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Envío de enlaces oficiales de instalación, retiro y supervisión (MIPPCI)</div>
-          </div>
+<div id="whatsappShareModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 620px;">
+    <div class="panel-header" style="margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
+        <div
+          style="width: 32px; height: 32px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; color: white;">
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path
+              d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+            </path>
+          </svg>
         </div>
-        <button id="btnCloseWhatsAppShareModal" type="button" class="modal-close-btn" onclick="if (typeof closeWhatsAppShareModal === 'function') closeWhatsAppShareModal();" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-      </div>
-
-      <!-- PESTAÑAS POR ROL: BENEFICIARIO / DESPACHO / SUPERVISOR -->
-      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-bottom: 1rem;">
-        <button type="button" class="btn wa-role-tab active" data-tab="worker" style="padding: 0.5rem 0.4rem; font-size: 0.78rem; text-align: center; border-radius: 8px;">
-          <div style="font-size: 1.1rem; margin-bottom: 0.15rem;">📲</div>
-          <strong>App Beneficiario</strong>
-          <div style="font-size: 0.65rem; opacity: 0.85;">Trabajadores (PWA)</div>
-        </button>
-
-        <button type="button" class="btn wa-role-tab" data-tab="distributor" style="padding: 0.5rem 0.4rem; font-size: 0.78rem; text-align: center; border-radius: 8px;">
-          <div style="font-size: 1.1rem; margin-bottom: 0.15rem;">📦</div>
-          <strong>Mesa de Despacho</strong>
-          <div style="font-size: 0.65rem; opacity: 0.85;">Operadores Almacén</div>
-        </button>
-
-        <button type="button" class="btn wa-role-tab" data-tab="supervisor" style="padding: 0.5rem 0.4rem; font-size: 0.78rem; text-align: center; border-radius: 8px;">
-          <div style="font-size: 1.1rem; margin-bottom: 0.15rem;">🔑</div>
-          <strong>Supervisor</strong>
-          <div style="font-size: 0.65rem; opacity: 0.85;">QR Diario y Control</div>
-        </button>
-      </div>
-
-      <!-- TARJETA EXPLICATIVA DEL ROL SELECCIONADO -->
-      <div id="waRoleDescriptionBox" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.78rem; color: #166534; display: flex; align-items: center; gap: 0.5rem;">
-        <span>ℹ️</span>
-        <span id="waRoleDescriptionText">
-          Enlace dirigido a trabajadores del ministerio para instalar la aplicación en su smartphone, enrolar su Passkey biométrica y generar su código QR de retiro.
-        </span>
-      </div>
-
-      <!-- CAMPO DE NÚMERO DE TELÉFONO DESTINO (OPCIONAL) -->
-      <div style="margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 0.85rem;">
-        <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
-          Número de Teléfono WhatsApp (Opcional - para enviar directo a una persona):
-        </label>
-        <div style="display: flex; gap: 0.5rem;">
-          <input type="text" id="waRecipientPhoneInput" class="form-input text-mono" placeholder="Ej: +584141234567 o 04141234567" style="font-size: 0.85rem; flex: 1;" />
-          <button type="button" id="btnClearWaPhone" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.7rem;" title="Limpiar número">Limpiar</button>
-        </div>
-        <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.25rem;">
-          💡 Si deja el número vacío, WhatsApp le permitirá elegir a cualquier contacto, grupo institucional o lista de difusión.
+        <div>
+          <div>Centro de Difusión por WhatsApp</div>
+          <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Envío de enlaces oficiales de
+            instalación, retiro y supervisión (MIPPCI)</div>
         </div>
       </div>
+      <button id="btnCloseWhatsAppShareModal" type="button" class="modal-close-btn"
+        onclick="if (typeof closeWhatsAppShareModal === 'function') closeWhatsAppShareModal();" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
 
-      <!-- VISTA PREVIA DEL MENSAJE WHATSAPP -->
-      <div style="margin-bottom: 1rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-          <label style="font-size: 0.75rem; font-weight: 700; color: #334155;">
-            Vista Previa del Mensaje Oficial a Enviar:
-          </label>
-          <span style="font-size: 0.7rem; color: #16a34a; font-weight: 600;">Formato Oficial MIPPCI</span>
-        </div>
-        <div id="waMessagePreviewContainer" style="background: #efeae2; border: 1px solid #d1d7db; border-radius: 10px; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.82rem; color: #111b21; line-height: 1.45; white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow-y: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);">
-          <!-- Se inyecta dinámicamente -->
-        </div>
+    <!-- PESTAÑAS POR ROL: BENEFICIARIO / DESPACHO / SUPERVISOR -->
+    <div class="wa-role-tab-grid" style="margin-bottom: 1rem;">
+      <button type="button" class="btn wa-role-tab active" data-tab="worker"
+        style="padding: 0.5rem 0.4rem; font-size: 0.78rem; text-align: center; border-radius: 8px;">
+        <div style="font-size: 1.1rem; margin-bottom: 0.15rem;">📲</div>
+        <strong>App Beneficiario</strong>
+        <div style="font-size: 0.65rem; opacity: 0.85;">Trabajadores (PWA)</div>
+      </button>
+
+      <button type="button" class="btn wa-role-tab" data-tab="distributor"
+        style="padding: 0.5rem 0.4rem; font-size: 0.78rem; text-align: center; border-radius: 8px;">
+        <div style="font-size: 1.1rem; margin-bottom: 0.15rem;">📦</div>
+        <strong>Mesa de Despacho</strong>
+        <div style="font-size: 0.65rem; opacity: 0.85;">Operadores Almacén</div>
+      </button>
+
+      <button type="button" class="btn wa-role-tab" data-tab="supervisor"
+        style="padding: 0.5rem 0.4rem; font-size: 0.78rem; text-align: center; border-radius: 8px;">
+        <div style="font-size: 1.1rem; margin-bottom: 0.15rem;">🔑</div>
+        <strong>Supervisor</strong>
+        <div style="font-size: 0.65rem; opacity: 0.85;">QR Diario y Control</div>
+      </button>
+    </div>
+
+    <!-- TARJETA EXPLICATIVA DEL ROL SELECCIONADO -->
+    <div id="waRoleDescriptionBox"
+      style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.78rem; color: #166534; display: flex; align-items: center; gap: 0.5rem;">
+      <span>ℹ️</span>
+      <span id="waRoleDescriptionText">
+        Enlace dirigido a trabajadores del ministerio para instalar la aplicación en su smartphone, enrolar su Passkey
+        biométrica y generar su código QR de retiro.
+      </span>
+    </div>
+
+    <!-- CAMPO DE NÚMERO DE TELÉFONO DESTINO (OPCIONAL) -->
+    <div
+      style="margin-bottom: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 0.85rem;">
+      <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+        Número de Teléfono WhatsApp (Opcional - para enviar directo a una persona):
+      </label>
+      <div style="display: flex; gap: 0.5rem;">
+        <input type="text" id="waRecipientPhoneInput" class="form-input text-mono"
+          placeholder="Ej: +584141234567 o 04141234567" style="font-size: 0.85rem; flex: 1;" />
+        <button type="button" id="btnClearWaPhone" class="btn btn-outline"
+          style="font-size: 0.75rem; padding: 0.4rem 0.7rem;" title="Limpiar número">Limpiar</button>
       </div>
-
-      <!-- ENLACE DIRECTO -->
-      <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.4rem 0.65rem;">
-        <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Enlace:</span>
-        <input type="text" id="waDirectUrlDisplay" class="form-input text-mono" readonly style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: #f8fafc; border: none; flex: 1;" />
-        <button type="button" id="btnCopyWaDirectUrl" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.3rem 0.6rem; white-space: nowrap;">
-          🔗 Copiar Enlace
-        </button>
-      </div>
-
-      <!-- BOTONES DE ACCIÓN PRINCIPALES -->
-      <div style="display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
-        <button type="button" id="btnCopyWaFullMessage" class="btn btn-outline" style="font-size: 0.8rem; flex: 1; padding: 0.55rem;">
-          📋 Copiar Mensaje Completo
-        </button>
-        <button type="button" id="btnLaunchWhatsApp" class="btn btn-primary" style="font-size: 0.82rem; flex: 1.3; padding: 0.55rem; background: #25D366; border-color: #25D366; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; box-shadow: 0 2px 6px rgba(37, 211, 102, 0.35);">
-          <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-          <span>Abrir y Compartir en WhatsApp</span>
-        </button>
+      <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.25rem;">
+        💡 Si deja el número vacío, WhatsApp le permitirá elegir a cualquier contacto, grupo institucional o lista de
+        difusión.
       </div>
     </div>
-  </div>
 
-  <!-- ======================================================================
+    <!-- VISTA PREVIA DEL MENSAJE WHATSAPP -->
+    <div style="margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+        <label style="font-size: 0.75rem; font-weight: 700; color: #334155;">
+          Vista Previa del Mensaje Oficial a Enviar:
+        </label>
+        <span style="font-size: 0.7rem; color: #16a34a; font-weight: 600;">Formato Oficial MIPPCI</span>
+      </div>
+      <div id="waMessagePreviewContainer"
+        style="background: #efeae2; border: 1px solid #d1d7db; border-radius: 10px; padding: 1rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 0.82rem; color: #111b21; line-height: 1.45; white-space: pre-wrap; word-break: break-word; max-height: 180px; overflow-y: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);">
+        <!-- Se inyecta dinámicamente -->
+      </div>
+    </div>
+
+    <!-- ENLACE DIRECTO -->
+    <div
+      style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.4rem 0.65rem;">
+      <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Enlace:</span>
+      <input type="text" id="waDirectUrlDisplay" class="form-input text-mono" readonly
+        style="font-size: 0.75rem; padding: 0.25rem 0.5rem; background: #f8fafc; border: none; flex: 1;" />
+      <button type="button" id="btnCopyWaDirectUrl" class="btn btn-outline"
+        style="font-size: 0.72rem; padding: 0.3rem 0.6rem; white-space: nowrap;">
+        🔗 Copiar Enlace
+      </button>
+    </div>
+
+    <!-- BOTONES DE ACCIÓN PRINCIPALES -->
+    <div style="display: flex; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+      <button type="button" id="btnCopyWaFullMessage" class="btn btn-outline"
+        style="font-size: 0.8rem; flex: 1; padding: 0.55rem;">
+        📋 Copiar Mensaje Completo
+      </button>
+      <button type="button" id="btnLaunchWhatsApp" class="btn btn-primary"
+        style="font-size: 0.82rem; flex: 1.3; padding: 0.55rem; background: #25D366; border-color: #25D366; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; box-shadow: 0 2px 6px rgba(37, 211, 102, 0.35);">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path
+            d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z">
+          </path>
+        </svg>
+        <span>Abrir y Compartir en WhatsApp</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
        MODAL 11: ADVERTENCIA DE EXPIRACIÓN DE SESIÓN (ESTILO BANCARIO)
        ====================================================================== -->
-  <div id="sessionTimeoutModalBackdrop" class="modal-backdrop" style="z-index: 10000;">
-    <div class="modal-dialog" style="max-width: 440px; text-align: center; border-top: 4px solid #f59e0b;">
-      <div style="font-size: 2.8rem; margin-bottom: 0.5rem; line-height: 1;">
-        ⏳
-      </div>
-      
-      <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">
-        ¿Desea mantener su sesión activa?
-      </div>
+<div id="sessionTimeoutModalBackdrop" class="modal-backdrop" style="z-index: 10000;">
+  <div class="modal-dialog" style="max-width: 440px; text-align: center; border-top: 4px solid #f59e0b;">
+    <div style="font-size: 2.8rem; margin-bottom: 0.5rem; line-height: 1;">
+      ⏳
+    </div>
 
-      <div style="font-size: 0.82rem; color: #64748b; line-height: 1.45; margin-bottom: 1.25rem;">
-        Por estrictas políticas de seguridad bancaria e institucional, su sesión está a punto de expirar debido a inactividad o abandono de ventana.
-      </div>
+    <div style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">
+      ¿Desea mantener su sesión activa?
+    </div>
 
-      <!-- TEMPORIZADOR GRÁFICO CON BARRA DE PROGRESO -->
-      <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem;">
-        <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #b45309; font-weight: 700; margin-bottom: 0.25rem;">
-          Tiempo restante antes del cierre seguro:
-        </div>
-        <div id="sessionTimeoutCountdownLabel" style="font-size: 2.2rem; font-weight: 900; color: #d97706; font-family: monospace;">
-          60s
-        </div>
-        <div style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; margin-top: 0.5rem; overflow: hidden;">
-          <div id="sessionTimeoutCountdownBar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); transition: width 1s linear;"></div>
-        </div>
-      </div>
+    <div style="font-size: 0.82rem; color: #64748b; line-height: 1.45; margin-bottom: 1.25rem;">
+      Por estrictas políticas de seguridad bancaria e institucional, su sesión está a punto de expirar debido a
+      inactividad o abandono de ventana.
+    </div>
 
-      <div style="display: flex; gap: 0.75rem;">
-        <button type="button" id="btnSessionLogoutNow" class="btn btn-outline" style="flex: 1; padding: 0.65rem; font-size: 0.82rem;">
-          Cerrar Ahora
-        </button>
-        <button type="button" id="btnSessionExtend" class="btn btn-primary" style="flex: 1.4; padding: 0.65rem; font-size: 0.85rem; font-weight: 700; background: #0284c7; border-color: #0284c7;">
-          🛡️ Continuar Sesión
-        </button>
+    <!-- TEMPORIZADOR GRÁFICO CON BARRA DE PROGRESO -->
+    <div
+      style="background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem;">
+      <div
+        style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: #b45309; font-weight: 700; margin-bottom: 0.25rem;">
+        Tiempo restante antes del cierre seguro:
+      </div>
+      <div id="sessionTimeoutCountdownLabel"
+        style="font-size: 2.2rem; font-weight: 900; color: #d97706; font-family: monospace;">
+        60s
+      </div>
+      <div
+        style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 999px; margin-top: 0.5rem; overflow: hidden;">
+        <div id="sessionTimeoutCountdownBar"
+          style="width: 100%; height: 100%; background: linear-gradient(90deg, #f59e0b, #ef4444); transition: width 1s linear;">
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ======================================================================
+    <div style="display: flex; gap: 0.75rem;">
+      <button type="button" id="btnSessionLogoutNow" class="btn btn-outline"
+        style="flex: 1; padding: 0.65rem; font-size: 0.82rem;">
+        Cerrar Ahora
+      </button>
+      <button type="button" id="btnSessionExtend" class="btn btn-primary"
+        style="flex: 1.4; padding: 0.65rem; font-size: 0.85rem; font-weight: 700; background: #0284c7; border-color: #0284c7;">
+        🛡️ Continuar Sesión
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
        MODAL 12: DELEGACIÓN CRIPTOGRÁFICA TEMPORAL (RETIRO POR TERCEROS)
        ====================================================================== -->
-  <div id="delegationModalBackdrop" class="modal-backdrop">
-    <div class="modal-dialog" style="max-width: 540px;">
-      <div class="panel-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1rem;">
-        <div class="panel-title" style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
-          <span>🤝</span>
-          <div>
-            <div>Autorización de Retiro por Terceros</div>
-            <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Permiso para compañeros de trabajo de personal en reposo o adultos mayores</div>
-          </div>
+<div id="delegationModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 540px;">
+    <div class="panel-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem; margin-bottom: 1rem;">
+      <div class="panel-title"
+        style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem;">
+        <span>🤝</span>
+        <div>
+          <div>Autorización de Retiro por Terceros</div>
+          <div style="font-size: 0.72rem; color: #64748b; font-weight: normal;">Permiso para compañeros de trabajo de
+            personal en reposo o adultos mayores</div>
         </div>
-        <button id="btnCloseDelegationModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       </div>
+      <button id="btnCloseDelegationModal" type="button" class="modal-close-btn" title="Cerrar modal"
+        aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg></button>
+    </div>
 
-      <div id="delegationFormSection">
-        <p style="font-size: 0.8rem; color: #475569; margin-bottom: 1rem; line-height: 1.45;">
-          El supervisor autoriza la entrega del beneficio a un compañero asignado, generando un código QR válido por 24 a 48 horas de forma segura.
-        </p>
+    <div id="delegationFormSection">
+      <p style="font-size: 0.8rem; color: #475569; margin-bottom: 1rem; line-height: 1.45;">
+        El supervisor autoriza la entrega del beneficio a un compañero asignado, generando un código QR válido por 24 a
+        48 horas de forma segura.
+      </p>
 
-        <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.25rem;">
+      <div style="display: flex; flex-direction: column; gap: 0.85rem; margin-bottom: 1.25rem;">
+        <div>
+          <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
+            Cédula del Titular (Beneficiario en reposo o jubilado):
+          </label>
+          <input type="text" id="delegationBeneficiaryDoc" class="form-input text-mono" placeholder="Ej: V-18456123"
+            style="font-size: 0.85rem; width: 100%;" />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
           <div>
-            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
-              Cédula del Titular (Beneficiario en reposo o jubilado):
+            <label
+              style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
+              Cédula del Delegado (Compañero que retira):
             </label>
-            <input type="text" id="delegationBeneficiaryDoc" class="form-input text-mono" placeholder="Ej: V-18456123" style="font-size: 0.85rem; width: 100%;" />
+            <input type="text" id="delegationDelegateDoc" class="form-input text-mono" placeholder="Ej: V-20123456"
+              style="font-size: 0.85rem; width: 100%;" />
           </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
-                Cédula del Delegado (Compañero que retira):
-              </label>
-              <input type="text" id="delegationDelegateDoc" class="form-input text-mono" placeholder="Ej: V-20123456" style="font-size: 0.85rem; width: 100%;" />
-            </div>
-            <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
-                Nombre del Delegado (Opcional):
-              </label>
-              <input type="text" id="delegationDelegateName" class="form-input" placeholder="Nombre completo" style="font-size: 0.85rem; width: 100%;" />
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 0.75rem;">
-            <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
-                Motivo de Delegación:
-              </label>
-              <select id="delegationReasonSelect" class="form-select" style="font-size: 0.82rem; width: 100%;">
-                <option value="reposo_medico">🏥 Reposo Médico / Incapacidad Temporal</option>
-                <option value="adulto_mayor_jubilado">👴 Adulto Mayor Jubilado Sin Teléfono</option>
-                <option value="comision_servicio">📋 Comisión de Servicio / Guardia</option>
-                <option value="fuerza_mayor">⚠️ Causa de Fuerza Mayor Justificada</option>
-              </select>
-            </div>
-            <div>
-              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
-                Vigencia:
-              </label>
-              <select id="delegationHoursSelect" class="form-select" style="font-size: 0.82rem; width: 100%;">
-                <option value="24">24 Horas</option>
-                <option value="48">48 Horas</option>
-              </select>
-            </div>
+          <div>
+            <label
+              style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
+              Nombre del Delegado (Opcional):
+            </label>
+            <input type="text" id="delegationDelegateName" class="form-input" placeholder="Nombre completo"
+              style="font-size: 0.85rem; width: 100%;" />
           </div>
         </div>
 
-        <button type="button" id="btnGenerateDelegationQr" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; font-weight: 700; padding: 0.65rem; background: linear-gradient(135deg, #0284c7, #0369a1);">
-          ⚡ Emitir Autorización con Código QR (Supervisor)
-        </button>
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 0.75rem;">
+          <div>
+            <label
+              style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
+              Motivo de Delegación:
+            </label>
+            <select id="delegationReasonSelect" class="form-select" style="font-size: 0.82rem; width: 100%;">
+              <option value="reposo_medico">🏥 Reposo Médico / Incapacidad Temporal</option>
+              <option value="adulto_mayor_jubilado">👴 Adulto Mayor Jubilado Sin Teléfono</option>
+              <option value="comision_servicio">📋 Comisión de Servicio / Guardia</option>
+              <option value="fuerza_mayor">⚠️ Causa de Fuerza Mayor Justificada</option>
+            </select>
+          </div>
+          <div>
+            <label
+              style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 0.25rem;">
+              Vigencia:
+            </label>
+            <select id="delegationHoursSelect" class="form-select" style="font-size: 0.82rem; width: 100%;">
+              <option value="24">24 Horas</option>
+              <option value="48">48 Horas</option>
+            </select>
+          </div>
+        </div>
       </div>
 
-      <!-- RESULTADO QR DE DELEGACIÓN -->
-      <div id="delegationResultSection" style="display: none; text-align: center; padding-top: 0.5rem;">
-        <div style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.82rem; color: #166534;">
-          <strong>✅ Autorización de Retiro Emitida Exitosamente</strong>
-          <div id="delegationResultSummary" style="font-size: 0.75rem; color: #334155; margin-top: 0.25rem;"></div>
-        </div>
+      <button type="button" id="btnGenerateDelegationQr" class="btn btn-primary"
+        style="width: 100%; font-size: 0.9rem; font-weight: 700; padding: 0.65rem; background: linear-gradient(135deg, #0284c7, #0369a1);">
+        ⚡ Emitir Autorización con Código QR (Supervisor)
+      </button>
+    </div>
 
-        <div id="delegationQrCanvasContainer" style="background: #fff; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 1rem;">
-          <div id="delegationQrDisplay"></div>
-        </div>
+    <!-- RESULTADO QR DE DELEGACIÓN -->
+    <div id="delegationResultSection" style="display: none; text-align: center; padding-top: 0.5rem;">
+      <div
+        style="background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.82rem; color: #166534;">
+        <strong>✅ Autorización de Retiro Emitida Exitosamente</strong>
+        <div id="delegationResultSummary" style="font-size: 0.75rem; color: #334155; margin-top: 0.25rem;"></div>
+      </div>
 
-        <div style="display: flex; gap: 0.5rem; justify-content: center;">
-          <button type="button" id="btnShareDelegationWhatsApp" class="btn btn-primary" style="font-size: 0.8rem; background: #25D366; border-color: #25D366; padding: 0.5rem 1rem;">
-            📲 Enviar al Delegado por WhatsApp
-          </button>
-          <button type="button" id="btnResetDelegationForm" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;">
-            🔄 Nueva Delegación
-          </button>
-        </div>
+      <div id="delegationQrCanvasContainer"
+        style="background: #fff; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 1rem;">
+        <div id="delegationQrDisplay"></div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; justify-content: center;">
+        <button type="button" id="btnShareDelegationWhatsApp" class="btn btn-primary"
+          style="font-size: 0.8rem; background: #25D366; border-color: #25D366; padding: 0.5rem 1rem;">
+          📲 Enviar al Delegado por WhatsApp
+        </button>
+        <button type="button" id="btnResetDelegationForm" class="btn btn-outline"
+          style="font-size: 0.8rem; padding: 0.5rem 1rem;">
+          🔄 Nueva Delegación
+        </button>
       </div>
     </div>
   </div>
-
+</div>

@@ -40,10 +40,11 @@ function validateDocumentId(field = 'document_id') {
     }
 
     const clean = String(val).trim().toUpperCase();
-    const regex = /^(V|E|J|G)?-?[0-9]{5,10}$/;
-    if (!regex.test(clean)) {
+    const regexDoc = /^(V|E|J|G)?-?[0-9]{5,10}$/;
+    const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!regexDoc.test(clean) && !regexEmail.test(String(val).trim())) {
       return res.status(400).json({
-        error: `El formato de documento de identidad (${val}) no es válido. Ejemplo: V-18456123`
+        error: `El formato de documento de identidad o correo (${val}) no es válido. Ejemplo: V-18456123 o usuario@mippci.gob.ve`
       });
     }
 

@@ -39,8 +39,11 @@ paths:
     post:
       tags:
         - Autenticación & Passkeys
-      summary: Iniciar sesión con usuario y contraseña
-      description: Autentica un usuario (administrador, director o supervisor) emitiendo un JWT en cookie HttpOnly y cuerpo JSON.
+      summary: Iniciar sesión institucional (Beneficiario / Almacén / Administrador)
+      description: >
+        Autentica un beneficiario, operador de despacho o administrador del sistema mediante Cédula de Identidad
+        o Correo Institucional. Si se especifica `is_admin_login: true`, exige la validación de rol administrativo
+        y la verificación de clave o PIN de seguridad (`admin_secret`), emitiendo un token JWT firmado (cookie HttpOnly y payload JSON).
       requestBody:
         required: true
         content:
@@ -48,16 +51,28 @@ paths:
             schema:
               type: object
               required:
-                - username
-                - password
+                - document_id
               properties:
-                username:
+                document_id:
                   type: string
-                  example: admin
-                password:
+                  description: Cédula de identidad (ej. 13537582, V-18456123) o correo electrónico institucional.
+                  example: "13537582"
+                admin_secret:
                   type: string
                   format: password
-                  example: admin123
+                  description: PIN o clave secreta institucional para cuentas con rol administrativo (admin, director, supervisor).
+                  example: "123456"
+                is_admin_login:
+                  type: boolean
+                  description: Bandera que indica solicitud de acceso al portal de administración y gobernanza.
+                  example: true
+                require_admin:
+                  type: boolean
+                  description: Alias de verificación estricta de privilegios administrativos.
+                  example: true
+                passkey_proof:
+                  type: object
+                  description: Prueba criptográfica opcional de autenticación biométrica FIDO2.
       responses:
         '200':
           description: Autenticación exitosa
@@ -65,7 +80,7 @@ paths:
             Set-Cookie:
               schema:
                 type: string
-                example: token=eyJhbGci...; Path=/; HttpOnly; SameSite=Strict
+                example: sgbt_session=eyJhbGci...; Path=/; HttpOnly; SameSite=Strict
           content:
             application/json:
               schema:
@@ -79,8 +94,26 @@ paths:
                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
                   user:
                     $ref: '#/components/schemas/User'
+        '400':
+          description: Solicitud inválida o trampa anti-automatización activada
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          description: Acceso denegado por falta de privilegios administrativos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: Documento o correo no encontrado en la nómina institucional
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
 
   /auth/logout:
     post:

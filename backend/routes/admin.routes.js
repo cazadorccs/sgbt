@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin.controller');
-const { requireRole } = require('../middleware/auth.middleware');
+const { requireRole, authenticate } = require('../middleware/auth.middleware');
 const { validateWorkerRole } = require('../middleware/validator.middleware');
 
 // KPIs y Métricas de Auditoría
@@ -19,7 +19,12 @@ router.put('/admin/workers/:id/role', requireRole('admin', 'director'), validate
 router.delete('/admin/workers/:id', requireRole('admin', 'director'), adminController.deleteWorker);
 
 // Seguridad, Dossier y Contingencias
-router.get('/admin/workers/:id/security-dossier', requireRole('admin', 'director', 'supervisor'), adminController.getWorkerDossier);
+router.get('/admin/workers/:id/security-dossier', authenticate, (req, res, next) => {
+  if (req.user && (req.user.id === req.params.id || ['admin', 'director', 'supervisor'].includes(req.user.role))) {
+    return adminController.getWorkerDossier(req, res);
+  }
+  return requireRole('admin', 'director', 'supervisor')(req, res, next);
+});
 router.post('/admin/credentials/:credential_id/revoke', requireRole('admin', 'director'), adminController.revokeCredential);
 router.post('/admin/workers/:id/assign-nfc', requireRole('admin', 'director', 'supervisor'), adminController.assignNfc);
 

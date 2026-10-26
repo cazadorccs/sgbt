@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Flujo de Datos y Secuencia de Retiro con Passkeys FIDO2",
+    "output": ".archify/sequence-user-journey-20261025-130500/user-journey-sequence.html",
+    "viewBox": [1080, 696],
+    "column_fit": "spread",
+    "animation": "trace",
+    "quality_profile": "showcase"
+  },
+  "participants": [
+    { "id": "beneficiary", "type": "external", "label": "Beneficiario", "sublabel": "Móvil Personal" },
+    { "id": "pwa", "type": "frontend", "label": "PWA Móvil", "sublabel": "WebAuthn / UI" },
+    { "id": "enclave", "type": "security", "label": "Enclave", "sublabel": "FIDO2 / TPM" },
+    { "id": "operator", "type": "external", "label": "Operador", "sublabel": "Mesa Almacén" },
+    { "id": "scanner", "type": "frontend", "label": "Escáner", "sublabel": "Cámara Offline" },
+    { "id": "api", "type": "backend", "label": "API Express", "sublabel": "Node.js REST" },
+    { "id": "crypto", "type": "security", "label": "Cripto", "sublabel": "ECDSA P-256" },
+    { "id": "db", "type": "database", "label": "SQLite WAL", "sublabel": "better-sqlite3" },
+    { "id": "sse", "type": "messagebus", "label": "SSE Live", "sublabel": "EventStream" }
+  ],
+  "segments": [
+    { "from": 150, "to": 265, "label": "Fase 1: Autenticación Biométrica y QR Dinámico" },
+    { "from": 275, "to": 415, "label": "Fase 2: Escaneo en Almacén y Verificación Criptográfica" },
+    { "from": 425, "to": 595, "label": "Fase 3: Idempotencia, Deducción Atómica y Feedback" }
+  ],
+  "messages": [
+    { "id": "m1", "from": "beneficiary", "to": "pwa", "y": 165, "label": "Toca 'Generar QR de Retiro'", "variant": "default" },
+    { "id": "m2", "from": "pwa", "to": "enclave", "y": 195, "label": "Solicitar credencial biométrica FIDO2", "variant": "security" },
+    { "id": "m3", "from": "enclave", "to": "pwa", "y": 225, "label": "Assertion con firma ECDSA P-256", "variant": "return" },
+    { "id": "m4", "from": "pwa", "to": "beneficiary", "y": 255, "label": "Muestra QR dinámico (expira 180s)", "variant": "emphasis" },
+
+    { "id": "m5", "from": "beneficiary", "to": "operator", "y": 290, "label": "Presenta QR temporal al operador", "variant": "default" },
+    { "id": "m6", "from": "operator", "to": "scanner", "y": 320, "label": "Apunta cámara del terminal de lectura", "variant": "default" },
+    { "id": "m7", "from": "scanner", "to": "api", "y": 350, "label": "POST /auth/verify-qr (Idempotency-Key)", "variant": "emphasis" },
+    { "id": "m8", "from": "api", "to": "crypto", "y": 380, "label": "verifyOfflineSignature(payload, pubKey)", "variant": "security" },
+    { "id": "m9", "from": "crypto", "to": "api", "y": 410, "label": "Firma válida y vigencia verificada", "variant": "return" },
+
+    { "id": "m10", "from": "api", "to": "db", "y": 445, "label": "SELECT verificación idx_unique_daily_claim", "variant": "emphasis" },
+    { "id": "m11", "from": "db", "to": "api", "y": 480, "label": "Retiro autorizado: combos habilitados", "variant": "return" },
+    { "id": "m12", "from": "api", "to": "db", "y": 515, "label": "INSERT deliveries (Transacción Atómica)", "variant": "emphasis" },
+    { "id": "m13", "from": "api", "to": "sse", "y": 550, "label": "Difundir SSE: entrega confirmada en vivo", "variant": "dashed" },
+    { "id": "m14", "from": "api", "to": "scanner", "y": 585, "label": "HTTP 200 OK con Comprobante Digital", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "pwa", "from": 165, "to": 260, "type": "frontend" },
+    { "participant": "enclave", "from": 195, "to": 225, "type": "security" },
+    { "participant": "scanner", "from": 320, "to": 590, "type": "frontend" },
+    { "participant": "api", "from": 350, "to": 585, "type": "backend" },
+    { "participant": "crypto", "from": 380, "to": 410, "type": "security" },
+    { "participant": "db", "from": 445, "to": 520, "type": "database" },
+    { "participant": "sse", "from": 550, "to": 570, "type": "messagebus" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Privacidad y Soberanía Biométrica (Zero-Knowledge)",
+      "items": [
+        "Las huellas y rostros nunca abandonan el hardware seguro (Apple Secure Enclave / Android StrongBox)",
+        "El servidor solo almacena la clave pública para contrastar la firma matemática ECDSA P-256",
+        "Códigos QR dinámicos con nonce aleatorio de un solo uso que caducan a los 180 segundos"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Garantía de Idempotencia y Cero Duplicados",
+      "items": [
+        "Cabecera Idempotency-Key previene la doble entrega si la red parpadea en el almacén",
+        "Si el terminal reintenta, el middleware devuelve de inmediato el resultado previo cacheado (HIT-IDEMPOTENT)",
+        "El índice relacional idx_unique_daily_claim bloquea cualquier intento de retiro múltiple en el mismo día"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Feedback Ergonómico de Almacén",
+      "items": [
+        "Vibración háptica multimodal en el dispositivo del operador para confirmar la entrega sin mirar la pantalla",
+        "Canal SSE instantáneo que actualiza las métricas y los monitores de auditoría de los directores",
+        "Generación inmediata de comprobante digital auditable con firma criptográfica"
+      ]
+    }
+  ]
+}
