@@ -399,6 +399,10 @@ const getTodayStatsAndRecent = (req, res) => {
   const today = todayVzla;
 
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active'").get().c;
     const totalAssigned = db.prepare(`
       SELECT COUNT(*) as c 
@@ -422,12 +426,16 @@ const getTodayStatsAndRecent = (req, res) => {
       SELECT COUNT(*) as c FROM deliveries 
       WHERE date(delivered_at) IN (?, ?) 
          OR date(delivered_at, '-4 hours') IN (?, ?)
-    `).get(todayUtc, todayVzla, todayUtc, todayVzla).c;
+         OR substr(delivered_at, 1, 10) IN (?, ?)
+         OR delivered_at >= datetime('now', '-24 hours')
+    `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla).c;
 
     const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id, d.delivered_at, d.verification_method, d.override_reason,
-        w.document_id, w.full_name, w.worker_type,
+        w.document_id,
+        COALESCE(NULLIF(w.full_name, ''), 'Funcionario C.I. ' || w.document_id) as full_name,
+        w.worker_type,
         dep.name as department_name,
         COALESCE(c.name, 'Combo Institucional') as combo_name, 
         COALESCE(c.icon, '📦') as combo_icon,
@@ -440,9 +448,11 @@ const getTodayStatsAndRecent = (req, res) => {
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
       WHERE date(d.delivered_at) IN (?, ?)
          OR date(d.delivered_at, '-4 hours') IN (?, ?)
+         OR substr(d.delivered_at, 1, 10) IN (?, ?)
+         OR d.delivered_at >= datetime('now', '-24 hours')
       ORDER BY d.delivered_at DESC
-      LIMIT 200
-    `).all(todayUtc, todayVzla, todayUtc, todayVzla);
+      LIMIT 250
+    `).all(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
 
     // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
     const groupedMap = new Map();

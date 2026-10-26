@@ -162,6 +162,11 @@ window.setupDistributorSimulator = function() {
 
   // Escuchar sincronización en tiempo real de QR generado por el beneficiario (Multi-pestaña)
   setupRealtimeQrSyncListener();
+
+  // Cargar resumen de despachos en vivo de la jornada para la mesa
+  if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+    window.ManualDispatch.loadTodaySummary();
+  }
 };
 
 async function loadDistributorCombos() {
@@ -1772,7 +1777,12 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
   overlay.className = `distributor-feedback-overlay ${isSuccess ? 'overlay-success' : 'overlay-error'} active`;
   if (icon) icon.textContent = isSuccess ? '✅' : '🛑';
   if (t) t.textContent = title;
-  if (s) s.innerHTML = subtitle;
+  if (isSuccess) {
+    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+      window.ManualDispatch.loadTodaySummary();
+    }
+    window.dispatchEvent(new CustomEvent('delivery:completed', { detail: { title, subtitle, extraData } }));
+  }
 
   if (isSuccess && d) {
     const isJubilado = extraData && (extraData.worker_type === 'jubilado' || extraData.contingency_reason === 'adulto_mayor_sin_smartphone');

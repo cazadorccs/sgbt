@@ -1001,21 +1001,46 @@
 
           </div>
 
-          <!-- ACCESO AL REGISTRO DE DESPACHOS EN VIVO -->
-          <div class="glass-panel" style="padding: 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border: 1.5px solid rgba(2, 132, 199, 0.25); border-radius: 12px;">
-            <div>
-              <h4 style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                <span>📋 Registro de Despachos en Vivo (Hoy)</span>
-                <span id="recentDeliveriesCount" class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.78rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 9999px;">0 entregas</span>
-              </h4>
-              <p style="font-size: 0.8rem; color: #64748b; margin: 0.2rem 0 0 0;">
-                Historial consolidado de entregas manuales procesadas durante la jornada actual.
-              </p>
+          <!-- REGISTRO DE DESPACHOS EN VIVO (HOY) -->
+          <div class="glass-panel" style="padding: 1.25rem; border: 1.5px solid rgba(2, 132, 199, 0.25); border-radius: 12px; margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.85rem;">
+              <div>
+                <h4 style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>📋 Registro de Despachos en Vivo (Hoy)</span>
+                  <span id="recentDeliveriesCount" class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.78rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 9999px;">0 entregas</span>
+                </h4>
+                <p style="font-size: 0.8rem; color: #64748b; margin: 0.2rem 0 0 0;">
+                  Historial consolidado de funcionarios atendidos y combos retirados durante la jornada actual en tiempo real.
+                </p>
+              </div>
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button type="button" id="btnRefreshInlineDeliveries" onclick="window.ManualDispatch && window.ManualDispatch.loadTodaySummary()" class="btn btn-outline" style="border-color: #0284c7; color: #0284c7; font-weight: 700; font-size: 0.82rem; padding: 0.45rem 0.85rem; border-radius: 8px;" title="Refrescar datos en vivo">
+                  🔄 Actualizar
+                </button>
+                <button type="button" id="btnOpenRecentDeliveriesModalBottom" class="btn btn-primary" style="background: #0284c7; border-color: #0284c7; color: #fff; font-weight: 800; font-size: 0.82rem; padding: 0.45rem 1rem; display: flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
+                  <span>Ver en Modal Completo</span>
+                  <span>↗</span>
+                </button>
+              </div>
             </div>
-            <button type="button" id="btnOpenRecentDeliveriesModalBottom" class="btn btn-outline" style="border-color: #0284c7; color: #0284c7; font-weight: 800; font-size: 0.85rem; padding: 0.65rem 1.25rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.15); border-radius: 8px;">
-              <span>📋 Ver Despachos en Vivo</span>
-              <span style="font-size: 1.1rem; line-height: 1;">↗</span>
-            </button>
+
+            <!-- TABLA INLINE DE DESPACHOS RECIENTES -->
+            <div style="overflow-x: auto; overflow-y: auto; max-height: 400px; border: 1px solid #e2e8f0; border-radius: 8px; background: #ffffff;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead style="position: sticky; top: 0; background: #f8fafc; border-bottom: 2px solid #e2e8f0; text-align: left; color: #475569; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; z-index: 2;">
+                  <tr>
+                    <th style="padding: 0.7rem 0.85rem;">Hora</th>
+                    <th style="padding: 0.7rem 0.85rem;">Funcionario / Cédula</th>
+                    <th style="padding: 0.7rem 0.85rem;">Dirección / Ente</th>
+                    <th style="padding: 0.7rem 0.85rem;">Combos Despachados</th>
+                    <th style="padding: 0.7rem 0.85rem;">Modalidad</th>
+                  </tr>
+                </thead>
+                <tbody id="recentManualDeliveriesBody">
+                  <!-- Despachos inyectados dinámicamente -->
+                </tbody>
+              </table>
+            </div>
           </div>
 
         </div>
@@ -1976,8 +2001,11 @@
                 </div>
               </div>
               <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <button type="button" id="btnDistributorOpenDeliveries" onclick="window.openRecentDeliveriesModal && window.openRecentDeliveriesModal()" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #10b981; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);" title="Ver funcionarios que ya retiraron combos hoy">
+                  📦 Despachos (<span id="distributorDeliveriesHeaderCount">0</span>)
+                </button>
                 <button type="button" id="btnDistributorOpenLogs" onclick="window.openSystemLogsModal()" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(14, 165, 233, 0.1);" title="Ver logs y diagnóstico de escaneo en tiempo real">
-                  📋 Logs en Vivo
+                  📋 Logs
                 </button>
                 <button type="button" id="btnDistributorLogout" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.08);" title="Cerrar Sesión del Operador">
                   Salir 🚪
@@ -2195,36 +2223,43 @@
           </div>
         </div>
 
-        <!-- PANEL LATERAL DE AUDITORÍA LOCAL DE LA APP DEL DISTRIBUIDOR -->
-        <div class="glass-panel" style="max-width: 500px; flex: 1;">
-          <div class="panel-header">
-            <div class="panel-title">💾 Respaldo Local (Funciona Sin Conexión)</div>
-            <span class="badge badge-offline">Listo para Almacén</span>
-          </div>
-          
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">
-            Listado de trabajadores cargados en este equipo y entregas listas para enviar al sistema central:
+        <!-- PANEL LATERAL DE REGISTRO DE DESPACHOS EN VIVO EN MESA DE DESPACHO -->
+        <div class="glass-panel" style="max-width: 520px; flex: 1; display: flex; flex-direction: column;">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.65rem; border-bottom: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.25rem;">📋</span>
+              <div>
+                <div class="panel-title" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.2;">
+                  Registro de Despachos en Vivo (Hoy)
+                </div>
+                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                  Funcionarios que ya retiraron combos en esta jornada
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <span id="distributorLiveDeliveriesCountBadge" class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 9999px;">
+                0 entregas
+              </span>
+              <button type="button" onclick="window.openRecentDeliveriesModal && window.openRecentDeliveriesModal()" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; color: #0284c7; border-color: #0284c7; font-weight: 700; border-radius: 6px;" title="Abrir visor completo de auditoría">
+                Ampliar ↗
+              </button>
+            </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
-            <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--bg-card-border);">
-              <div style="font-size: 0.7rem; color: var(--text-dim);">TRABAJADORES REGISTRADOS</div>
-              <div id="localDbWorkersCount" style="font-size: 1.25rem; font-weight: 700; color: #fff;">0</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.02); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--bg-card-border);">
-              <div style="font-size: 0.7rem; color: var(--text-dim);">DISPOSITIVOS ACTIVOS</div>
-              <div id="localDbKeysCount" style="font-size: 1.25rem; font-weight: 700; color: #10b981;">0</div>
+          <!-- LISTADO EN VIVO DE FUNCIONARIOS QUE RETIRARON -->
+          <div id="distributorRecentDeliveriesList" style="flex: 1; min-height: 280px; max-height: 480px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.78rem; padding-right: 0.2rem;">
+            <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
+              <div style="font-size: 1.8rem; margin-bottom: 0.35rem;">📦</div>
+              <div style="font-weight: 600; font-size: 0.8rem; color: #cbd5e1;">Sin despachos registrados hoy</div>
+              <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">Los combos aprobados en esta mesa aparecerán aquí en vivo.</div>
             </div>
           </div>
 
-          <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.5rem;">
-            Entregas Pendientes por Sincronizar:
-          </div>
-          
-          <div id="localSyncQueueList" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem;">
-            <div style="color: var(--text-dim); text-align: center; padding: 1rem;">
-              No hay entregas pendientes de sincronizar.
-            </div>
+          <!-- RESUMEN TÉCNICO OFFLINE INFERIOR -->
+          <div style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-dim);">
+            <span>💾 Motor: SQLite + SQLCipher</span>
+            <span id="syncQueueCounterBottom">0 pendientes de subir</span>
           </div>
         </div>
 

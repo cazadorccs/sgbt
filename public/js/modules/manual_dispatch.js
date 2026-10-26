@@ -240,12 +240,20 @@ window.ManualDispatch = (function() {
     if (countBadge) countBadge.textContent = labelCount;
     if (modalCountBadge) modalCountBadge.textContent = labelCount;
 
-    // Renderizar en el modal y en tabla inline si existe
+    // Actualizar contadores en la vista del distribuidor / mesa de despacho
+    const distBadgeEl = document.getElementById('distributorLiveDeliveriesCountBadge');
+    const distHeaderCountEl = document.getElementById('distributorDeliveriesHeaderCount');
+    if (distBadgeEl) distBadgeEl.textContent = `${grouped.length} funcionarios`;
+    if (distHeaderCountEl) distHeaderCountEl.textContent = grouped.length;
+
+    // Renderizar en el modal, en tabla inline y en panel lateral de distribuidor
     const modalTbody = document.getElementById('modalRecentDeliveriesBody');
     const inlineTbody = document.getElementById('recentManualDeliveriesBody');
+    const distListEl = document.getElementById('distributorRecentDeliveriesList');
 
     if (modalTbody) renderTableRows(modalTbody, grouped);
     if (inlineTbody) renderTableRows(inlineTbody, grouped);
+    if (distListEl) renderDistributorDeliveryCards(distListEl, grouped);
   }
 
   // Renderizar filas HTML en un elemento tbody
@@ -286,6 +294,10 @@ window.ManualDispatch = (function() {
         badgeMethod = '<span class="badge" style="background: #06b6d4; color: white;">📶 Proximidad NFC</span>';
       } else if (d.verification_method === 'delegated_proxy_qr') {
         badgeMethod = '<span class="badge" style="background: #f59e0b; color: white;">🤝 Retiro Delegado</span>';
+      } else if (d.verification_method === 'supervisor_override') {
+        badgeMethod = '<span class="badge" style="background: #eab308; color: #713f12; font-weight: 700;">🔑 Contingencia Supervisor</span>';
+      } else if (d.verification_method === 'barcode_id' || (d.override_reason && d.override_reason.includes('codigo_barras'))) {
+        badgeMethod = '<span class="badge" style="background: #6366f1; color: white;">🏷️ Código de Barras</span>';
       }
 
       const combosList = d.combos || [{ name: d.combo_name || 'Combo Alimenticio', icon: d.combo_icon || '🍱' }];
@@ -297,7 +309,7 @@ window.ManualDispatch = (function() {
             ${timeStr}
           </td>
           <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
-            <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">${escapeHtml(d.full_name)}</div>
+            <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">${escapeHtml(d.full_name || 'Funcionario')}</div>
             <div style="font-size: 0.75rem; color: #64748b; font-family: monospace; margin-top: 0.1rem;">
               ${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; font-weight: 600;">${escapeHtml(d.worker_type || 'activo')}</span>
             </div>
@@ -328,20 +340,95 @@ window.ManualDispatch = (function() {
     }).join('');
   }
 
+  // Renderizar tarjetas en el panel lateral del distribuidor
+  function renderDistributorDeliveryCards(container, list) {
+    if (!container) return;
+    if (!list || list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
+          <div style="font-size: 1.8rem; margin-bottom: 0.35rem;">📦</div>
+          <div style="font-weight: 600; font-size: 0.8rem; color: #cbd5e1;">Sin despachos registrados hoy</div>
+          <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">Los combos aprobados en esta mesa aparecerán aquí en vivo.</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = list.map(d => {
+      let timeStr = '--:--';
+      if (d.delivered_at) {
+        let dateVal = d.delivered_at;
+        if (typeof dateVal === 'string' && !dateVal.endsWith('Z') && !dateVal.includes('+')) {
+          dateVal = dateVal.replace(' ', 'T') + 'Z';
+        }
+        const dObj = new Date(dateVal);
+        timeStr = !isNaN(dObj) 
+          ? dObj.toLocaleTimeString('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+          : d.delivered_at;
+      }
+
+      const combosList = d.combos || [{ name: d.combo_name || 'Combo Alimenticio', icon: d.combo_icon || '🍱' }];
+
+      let badgeMethod = '<span class="badge" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; font-size: 0.65rem;">Manual</span>';
+      if (d.verification_method === 'passkey_qr') {
+        badgeMethod = '<span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.65rem;">🛡️ Passkey QR</span>';
+      } else if (d.verification_method === 'passkey_nfc') {
+        badgeMethod = '<span class="badge" style="background: rgba(6, 182, 212, 0.2); color: #22d3ee; font-size: 0.65rem;">📶 NFC</span>';
+      } else if (d.verification_method === 'supervisor_override') {
+        badgeMethod = '<span class="badge" style="background: rgba(234, 179, 8, 0.2); color: #fde047; font-size: 0.65rem;">🔑 Contingencia</span>';
+      } else if (d.verification_method === 'delegated_proxy_qr') {
+        badgeMethod = '<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-size: 0.65rem;">🤝 Delegado</span>';
+      }
+
+      return `
+        <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 0.85rem; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 0.15rem;">
+          <div class="flex-between" style="margin-bottom: 0.25rem;">
+            <div style="font-weight: 800; color: #0f172a; font-size: 0.88rem; line-height: 1.2;">
+              ${escapeHtml(d.full_name || 'Funcionario')}
+            </div>
+            <span style="font-family: monospace; font-size: 0.72rem; color: #0284c7; font-weight: 700;">
+              ${timeStr}
+            </span>
+          </div>
+
+          <div class="flex-between" style="margin-bottom: 0.35rem; font-size: 0.74rem; color: #64748b;">
+            <span style="font-family: monospace; font-weight: 600;">${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; color: #475569;">${escapeHtml(d.worker_type || 'activo')}</span></span>
+            ${badgeMethod}
+          </div>
+
+          <div style="font-size: 0.72rem; color: #475569; margin-bottom: 0.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            🏢 ${escapeHtml(d.department_name || 'Nómina Central')}
+          </div>
+
+          <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; padding-top: 0.35rem; border-top: 1px dashed #e2e8f0;">
+            ${combosList.map(c => `
+              <span style="font-size: 0.72rem; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 0.15rem 0.45rem; border-radius: 5px; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600;">
+                <span>${c.icon || '🍱'}</span>
+                <span>${escapeHtml(c.name)}</span>
+              </span>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   // Renderizar estado vacío en las tablas
   function renderEmptyState() {
     const emptyHtml = `
       <tr>
         <td colspan="5" style="text-align: center; padding: 2rem; color: #94a3b8;">
           <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
-          <div>No se han registrado entregas manuales todavía hoy. Las entregas están en 0.</div>
+          <div>No se han registrado entregas todavía hoy. Las entregas están en 0.</div>
         </td>
       </tr>
     `;
     const modalTbody = document.getElementById('modalRecentDeliveriesBody');
     const inlineTbody = document.getElementById('recentManualDeliveriesBody');
+    const distListEl = document.getElementById('distributorRecentDeliveriesList');
     if (modalTbody) modalTbody.innerHTML = emptyHtml;
     if (inlineTbody) inlineTbody.innerHTML = emptyHtml;
+    if (distListEl) renderDistributorDeliveryCards(distListEl, []);
   }
 
   // Abrir modal de entregas en vivo
@@ -367,6 +454,10 @@ window.ManualDispatch = (function() {
     const modal = document.getElementById('recentDeliveriesModalBackdrop');
     if (modal) modal.classList.remove('active');
   }
+
+  // Exponer funciones de modal globalmente
+  window.openRecentDeliveriesModal = openRecentDeliveriesModal;
+  window.closeRecentDeliveriesModal = closeRecentDeliveriesModal;
 
   // Filtrar y renderizar entregas en el modal
   function filterAndRenderModalDeliveries(query = '') {
@@ -808,7 +899,9 @@ window.ManualDispatch = (function() {
   return {
     init,
     searchWorker,
-    loadTodaySummary
+    loadTodaySummary,
+    openRecentDeliveriesModal,
+    closeRecentDeliveriesModal
   };
 })();
 
@@ -820,6 +913,20 @@ window.loadManualDispatchStats = () => {
 };
 
 window.addEventListener('combos:updated', () => {
+  if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+    window.ManualDispatch.loadTodaySummary();
+  }
+});
+
+// Actualizar automáticamente tras cada entrega validada en cualquier módulo
+window.addEventListener('delivery:completed', () => {
+  if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+    window.ManualDispatch.loadTodaySummary();
+  }
+});
+
+// Refrescar al reenfocar la ventana o cambiar de pestaña
+window.addEventListener('focus', () => {
   if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
     window.ManualDispatch.loadTodaySummary();
   }
