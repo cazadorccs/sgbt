@@ -208,6 +208,84 @@ window.setupWorkerSimulator = function() {
     }
   });
 
+  // Transmitir Llave Criptográfica por Proximidad NFC (Tap-to-Claim / P2P)
+  const btnTransmitNfc = document.getElementById('btnTransmitNfc');
+  const nfcTransmitStatus = document.getElementById('nfcTransmitStatus');
+
+  btnTransmitNfc?.addEventListener('click', async () => {
+    if (!STATE.selectedWorkerId) return;
+
+    // Asegurar que exista un payload firmado con clave biométrica
+    if (!STATE.activeQrPayload) {
+      if (STATE.deliveredStations && STATE.deliveredStations.has(1) && !STATE.deliveredStations.has(2)) {
+        await generateWorkerStationQr('2');
+      } else {
+        await generateWorkerStationQr('1');
+      }
+    }
+
+    if (!STATE.activeQrPayload) {
+      window.showToast('No se pudo generar la llave criptográfica.', 'error');
+      return;
+    }
+
+    const nfcPayload = {
+      ...STATE.activeQrPayload,
+      transport: 'nfc',
+      device_nfc_timestamp: Date.now()
+    };
+
+    if (nfcTransmitStatus) {
+      nfcTransmitStatus.style.display = 'block';
+      nfcTransmitStatus.innerHTML = '<span class="spinner" style="display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: middle;"></span> 📡 <strong>Antena NFC Activa</strong> &middot; Acerque su teléfono a la mesa de despacho...';
+    }
+
+    // Web NFC API Nativa (Hardware NDEF en dispositivos compatibles)
+    if ('NDEFReader' in window) {
+      try {
+        const ndef = new NDEFReader();
+        await ndef.write({
+          records: [{
+            recordType: "text",
+            data: JSON.stringify(nfcPayload)
+          }]
+        });
+        console.log('[NFC P2P] Payload firmado transmitido vía NDEF.');
+      } catch (err) {
+        console.info('[NFC Hardware Info]', err.message);
+      }
+    }
+
+    // Canal de Proximidad BroadcastChannel y LocalStorage para comunicación P2P inmediata
+    try {
+      localStorage.setItem('sgbt_active_nfc_payload', JSON.stringify(nfcPayload));
+      localStorage.setItem('sgbt_active_nfc_time', Date.now().toString());
+
+      if ('BroadcastChannel' in window) {
+        const bc = new BroadcastChannel('sgbt_nfc_channel');
+        bc.postMessage({
+          type: 'NFC_TAP_TRANSMIT',
+          payload: nfcPayload,
+          worker_id: STATE.selectedWorkerId,
+          timestamp: Date.now()
+        });
+        bc.close();
+      }
+    } catch (e) {
+      console.warn('[NFC BROADCAST ERROR]', e);
+    }
+
+    if (navigator.vibrate) navigator.vibrate([100, 60, 100]);
+    if (typeof playAudioFeedback === 'function') playAudioFeedback('info');
+    window.showToast('📡 Antena NFC Activa. Acerque su dispositivo al despachador para validar la llave criptográfica.', 'info');
+
+    setTimeout(() => {
+      if (nfcTransmitStatus && nfcTransmitStatus.style.display !== 'none') {
+        nfcTransmitStatus.innerHTML = '✅ Llave criptográfica transmitida por NFC. Esperando confirmación de mesa...';
+      }
+    }, 4000);
+  });
+
   async function generateWorkerStationQr(targetStation = '1') {
     if (!STATE.selectedWorkerId) return;
 

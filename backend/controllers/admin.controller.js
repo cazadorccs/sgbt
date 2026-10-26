@@ -29,7 +29,8 @@ const getKpis = (req, res) => {
 
   const methodStats = db.prepare(`
     SELECT 
-      SUM(CASE WHEN verification_method = 'passkey_qr' THEN 1 ELSE 0 END) as passkey_qr,
+      SUM(CASE WHEN verification_method IN ('passkey_qr', 'passkey_nfc') THEN 1 ELSE 0 END) as passkey_qr,
+      SUM(CASE WHEN verification_method = 'passkey_nfc' THEN 1 ELSE 0 END) as passkey_nfc,
       SUM(CASE WHEN verification_method = 'nfc_card' THEN 1 ELSE 0 END) as nfc_card,
       SUM(CASE WHEN verification_method = 'supervisor_daily_qr' THEN 1 ELSE 0 END) as supervisor_daily_qr,
       SUM(CASE WHEN verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as supervisor_override,
@@ -78,6 +79,7 @@ const getKpis = (req, res) => {
       offline_sync_pct: offlinePct,
       verification_breakdown: {
         passkey_qr: methodStats.passkey_qr || 0,
+        passkey_nfc: methodStats.passkey_nfc || 0,
         nfc_card: methodStats.nfc_card || 0,
         supervisor_override: methodStats.supervisor_override || 0
       }

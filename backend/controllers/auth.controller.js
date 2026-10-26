@@ -608,17 +608,20 @@ const verifyQr = (req, res) => {
     }
     const finalOperatorId = operatorUser ? operatorUser.id : null;
 
+    const methodUsed = req.body.verification_method || (qr_payload && qr_payload.transport === 'nfc' ? 'passkey_nfc' : 'passkey_qr');
+
     db.prepare(`
       INSERT INTO deliveries (
         id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
         verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-      ) VALUES (?, ?, ?, ?, ?, 'passkey_qr', ?, ?, 0, CURRENT_TIMESTAMP, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
     `).run(
       deliveryId,
       targetEnt.id,
       wid,
       finalPointId,
       finalOperatorId,
+      methodUsed,
       sig,
       nonce,
       campId
@@ -639,7 +642,7 @@ const verifyQr = (req, res) => {
           worker_id: wid,
           distribution_point_id: finalPointId,
           delivered_by_user_id: finalOperatorId,
-          verification_method: 'passkey_qr',
+          verification_method: methodUsed,
           signature_proof: sig,
           challenge_nonce: nonce,
           is_offline_sync: false
@@ -673,6 +676,7 @@ const verifyQr = (req, res) => {
       message: targetToastMsg,
       remaining_pending: remainingCount,
       all_completed: isAllCompleted,
+      verification_method: methodUsed,
       delivered_at: new Date().toISOString()
     };
 

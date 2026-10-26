@@ -440,6 +440,48 @@ test('E2E-25: Autenticación de Administración del Sistema (Cédula/Email, PIN 
 });
 
 // ----------------------------------------------------------------------------
+// 12. PROXIMIDAD NFC MÓVIL Y EVALUACIÓN CRIPTOGRÁFICA (TAP-TO-CLAIM)
+// ----------------------------------------------------------------------------
+test('E2E-26: Validación Criptográfica por Proximidad NFC Móvil (Tap-to-Claim P2P)', async () => {
+  // 1. Obtener firma offline generada por el beneficiario con Passkey FIDO2
+  const signRes = await request('POST', '/api/v1/auth/passkey/sign-offline', {
+    worker_id: testWorkerId,
+    entitlement_id: testEntitlementId,
+    station: '1'
+  });
+  if (signRes.status !== 200 || !signRes.data.qr_payload) {
+    throw new Error('Fallo al generar firma criptográfica para NFC: ' + JSON.stringify(signRes.data));
+  }
+
+  const nfcPayload = {
+    ...signRes.data.qr_payload,
+    transport: 'nfc',
+    device_nfc_timestamp: Date.now()
+  };
+
+  // 2. Transmisión y evaluación criptográfica en Mesa de Despacho
+  const verifyRes = await request('POST', '/api/v1/verify/qr', {
+    qr_payload: nfcPayload,
+    verification_method: 'passkey_nfc',
+    delivered_by_user_id: testWorkerId,
+    station: '1'
+  });
+
+  if (verifyRes.status === 200) {
+    if (!verifyRes.data.valid) throw new Error('Respuesta indica valid: false en NFC');
+    if (verifyRes.data.verification_method !== 'passkey_nfc') {
+      throw new Error(`Se esperaba método passkey_nfc, recibido: ${verifyRes.data.verification_method}`);
+    }
+    console.log(`     [NFC Aprobado: ${verifyRes.data.worker_name}, Combo: ${verifyRes.data.combo_name}, Método: ${verifyRes.data.verification_method}]`);
+  } else if (verifyRes.status === 409) {
+    // Si ya fue despachado en pruebas previas hoy, confirma la protección anti-duplicado matemática
+    console.log(`     [NFC Protección Duplicados OK: ${verifyRes.data.message}]`);
+  } else {
+    throw new Error(`HTTP ${verifyRes.status} al validar NFC: ${JSON.stringify(verifyRes.data)}`);
+  }
+});
+
+// ----------------------------------------------------------------------------
 // EJECUTOR DE LA SUITE
 // ----------------------------------------------------------------------------
 async function runSuite() {

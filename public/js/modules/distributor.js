@@ -16,10 +16,50 @@ window.toggleChecklistItem = function(cardEl) {
 window.setupDistributorSimulator = function() {
   document.getElementById('btnDownloadDailyPack')?.addEventListener('click', downloadDailyPack);
   document.getElementById('btnScanWorkerGeneratedQr')?.addEventListener('click', scanWorkerQr);
+  document.getElementById('btnReceiveNfcMobile')?.addEventListener('click', receiveNfcMobile);
   document.getElementById('btnSimulateNfcTap')?.addEventListener('click', simulateNfcTap);
   document.getElementById('btnSimulateSupervisorDailyQr')?.addEventListener('click', simulateSupervisorDailyQrApproval);
   document.getElementById('btnDistributorShowSupervisorQr')?.addEventListener('click', loadAndShowSupervisorDailyQrModal);
   document.getElementById('btnSyncDeferredQueue')?.addEventListener('click', () => syncDeferredQueue(false));
+
+  // Escuchar transmisiones NFC P2P entre teléfonos y pestañas
+  if ('BroadcastChannel' in window) {
+    try {
+      const nfcBc = new BroadcastChannel('sgbt_nfc_channel');
+      nfcBc.onmessage = (e) => {
+        if (e.data && e.data.type === 'NFC_TAP_TRANSMIT' && e.data.payload) {
+          window.showToast('📡 Señal NFC de proximidad detectada desde teléfono beneficiario...', 'info');
+          const nfcBtn = document.getElementById('btnReceiveNfcMobile');
+          if (nfcBtn) {
+            nfcBtn.style.boxShadow = '0 0 15px #38bdf8';
+            nfcBtn.textContent = '📡 Tocar NFC Detectado (Aprobar)';
+          }
+        }
+      };
+    } catch (e) {}
+  }
+
+  // Soporte para Web NFC NDEF Reader nativo de hardware
+  if ('NDEFReader' in window) {
+    try {
+      const ndef = new NDEFReader();
+      ndef.scan().then(() => {
+        ndef.onreading = (event) => {
+          for (const record of event.message.records) {
+            const textDecoder = new TextDecoder();
+            const text = textDecoder.decode(record.data);
+            try {
+              const parsed = JSON.parse(text);
+              if (parsed && (parsed.wid || parsed.protocol)) {
+                parsed.transport = 'nfc';
+                processQrPayload(parsed, false);
+              }
+            } catch (e) {}
+          }
+        };
+      }).catch(err => console.info('[NFC Hardware Scanner]', err.message));
+    } catch (e) {}
+  }
 
   // Restaurar entregas offline acumuladas desde IndexedDB al iniciar
   if (window.OfflineStore && typeof window.OfflineStore.getAllPending === 'function') {
@@ -855,13 +895,15 @@ async function processQrPayload(payload, isLiveCamera = false) {
     }
 
     const worker = STATE.localCache.workers.find(w => w.worker_id === payload.wid);
+    const isNfcMobile = payload.transport === 'nfc';
+    const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
     const deliveryId = crypto.randomUUID();
     const offlineRecord = {
       id: deliveryId,
       entitlement_id: payload.ent,
       worker_id: payload.wid,
       distribution_point_id: qrStation === '2' ? '550e8400-e29b-41d4-a716-446655440001' : '550e8400-e29b-41d4-a716-446655440000',
-      verification_method: 'passkey_qr',
+      verification_method: methodUsed,
       signature_proof: payload.sig,
       challenge_nonce: payload.nonce,
       delivered_by_user_id: STATE.operatorId,
@@ -880,35 +922,42 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const isStation2Offline = qrStation === '2';
     const offlineComboTitle = isStation2Offline ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto Víveres Secos';
 
+    const offlineHeader = isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO (OFFLINE)' : 'DESPACHO AUTORIZADO';
+    const offlineDesc = isNfcMobile 
+      ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada offline.'
+      : 'Entrega validada correctamente en Almacén Sótano 1.';
+
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
       showCameraScanHUD(
         true,
-        'DESPACHO VÁLIDO',
+        offlineHeader,
         `${worker ? worker.full_name : 'Beneficiario'} &middot; ${offlineComboTitle}`
       );
     } else {
       showDistributorFeedback(
         true,
-        'DESPACHO AUTORIZADO',
-        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br>Estación: <strong>Estación ${qrStation}</strong> &middot; <strong>${offlineComboTitle}</strong><br><small style="color: #6ee7b7;">Entrega validada correctamente en Almacén Sótano 1.</small>`,
+        offlineHeader,
+        `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br>Estación: <strong>Estación ${qrStation}</strong> &middot; <strong>${offlineComboTitle}</strong><br><small style="color: #38bdf8;">${offlineDesc}</small>`,
         worker || { worker_type: 'activo' }
       );
     }
-    broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: offlineComboTitle, station: parseInt(qrStation, 10) }, payload);
+    broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: offlineComboTitle, station: parseInt(qrStation, 10), verification_method: methodUsed }, payload);
   } else {
     try {
       const activeStation = qrStation;
+      const isNfcMobile = payload.transport === 'nfc';
+      const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
       const result = await API.post('/api/v1/verify/qr', {
         qr_payload: payload,
         delivered_by_user_id: STATE.operatorId,
-        station: activeStation
+        station: activeStation,
+        verification_method: methodUsed
       });
 
       if (result.valid) {
         STATE.localCache.deliveredEntitlements.add(payload.ent);
         STATE.localCache.deliveredEntitlements.add(stationCacheKey);
         STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_' + (result.station || activeStation));
-
 
         // Notificación Toast exacta por estación
         const toastMsg = result.toast_message || (result.station === 2 
@@ -919,17 +968,22 @@ async function processQrPayload(payload, isLiveCamera = false) {
         playAudioFeedback('success');
         if (navigator.vibrate) navigator.vibrate([120, 80, 200]);
 
+        const onlineHeader = isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO' : 'DESPACHO ONLINE AUTORIZADO';
+        const onlineDesc = isNfcMobile 
+          ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada con éxito.'
+          : 'Firma biométrica validada en servidor central.';
+
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
           showCameraScanHUD(
             true,
-            'DESPACHO AUTORIZADO',
+            onlineHeader,
             `${result.worker_name} (${result.document_id}) &middot; ${result.combo_name}`
           );
         } else {
           showDistributorFeedback(
             true,
-            'DESPACHO ONLINE AUTORIZADO',
-            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br>Estación: <strong>${result.station_name || ('Estación ' + (result.station || 1))}</strong> &middot; <strong>${result.combo_name}</strong><br><small style="color: #6ee7b7;">Firma biométrica validada en servidor central.</small>`,
+            onlineHeader,
+            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br>Estación: <strong>${result.station_name || ('Estación ' + (result.station || 1))}</strong> &middot; <strong>${result.combo_name}</strong><br><small style="color: #38bdf8;">${onlineDesc}</small>`,
             result
           );
         }
@@ -1066,6 +1120,55 @@ async function simulateNfcTap() {
     );
     if (typeof refreshPortalData === 'function') refreshPortalData();
   }
+}
+
+// ============================================================================
+// RECEPCIÓN Y EVALUACIÓN CRIPTOGRÁFICA NFC MÓVIL (DEVICE-TO-DEVICE)
+// ============================================================================
+async function receiveNfcMobile() {
+  let nfcPayload = null;
+  try {
+    const raw = localStorage.getItem('sgbt_active_nfc_payload') || localStorage.getItem('sgbt_active_qr_payload');
+    if (raw) nfcPayload = JSON.parse(raw);
+  } catch (e) {}
+
+  if (!nfcPayload) {
+    try {
+      const selectedWid = STATE.selectedWorkerId || 'w1a2b3c4-1111-2222-3333-444455556666';
+      const pack = await API.get('/api/v1/sync/daily-pack');
+      const testWorker = (pack.active_workers || []).find(w => w.worker_id === selectedWid) || (pack.active_workers && pack.active_workers[0]);
+      if (testWorker && testWorker.entitlements && testWorker.entitlements.length > 0) {
+        const signRes = await API.post('/api/v1/auth/passkey/sign-offline', {
+          worker_id: testWorker.worker_id,
+          entitlement_id: testWorker.entitlements[0].entitlement_id,
+          station: STATE.activeStation || '1'
+        });
+        if (signRes && signRes.qr_payload) {
+          nfcPayload = { ...signRes.qr_payload, transport: 'nfc' };
+        }
+      }
+    } catch (e) {
+      console.warn('Fallback NFC sign error:', e);
+    }
+  }
+
+  if (!nfcPayload) {
+    showDistributorFeedback(false, 'SIN SEÑAL NFC DETECTADA', 'Genere un código o active "Tocar con NFC" en la App del Beneficiario y acerque el teléfono.');
+    return;
+  }
+
+  nfcPayload.transport = 'nfc';
+  window.showToast('📡 Señal NFC recibida. Evaluando llave criptográfica P-256 por contacto...', 'info');
+  if (navigator.vibrate) navigator.vibrate([80, 50, 120]);
+
+  // Restablecer botón tras lectura
+  const nfcBtn = document.getElementById('btnReceiveNfcMobile');
+  if (nfcBtn) {
+    nfcBtn.style.boxShadow = '';
+    nfcBtn.textContent = '📡 Recibir NFC Móvil';
+  }
+
+  await processQrPayload(nfcPayload, false);
 }
 
 async function simulateSupervisorDailyQrApproval() {
