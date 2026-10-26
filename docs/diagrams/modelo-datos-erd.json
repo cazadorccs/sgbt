@@ -4,7 +4,7 @@
   "meta": {
     "title": "Modelo de Datos Entidad-Relación - SGBT MIPPCI",
     "subtitle": "Estructura Relacional SQLite / Supabase con Integridad Referencial e Idempotencia",
-    "output": ".archify/erd-modelo-datos-20261025-130500/modelo-datos-erd.html",
+    "output": "public/diagrams/modelo-datos-erd.html",
     "quality_profile": "showcase",
     "views": [
       {

@@ -408,6 +408,104 @@
     .diagram-card h4 { font-size: 1.15rem; margin-bottom: 0.5rem; }
     .diagram-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5; }
 
+    /* UNIFIED DIAGRAMS HUB */
+    .diagram-hub {
+      background: var(--neu-convex);
+      box-shadow: var(--neu-flat);
+      border: var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      transition: box-shadow 0.3s var(--ease-lux);
+      margin-bottom: 2.2rem;
+    }
+    .diagram-hub-nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .diagram-tab {
+      background: var(--surface);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: var(--neu-flat-sm);
+      transition: all 0.25s var(--ease-lux);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .diagram-tab:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--neu-lift);
+      border-color: rgba(2, 132, 199, 0.4);
+    }
+    .diagram-tab.active {
+      background: #ffffff;
+      box-shadow: var(--neu-pressed-deep);
+      border-color: #0284c7;
+      transform: scale(0.99);
+    }
+    .diagram-tab .tab-kicker {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0284c7;
+    }
+    .diagram-tab .tab-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .diagram-tab .tab-sub {
+      font-size: 0.75rem;
+      color: #64748b;
+      line-height: 1.35;
+    }
+    .diagram-viewer-shell {
+      background: #0b1120;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+    }
+    .diagram-viewer-header {
+      background: #1e293b;
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .diagram-viewer-header #dossier-diagram-title {
+      color: #f8fafc !important;
+    }
+    .viewer-status-pulse {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      display: inline-block;
+    }
+    .diagram-iframe-box {
+      width: 100%;
+      height: 680px;
+      background: #090d16;
+    }
+    .diagram-iframe-box iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
     /* FOOTER */
     footer {
       background: var(--dark);
@@ -1183,6 +1281,54 @@
         <p class="section-subtitle">Modelos interactivos de alta fidelidad elaborados bajo la especificación Archify v3.2.0 (Showcase Quality).</p>
       </div>
 
+      <!-- VISOR INTERACTIVO CENTRALIZADO (UN SOLO LUGAR) -->
+      <div class="diagram-hub reveal">
+        <div class="diagram-hub-nav">
+          <button type="button" class="diagram-tab active" onclick="selectDossierDiagram('c4', this)">
+            <span class="tab-kicker">C4 Model &middot; Nivel 2</span>
+            <span class="tab-title">🏗️ Arquitectura General</span>
+            <span class="tab-sub">Actores, PWA Edge, Express, SQLite WAL y Supabase Cloud</span>
+          </button>
+          <button type="button" class="diagram-tab" onclick="selectDossierDiagram('sequence', this)">
+            <span class="tab-kicker" style="color: #be185d;">Secuencia Criptográfica</span>
+            <span class="tab-title">⚡ QR & Tap NFC P2P</span>
+            <span class="tab-sub">Passkeys FIDO2, ECDSA P-256, Idempotencia y SSE Push</span>
+          </button>
+          <button type="button" class="diagram-tab" onclick="selectDossierDiagram('erd', this)">
+            <span class="tab-kicker" style="color: #047857;">Modelo Relacional</span>
+            <span class="tab-title">🗄️ Modelo de Datos (ERD)</span>
+            <span class="tab-sub">Identidad, Cuotas Diarias, Despachos y Clave Anti-Duplicados</span>
+          </button>
+        </div>
+
+        <div class="diagram-viewer-shell">
+          <div class="diagram-viewer-header">
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+              <span class="viewer-status-pulse"></span>
+              <span id="dossier-diagram-title" style="font-weight: 700; font-size: 0.95rem;">
+                Arquitectura de Contenedores C4 (Nivel 2) &middot; SGBT MIPPCI
+              </span>
+            </div>
+            <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+              <a id="dossier-diagram-fullscreen" href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; justify-content: center;">
+                Pantalla Completa ↗
+              </a>
+              <a id="dossier-diagram-json" href="diagrams/c4-containers.json" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.9rem; justify-content: center;">
+                Ver JSON 📋
+              </a>
+              <a href="diagrams/index.html" target="_blank" class="btn btn-primary" style="font-size: 0.8rem; padding: 0.45rem 1rem; justify-content: center;">
+                Centro de Diagramas 🗺️
+              </a>
+            </div>
+          </div>
+
+          <div class="diagram-iframe-box">
+            <iframe id="dossier-diagram-iframe" src="diagrams/c4-containers.html" title="Visor de Arquitectura Archify"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCESO DIRECTO INDIVIDUAL ENLAZADO -->
       <div class="diagram-cards">
         <div class="diagram-card reveal delay-1">
           <div>
@@ -1190,16 +1336,16 @@
             <h4>Arquitectura General de Contenedores</h4>
             <p>Mapeo integral de actores (Beneficiario, Operador, Admin), capas PWA frontales, microservicios backend y persistencia híbrida SQLite WAL + Supabase.</p>
           </div>
-          <a href="../docs/diagrams/c4-containers.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Diagrama C4 ↗</a>
+          <a href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Diagrama C4 ↗</a>
         </div>
 
         <div class="diagram-card reveal delay-2">
           <div>
             <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia Criptográfica</span>
             <h4>Flujo de Datos y User Journey</h4>
-            <p>Trazabilidad cronológica del retiro: biometría en Secure Enclave, nonce temporal, POST con Idempotency-Key y feedback háptico al operador.</p>
+            <p>Trazabilidad cronológica del retiro: biometría en Secure Enclave, QR dinámico o Proximidad NFC P2P, POST con Idempotency-Key y feedback háptico.</p>
           </div>
-          <a href="../docs/diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Flujo de Secuencia ↗</a>
+          <a href="diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Flujo de Secuencia ↗</a>
         </div>
 
         <div class="diagram-card reveal delay-3">
@@ -1208,7 +1354,7 @@
             <h4>Modelo de Datos (ERD Simplificado)</h4>
             <p>Estructura relacional en 3 dominios funcionales (Identidad, Beneficios y Auditoría Forense) con claves compuestas y tabla de idempotencia.</p>
           </div>
-          <a href="../docs/diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Modelo ERD ↗</a>
+          <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline" style="justify-content:center;">Abrir Modelo ERD ↗</a>
         </div>
       </div>
     </div>
@@ -1244,6 +1390,41 @@
 
   <!-- SCRIPT ENGINE: MOTION, SCROLLYTELLING & TACTILE RIPPLE -->
   <script>
+    // 0. Diagram Controller (Arquitectura e Ingeniería Hub)
+    const dossierDiagrams = {
+      c4: {
+        title: 'Arquitectura de Contenedores C4 (Nivel 2) · SGBT MIPPCI',
+        url: 'diagrams/c4-containers.html',
+        json: 'diagrams/c4-containers.json'
+      },
+      sequence: {
+        title: 'Flujo Criptográfico QR & Tap NFC P2P (Passkeys FIDO2 / ECDSA P-256) · SGBT MIPPCI',
+        url: 'diagrams/user-journey-sequence.html',
+        json: 'diagrams/user-journey-sequence.json'
+      },
+      erd: {
+        title: 'Modelo de Datos Relacional (ERD) · SQLite WAL + Supabase Cloud · SGBT MIPPCI',
+        url: 'diagrams/modelo-datos-erd.html',
+        json: 'diagrams/modelo-datos-erd.json'
+      }
+    };
+
+    window.selectDossierDiagram = function(type, btn) {
+      document.querySelectorAll('.diagram-tab').forEach(t => t.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      const d = dossierDiagrams[type];
+      if (d) {
+        const iframe = document.getElementById('dossier-diagram-iframe');
+        const title = document.getElementById('dossier-diagram-title');
+        const fullBtn = document.getElementById('dossier-diagram-fullscreen');
+        const jsonBtn = document.getElementById('dossier-diagram-json');
+        if (iframe) iframe.src = d.url;
+        if (title) title.textContent = d.title;
+        if (fullBtn) fullBtn.href = d.url;
+        if (jsonBtn) jsonBtn.href = d.json;
+      }
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
       // 1. Scroll Reveal Observer
       const revealElements = document.querySelectorAll('.reveal');

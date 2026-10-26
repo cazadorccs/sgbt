@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Centro de Arquitectura e Ingeniería Documentada - SGBT MIPPCI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #0f172a;
+      --surface-card: #1e293b;
+      --surface-border: rgba(255, 255, 255, 0.08);
+      --primary: #0284c7;
+      --primary-glow: rgba(2, 132, 199, 0.35);
+      --accent: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-display: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'Fira Code', monospace;
+      --neu-shadow: -6px -6px 14px rgba(255, 255, 255, 0.03), 8px 8px 18px rgba(0, 0, 0, 0.45);
+      --neu-pressed: inset 3px 3px 6px rgba(0, 0, 0, 0.5), inset -3px -3px 6px rgba(255, 255, 255, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-container {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .brand-title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.1rem;
+      border-radius: 10px;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      border: 1px solid transparent;
+    }
+
+    .btn-neu {
+      background: var(--surface-card);
+      color: var(--text);
+      box-shadow: var(--neu-shadow);
+      border: 1px solid var(--surface-border);
+    }
+    .btn-neu:hover {
+      background: #24344d;
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      box-shadow: 0 4px 14px var(--primary-glow);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 20px var(--primary-glow);
+      transform: translateY(-1px);
+    }
+
+    /* MAIN CONTAINER */
+    main {
+      flex: 1;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* TAB CONTROL HUB */
+    .hub-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+    }
+
+    .tab-card {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      box-shadow: var(--neu-shadow);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tab-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: transparent;
+      transition: background 0.25s ease;
+    }
+
+    .tab-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(2, 132, 199, 0.4);
+    }
+
+    .tab-card.active {
+      background: var(--surface-card);
+      border-color: var(--primary);
+      box-shadow: 0 0 25px rgba(2, 132, 199, 0.2);
+    }
+
+    .tab-card.active::before {
+      background: linear-gradient(90deg, #0284c7, #10b981);
+    }
+
+    .tab-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.4rem;
+    }
+
+    .tab-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      background: rgba(2, 132, 199, 0.15);
+      color: #38bdf8;
+      border: 1px solid rgba(2, 132, 199, 0.3);
+    }
+
+    .tab-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* VIEWPORT CONTAINER */
+    .viewport-panel {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 16px;
+      box-shadow: var(--neu-shadow);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 720px;
+      position: relative;
+    }
+
+    .viewport-toolbar {
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--surface-border);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .diagram-meta-active {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .active-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(1.15); }
+    }
+
+    .viewport-frame {
+      width: 100%;
+      height: 720px;
+      border: none;
+      background: #090d16;
+    }
+
+    /* ARCHITECTURE HIGHLIGHTS */
+    .specs-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .spec-item {
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+    }
+
+    .spec-item h5 {
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      color: #38bdf8;
+      margin-bottom: 0.35rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .spec-item p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--surface-border);
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="header-container">
+      <div class="brand-group">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+            <polyline points="2 17 12 22 22 17"></polyline>
+            <polyline points="2 12 12 17 22 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">Centro de Arquitectura e Ingeniería Documentada</h1>
+          <p class="brand-subtitle">Sistema SGBT &middot; MIPPCI &middot; Especificación Archify v3.2 (Showcase)</p>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <a href="../dossier.html" class="btn btn-neu">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Volver al Dossier
+        </a>
+        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          Abrir App Demo
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+    <!-- SELECTOR DE DIAGRAMAS AGRUPADOS EN UN SOLO LUGAR -->
+    <div class="hub-tabs">
+      <div class="tab-card active" id="tab-c4" onclick="switchDiagram('c4')">
+        <div class="tab-header">
+          <span class="tab-badge">C4 Model &middot; Nivel 2</span>
+          <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">Interactivo</span>
+        </div>
+        <h3 class="tab-title">🏗️ Arquitectura General de Contenedores</h3>
+        <p class="tab-desc">Actores institucionales, capas PWA, microservicios backend, Passkeys FIDO2, Proximidad NFC P2P y persistencia SQLite WAL + Supabase Cloud.</p>
+      </div>
+
+      <div class="tab-card" id="tab-sequence" onclick="switchDiagram('sequence')">
+        <div class="tab-header">
+          <span class="tab-badge" style="color: #ec4899; background: rgba(236,72,153,0.15); border-color: rgba(236,72,153,0.3);">Handshake Cripto</span>
+          <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">Animación de Traza</span>
+        </div>
+        <h3 class="tab-title">⚡ Flujo Criptográfico QR & Tap NFC P2P</h3>
+        <p class="tab-desc">Secuencia cronológica del retiro: biometría en Secure Enclave, firma ECDSA P-256, cabecera Idempotency-Key y feedback háptico en almacén.</p>
+      </div>
+
+      <div class="tab-card" id="tab-erd" onclick="switchDiagram('erd')">
+        <div class="tab-header">
+          <span class="tab-badge" style="color: #10b981; background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3);">Modelo Relacional</span>
+          <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">Vistas Múltiples</span>
+        </div>
+        <h3 class="tab-title">🗄️ Modelo de Datos (ERD Integral)</h3>
+        <p class="tab-desc">Estructura relacional SQLite / Supabase: Identidad, Beneficios, Auditoría forense y clave única anti-duplicados <code>idx_unique_daily_claim</code>.</p>
+      </div>
+    </div>
+
+    <!-- VIEWPORT CENTRALIZADO -->
+    <div class="viewport-panel">
+      <div class="viewport-toolbar">
+        <div class="diagram-meta-active">
+          <span class="active-dot"></span>
+          <span id="active-diagram-title" style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem;">
+            Arquitectura de Contenedores C4 (Nivel 2) &middot; SGBT MIPPCI
+          </span>
+        </div>
+
+        <div style="display: flex; gap: 0.6rem; align-items: center;">
+          <a id="btn-fullscreen" href="c4-containers.html" target="_blank" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            Pantalla Completa ↗
+          </a>
+          <a id="btn-json" href="c4-containers.json" target="_blank" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+            Especificación JSON
+          </a>
+        </div>
+      </div>
+
+      <iframe id="diagram-frame" class="viewport-frame" src="c4-containers.html" title="Visor de Arquitectura Archify"></iframe>
+    </div>
+
+    <!-- SPECS Y PILARES TÉCNICOS -->
+    <div class="specs-grid">
+      <div class="spec-item">
+        <h5>🔒 Criptografía FIDO2 / ECDSA P-256</h5>
+        <p>Validación de credenciales en chip de hardware seguro. El titular firma con biométrica en su móvil y transmite vía QR dinámico (180s) o Proximidad NFC P2P.</p>
+      </div>
+      <div class="spec-item">
+        <h5>⚡ Resiliencia Offline-First de Almacén</h5>
+        <p>Operación continua sin internet en depósitos y sótanos. Base de datos local transaccional SQLite WAL con réplica asíncrona hacia Supabase Cloud.</p>
+      </div>
+      <div class="spec-item">
+        <h5>🛡️ Garantía Matemática de Idempotencia</h5>
+        <p>Cumplimiento del estándar RFC 7807 con cabecera Idempotency-Key y el índice relacional estricto <code>idx_unique_daily_claim</code> que erradica fraudes y dobles entregas.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI) &middot; Dirección General de Tecnologías de la Información y la Comunicación</p>
+    <p style="margin-top: 0.25rem; font-size: 0.72rem; color: #64748b;">Diagramas técnicos interactivos generados con motor Archify 3.2.0 &middot; SGBT Producción</p>
+  </footer>
+
+  <script>
+    const diagrams = {
+      c4: {
+        title: 'Arquitectura de Contenedores C4 (Nivel 2) · SGBT MIPPCI',
+        html: 'c4-containers.html',
+        json: 'c4-containers.json'
+      },
+      sequence: {
+        title: 'Flujo de Secuencia Criptográfica Passkeys FIDO2 y NFC P2P · SGBT MIPPCI',
+        html: 'user-journey-sequence.html',
+        json: 'user-journey-sequence.json'
+      },
+      erd: {
+        title: 'Modelo de Datos Entidad-Relación (ERD) · SGBT MIPPCI',
+        html: 'modelo-datos-erd.html',
+        json: 'modelo-datos-erd.json'
+      }
+    };
+
+    function switchDiagram(type) {
+      document.querySelectorAll('.tab-card').forEach(tab => tab.classList.remove('active'));
+      const activeTab = document.getElementById('tab-' + type);
+      if (activeTab) activeTab.classList.add('active');
+
+      const config = diagrams[type];
+      if (config) {
+        document.getElementById('diagram-frame').src = config.html;
+        document.getElementById('active-diagram-title').textContent = config.title;
+        document.getElementById('btn-fullscreen').href = config.html;
+        document.getElementById('btn-json').href = config.json;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -3,8 +3,8 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "Arquitectura de Contenedores C4 (Nivel 2) - SGBT MIPPCI",
-    "subtitle": "Plataforma Institucional de Despacho de Combos con Passkeys FIDO2 y Motor Offline-First",
-    "output": ".archify/architecture-c4-containers-20261025-130500/c4-containers.html",
+    "subtitle": "Plataforma Institucional de Despacho con Passkeys FIDO2, Proximidad NFC P2P y Motor Offline-First",
+    "output": "public/diagrams/c4-containers.html",
     "quality_profile": "showcase"
   },
   "components": [
@@ -12,15 +12,15 @@
     { "id": "operator_actor", "type": "external", "label": "Operador Almacén", "sublabel": "Mesa de Despacho", "pos": [40, 270], "size": [150, 60] },
     { "id": "admin_actor", "type": "external", "label": "Administrador TI", "sublabel": "Gobernanza / RRHH", "pos": [40, 420], "size": [150, 60] },
 
-    { "id": "pwa_beneficiary", "type": "frontend", "label": "PWA Beneficiario", "sublabel": "WebAuthn & Carnet QR", "pos": [260, 120], "size": [165, 62], "tag": "Biometría Local" },
-    { "id": "pwa_dispatch", "type": "frontend", "label": "PWA Despacho", "sublabel": "Escáner & Motor Háptico", "pos": [260, 270], "size": [165, 62], "tag": "IndexedDB Offline" },
+    { "id": "pwa_beneficiary", "type": "frontend", "label": "PWA Beneficiario", "sublabel": "Passkeys, QR & NFC P2P", "pos": [260, 120], "size": [165, 62], "tag": "Biometría & NFC" },
+    { "id": "pwa_dispatch", "type": "frontend", "label": "PWA Despacho", "sublabel": "Escáner QR & Lector NFC", "pos": [260, 270], "size": [165, 62], "tag": "IndexedDB Offline" },
     { "id": "admin_portal", "type": "frontend", "label": "Portal Web Admin", "sublabel": "Auditoría, Nómina y KPIs", "pos": [260, 420], "size": [165, 62], "tag": "RBAC con PIN" },
 
-    { "id": "crypto_service", "type": "security", "label": "Servicio Criptográfico", "sublabel": "ECDSA P-256 / Passkeys", "pos": [510, 120], "size": [170, 62], "tag": "WebAuthn FIDO2" },
+    { "id": "crypto_service", "type": "security", "label": "Servicio Criptográfico", "sublabel": "ECDSA P-256 (QR / NFC)", "pos": [510, 120], "size": [170, 62], "tag": "WebAuthn / Web NFC" },
     { "id": "idempotency_mw", "type": "security", "label": "Middleware Idempotencia", "sublabel": "Idempotency-Key / RFC 7807", "pos": [510, 270], "size": [170, 62], "tag": "Anti-Duplicados" },
     { "id": "supervisor_service", "type": "backend", "label": "Servicio Supervisor", "sublabel": "HMAC QR Diario y Delegación", "pos": [510, 420], "size": [170, 62], "tag": "Contingencias" },
 
-    { "id": "express_api", "type": "backend", "label": "API REST Express", "sublabel": "Node.js v20/22 :3000", "pos": [760, 270], "size": [170, 64], "tag": "Arquitectura v3.1" },
+    { "id": "express_api", "type": "backend", "label": "API REST Express", "sublabel": "Node.js v20/22 :3000", "pos": [760, 270], "size": [170, 64], "tag": "Arquitectura v3.2" },
     { "id": "sse_service", "type": "messagebus", "label": "Servicio SSE Streaming", "sublabel": "EventStream en Vivo", "pos": [760, 420], "size": [170, 62], "tag": "Notificación Push" },
 
     { "id": "sqlite_db", "type": "database", "label": "SQLite Embebido", "sublabel": "better-sqlite3 (WAL)", "pos": [1010, 270], "size": [170, 64], "tag": "idx_unique_daily_claim" },
@@ -31,11 +31,11 @@
     { "kind": "security-group", "label": "Servidor Institucional On-Premise / Almacén (MIPPCI)", "wraps": ["crypto_service", "idempotency_mw", "supervisor_service", "express_api", "sse_service", "sqlite_db"] }
   ],
   "connections": [
-    { "id": "c1", "from": "beneficiary_actor", "to": "pwa_beneficiary", "label": "TouchID / QR", "variant": "emphasis" },
+    { "id": "c1", "from": "beneficiary_actor", "to": "pwa_beneficiary", "label": "TouchID / QR / NFC", "variant": "emphasis" },
     { "id": "c2", "from": "operator_actor", "to": "pwa_dispatch", "label": "Mesa Despacho" },
     { "id": "c3", "from": "admin_actor", "to": "admin_portal", "label": "Cédula + PIN", "variant": "security" },
 
-    { "id": "c4", "from": "pwa_beneficiary", "to": "crypto_service", "label": "Firma WebAuthn", "variant": "security" },
+    { "id": "c4", "from": "pwa_beneficiary", "to": "crypto_service", "label": "Firma FIDO2 (QR/NFC)", "variant": "security" },
     { "id": "c5", "from": "pwa_dispatch", "to": "idempotency_mw", "label": "Idempotency-Key", "variant": "emphasis" },
     { "id": "c6", "from": "admin_portal", "to": "supervisor_service", "label": "Admin Token", "variant": "security" },
 
@@ -63,9 +63,9 @@
       "dot": "rose",
       "title": "Garantías de Seguridad y Anti-Fraude",
       "items": [
+        "Doble vía de validación: QR Dinámico (180s) o Proximidad NFC P2P Tap-to-Claim",
         "Autenticación biométrica WebAuthn con par de llaves ECDSA P-256 en Secure Enclave",
-        "Prevención de doble entrega mediante Idempotency-Key y el índice relacional idx_unique_daily_claim",
-        "Acceso administrativo conmutado y validación de factor secundario (PIN institucional)"
+        "Prevención de doble entrega mediante Idempotency-Key y el índice relacional idx_unique_daily_claim"
       ]
     },
     {

@@ -5195,7 +5195,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <div class="pulse-dot"></div>
         <h1>Arquitectura de Contenedores C4 (Nivel 2) - SGBT MIPPCI</h1>
       </div>
-      <p class="subtitle">Plataforma Institucional de Despacho de Combos con Passkeys FIDO2 y Motor Offline-First</p>
+      <p class="subtitle">Plataforma Institucional de Despacho con Passkeys FIDO2, Proximidad NFC P2P y Motor Offline-First</p>
     </div>
 
 
@@ -5205,7 +5205,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
          data-preset-badge-editorial-plate="ARCHIFY / PLATE 04">
       <svg viewBox="0 0 1460 574" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase" data-node-ui="" data-reader-fit="intrinsic-height" data-reader-min-text="7.5" data-reader-primary-text="14">
         <title id="archify-diagram-title">Arquitectura de Contenedores C4 (Nivel 2) - SGBT MIPPCI</title>
-        <desc id="archify-diagram-description">Plataforma Institucional de Despacho de Combos con Passkeys FIDO2 y Motor Offline-First</desc>
+        <desc id="archify-diagram-description">Plataforma Institucional de Despacho con Passkeys FIDO2, Proximidad NFC P2P y Motor Offline-First</desc>
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -5256,8 +5256,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
         <!-- Connection paths (before components for correct z-order) -->
         <g data-graph-role="automatic-crossover" style="--step:0">
-          <path data-graph-role="automatic-crossover-underlay" d="M 190 150 L 260 150" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="beneficiary_actor" data-edge-to="pwa_beneficiary" data-edge-label="TouchID / QR" data-edge-key="0" data-edge-id="c1" data-composition-points="190,150;260,150" data-composition-crossover="halo" data-composition-independent="true" d="M 190 150 L 260 150" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 115 180 L 115 196 Q 115 204 123 204 L 228 204 Q 236 204 236 196 L 236 159 Q 236 151 244 151 L 260 151" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="beneficiary_actor" data-edge-to="pwa_beneficiary" data-edge-label="TouchID / QR / NFC" data-edge-key="0" data-edge-id="c1" data-composition-points="115,180;115,204;236,204;236,151;260,151" data-composition-crossover="halo" data-composition-independent="true" d="M 115 180 L 115 196 Q 115 204 123 204 L 228 204 Q 236 204 236 196 L 236 159 Q 236 151 244 151 L 260 151" class="a-emphasis" data-animate="edge" style="--step:0" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:1">
           <path data-graph-role="automatic-crossover-underlay" d="M 190 300 L 260 300" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -5268,8 +5268,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <path data-edge-from="admin_actor" data-edge-to="admin_portal" data-edge-label="Cédula + PIN" data-edge-key="2" data-edge-id="c3" data-composition-points="190,450;260,450" data-composition-crossover="halo" data-composition-independent="true" d="M 190 450 L 260 450" class="a-security" data-animate="edge" style="--step:2" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:3">
-          <path data-graph-role="automatic-crossover-underlay" d="M 425 151 L 510 151" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="pwa_beneficiary" data-edge-to="crypto_service" data-edge-label="Firma WebAuthn" data-edge-key="3" data-edge-id="c4" data-composition-points="425,151;510,151" data-composition-crossover="halo" data-composition-independent="true" d="M 425 151 L 510 151" class="a-security" data-animate="edge" style="--step:3" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 342.5 182 L 342.5 198 Q 342.5 206 350.5 206 L 478 206 Q 486 206 486 198 L 486 159 Q 486 151 494 151 L 510 151" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="pwa_beneficiary" data-edge-to="crypto_service" data-edge-label="Firma FIDO2 (QR/NFC)" data-edge-key="3" data-edge-id="c4" data-composition-points="342.5,182;342.5,206;486,206;486,151;510,151" data-composition-crossover="halo" data-composition-independent="true" d="M 342.5 182 L 342.5 198 Q 342.5 206 350.5 206 L 478 206 Q 486 206 486 198 L 486 159 Q 486 151 494 151 L 510 151" class="a-security" data-animate="edge" style="--step:3" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:4">
           <path data-graph-role="automatic-crossover-underlay" d="M 425 301 L 510 301" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -5345,8 +5345,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="context" x="115" y="464" class="t-muted" font-size="9" text-anchor="middle">Gobernanza / RRHH</text>
         </g>
 
-        <g id="node-pwa_beneficiary" data-node-id="pwa_beneficiary" data-node-label="PWA Beneficiario" tabindex="0" role="button" aria-label="Focus PWA Beneficiario, WebAuthn &amp; Carnet QR, Clientes Web y Aplicaciones PWA (Edge)" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="WebAuthn &amp; Carnet QR" data-node-tag="Biometría Local" data-node-context="Clientes Web y Aplicaciones PWA (Edge)">
-          <title>PWA Beneficiario · WebAuthn &amp; Carnet QR · Clientes Web y Aplicaciones PWA (Edge) · Biometría Local</title>
+        <g id="node-pwa_beneficiary" data-node-id="pwa_beneficiary" data-node-label="PWA Beneficiario" tabindex="0" role="button" aria-label="Focus PWA Beneficiario, Passkeys, QR &amp; NFC P2P, Clientes Web y Aplicaciones PWA (Edge)" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="Passkeys, QR &amp; NFC P2P" data-node-tag="Biometría &amp; NFC" data-node-context="Clientes Web y Aplicaciones PWA (Edge)">
+          <title>PWA Beneficiario · Passkeys, QR &amp; NFC P2P · Clientes Web y Aplicaciones PWA (Edge) · Biometría &amp; NFC</title>
           <rect x="260" y="120" width="165" height="62" rx="8" class="c-mask"/>
           <rect x="260" y="120" width="165" height="62" rx="8" class="c-frontend" data-animate="node" style="--step:1" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(266 126) scale(0.6875)">
@@ -5356,12 +5356,12 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="342.5" y="149" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PWA Beneficiario</text>
-        <text data-detail="context" x="342.5" y="165" class="t-muted" font-size="9" text-anchor="middle">WebAuthn &amp; Carnet QR</text>
-        <text data-detail="fine" x="342.5" y="174" class="t-frontend" font-size="7" text-anchor="middle">Biometría Local</text>
+        <text data-detail="context" x="342.5" y="165" class="t-muted" font-size="9" text-anchor="middle">Passkeys, QR &amp; NFC P2P</text>
+        <text data-detail="fine" x="342.5" y="174" class="t-frontend" font-size="7" text-anchor="middle">Biometría &amp; NFC</text>
         </g>
 
-        <g id="node-pwa_dispatch" data-node-id="pwa_dispatch" data-node-label="PWA Despacho" tabindex="0" role="button" aria-label="Focus PWA Despacho, Escáner &amp; Motor Háptico, Clientes Web y Aplicaciones PWA (Edge)" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="Escáner &amp; Motor Háptico" data-node-tag="IndexedDB Offline" data-node-context="Clientes Web y Aplicaciones PWA (Edge)">
-          <title>PWA Despacho · Escáner &amp; Motor Háptico · Clientes Web y Aplicaciones PWA (Edge) · IndexedDB Offline</title>
+        <g id="node-pwa_dispatch" data-node-id="pwa_dispatch" data-node-label="PWA Despacho" tabindex="0" role="button" aria-label="Focus PWA Despacho, Escáner QR &amp; Lector NFC, Clientes Web y Aplicaciones PWA (Edge)" aria-pressed="false" data-node-kind="frontend" data-node-sublabel="Escáner QR &amp; Lector NFC" data-node-tag="IndexedDB Offline" data-node-context="Clientes Web y Aplicaciones PWA (Edge)">
+          <title>PWA Despacho · Escáner QR &amp; Lector NFC · Clientes Web y Aplicaciones PWA (Edge) · IndexedDB Offline</title>
           <rect x="260" y="270" width="165" height="62" rx="8" class="c-mask"/>
           <rect x="260" y="270" width="165" height="62" rx="8" class="c-frontend" data-animate="node" style="--step:2" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="frontend" class="semantic-sigil s-frontend" transform="translate(266 276) scale(0.6875)">
@@ -5371,7 +5371,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <circle cx="6.3" cy="4.8" r=".7" class="sigil-fill"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="342.5" y="299" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">PWA Despacho</text>
-        <text data-detail="context" x="342.5" y="315" class="t-muted" font-size="9" text-anchor="middle">Escáner &amp; Motor Háptico</text>
+        <text data-detail="context" x="342.5" y="315" class="t-muted" font-size="9" text-anchor="middle">Escáner QR &amp; Lector NFC</text>
         <text data-detail="fine" x="342.5" y="324" class="t-frontend" font-size="7" text-anchor="middle">IndexedDB Offline</text>
         </g>
 
@@ -5390,8 +5390,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="342.5" y="474" class="t-frontend" font-size="7" text-anchor="middle">RBAC con PIN</text>
         </g>
 
-        <g id="node-crypto_service" data-node-id="crypto_service" data-node-label="Servicio Criptográfico" tabindex="0" role="button" aria-label="Focus Servicio Criptográfico, ECDSA P-256 / Passkeys, Servidor Institucional On-Premise / Almacén (MIPPCI)" aria-pressed="false" data-node-kind="security" data-node-sublabel="ECDSA P-256 / Passkeys" data-node-tag="WebAuthn FIDO2" data-node-context="Servidor Institucional On-Premise / Almacén (MIPPCI)">
-          <title>Servicio Criptográfico · ECDSA P-256 / Passkeys · Servidor Institucional On-Premise / Almacén (MIPPCI) · WebAuthn FIDO2</title>
+        <g id="node-crypto_service" data-node-id="crypto_service" data-node-label="Servicio Criptográfico" tabindex="0" role="button" aria-label="Focus Servicio Criptográfico, ECDSA P-256 (QR / NFC), Servidor Institucional On-Premise / Almacén (MIPPCI)" aria-pressed="false" data-node-kind="security" data-node-sublabel="ECDSA P-256 (QR / NFC)" data-node-tag="WebAuthn / Web NFC" data-node-context="Servidor Institucional On-Premise / Almacén (MIPPCI)">
+          <title>Servicio Criptográfico · ECDSA P-256 (QR / NFC) · Servidor Institucional On-Premise / Almacén (MIPPCI) · WebAuthn / Web NFC</title>
           <rect x="510" y="120" width="170" height="62" rx="8" class="c-mask"/>
           <rect x="510" y="120" width="170" height="62" rx="8" class="c-security" data-animate="node" style="--step:4" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="security" class="semantic-sigil s-security" transform="translate(516 126) scale(0.6875)">
@@ -5399,8 +5399,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
             <path d="m5.8 8 1.5 1.5 3-3"/>
           </g>
           <text data-node-label="" data-detail-anchor="" x="595" y="149" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Servicio Criptográfico</text>
-        <text data-detail="context" x="595" y="165" class="t-muted" font-size="9" text-anchor="middle">ECDSA P-256 / Passkeys</text>
-        <text data-detail="fine" x="595" y="174" class="t-security" font-size="7" text-anchor="middle">WebAuthn FIDO2</text>
+        <text data-detail="context" x="595" y="165" class="t-muted" font-size="9" text-anchor="middle">ECDSA P-256 (QR / NFC)</text>
+        <text data-detail="fine" x="595" y="174" class="t-security" font-size="7" text-anchor="middle">WebAuthn / Web NFC</text>
         </g>
 
         <g id="node-idempotency_mw" data-node-id="idempotency_mw" data-node-label="Middleware Idempotencia" tabindex="0" role="button" aria-label="Focus Middleware Idempotencia, Idempotency-Key / RFC 7807, Servidor Institucional On-Premise / Almacén (MIPPCI)" aria-pressed="false" data-node-kind="security" data-node-sublabel="Idempotency-Key / RFC 7807" data-node-tag="Anti-Duplicados" data-node-context="Servidor Institucional On-Premise / Almacén (MIPPCI)">
@@ -5428,8 +5428,8 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <text data-detail="fine" x="595" y="474" class="t-backend" font-size="7" text-anchor="middle">Contingencias</text>
         </g>
 
-        <g id="node-express_api" data-node-id="express_api" data-node-label="API REST Express" tabindex="0" role="button" aria-label="Focus API REST Express, Node.js v20/22 :3000, Servidor Institucional On-Premise / Almacén (MIPPCI)" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Node.js v20/22 :3000" data-node-tag="Arquitectura v3.1" data-node-context="Servidor Institucional On-Premise / Almacén (MIPPCI)">
-          <title>API REST Express · Node.js v20/22 :3000 · Servidor Institucional On-Premise / Almacén (MIPPCI) · Arquitectura v3.1</title>
+        <g id="node-express_api" data-node-id="express_api" data-node-label="API REST Express" tabindex="0" role="button" aria-label="Focus API REST Express, Node.js v20/22 :3000, Servidor Institucional On-Premise / Almacén (MIPPCI)" aria-pressed="false" data-node-kind="backend" data-node-sublabel="Node.js v20/22 :3000" data-node-tag="Arquitectura v3.2" data-node-context="Servidor Institucional On-Premise / Almacén (MIPPCI)">
+          <title>API REST Express · Node.js v20/22 :3000 · Servidor Institucional On-Premise / Almacén (MIPPCI) · Arquitectura v3.2</title>
           <rect x="760" y="270" width="170" height="64" rx="8" class="c-mask"/>
           <rect x="760" y="270" width="170" height="64" rx="8" class="c-backend" data-animate="node" style="--step:7" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(766 276) scale(0.6875)">
@@ -5437,7 +5437,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           </g>
           <text data-node-label="" data-detail-anchor="" x="845" y="300" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">API REST Express</text>
         <text data-detail="context" x="845" y="316" class="t-muted" font-size="9" text-anchor="middle">Node.js v20/22 :3000</text>
-        <text data-detail="fine" x="845" y="326" class="t-backend" font-size="7" text-anchor="middle">Arquitectura v3.1</text>
+        <text data-detail="fine" x="845" y="326" class="t-backend" font-size="7" text-anchor="middle">Arquitectura v3.2</text>
         </g>
 
         <g id="node-sse_service" data-node-id="sse_service" data-node-label="Servicio SSE Streaming" tabindex="0" role="button" aria-label="Focus Servicio SSE Streaming, EventStream en Vivo, Servidor Institucional On-Premise / Almacén (MIPPCI)" aria-pressed="false" data-node-kind="messagebus" data-node-sublabel="EventStream en Vivo" data-node-tag="Notificación Push" data-node-context="Servidor Institucional On-Premise / Almacén (MIPPCI)">
@@ -5481,9 +5481,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         </g>
 
         <!-- Connection labels -->
-        <g data-detail="context" data-edge-from="beneficiary_actor" data-edge-to="pwa_beneficiary" data-edge-label="TouchID / QR" data-edge-key="0" data-edge-id="c1">
-          <rect x="191.2" y="130" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="225" y="140" class="t-edge-emphasis" font-size="8" text-anchor="middle">TouchID / QR</text>
+        <g data-detail="context" data-edge-from="beneficiary_actor" data-edge-to="pwa_beneficiary" data-edge-label="TouchID / QR / NFC" data-edge-key="0" data-edge-id="c1">
+          <rect x="127.30000000000001" y="184" width="96.39999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="175.5" y="194" class="t-edge-emphasis" font-size="8" text-anchor="middle">TouchID / QR / NFC</text>
         </g>
         <g data-detail="context" data-edge-from="operator_actor" data-edge-to="pwa_dispatch" data-edge-label="Mesa Despacho" data-edge-key="1" data-edge-id="c2">
           <rect x="188.8" y="280" width="72.4" height="14" rx="3" class="c-mask"/>
@@ -5493,9 +5493,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <rect x="191.2" y="430" width="67.6" height="14" rx="3" class="c-mask"/>
           <text x="225" y="440" class="t-edge-security" font-size="8" text-anchor="middle">Cédula + PIN</text>
         </g>
-        <g data-detail="context" data-edge-from="pwa_beneficiary" data-edge-to="crypto_service" data-edge-label="Firma WebAuthn" data-edge-key="3" data-edge-id="c4">
-          <rect x="428.9" y="131" width="77.2" height="14" rx="3" class="c-mask"/>
-          <text x="467.5" y="141" class="t-edge-security" font-size="8" text-anchor="middle">Firma WebAuthn</text>
+        <g data-detail="context" data-edge-from="pwa_beneficiary" data-edge-to="crypto_service" data-edge-label="Firma FIDO2 (QR/NFC)" data-edge-key="3" data-edge-id="c4">
+          <rect x="361.25" y="186" width="106" height="14" rx="3" class="c-mask"/>
+          <text x="414.25" y="196" class="t-edge-security" font-size="8" text-anchor="middle">Firma FIDO2 (QR/NFC)</text>
         </g>
         <g data-detail="context" data-edge-from="pwa_dispatch" data-edge-to="idempotency_mw" data-edge-label="Idempotency-Key" data-edge-key="4" data-edge-id="c5">
           <rect x="426.5" y="281" width="82" height="14" rx="3" class="c-mask"/>
@@ -5772,9 +5772,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
           <h3>Garantías de Seguridad y Anti-Fraude</h3>
         </div>
         <ul>
+          <li>Doble vía de validación: QR Dinámico (180s) o Proximidad NFC P2P Tap-to-Claim</li>
           <li>Autenticación biométrica WebAuthn con par de llaves ECDSA P-256 en Secure Enclave</li>
           <li>Prevención de doble entrega mediante Idempotency-Key y el índice relacional idx_unique_daily_claim</li>
-          <li>Acceso administrativo conmutado y validación de factor secundario (PIN institucional)</li>
         </ul>
       </div>
 

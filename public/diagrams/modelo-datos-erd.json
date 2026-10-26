@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "diagram_type": "erd",
+  "meta": {
+    "title": "Modelo de Datos Entidad-Relación - SGBT MIPPCI",
+    "subtitle": "Estructura Relacional SQLite / Supabase con Integridad Referencial e Idempotencia",
+    "output": "public/diagrams/modelo-datos-erd.html",
+    "quality_profile": "showcase",
+    "views": [
+      {
+        "id": "identidad",
+        "label": "Identidad y Passkeys",
+        "focus": ["departments", "workers", "passkey_credentials"],
+        "note": "Estructura organizativa y credenciales criptográficas FIDO2 sin contraseñas."
+      },
+      {
+        "id": "despacho",
+        "label": "Beneficios y Despacho",
+        "focus": ["combos", "campaigns", "deliveries", "workers"],
+        "note": "Asignación, cuota de combos y registro transaccional de retiro atómico."
+      },
+      {
+        "id": "auditoria",
+        "label": "Auditoría e Idempotencia",
+        "focus": ["deliveries", "idempotency_keys", "audit_logs"],
+        "note": "Trazabilidad forense inmutable y protección contra reintentos de red."
+      }
+    ]
+  },
+  "layout": {
+    "mode": "grid",
+    "gapX": 60,
+    "gapY": 36
+  },
+  "entities": [
+    {
+      "id": "departments",
+      "label": "departments",
+      "tag": "identity",
+      "row": 0,
+      "col": 0,
+      "width": 240,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "code", "type": "varchar(20)", "key": "uk" },
+        { "name": "name", "type": "varchar(100)" },
+        { "name": "is_active", "type": "boolean" },
+        { "name": "created_at", "type": "timestamptz" }
+      ]
+    },
+    {
+      "id": "workers",
+      "label": "workers",
+      "tag": "identity",
+      "row": 1,
+      "col": 0,
+      "width": 240,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "document_id", "type": "varchar(20)", "key": "uk" },
+        { "name": "full_name", "type": "varchar(120)" },
+        { "name": "email", "type": "varchar(120)" },
+        { "name": "department_id", "type": "varchar(36)", "key": "fk", "references": "departments.id" },
+        { "name": "role", "type": "varchar(20)" },
+        { "name": "worker_type", "type": "varchar(30)" },
+        { "name": "status", "type": "varchar(20)" }
+      ]
+    },
+    {
+      "id": "passkey_credentials",
+      "label": "passkey_credentials",
+      "tag": "identity",
+      "row": 2,
+      "col": 0,
+      "width": 240,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "worker_id", "type": "varchar(36)", "key": "fk", "references": "workers.id" },
+        { "name": "credential_id", "type": "varchar(255)", "key": "uk" },
+        { "name": "public_key_pem", "type": "text" },
+        { "name": "sign_count", "type": "integer" },
+        { "name": "status", "type": "varchar(20)" },
+        { "name": "created_at", "type": "timestamptz" }
+      ]
+    },
+
+    {
+      "id": "combos",
+      "label": "combos",
+      "tag": "benefits",
+      "row": 0,
+      "col": 1,
+      "width": 240,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "code", "type": "varchar(20)", "key": "uk" },
+        { "name": "name", "type": "varchar(100)" },
+        { "name": "combo_type", "type": "varchar(30)" },
+        { "name": "weight_kg", "type": "numeric(6,2)" },
+        { "name": "is_active", "type": "boolean" }
+      ]
+    },
+    {
+      "id": "campaigns",
+      "label": "campaigns",
+      "tag": "benefits",
+      "row": 1,
+      "col": 1,
+      "width": 240,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "name", "type": "varchar(100)" },
+        { "name": "distribution_date", "type": "date" },
+        { "name": "status", "type": "varchar(20)" },
+        { "name": "total_quota", "type": "integer" },
+        { "name": "created_at", "type": "timestamptz" }
+      ]
+    },
+    {
+      "id": "daily_entitlements",
+      "label": "daily_entitlements",
+      "tag": "benefits",
+      "row": 2,
+      "col": 1,
+      "width": 240,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "worker_id", "type": "varchar(36)", "key": "fk", "references": "workers.id" },
+        { "name": "campaign_id", "type": "varchar(36)", "key": "fk", "references": "campaigns.id" },
+        { "name": "assigned_combos", "type": "integer" },
+        { "name": "quota_status", "type": "varchar(20)" },
+        { "name": "valid_until", "type": "timestamptz" }
+      ]
+    },
+
+    {
+      "id": "deliveries",
+      "label": "deliveries",
+      "tag": "audit",
+      "row": 0,
+      "col": 2,
+      "width": 260,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "worker_id", "type": "varchar(36)", "key": "fk", "references": "workers.id" },
+        { "name": "combo_id", "type": "varchar(36)", "key": "fk", "references": "combos.id" },
+        { "name": "campaign_id", "type": "varchar(36)", "key": "fk", "references": "campaigns.id" },
+        { "name": "verification_method", "type": "varchar(30)" },
+        { "name": "crypto_signature", "type": "text" },
+        { "name": "synced_supabase", "type": "boolean" },
+        { "name": "delivered_at", "type": "timestamptz" }
+      ]
+    },
+    {
+      "id": "idempotency_keys",
+      "label": "idempotency_keys",
+      "tag": "audit",
+      "row": 1,
+      "col": 2,
+      "width": 250,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "key", "type": "varchar(64)", "key": "uk" },
+        { "name": "request_path", "type": "varchar(100)" },
+        { "name": "response_code", "type": "integer" },
+        { "name": "response_body", "type": "json" },
+        { "name": "expires_at", "type": "timestamptz" },
+        { "name": "created_at", "type": "timestamptz" }
+      ]
+    },
+    {
+      "id": "audit_logs",
+      "label": "audit_logs",
+      "tag": "audit",
+      "row": 2,
+      "col": 2,
+      "width": 250,
+      "attributes": [
+        { "name": "id", "type": "varchar(36)", "key": "pk" },
+        { "name": "actor_id", "type": "varchar(36)" },
+        { "name": "action", "type": "varchar(50)" },
+        { "name": "resource_type", "type": "varchar(50)" },
+        { "name": "ip_address", "type": "varchar(45)" },
+        { "name": "timestamp", "type": "timestamptz" }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel_worker_dept",
+      "from": "workers",
+      "to": "departments",
+      "label": "pertenece a",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_passkey_worker",
+      "from": "passkey_credentials",
+      "to": "workers",
+      "label": "autentica a",
+      "fromCardinality": "many",
+      "toCardinality": "one",
+      "fromOptional": true
+    },
+    {
+      "id": "rel_entitlement_worker",
+      "from": "daily_entitlements",
+      "to": "workers",
+      "label": "asignado a",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_entitlement_campaign",
+      "from": "daily_entitlements",
+      "to": "campaigns",
+      "label": "pertenece a",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_delivery_worker",
+      "from": "deliveries",
+      "to": "workers",
+      "label": "recibe",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_delivery_combo",
+      "from": "deliveries",
+      "to": "combos",
+      "label": "despacha",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    },
+    {
+      "id": "rel_delivery_campaign",
+      "from": "deliveries",
+      "to": "campaigns",
+      "label": "en marco de",
+      "fromCardinality": "many",
+      "toCardinality": "one"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Soberanía de Datos e Integridad Referencial",
+      "items": [
+        "Claves foráneas estrictas con SQLite PRAGMA foreign_keys = ON y réplica remota en Supabase",
+        "Índice relacional compuesto idx_unique_daily_claim en deliveries impide doble despacho en la misma jornada",
+        "Relación 1:N opcional entre trabajadores y credenciales FIDO2 para enrolamiento progresivo de dispositivos"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Idempotencia y Prevención de Concurrencia",
+      "items": [
+        "Tabla idempotency_keys retiene tokens UUID de cada petición durante 24 horas",
+        "Reintentos automáticos de la PWA ante cortes de red reciben respuesta idéntica sin duplicar transacciones",
+        "Transacciones ACID WAL (Write-Ahead Logging) garantizan consistencia con latencia sub-milisegundo"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "Auditoría y Trazabilidad Criptográfica",
+      "items": [
+        "Registro inmutable con crypto_signature para validar actas de despacho ante entes contralores",
+        "Bandera synced_supabase orquesta el estado de sincronización bidireccional tras trabajo offline",
+        "Tabla audit_logs rastrea cada inicio de sesión, cambio de nómina y consulta administrativa con IP y timestamp"
+      ]
+    }
+  ]
+}

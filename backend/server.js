@@ -36,6 +36,8 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Servidor de estáticos (PWA, CSS, JS, Assets)
 app.use(express.static(path.join(__dirname, '../public')));
+app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
+app.use('/docs/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
 
 // Middleware de auditoría y traza de peticiones HTTP
 app.use((req, res, next) => {
