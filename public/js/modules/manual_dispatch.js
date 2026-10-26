@@ -812,7 +812,19 @@ window.ManualDispatch = (function() {
   };
 })();
 
-// Auto-inicializar cuando el DOM esté listo
+// Helper global y auto-inicializar cuando el DOM esté listo
+window.loadManualDispatchStats = () => {
+  if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+    return window.ManualDispatch.loadTodaySummary();
+  }
+};
+
+window.addEventListener('combos:updated', () => {
+  if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+    window.ManualDispatch.loadTodaySummary();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   if (window.ManualDispatch && typeof window.ManualDispatch.init === 'function') {
     window.ManualDispatch.init();

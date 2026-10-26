@@ -184,6 +184,11 @@ window.loadCombosCatalog = async function() {
           }
           if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
           await loadCombosCatalog();
+          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+          if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+            await window.ManualDispatch.loadTodaySummary();
+          }
+          window.dispatchEvent(new CustomEvent('combos:updated', { detail: res }));
         } catch (err) {
           console.error('[TOGGLE COMBO ERROR]', err);
           if (window.Toast && typeof window.Toast.error === 'function') {
@@ -228,6 +233,11 @@ window.loadCombosCatalog = async function() {
             window.showToast(delData.message || 'Beneficio eliminado', 'info');
           }
           await loadCombosCatalog();
+          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+          if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+            await window.ManualDispatch.loadTodaySummary();
+          }
+          window.dispatchEvent(new CustomEvent('combos:updated', { detail: delData }));
         } catch (err) {
           console.error('[DELETE COMBO ERROR]', err);
           if (window.Toast && typeof window.Toast.error === 'function') {
@@ -478,6 +488,11 @@ window.initCombosManagement = function() {
       if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
       closeModal();
       await loadCombosCatalog();
+      if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+      if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+        await window.ManualDispatch.loadTodaySummary();
+      }
+      window.dispatchEvent(new CustomEvent('combos:updated', { detail: { action: comboId ? 'updated' : 'created' } }));
     } catch (err) {
       console.error('[COMBO SAVE ERROR]', err);
       Toast.error(`Error al procesar combo: ${err.message}`);

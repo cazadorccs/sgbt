@@ -1,0 +1,41 @@
+{
+  "objective": "Garantizar la actualización inmediata y consistente de los Combos Programados (KPIs) en todos los escenarios de activación, desactivación, edición y eliminación de combos en el catálogo institucional",
+  "steps": [
+    {
+      "step": 1,
+      "description": "Actualizar backend/controllers/admin.controller.js en toggleComboStatus, updateCombo y deleteCombo para conciliar automáticamente daily_entitlements al desactivar/activar combos",
+      "verification": "node -c backend/controllers/admin.controller.js y pruebas unitarias de cambio de estado"
+    },
+    {
+      "step": 2,
+      "description": "Blindar las consultas de cálculo de KPIs en getKpis y getTodayStatsAndRecent para filtrar estrictamente combos activos (c.is_active = 1 y status != 'cancelled')",
+      "verification": "Llamada a /api/v1/admin/kpis devuelve 4544 cuando un combo de 5 está desactivado"
+    },
+    {
+      "step": 3,
+      "description": "Blindar /api/v1/sync/daily-pack para incluir exclusivamente entitlements de combos activos (c.is_active = 1)",
+      "verification": "Descarga de Daily Pack contiene únicamente combos activos"
+    },
+    {
+      "step": 4,
+      "description": "Actualizar public/js/modules/combos.js para que tras activar/desactivar/editar un combo llame proactivamente a refreshPortalData y emita eventos de actualización para todos los módulos",
+      "verification": "Verificación de eventos en frontend y actualización en tiempo real de kpiAssignedToday y manualKpiAssigned"
+    },
+    {
+      "step": 5,
+      "description": "Crear y ejecutar suite integral de pruebas para TODOS los escenarios: Desactivación, Reactivación, Edición, Creación, Eliminación y Consulta de KPIs",
+      "verification": "Ejecución exitosa de test suite con cobertura total de los 6 escenarios"
+    },
+    {
+      "step": 6,
+      "description": "Verificación visual con navegador para confirmar que al alternar el estado en el Catálogo de Combos los Combos Programados pasan de 5680 a 4544 de inmediato",
+      "verification": "Captura de pantalla y reporte visual en navegador"
+    }
+  ],
+  "rollback_strategy": "Git restore de los controladores y archivos modificados si alguna verificación falla",
+  "risks": [
+    "No afectar las entregas ya reclamadas históricamente (status = 'claimed' y registros en deliveries)",
+    "Mantener sincronización bidireccional con Supabase Cloud sin errores de clave foránea",
+    "Preservar compatibilidad con el motor de despacho offline y PWA"
+  ]
+}

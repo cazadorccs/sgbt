@@ -17,15 +17,21 @@ const getKpis = (req, res) => {
 
   const totalEntitlementsToday = db.prepare(`
     SELECT COUNT(*) as count
-    FROM daily_entitlements
-    WHERE valid_date = ?
-  `).get(today).count;
+    FROM daily_entitlements e
+    JOIN combos c ON e.combo_id = c.id
+    WHERE (e.valid_date = ? OR date(e.valid_date) = date(?))
+      AND c.is_active = 1
+      AND e.status != 'cancelled'
+  `).get(today, today).count;
 
   const claimedEntitlementsToday = db.prepare(`
     SELECT COUNT(*) as count
-    FROM daily_entitlements
-    WHERE valid_date = ? AND status = 'claimed'
-  `).get(today).count;
+    FROM daily_entitlements e
+    JOIN combos c ON e.combo_id = c.id
+    WHERE (e.valid_date = ? OR date(e.valid_date) = date(?))
+      AND e.status = 'claimed'
+      AND c.is_active = 1
+  `).get(today, today).count;
 
   const methodStats = db.prepare(`
     SELECT 
@@ -505,11 +511,16 @@ const createCombo = async (req, res) => {
       console.warn('[SUPABASE INSERT COMBO EXCEPTION]', e.message);
     }
 
+    if (activeVal === 1) {
+      reconcileComboEntitlements(newId, true);
+    }
+
     const created = db.prepare('SELECT * FROM combos WHERE id = ?').get(newId);
     res.status(201).json({
       success: true,
       message: 'Combo institucional registrado exitosamente en el catálogo',
-      combo: created
+      combo: created,
+      combos_assigned_today: getActiveAssignedCountToday()
     });
   } catch (err) {
     console.error('[CATALOG ERROR]', err);
@@ -530,14 +541,17 @@ const deleteCombo = async (req, res) => {
 
     if (deliveriesCount > 0) {
       db.prepare('UPDATE combos SET is_active = 0 WHERE id = ?').run(id);
+      reconcileComboEntitlements(id, false);
       try {
         const { supabase, isSupabaseConfigured } = require('../supabase');
         if (isSupabaseConfigured() && supabase) {
           await supabase.from('combos').update({ is_active: false }).eq('id', id);
+          await supabase.from('daily_entitlements').delete().eq('combo_id', id).eq('status', 'pending');
         }
       } catch (e) {}
       return res.json({ 
         success: true, 
+        combos_assigned_today: getActiveAssignedCountToday(),
         message: 'Combo desactivado (posee entregas físicas auditadas registradas)' 
       });
     }
@@ -567,7 +581,11 @@ const deleteCombo = async (req, res) => {
       console.error('[SUPABASE CASCADE DELETE EXCEPTION]', e.message);
     }
 
-    res.json({ success: true, message: 'Combo eliminado exitosamente del catálogo y de la base de datos' });
+    res.json({
+      success: true,
+      combos_assigned_today: getActiveAssignedCountToday(),
+      message: 'Combo eliminado exitosamente del catálogo y de la base de datos'
+    });
   } catch (err) {
     console.error('[CATALOG DELETE ERROR]', err);
     res.status(500).json({ error: 'Error al eliminar combo: ' + err.message });
@@ -620,6 +638,11 @@ const updateCombo = async (req, res) => {
       id
     );
 
+    // Reconciliar si cambió el estado activo
+    if (is_active !== undefined && (is_active ? 1 : 0) !== existing.is_active) {
+      reconcileComboEntitlements(id, is_active ? true : false);
+    }
+
     const updated = db.prepare('SELECT * FROM combos WHERE id = ?').get(id);
 
     try {
@@ -646,6 +669,10 @@ const updateCombo = async (req, res) => {
         }).eq('id', id);
         if (sbErr) console.warn('[SUPABASE UPDATE COMBO WARN]', sbErr.message);
         else console.log('[SUPABASE UPDATE COMBO SUCCESS]', id, updated.name);
+
+        if (is_active !== undefined && !is_active && existing.is_active === 1) {
+          await supabase.from('daily_entitlements').delete().eq('combo_id', id).eq('status', 'pending');
+        }
       }
     } catch (e) {
       console.warn('[SUPABASE UPDATE COMBO EXCEPTION]', e.message);
@@ -654,7 +681,8 @@ const updateCombo = async (req, res) => {
     res.json({
       success: true,
       message: `Combo "${updated.name}" actualizado exitosamente`,
-      combo: updated
+      combo: updated,
+      combos_assigned_today: getActiveAssignedCountToday()
     });
   } catch (err) {
     console.error('[COMBO UPDATE ERROR]', err);
@@ -662,10 +690,48 @@ const updateCombo = async (req, res) => {
   }
 };
 
+function reconcileComboEntitlements(comboId, isActive) {
+  const today = new Date().toISOString().split('T')[0];
+  if (!isActive) {
+    // Al desactivar: eliminar asignaciones PENDIENTES de la fecha actual
+    // Las asignaciones ya entregadas (status = 'claimed') se respetan por trazabilidad
+    db.prepare("DELETE FROM daily_entitlements WHERE combo_id = ? AND status = 'pending' AND (valid_date = ? OR date(valid_date) = date(?))").run(comboId, today, today);
+  } else {
+    // Al activar: generar asignaciones pendientes para trabajadores activos
+    const combo = db.prepare('SELECT id, mesa_name FROM combos WHERE id = ?').get(comboId);
+    if (combo) {
+      const activeWorkers = db.prepare("SELECT id, shift FROM workers WHERE status = 'active'").all();
+      const insertEnt = db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+      `);
+      const shiftName = combo.mesa_name ? combo.mesa_name.split(' - ')[0].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua';
+      const tx = db.transaction(() => {
+        for (const w of activeWorkers) {
+          insertEnt.run(crypto.randomUUID(), w.id, combo.id, today, shiftName);
+        }
+      });
+      tx();
+    }
+  }
+}
+
+function getActiveAssignedCountToday() {
+  const today = new Date().toISOString().split('T')[0];
+  return db.prepare(`
+    SELECT COUNT(*) as count
+    FROM daily_entitlements e
+    JOIN combos c ON e.combo_id = c.id
+    WHERE (e.valid_date = ? OR date(e.valid_date) = date(?))
+      AND c.is_active = 1
+      AND e.status != 'cancelled'
+  `).get(today, today).count;
+}
+
 const toggleComboStatus = async (req, res) => {
   const { id } = req.params;
   try {
-    const existing = db.prepare('SELECT id, name, is_active FROM combos WHERE id = ?').get(id);
+    const existing = db.prepare('SELECT id, name, is_active, mesa_name FROM combos WHERE id = ?').get(id);
     if (!existing) {
       return res.status(404).json({ error: 'Combo no encontrado' });
     }
@@ -673,21 +739,31 @@ const toggleComboStatus = async (req, res) => {
     const newStatus = existing.is_active ? 0 : 1;
     db.prepare('UPDATE combos SET is_active = ? WHERE id = ?').run(newStatus, id);
 
+    // Conciliación inmediata de asignaciones programadas
+    reconcileComboEntitlements(id, newStatus === 1);
+
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
         const { error: sbErr } = await supabase.from('combos').update({ is_active: newStatus === 1 }).eq('id', id);
         if (sbErr) console.warn('[SUPABASE TOGGLE COMBO WARN]', sbErr.message);
         else console.log('[SUPABASE TOGGLE COMBO SUCCESS]', id, newStatus === 1);
+
+        if (newStatus === 0) {
+          await supabase.from('daily_entitlements').delete().eq('combo_id', id).eq('status', 'pending');
+        }
       }
     } catch (e) {
       console.warn('[SUPABASE TOGGLE COMBO EXCEPTION]', e.message);
     }
 
+    const updatedTotal = getActiveAssignedCountToday();
+
     res.json({
       success: true,
       is_active: newStatus,
-      message: `El combo "${existing.name}" ha sido ${newStatus === 1 ? 'ACTIVADO' : 'DESACTIVADO'} exitosamente.`
+      combos_assigned_today: updatedTotal,
+      message: `El combo "${existing.name}" ha sido ${newStatus === 1 ? 'ACTIVADO' : 'DESACTIVADO'} exitosamente. Combos programados actualizados a ${updatedTotal}.`
     });
   } catch (err) {
     console.error('[COMBO TOGGLE STATUS ERROR]', err);

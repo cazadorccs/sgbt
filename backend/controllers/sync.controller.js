@@ -81,7 +81,7 @@ const getDailyPack = (req, res) => {
     SELECT de.worker_id, de.id as entitlement_id, de.combo_id, c.name as combo_name, de.shift, de.status
     FROM daily_entitlements de
     JOIN combos c ON de.combo_id = c.id
-    WHERE de.valid_date = ?
+    WHERE de.valid_date = ? AND (c.is_active = 1 OR de.status = 'claimed')
   `).all(targetDate);
 
   // 3. Indexación en memoria O(1) mediante Maps para rendimiento instantáneo

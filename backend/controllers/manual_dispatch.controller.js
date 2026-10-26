@@ -126,7 +126,7 @@ const deliverManualCombos = (req, res) => {
         SELECT e.id, e.combo_id, e.status, c.name as combo_name
         FROM daily_entitlements e
         JOIN combos c ON e.combo_id = c.id
-        WHERE e.id IN (${placeholders}) AND e.worker_id = ? AND e.valid_date = ?
+        WHERE e.id IN (${placeholders}) AND e.worker_id = ? AND e.valid_date = ? AND c.is_active = 1
       `).all(...entitlement_ids, worker_id, today);
     } else {
       // Tomar todos o la cantidad solicitada
@@ -135,7 +135,7 @@ const deliverManualCombos = (req, res) => {
         SELECT e.id, e.combo_id, e.status, c.name as combo_name
         FROM daily_entitlements e
         JOIN combos c ON e.combo_id = c.id
-        WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending'
+        WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1
         LIMIT ?
       `).all(worker_id, today, limit);
     }
@@ -400,9 +400,24 @@ const getTodayStatsAndRecent = (req, res) => {
 
   try {
     const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active'").get().c;
-    const totalAssigned = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date IN (?, ?)").get(todayUtc, todayVzla).c;
-    const totalClaimed = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date IN (?, ?) AND status = 'claimed'").get(todayUtc, todayVzla).c;
-    const totalPending = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date IN (?, ?) AND status = 'pending'").get(todayUtc, todayVzla).c;
+    const totalAssigned = db.prepare(`
+      SELECT COUNT(*) as c 
+      FROM daily_entitlements e
+      JOIN combos c ON e.combo_id = c.id
+      WHERE e.valid_date IN (?, ?) AND c.is_active = 1 AND e.status != 'cancelled'
+    `).get(todayUtc, todayVzla).c;
+    const totalClaimed = db.prepare(`
+      SELECT COUNT(*) as c 
+      FROM daily_entitlements e
+      JOIN combos c ON e.combo_id = c.id
+      WHERE e.valid_date IN (?, ?) AND e.status = 'claimed'
+    `).get(todayUtc, todayVzla).c;
+    const totalPending = db.prepare(`
+      SELECT COUNT(*) as c 
+      FROM daily_entitlements e
+      JOIN combos c ON e.combo_id = c.id
+      WHERE e.valid_date IN (?, ?) AND e.status = 'pending' AND c.is_active = 1
+    `).get(todayUtc, todayVzla).c;
     const totalDeliveries = db.prepare(`
       SELECT COUNT(*) as c FROM deliveries 
       WHERE date(delivered_at) IN (?, ?) 
