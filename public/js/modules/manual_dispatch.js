@@ -265,10 +265,28 @@ window.ManualDispatch = (function() {
     }
 
     tbodyEl.innerHTML = list.map(d => {
-      const timeStr = d.delivered_at ? new Date(d.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--';
-      const badgeMethod = d.verification_method === 'manual_incorporation_rrhh'
-        ? '<span class="badge" style="background: #8b5cf6; color: white;">Incorporación Directa</span>'
-        : '<span class="badge" style="background: #0284c7; color: white;">Manual RRHH</span>';
+      let timeStr = '--:--';
+      if (d.delivered_at) {
+        let dateVal = d.delivered_at;
+        if (typeof dateVal === 'string' && !dateVal.endsWith('Z') && !dateVal.includes('+')) {
+          dateVal = dateVal.replace(' ', 'T') + 'Z';
+        }
+        const dObj = new Date(dateVal);
+        timeStr = !isNaN(dObj) 
+          ? dObj.toLocaleTimeString('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+          : d.delivered_at;
+      }
+
+      let badgeMethod = '<span class="badge" style="background: #0284c7; color: white;">Manual RRHH</span>';
+      if (d.verification_method === 'manual_incorporation_rrhh') {
+        badgeMethod = '<span class="badge" style="background: #8b5cf6; color: white;">Incorporación Directa</span>';
+      } else if (d.verification_method === 'passkey_qr') {
+        badgeMethod = '<span class="badge" style="background: #10b981; color: white;">🛡️ Passkey QR</span>';
+      } else if (d.verification_method === 'passkey_nfc') {
+        badgeMethod = '<span class="badge" style="background: #06b6d4; color: white;">📶 Proximidad NFC</span>';
+      } else if (d.verification_method === 'delegated_proxy_qr') {
+        badgeMethod = '<span class="badge" style="background: #f59e0b; color: white;">🤝 Retiro Delegado</span>';
+      }
 
       const combosList = d.combos || [{ name: d.combo_name || 'Combo Alimenticio', icon: d.combo_icon || '🍱' }];
       const count = d.combos_count || combosList.length;

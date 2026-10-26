@@ -706,12 +706,34 @@ window.setupWorkerSimulator = function() {
       if (docEl) docEl.textContent = delivery.document_id || 'V-18456123';
       if (locEl) locEl.textContent = 'Almacén Central MIPPCI - Sótano 1';
       
-      const dateObj = delivery.delivered_at ? new Date(delivery.delivered_at) : new Date();
-      if (timeEl) timeEl.textContent = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      let dateVal = delivery.delivered_at;
+      if (typeof dateVal === 'string' && !dateVal.endsWith('Z') && !dateVal.includes('+')) {
+        dateVal = dateVal.replace(' ', 'T') + 'Z';
+      }
+      const dateObj = dateVal ? new Date(dateVal) : new Date();
+      if (timeEl) {
+        timeEl.textContent = dateObj.toLocaleTimeString('es-VE', { 
+          timeZone: 'America/Caracas', 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit', 
+          hour12: true 
+        });
+      }
       
       const shortId = delivery.delivery_id ? delivery.delivery_id.substring(0, 8).toUpperCase() : 'OK-' + Date.now().toString().slice(-6);
       if (idEl) idEl.textContent = `#DEL-${shortId}`;
-      if (methodEl) methodEl.textContent = 'Validación Segura con Celular';
+      if (methodEl) {
+        if (delivery.verification_method === 'passkey_nfc') {
+          methodEl.textContent = 'Validación Segura por Proximidad NFC';
+        } else if (delivery.verification_method === 'delegated_proxy_qr') {
+          methodEl.textContent = 'Validación por Retiro Delegado';
+        } else if (delivery.verification_method && delivery.verification_method.includes('manual')) {
+          methodEl.textContent = 'Validación Manual en Mesa';
+        } else {
+          methodEl.textContent = 'Validación Segura con Celular';
+        }
+      }
 
       const pill1 = document.getElementById('receiptPillStation1');
       const s1 = document.getElementById('receiptPillStation1Status');

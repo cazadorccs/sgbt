@@ -120,18 +120,8 @@ async function syncAllToSupabase() {
     }
     console.log(`✅ Trabajadores sincronizados: ${stats.workers}`);
 
-    // 4. ASEGURAR QUE LAS ENTREGAS EN SUPABASE ESTÉN EN CERO
-    console.log('🧹 4. Verificando entregas en Supabase (Llevar a 0)...');
-    const { data: remoteDeliveries, error: delErr } = await supabase.from('deliveries').select('id');
-    if (!delErr && Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
-      const ids = remoteDeliveries.map(d => d.id);
-      const { error: remErr } = await supabase.from('deliveries').delete().in('id', ids);
-      if (!remErr) stats.deliveries_cleared = ids.length;
-    }
-    console.log(`✅ Entregas en Supabase: 0 (limpiadas: ${stats.deliveries_cleared})`);
-
-    // 5. SINCRONIZAR ASIGNACIONES DIARIAS DE HOY
-    console.log(`📦 5. Sincronizando derechos de hoy (${today})...`);
+    // 4. SINCRONIZAR ASIGNACIONES DIARIAS DE HOY
+    console.log(`📦 4. Sincronizando derechos de hoy (${today})...`);
     const todayEntitlements = db.prepare(`
       SELECT id, worker_id, combo_id, valid_date, shift, status
       FROM daily_entitlements
@@ -165,6 +155,33 @@ async function syncAllToSupabase() {
       else stats.entitlements += chunk.length;
     }
     console.log(`✅ Asignaciones de hoy sincronizadas: ${stats.entitlements}`);
+
+    // 5. SINCRONIZAR ENTREGAS REALES HACIA SUPABASE
+    console.log('📦 5. Sincronizando entregas hacia Supabase Cloud...');
+    const localDeliveries = db.prepare('SELECT * FROM deliveries').all();
+    let syncedDeliveriesCount = 0;
+    for (const d of localDeliveries) {
+      if (isValidUUID(d.id) && isValidUUID(d.worker_id) && isValidUUID(d.entitlement_id)) {
+        const distId = (d.distribution_point_id && d.distribution_point_id !== '550e8400-e29b-41d4-a716-446655440000') 
+          ? d.distribution_point_id 
+          : '5b0f10e3-7eac-4872-bf96-74ecd359be7e';
+
+        const { error } = await supabase.from('deliveries').upsert([{
+          id: d.id,
+          entitlement_id: d.entitlement_id,
+          worker_id: d.worker_id,
+          distribution_point_id: distId,
+          delivered_by_user_id: d.delivered_by_user_id,
+          verification_method: d.verification_method || 'passkey_qr',
+          signature_proof: d.signature_proof,
+          challenge_nonce: d.challenge_nonce,
+          is_offline_sync: Boolean(d.is_offline_sync),
+          delivered_at: d.delivered_at
+        }], { onConflict: 'id' });
+        if (!error) syncedDeliveriesCount++;
+      }
+    }
+    console.log(`✅ Entregas sincronizadas con Supabase: ${syncedDeliveriesCount}`);
 
     console.log('================================================================');
     console.log('🎉 SINCRONIZACIÓN CON SUPABASE COMPLETADA CON ÉXITO');

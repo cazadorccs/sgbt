@@ -611,7 +611,7 @@ function seedDatabase(force = false) {
     insertPoint.run('dist-point-station-1', 'Estación 1: Bulto Víveres Secos (Sótano 1)', 'EST-01', 'Estación 1 [Ambiente] - Almacén Central Sótano 1', 1);
     insertPoint.run('dist-point-station-2', 'Estación 2: Combo Proteico Fresco (Cadena de Frío)', 'EST-02', 'Estación 2 [Cavas Frías] - Almacén Central Sótano 1', 1);
   } else {
-    const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000';
+    const pointPlantaA = '5b0f10e3-7eac-4872-bf96-74ecd359be7e';
     const pointPlantaB = '550e8400-e29b-41d4-a716-446655440001';
     db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run(pointPlantaA, 'Almacén Central - Sótano 1 (Sede Principal)', 'ALM-S1', 'Edificio Principal MIPPCI, Sótano 1');
     db.prepare('INSERT OR IGNORE INTO distribution_points (id, name, location_code, address) VALUES (?, ?, ?, ?)').run(pointPlantaB, 'Mesa de Despacho 2 (Auditorio Central)', 'MESA-AUD', 'Planta Baja, Auditorio Principal');
@@ -940,6 +940,33 @@ async function syncFromSupabase() {
         );
       }
       console.log(`[SUPABASE HYDRATION] ${remoteEntitlements.length} asignaciones de hoy sincronizadas desde Supabase Cloud.`);
+    }
+
+    // Hidratar entregas registradas en Supabase Cloud para que Vercel Serverless las reconozca de inmediato
+    const { data: remoteDeliveries, error: delErr } = await supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(300);
+    if (!delErr && Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
+      const insertRemoteDelivery = db.prepare(`
+        INSERT OR IGNORE INTO deliveries (
+          id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+          verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      for (const d of remoteDeliveries) {
+        insertRemoteDelivery.run(
+          d.id,
+          d.entitlement_id,
+          d.worker_id,
+          d.distribution_point_id,
+          d.delivered_by_user_id,
+          d.verification_method || 'passkey_qr',
+          d.signature_proof,
+          d.challenge_nonce,
+          d.is_offline_sync ? 1 : 0,
+          d.delivered_at,
+          d.campaign_id
+        );
+      }
+      console.log(`[SUPABASE HYDRATION] ${remoteDeliveries.length} entregas sincronizadas desde Supabase Cloud.`);
     }
   } catch (err) {
     console.warn('[SUPABASE HYDRATION WARNING] Error sincronizando con Supabase:', err.message);

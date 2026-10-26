@@ -394,32 +394,40 @@ const incorporateAndDeliver = (req, res) => {
 
 // 4. Estadísticas del día y lista de despachos recientes
 const getTodayStatsAndRecent = (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
+  const todayUtc = new Date().toISOString().split('T')[0];
+  const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
+  const today = todayVzla;
 
   try {
     const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active'").get().c;
-    const totalAssigned = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ?").get(today).c;
-    const totalClaimed = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ? AND status = 'claimed'").get(today).c;
-    const totalPending = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ? AND status = 'pending'").get(today).c;
-    const totalDeliveries = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE date(delivered_at) = ? OR date('now') = ?").get(today, today).c;
+    const totalAssigned = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date IN (?, ?)").get(todayUtc, todayVzla).c;
+    const totalClaimed = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date IN (?, ?) AND status = 'claimed'").get(todayUtc, todayVzla).c;
+    const totalPending = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date IN (?, ?) AND status = 'pending'").get(todayUtc, todayVzla).c;
+    const totalDeliveries = db.prepare(`
+      SELECT COUNT(*) as c FROM deliveries 
+      WHERE date(delivered_at) IN (?, ?) 
+         OR date(delivered_at, '-4 hours') IN (?, ?)
+    `).get(todayUtc, todayVzla, todayUtc, todayVzla).c;
 
     const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id, d.delivered_at, d.verification_method, d.override_reason,
         w.document_id, w.full_name, w.worker_type,
         dep.name as department_name,
-        c.name as combo_name, c.icon as combo_icon,
+        COALESCE(c.name, 'Combo Institucional') as combo_name, 
+        COALESCE(c.icon, '📦') as combo_icon,
         sup.full_name as supervisor_name
       FROM deliveries d
       JOIN workers w ON d.worker_id = w.id
-      JOIN daily_entitlements e ON d.entitlement_id = e.id
-      JOIN combos c ON e.combo_id = c.id
+      LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
+      LEFT JOIN combos c ON e.combo_id = c.id
       LEFT JOIN departments dep ON w.department_id = dep.id
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
-      WHERE date(d.delivered_at) = ? OR date('now') = ?
+      WHERE date(d.delivered_at) IN (?, ?)
+         OR date(d.delivered_at, '-4 hours') IN (?, ?)
       ORDER BY d.delivered_at DESC
       LIMIT 200
-    `).all(today, today);
+    `).all(todayUtc, todayVzla, todayUtc, todayVzla);
 
     // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
     const groupedMap = new Map();

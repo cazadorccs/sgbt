@@ -598,7 +598,7 @@ const verifyQr = (req, res) => {
     const campId = activeCamp ? activeCamp.id : null;
 
     let distPoint = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
-    const finalPointId = distPoint ? distPoint.id : null;
+    const finalPointId = distPoint ? distPoint.id : '5b0f10e3-7eac-4872-bf96-74ecd359be7e';
 
     let operatorUser = delivered_by_user_id 
       ? db.prepare("SELECT id FROM workers WHERE id = ?").get(delivered_by_user_id) 
@@ -609,12 +609,13 @@ const verifyQr = (req, res) => {
     const finalOperatorId = operatorUser ? operatorUser.id : null;
 
     const methodUsed = req.body.verification_method || (qr_payload && qr_payload.transport === 'nfc' ? 'passkey_nfc' : 'passkey_qr');
+    const nowIso = new Date().toISOString();
 
     db.prepare(`
       INSERT INTO deliveries (
         id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
         verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
     `).run(
       deliveryId,
       targetEnt.id,
@@ -624,6 +625,7 @@ const verifyQr = (req, res) => {
       methodUsed,
       sig,
       nonce,
+      nowIso,
       campId
     );
 
@@ -645,7 +647,8 @@ const verifyQr = (req, res) => {
           verification_method: methodUsed,
           signature_proof: sig,
           challenge_nonce: nonce,
-          is_offline_sync: false
+          is_offline_sync: false,
+          delivered_at: nowIso
         }]).catch(e => console.warn('[DELIVERY SUPABASE SYNC ERROR]', e.message));
 
         supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', targetEnt.id).catch(() => {});
