@@ -8,6 +8,7 @@ const { requireRole } = require('../middleware/auth.middleware');
 router.post('/payroll/webhook', payrollController.handleWebhook);
 
 // Ingesta masiva manual y bajas de personal (Exclusivo Administrador General / Director)
+router.get('/payroll/enrollment-stats', requireRole('admin', 'director', 'supervisor', 'auditor'), payrollController.getEnrollmentStats);
 router.post('/payroll/batch-import', requireRole('admin', 'director'), payrollController.handleBatchImport);
 router.post('/admin/workers/batch', requireRole('admin', 'director'), payrollController.handleBatchImport);
 router.post('/payroll/employees/:id/terminate', requireRole('admin', 'director'), payrollController.terminateEmployee);

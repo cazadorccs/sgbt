@@ -147,6 +147,28 @@ window.setupWorkerSimulator = function() {
       const statusText = document.getElementById('workerPasskeyStatusText');
       const statusBox = document.getElementById('workerPasskeyStatusBox');
 
+      // Visualización del Candado Estricto de Dispositivo
+      const deviceLockBadge = document.getElementById('deviceLockBadgeContainer');
+      const deviceLockKeyLabel = document.getElementById('deviceLockKeyLabel');
+      const deviceLockText = document.getElementById('deviceLockText');
+
+      let savedLock = null;
+      try {
+        savedLock = JSON.parse(sessionStorage.getItem('sgbt_device_lock'));
+      } catch (e) {}
+
+      if (deviceLockBadge) {
+        if (savedLock && savedLock.claim_key) {
+          deviceLockBadge.style.display = 'block';
+          if (deviceLockKeyLabel) deviceLockKeyLabel.textContent = savedLock.claim_key;
+          if (deviceLockText) {
+            deviceLockText.textContent = `Amarre exclusivo a este smartphone (${savedLock.claim_key}). Prohibido préstamo de teléfono hasta culminar la entrega.`;
+          }
+        } else {
+          deviceLockBadge.style.display = 'none';
+        }
+      }
+
       if (activePasskey) {
         if (statusText) statusText.textContent = `Activo en ${activePasskey.device_name}`;
         if (statusBox) statusBox.className = 'alert-box alert-info';
@@ -293,25 +315,33 @@ window.setupWorkerSimulator = function() {
     if (btnGenerate) btnGenerate.disabled = true;
 
     try {
-      // 0. Si el trabajador NO tiene passkey enrolada aún, enrolar automáticamente en este mismo clic
+      // 0. Si el trabajador NO tiene passkey enrolada aún, enrolar automáticamente con biometría nativa
       if (btnGenerate && btnGenerate.dataset.needsEnroll === 'true') {
-        btnGenerate.textContent = '🔐 1/2 Configurando acceso seguro...';
+        btnGenerate.textContent = '🔐 1/2 Configurando sensor biométrico...';
         
-        await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
+        let deviceLabel = 'Smartphone Móvil';
+        if (typeof window.registerPlatformBiometrics === 'function') {
+          const res = await window.registerPlatformBiometrics({
+            workerId: STATE.selectedWorkerId
+          });
+          deviceLabel = res.deviceTypeLabel;
+        } else {
+          await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
+          const isIos = /iPhone|iPad/i.test(navigator.userAgent);
+          deviceLabel = isIos ? 'iPhone (Face ID)' : 'Android (Huella)';
+          await API.post('/api/v1/auth/passkey/register-verify', {
+            worker_id: STATE.selectedWorkerId,
+            device_name: deviceLabel,
+            credential: { credential_id: 'Cred_' + Date.now() }
+          });
+        }
 
-        const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Teléfono Móvil';
-        await API.post('/api/v1/auth/passkey/register-verify', {
-          worker_id: STATE.selectedWorkerId,
-          device_name: deviceName,
-          credential: { credential_id: 'Cred_' + Date.now() }
-        });
-
-        STATE.updateWorkerPasskeyStatus(STATE.selectedWorkerId, true, deviceName);
+        STATE.updateWorkerPasskeyStatus(STATE.selectedWorkerId, true, deviceLabel);
         btnGenerate.dataset.needsEnroll = 'false';
         
         const statusText = document.getElementById('workerPasskeyStatusText');
         const statusBox = document.getElementById('workerPasskeyStatusBox');
-        if (statusText) statusText.textContent = `Activo en ${deviceName}`;
+        if (statusText) statusText.textContent = `Activo en ${deviceLabel}`;
         if (statusBox) statusBox.className = 'alert-box alert-info';
       }
 
@@ -842,17 +872,25 @@ window.setupWorkerSimulator = function() {
     btnEnroll.textContent = '🔐 Configurando acceso seguro...';
 
     try {
-      // 1. Obtener desafío de registro
-      const options = await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
-
-      // 2. Simular o invocar autenticación biométrica nativa
-      const deviceName = navigator.userAgent.includes('iPhone') ? 'iPhone' : 'Teléfono Móvil';
-      
-      const verifyData = await API.post('/api/v1/auth/passkey/register-verify', {
-        worker_id: STATE.selectedWorkerId,
-        device_name: deviceName,
-        credential: { credential_id: 'Cred_' + Date.now() }
-      });
+      let deviceName = 'Smartphone Corporativo';
+      if (typeof window.registerPlatformBiometrics === 'function') {
+        const bioRes = await window.registerPlatformBiometrics({
+          workerId: STATE.selectedWorkerId,
+          statusCallback: (msg) => {
+            btnEnroll.textContent = msg;
+          }
+        });
+        deviceName = bioRes.deviceTypeLabel;
+      } else {
+        // Fallback directo
+        await API.post('/api/v1/auth/passkey/register-challenge', { worker_id: STATE.selectedWorkerId });
+        deviceName = /iPhone|iPad/i.test(navigator.userAgent) ? 'iPhone (Face ID)' : 'Android (Huella)';
+        await API.post('/api/v1/auth/passkey/register-verify', {
+          worker_id: STATE.selectedWorkerId,
+          device_name: deviceName,
+          credential: { credential_id: 'Cred_' + Date.now() }
+        });
+      }
 
       // 3. ACTUALIZACIÓN REACTIVA INMEDIATA EN MEMORIA Y ESTADO (0 retardo)
       STATE.updateWorkerPasskeyStatus(STATE.selectedWorkerId, true, deviceName);

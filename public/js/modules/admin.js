@@ -512,6 +512,16 @@ window.openSecurityDossier = async function(workerId) {
           <button class="btn btn-cyan" style="font-size: 0.75rem;" onclick="assignNfcCard('${worker.id}')">Vincular Nueva NFC</button>
         </div>
       </div>
+
+      <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #cbd5e1;">
+        <h5 style="font-size: 0.85rem; font-weight: 700; color: #0284c7; margin-bottom: 0.35rem;">🔒 Amarre Exclusivo de Dispositivo:</h5>
+        <p style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.5rem;">
+          Si el funcionario extravió o dañó su smartphone durante la jornada activa, libere el candado para permitir inicio de sesión en otro teléfono.
+        </p>
+        <button class="btn btn-outline" style="font-size: 0.75rem; width: 100%; border-color: #38bdf8; color: #0284c7; font-weight: 700;" onclick="window.openDeviceReleaseModal('${worker.document_id}')">
+          🔓 Liberar Candado de Dispositivo
+        </button>
+      </div>
     `;
 
     modal.classList.add('active');

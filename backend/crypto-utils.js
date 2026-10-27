@@ -246,6 +246,31 @@ function verifySessionToken(token) {
   }
 }
 
+/**
+ * Genera un hash criptográfico robusto (Scrypt + Salt) para contraseñas de beneficiarios.
+ */
+function hashPassword(password) {
+  if (!password || typeof password !== 'string') return '';
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password.trim(), salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+/**
+ * Verifica una contraseña contra su hash Scrypt en tiempo constante.
+ */
+function verifyPassword(password, storedHash) {
+  try {
+    if (!password || !storedHash || !storedHash.includes(':')) return false;
+    const [salt, key] = storedHash.split(':');
+    const keyBuffer = Buffer.from(key, 'hex');
+    const derivedKey = crypto.scryptSync(password.trim(), salt, 64);
+    return keyBuffer.length === derivedKey.length && crypto.timingSafeEqual(keyBuffer, derivedKey);
+  } catch (e) {
+    return false;
+  }
+}
+
 module.exports = {
   generateP256KeyPair,
   generateNonce,
@@ -260,6 +285,8 @@ module.exports = {
   generateDelegationToken,
   verifyDelegationToken,
   generateSessionToken,
-  verifySessionToken
+  verifySessionToken,
+  hashPassword,
+  verifyPassword
 };
 

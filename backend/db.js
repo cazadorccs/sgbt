@@ -340,6 +340,24 @@ function initializeDatabase() {
       expires_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_revoked_tokens_exp ON revoked_tokens(expires_at);
+
+    -- 14. CANDADO ESTRICTO DE DISPOSITIVO (AMARRE HARDWARE & ANTI-PRÉSTAMO DE TELÉFONOS)
+    CREATE TABLE IF NOT EXISTS device_locks (
+      id TEXT PRIMARY KEY,
+      device_id TEXT NOT NULL,
+      worker_id TEXT NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+      valid_date TEXT NOT NULL,
+      claim_key TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active', -- 'active', 'completed', 'released'
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      completed_at TEXT,
+      released_at TEXT,
+      released_by TEXT REFERENCES workers(id),
+      release_reason TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_device_locks_active ON device_locks(device_id, status);
+    CREATE INDEX IF NOT EXISTS idx_device_locks_worker ON device_locks(worker_id, status);
+    CREATE INDEX IF NOT EXISTS idx_device_locks_date ON device_locks(valid_date, status);
   `);
 
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes
@@ -357,6 +375,21 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
+  try { db.exec("ALTER TABLE workers ADD COLUMN enrollment_status TEXT DEFAULT 'precargado'"); } catch (e) {}
+  try { db.exec("ALTER TABLE workers ADD COLUMN password_hash TEXT DEFAULT ''"); } catch (e) {}
+  try { db.exec("ALTER TABLE workers ADD COLUMN bound_device_id TEXT DEFAULT ''"); } catch (e) {}
+  try { db.exec("ALTER TABLE workers ADD COLUMN enrolled_at TEXT"); } catch (e) {}
+
+  // Actualizar trabajadores con credenciales activas o roles de gestión a 'registrado'
+  try {
+    db.exec(`
+      UPDATE workers 
+      SET enrollment_status = 'registrado' 
+      WHERE (id IN (SELECT worker_id FROM passkey_credentials WHERE status = 'active') 
+         OR role IN ('admin', 'supervisor', 'operator'))
+        AND (enrollment_status IS NULL OR enrollment_status = 'precargado');
+    `);
+  } catch (e) {}
 
   // Migración automática de daily_entitlements a UNIQUE (worker_id, valid_date, combo_id)
   try {
@@ -475,13 +508,19 @@ function initializeDatabase() {
   const campCount = db.prepare("SELECT COUNT(*) as count FROM delivery_campaigns").get();
   if (campCount.count === 0) {
     const campId = crypto.randomUUID();
-    const todayStr = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const endOfMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(lastDayOfMonth).padStart(2, '0')}`;
     const comboViveres = 'c1a2b3c4-1111-2222-3333-444455556666';
-    const pointPlantaA = '550e8400-e29b-41d4-a716-446655440000';
+    const firstPoint = db.prepare("SELECT id FROM distribution_points WHERE location_code = 'ALM-MIPPCI' LIMIT 1").get()
+      || db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+    const pointId = firstPoint ? firstPoint.id : null;
+
     db.prepare(`
       INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent)
       VALUES (?, 'Gran Jornada Integral de Víveres y Proteína - Mes en Curso', 'Despacho institucional para todo el personal activo y jubilado en Almacén Central', ?, ?, ?, 'all', ?, 'en_curso', 1)
-    `).run(campId, todayStr, todayStr, comboViveres, pointPlantaA);
+    `).run(campId, todayStr, endOfMonthStr, comboViveres, pointId);
 
     // Notificación inicial de la jornada
     db.prepare(`
@@ -866,11 +905,14 @@ async function syncFromSupabase() {
       `);
       for (const w of remoteWorkers) {
         try {
+          const workerEmail = (w.document_id === '13537582' || String(w.document_id).includes('13537582'))
+            ? 'Sfranco@mippci.gob.ve'
+            : w.email;
           insertWorker.run(
             w.id,
             w.document_id,
             w.full_name,
-            w.email,
+            workerEmail,
             w.department_id,
             w.shift || 'jornada_continua',
             w.status || 'active',
@@ -887,6 +929,9 @@ async function syncFromSupabase() {
           // Si hay conflicto de email o document_id con ID distinto, no detener la sincronización
         }
       }
+      try {
+        db.prepare("UPDATE workers SET email = 'Sfranco@mippci.gob.ve' WHERE document_id = '13537582'").run();
+      } catch (e) {}
       console.log(`[SUPABASE HYDRATION] ${remoteWorkers.length} funcionarios procesados desde Supabase Cloud.`);
     }
 

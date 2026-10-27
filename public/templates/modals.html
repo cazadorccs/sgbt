@@ -1453,7 +1453,6 @@
         style="background: #fff; padding: 1rem; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 1rem;">
         <div id="delegationQrDisplay"></div>
       </div>
-
       <div style="display: flex; gap: 0.5rem; justify-content: center;">
         <button type="button" id="btnShareDelegationWhatsApp" class="btn btn-primary"
           style="font-size: 0.8rem; background: #25D366; border-color: #25D366; padding: 0.5rem 1rem;">
@@ -1464,6 +1463,230 @@
           🔄 Nueva Delegación
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+       MODAL 12: FORMALIZACIÓN DE BENEFICIARIO (PRECARGA -> REGISTRO)
+       Plazo: 12 de Noviembre de 2026 | Jornada: 27 de Noviembre de 2026
+       ====================================================================== -->
+<div id="beneficiaryEnrollmentModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 540px; box-shadow: 0 25px 60px -15px rgba(2, 132, 199, 0.4); border: 2px solid #0284c7; border-radius: 16px;">
+    <div class="panel-header" style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem;">
+      <div class="panel-title" style="color: #38bdf8; font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🛡️</span>
+        <span>Formalización de Beneficiario</span>
+      </div>
+      <button id="btnCloseEnrollmentModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- BANNER INFORMATIVO DE FECHAS CRÍTICAS RRHH -->
+    <div style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.15) 0%, rgba(30, 58, 138, 0.25) 100%); border: 1.5px solid #0284c7; border-radius: 10px; padding: 0.85rem; margin-top: 0.85rem; margin-bottom: 1.15rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+        <span style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 800; color: #38bdf8;">
+          📍 Jornada de Despacho MIPPCI
+        </span>
+        <span class="badge" style="background: #0284c7; color: #fff; font-size: 0.72rem; font-weight: 700;">
+          27 / NOV / 2026
+        </span>
+      </div>
+      <div style="font-size: 0.8rem; color: #f8fafc; line-height: 1.35;">
+        Para confirmar su asignación en la jornada, complete la formalización asignando su contraseña y cargando su fotografía.
+      </div>
+      <div style="margin-top: 0.45rem; font-size: 0.73rem; color: #fbbf24; font-weight: 700; display: flex; align-items: center; gap: 0.35rem;">
+        <span>⏳</span>
+        <span>Plazo límite de formalización: 12 de Noviembre de 2026</span>
+      </div>
+    </div>
+
+    <form id="enrollmentForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1rem;">
+      <!-- PASO 1: DATOS INSTITUCIONALES PRE-CARGADOS -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.85rem;">
+        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem;">
+          1. Identidad del Trabajador (Nómina Oficial)
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; font-size: 0.82rem;">
+          <div>
+            <span style="color: #64748b; font-size: 0.72rem; display: block;">Cédula de Identidad:</span>
+            <strong id="enrollWorkerDoc" class="text-mono" style="color: #38bdf8; font-size: 0.95rem;">--</strong>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 0.72rem; display: block;">Nombre Completo:</span>
+            <strong id="enrollWorkerName" style="color: #f8fafc;">--</strong>
+          </div>
+          <div style="grid-column: span 2;">
+            <span style="color: #64748b; font-size: 0.72rem; display: block;">Unidad de Adscripción:</span>
+            <span id="enrollWorkerDept" style="color: #cbd5e1; font-weight: 600;">--</span>
+          </div>
+          <div style="grid-column: span 2;">
+            <span style="color: #64748b; font-size: 0.72rem; display: block;">Cargo:</span>
+            <span id="enrollWorkerJob" style="color: #94a3b8;">--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2: CAPTURA O CARGA DE FOTOGRAFÍA -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.85rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700;">
+            2. Fotografía del Beneficiario (Obligatoria)
+          </span>
+          <span id="enrollPhotoStatusChip" class="badge" style="background: #eab308; color: #000; font-size: 0.68rem; font-weight: 700;">
+            ⚠️ Pendiente
+          </span>
+        </div>
+
+        <div style="display: flex; gap: 1rem; align-items: center;">
+          <!-- Contenedor del Visor / Preview -->
+          <div style="position: relative; width: 110px; height: 110px; border-radius: 14px; border: 2px dashed #0284c7; background: #0f172a; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <img id="enrollPhotoImgPreview" src="" alt="Vista previa selfie" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+            <video id="enrollCameraVideo" autoplay playsinline style="display: none; width: 100%; height: 100%; object-fit: cover;"></video>
+            <canvas id="enrollCameraCanvas" style="display: none;"></canvas>
+            <div id="enrollPhotoPlaceholder" style="text-align: center; color: #64748b; font-size: 0.68rem; padding: 0.25rem;">
+              <span style="font-size: 2rem; display: block; margin-bottom: 0.2rem;">👤</span>
+              <span>Sin foto</span>
+            </div>
+          </div>
+
+          <!-- Botones de Acción de Fotografía -->
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 0.45rem;">
+            <input type="file" id="enrollPhotoFileInput" accept="image/*" capture="user" style="display: none;">
+            
+            <button type="button" id="btnEnrollStartCamera" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.45rem 0.65rem; justify-content: flex-start; gap: 0.4rem;">
+              <span>📷</span>
+              <span>Activar Cámara Web / Frontal</span>
+            </button>
+            <button type="button" id="btnEnrollSnapCamera" class="btn btn-primary" style="display: none; font-size: 0.78rem; padding: 0.45rem 0.65rem; background: #10b981; border-color: #10b981; justify-content: flex-start; gap: 0.4rem;">
+              <span>📸</span>
+              <span>Capturar Foto Ahora</span>
+            </button>
+            <button type="button" id="btnEnrollSelectFile" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.45rem 0.65rem; justify-content: flex-start; gap: 0.4rem;">
+              <span>📁</span>
+              <span>Subir desde Galería / Archivo</span>
+            </button>
+            <div style="font-size: 0.68rem; color: #64748b;">
+              Fotografía clara de rostro mirando al frente con buena iluminación.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: ASIGNACIÓN DE CONTRASEÑA / PIN -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.85rem;">
+        <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem;">
+          3. Asignación de Contraseña de Acceso
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem;">
+          <div>
+            <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">
+              Contraseña / PIN:
+            </label>
+            <input 
+              type="password" 
+              id="enrollPassword" 
+              class="form-input" 
+              placeholder="Mín. 4 caracteres"
+              style="width: 100%; font-size: 0.9rem;"
+              autocomplete="new-password"
+            >
+          </div>
+          <div>
+            <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">
+              Confirmar Contraseña:
+            </label>
+            <input 
+              type="password" 
+              id="enrollPasswordConfirm" 
+              class="form-input" 
+              placeholder="Repita la clave"
+              style="width: 100%; font-size: 0.9rem;"
+              autocomplete="new-password"
+            >
+          </div>
+        </div>
+        <div id="enrollPasswordFeedback" style="display: none; font-size: 0.7rem; margin-top: 0.35rem;"></div>
+
+        <div style="margin-top: 0.65rem;">
+          <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">
+            Teléfono Móvil de Contacto (Opcional):
+          </label>
+          <input 
+            type="tel" 
+            id="enrollPhone" 
+            class="form-input text-mono" 
+            placeholder="Ej: 0414-1234567"
+            style="width: 100%; font-size: 0.88rem;"
+          >
+        </div>
+      </div>
+
+      <!-- BOTÓN DE ACCIÓN FINAL -->
+      <div style="margin-top: 0.5rem;">
+        <button type="button" id="btnSubmitBeneficiaryEnrollment" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; font-weight: 800; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); gap: 0.5rem; justify-content: center; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);">
+          <span>💾</span>
+          <span id="btnSubmitEnrollmentText">Formalizar Registro y Activar Beneficio</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL: LIBERACIÓN DE CANDADO DE DISPOSITIVO (SUPERVISIÓN B2G)
+     ====================================================================== -->
+<div id="supervisorDeviceReleaseModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 480px;">
+    <div class="panel-header">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+        🔓 Liberación de Amarre de Dispositivo
+      </div>
+      <button id="btnCloseDeviceReleaseModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+      Autorización de emergencia por Supervisión de Mesa para desbloquear un teléfono extraviado, dañado o con pantalla rota, permitiendo al beneficiario iniciar sesión en un dispositivo alternativo.
+    </p>
+
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 0.85rem; margin-bottom: 1rem;">
+      <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.35rem; font-weight: 700; text-transform: uppercase;">
+        Cédula de Identidad del Beneficiario:
+      </label>
+      <input type="text" id="releaseDocInput" class="form-input text-mono" placeholder="Ej: V-18456123 o 18456123" style="width: 100%; font-size: 0.95rem; font-weight: 700;">
+    </div>
+
+    <div style="margin-bottom: 1.25rem;">
+      <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.35rem; font-weight: 700; text-transform: uppercase;">
+        Motivo de la Liberación Autorizada:
+      </label>
+      <select id="releaseReasonSelect" class="form-select" style="width: 100%;">
+        <option value="phone_lost_or_stolen">Teléfono extraviado o robado en la jornada</option>
+        <option value="broken_screen_or_hardware">Pantalla rota / Falla de hardware / Batería agotada</option>
+        <option value="biometric_sensor_damaged">Sensor biométrico dañado o inoperativo</option>
+        <option value="administrative_reassignment">Reasignación técnica por RRHH / Supervisión</option>
+      </select>
+    </div>
+
+    <div id="deviceReleaseFeedback" style="display: none; font-size: 0.78rem; margin-bottom: 1rem; padding: 0.65rem 0.85rem; border-radius: 8px;"></div>
+
+    <div style="display: flex; gap: 0.65rem;">
+      <button type="button" id="btnConfirmDeviceRelease" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1);">
+        🔓 Confirmar y Desbloquear Dispositivo
+      </button>
+      <button type="button" id="btnCancelDeviceRelease" class="btn btn-outline" style="padding: 0.75rem 1rem;">
+        Cancelar
+      </button>
     </div>
   </div>
 </div>

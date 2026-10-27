@@ -12,25 +12,35 @@ const {
 } = require('../crypto-utils');
 
 /**
- * Genera el desafío criptográfico WebAuthn para enrolamiento FIDO2.
+ * Genera el desafío criptográfico WebAuthn para enrolamiento FIDO2 / Biometría Nativa (Android & iPhone).
  * @param {object} worker - Objeto trabajador con id, full_name, email.
+ * @param {string} [clientHostname] - Hostname del cliente para evitar WebAuthn SecurityError
  * @returns {object} Opciones de registro WebAuthn
  */
-function createRegisterChallenge(worker) {
+function createRegisterChallenge(worker, clientHostname) {
   const challenge = generateWebAuthnChallenge();
+  let rpId = 'localhost';
+  if (clientHostname && typeof clientHostname === 'string') {
+    const clean = clientHostname.split(':')[0].trim();
+    if (clean && clean !== '127.0.0.1' && clean !== '0.0.0.0') {
+      rpId = clean;
+    }
+  }
+
   return {
     challenge,
     rp: {
       name: 'Sistema Bienestar Social - Beneficios Alimenticios (MIPPCI)',
-      id: 'bienestar.ministerio.gob.ve'
+      id: rpId
     },
     user: {
       id: Buffer.from(worker.id).toString('base64url'),
-      name: worker.email,
+      name: worker.email || `${worker.document_id || worker.id}@mippci.gob.ve`,
       displayName: worker.full_name
     },
     pubKeyCredParams: [
-      { alg: -7, type: 'public-key' }
+      { alg: -7, type: 'public-key' },  // ES256 (ECDSA con curva P-256) - Estándar FIDO2/Android/iOS
+      { alg: -257, type: 'public-key' } // RS256 (RSA 2048) - Fallback para enclaves antiguos
     ],
     authenticatorSelection: {
       authenticatorAttachment: 'platform',
@@ -152,6 +162,7 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
 
   const today = new Date().toISOString().split('T')[0];
   const isStation2 = String(station) === '2' || String(station) === 'estacion_2' || String(station) === 'proteina';
+  const isStationAll = String(station) === 'all';
   let targetEnt = null;
 
   if (entitlement_id) {
@@ -159,50 +170,26 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
   }
 
   if (!targetEnt) {
+    const checkDelivery = db.prepare("SELECT id FROM deliveries WHERE worker_id = ? AND entitlement_id = ?");
+    const allWorkerEnts = db.prepare(`
+      SELECT e.id, e.shift, e.status, c.category, c.name
+      FROM daily_entitlements e
+      JOIN combos c ON e.combo_id = c.id
+      WHERE e.worker_id = ? AND date(e.valid_date) = date(?) AND c.is_active = 1
+      ORDER BY c.created_at ASC
+    `).all(worker_id, today);
+
+    const pending = allWorkerEnts.filter(e => !checkDelivery.get(worker_id, e.id) && e.status !== 'claimed');
+
     if (isStation2) {
-      targetEnt = db.prepare(`
-        SELECT e.id, e.shift FROM daily_entitlements e
-        JOIN combos c ON e.combo_id = c.id
-        WHERE e.worker_id = ? AND date(e.valid_date) = date(?)
-        AND (e.shift = 'estacion_2' OR c.category IN ('combo_proteico', 'proteico') OR c.name LIKE '%Prote%')
-        LIMIT 1
-      `).get(worker_id, today);
-
-      if (!targetEnt) {
-        const pCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get();
-        if (pCombo) {
-          const newEntId = crypto.randomUUID();
-          try {
-            db.prepare(`
-              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-              VALUES (?, ?, ?, ?, 'estacion_2', 'pending')
-            `).run(newEntId, worker_id, pCombo.id, today);
-            targetEnt = { id: newEntId };
-          } catch (e) {}
-        }
-      }
+      targetEnt = pending.find(e => e.shift === 'estacion_2' || (e.category && e.category.includes('prote')) || (e.name && e.name.toLowerCase().includes('prote')))
+        || allWorkerEnts.find(e => e.shift === 'estacion_2' || (e.category && e.category.includes('prote')));
+    } else if (String(station) === '1' || String(station) === 'estacion_1') {
+      targetEnt = pending.find(e => e.shift === 'estacion_1' || (e.category && e.category.includes('viveres')) || (e.name && e.name.toLowerCase().includes('víveres')))
+        || allWorkerEnts.find(e => e.shift === 'estacion_1' || (e.category && e.category.includes('viveres')));
     } else {
-      targetEnt = db.prepare(`
-        SELECT e.id, e.shift FROM daily_entitlements e
-        JOIN combos c ON e.combo_id = c.id
-        WHERE e.worker_id = ? AND date(e.valid_date) = date(?)
-        AND (e.shift = 'estacion_1' OR c.category IN ('bolsa_viveres', 'almuerzo') OR c.name LIKE '%Víveres%')
-        LIMIT 1
-      `).get(worker_id, today);
-
-      if (!targetEnt) {
-        const vCombo = db.prepare("SELECT id, name, category FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get();
-        if (vCombo) {
-          const newEntId = crypto.randomUUID();
-          try {
-            db.prepare(`
-              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-              VALUES (?, ?, ?, ?, 'estacion_1', 'pending')
-            `).run(newEntId, worker_id, vCombo.id, today);
-            targetEnt = { id: newEntId };
-          } catch (e) {}
-        }
-      }
+      // station === 'all' o no especificado: seleccionar el próximo combo pendiente de hoy
+      targetEnt = pending[0] || allWorkerEnts[0];
     }
   }
 
@@ -240,7 +227,7 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
   const payload = {
     wid: worker_id,
     ent: finalEntId,
-    station: isStation2 ? '2' : '1',
+    station: isStation2 ? '2' : (isStationAll ? 'all' : '1'),
     ts,
     nonce
   };

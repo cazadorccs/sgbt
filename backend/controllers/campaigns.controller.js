@@ -87,7 +87,7 @@ const getCampaigns = (req, res) => {
   try {
     const campaigns = db.prepare(`
       SELECT 
-        c.id, c.name, c.description, c.start_date, c.end_date, c.target_group, c.status, c.notification_sent, c.created_at,
+        c.id, c.name, c.description, c.start_date, c.end_date, c.combo_id, c.target_group, c.distribution_point_id, c.status, c.notification_sent, c.created_at,
         cb.name as combo_name, cb.category as combo_category, cb.icon as combo_icon, cb.items_detail as combo_items,
         dp.name as point_name, dp.location_code as point_code
       FROM delivery_campaigns c
@@ -95,6 +95,8 @@ const getCampaigns = (req, res) => {
       LEFT JOIN distribution_points dp ON c.distribution_point_id = dp.id
       ORDER BY c.start_date DESC, c.created_at DESC
     `).all();
+
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const enriched = campaigns.map(camp => {
       let workerCondition = "status = 'active'";
@@ -104,21 +106,46 @@ const getCampaigns = (req, res) => {
 
       const totalEligible = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${workerCondition}`).get().count;
 
+      const effectiveEndDate = (camp.status === 'en_curso' && camp.end_date < todayStr)
+        ? todayStr
+        : camp.end_date;
+
       const entitlements = db.prepare(`
         SELECT 
-          COUNT(*) as total_entitlements,
-          SUM(CASE WHEN status = 'claimed' THEN 1 ELSE 0 END) as claimed_count,
-          SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count
+          COUNT(DISTINCT worker_id) as total_entitlements,
+          COUNT(DISTINCT CASE WHEN status = 'claimed' THEN worker_id END) as claimed_count,
+          COUNT(DISTINCT CASE WHEN status = 'pending' THEN worker_id END) as pending_count
         FROM daily_entitlements
-        WHERE valid_date >= ? AND valid_date <= ? AND combo_id = ?
-      `).get(camp.start_date, camp.end_date, camp.combo_id || '');
+        WHERE (combo_id = ? OR campaign_id = ?)
+          AND valid_date >= ? AND valid_date <= ?
+      `).get(camp.combo_id || '', camp.id, camp.start_date, effectiveEndDate);
+
+      const deliveryStats = db.prepare(`
+        SELECT 
+          COUNT(DISTINCT d.worker_id) as delivered_workers,
+          COUNT(*) as total_deliveries
+        FROM deliveries d
+        LEFT JOIN daily_entitlements de ON d.entitlement_id = de.id
+        WHERE d.campaign_id = ? 
+           OR (de.combo_id = ? AND de.valid_date >= ? AND de.valid_date <= ?)
+      `).get(camp.id, camp.combo_id || '', camp.start_date, effectiveEndDate);
+
+      const rawAssigned = entitlements ? (entitlements.total_entitlements || 0) : 0;
+      const assignedCount = rawAssigned > 0 ? rawAssigned : totalEligible;
+
+      const claimedCount = Math.max(
+        entitlements ? (entitlements.claimed_count || 0) : 0,
+        deliveryStats ? (deliveryStats.delivered_workers || 0) : 0
+      );
+
+      const pendingCount = Math.max(0, assignedCount - claimedCount);
 
       return {
         ...camp,
         total_eligible: totalEligible,
-        assigned_count: entitlements ? (entitlements.total_entitlements || 0) : 0,
-        claimed_count: entitlements ? (entitlements.claimed_count || 0) : 0,
-        pending_count: entitlements ? (entitlements.pending_count || 0) : 0
+        assigned_count: assignedCount,
+        claimed_count: claimedCount,
+        pending_count: pendingCount
       };
     });
 
@@ -179,12 +206,14 @@ const createCampaign = (req, res) => {
 
         const workers = db.prepare(workerQuery).all();
         const insertEntitlement = db.prepare(`
-          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+          INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id)
+          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?)
+          ON CONFLICT(worker_id, valid_date, combo_id) DO UPDATE SET
+            campaign_id = excluded.campaign_id
         `);
 
         for (const w of workers) {
-          insertEntitlement.run(crypto.randomUUID(), w.id, validComboId, start_date);
+          insertEntitlement.run(crypto.randomUUID(), w.id, validComboId, start_date, campaignId);
           generatedCount++;
         }
       }
@@ -203,6 +232,47 @@ const createCampaign = (req, res) => {
     });
   } catch (err) {
     console.error('[CAMPAIGN CREATE ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+const updateCampaign = (req, res) => {
+  const { id } = req.params;
+  const { name, description, start_date, end_date, combo_id, distribution_point_id, target_group, status } = req.body;
+
+  try {
+    const camp = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
+    if (!camp) {
+      return res.status(404).json({ error: 'Jornada no encontrada' });
+    }
+
+    db.prepare(`
+      UPDATE delivery_campaigns
+      SET name = COALESCE(?, name),
+          description = COALESCE(?, description),
+          start_date = COALESCE(?, start_date),
+          end_date = COALESCE(?, end_date),
+          combo_id = COALESCE(?, combo_id),
+          distribution_point_id = COALESCE(?, distribution_point_id),
+          target_group = COALESCE(?, target_group),
+          status = COALESCE(?, status)
+      WHERE id = ?
+    `).run(
+      name ? name.trim() : null,
+      description !== undefined ? description : null,
+      start_date || null,
+      end_date || null,
+      combo_id || null,
+      distribution_point_id || null,
+      target_group || null,
+      status || null,
+      id
+    );
+
+    const updated = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
+    res.json({ success: true, message: 'Jornada actualizada con éxito', campaign: updated });
+  } catch (err) {
+    console.error('[CAMPAIGN UPDATE ERROR]', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -274,6 +344,7 @@ module.exports = {
   updateDistributionPoint,
   getCampaigns,
   createCampaign,
+  updateCampaign,
   updateCampaignStatus,
   notifyCampaign
 };

@@ -82,6 +82,8 @@ window.setupPayrollSimulator = function() {
   const csvStatsText = document.getElementById('payrollCsvStatsText');
   const btnProcessCsv = document.getElementById('btnProcessCsvBatch');
   let loadedCsvText = '';
+  let loadedExcelBase64 = null;
+  let loadedFileName = '';
 
   csvDropzone?.addEventListener('click', () => csvFileInput?.click());
 
@@ -101,68 +103,147 @@ window.setupPayrollSimulator = function() {
     csvDropzone.style.borderColor = '#0284c7';
     csvDropzone.style.background = 'rgba(2, 132, 199, 0.04)';
     if (e.dataTransfer?.files?.length) {
-      handleCsvFile(e.dataTransfer.files[0]);
+      handlePayrollFile(e.dataTransfer.files[0]);
     }
   });
 
   csvFileInput?.addEventListener('change', (e) => {
     if (e.target.files?.length) {
-      handleCsvFile(e.target.files[0]);
+      handlePayrollFile(e.target.files[0]);
     }
   });
 
-  function handleCsvFile(file) {
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      window.showToast('Por favor seleccione un archivo con formato .CSV', 'warning');
+  function handlePayrollFile(file) {
+    const fname = file.name.toLowerCase();
+    const isExcel = fname.endsWith('.xlsx') || fname.endsWith('.xls');
+    const isCsv = fname.endsWith('.csv');
+
+    if (!isExcel && !isCsv) {
+      window.showToast('Por favor seleccione un archivo Excel (.xlsx/.xls) o .CSV institucional.', 'warning');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      loadedCsvText = event.target.result;
-      const lines = loadedCsvText.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
-      const rowCount = Math.max(0, lines.length - 1);
-      
-      if (csvPreview) csvPreview.style.display = 'block';
-      if (csvStatsText) {
-        csvStatsText.innerHTML = `
-          <strong>Archivo:</strong> ${file.name} (${(file.size / 1024).toFixed(1)} KB)<br>
-          <strong>Registros detectados:</strong> ${rowCount} trabajadores listos para ingesta.<br>
-          <strong>Encabezado:</strong> <code style="font-size:0.68rem; color:#38bdf8;">${lines[0].substring(0, 70)}...</code>
-        `;
-      }
-      if (btnProcessCsv) btnProcessCsv.style.display = 'block';
-      appendLog(`Archivo CSV "${file.name}" cargado en memoria (${rowCount} filas detectadas).`);
-    };
-    reader.readAsText(file, 'utf-8');
+
+    loadedFileName = file.name;
+
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        const b64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
+        loadedExcelBase64 = b64;
+        loadedCsvText = '';
+
+        if (csvPreview) csvPreview.style.display = 'block';
+        if (csvStatsText) {
+          csvStatsText.innerHTML = `
+            <strong>Archivo Excel:</strong> ${file.name} (${(file.size / 1024).toFixed(1)} KB)<br>
+            <strong>Formato:</strong> Hoja de cálculo Excel (.xlsx / .xls) oficial MIPPCI<br>
+            <strong>Lector:</strong> Motor SheetJS activo en backend (Columnas: CÉDULA, NOMBRES Y APELLIDOS, UNIDAD, CARGO, FECHA DE INGRESO).<br>
+            <strong>Estado:</strong> Los nuevos beneficiarios ingresarán en estado <code>precargado</code>.
+          `;
+        }
+        if (btnProcessCsv) {
+          btnProcessCsv.style.display = 'block';
+          btnProcessCsv.textContent = '🚀 Ingerir Nómina desde Excel a Base de Datos';
+        }
+        appendLog(`Archivo Excel "${file.name}" cargado en memoria (${(file.size / 1024).toFixed(1)} KB) listo para procesar.`);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        loadedCsvText = event.target.result;
+        loadedExcelBase64 = null;
+        const lines = loadedCsvText.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
+        const rowCount = Math.max(0, lines.length - 1);
+
+        if (csvPreview) csvPreview.style.display = 'block';
+        if (csvStatsText) {
+          csvStatsText.innerHTML = `
+            <strong>Archivo CSV:</strong> ${file.name} (${(file.size / 1024).toFixed(1)} KB)<br>
+            <strong>Registros detectados:</strong> ${rowCount} trabajadores listos para ingesta.<br>
+            <strong>Encabezado:</strong> <code style="font-size:0.68rem; color:#38bdf8;">${lines[0].substring(0, 70)}...</code>
+          `;
+        }
+        if (btnProcessCsv) {
+          btnProcessCsv.style.display = 'block';
+          btnProcessCsv.textContent = '🚀 Ingerir Nómina desde CSV a Base de Datos';
+        }
+        appendLog(`Archivo CSV "${file.name}" cargado en memoria (${rowCount} filas detectadas).`);
+      };
+      reader.readAsText(file, 'utf-8');
+    }
   }
 
   btnProcessCsv?.addEventListener('click', async () => {
-    if (!loadedCsvText) return;
+    if (!loadedCsvText && !loadedExcelBase64) return;
     btnProcessCsv.disabled = true;
-    btnProcessCsv.textContent = '⏳ Procesando e ingiriendo nómina...';
+    btnProcessCsv.textContent = '⏳ Procesando e ingiriendo nómina en base de datos...';
     try {
-      const data = await API.post('/api/v1/payroll/batch-import', {
-        batch_id: `batch_csv_${Date.now()}`,
-        source: 'csv_upload',
-        csvText: loadedCsvText
-      });
+      let payload = {
+        batch_id: `batch_${Date.now()}`,
+        source: loadedExcelBase64 ? 'excel_upload' : 'csv_upload',
+        filename: loadedFileName
+      };
+      if (loadedExcelBase64) {
+        payload.excelBase64 = loadedExcelBase64;
+      } else {
+        payload.csvText = loadedCsvText;
+      }
+
+      const data = await API.post('/api/v1/payroll/batch-import', payload);
       if (data.success) {
-        appendLog(`✓ INGESTA CSV EXITOSA: ${data.processed} procesados (${data.updated} actualizados en DB, ${data.failed} omitidos).`);
-        window.showToast(`¡Sincronización completada!\n${data.processed} trabajadores procesados.`, 'success');
+        appendLog(`✓ INGESTA EXITOSA: ${data.processed} procesados (${data.updated} en DB, ${data.failed} omitidos).`);
+        window.showToast(`¡Sincronización de nómina completada!\n${data.processed} trabajadores procesados.`, 'success');
         if (csvPreview) csvPreview.style.display = 'none';
         if (btnProcessCsv) btnProcessCsv.style.display = 'none';
         loadedCsvText = '';
+        loadedExcelBase64 = null;
         if (csvFileInput) csvFileInput.value = '';
+        if (typeof refreshEnrollmentStats === 'function') refreshEnrollmentStats();
         if (typeof refreshPortalData === 'function') refreshPortalData();
+        if (typeof loadWorkersDirectory === 'function') loadWorkersDirectory();
+      } else {
+        throw new Error(data.error || 'Error al procesar lote');
       }
     } catch (err) {
-      appendLog(`Error de red al procesar CSV: ${err.message}`);
-      window.showToast('Error de conexión al servidor: ' + err.message, 'error');
+      appendLog(`Error al procesar nómina: ${err.message}`);
+      window.showToast('Error de conexión o procesamiento: ' + err.message, 'error');
     } finally {
       btnProcessCsv.disabled = false;
-      btnProcessCsv.textContent = '🚀 Ingerir Nómina desde CSV a Base de Datos';
+      btnProcessCsv.textContent = '🚀 Ingerir Nómina a Base de Datos';
     }
   });
+
+  // Función de actualización de Estadísticas de Formalización
+  window.refreshEnrollmentStats = async function() {
+    try {
+      const stats = await API.get('/api/v1/payroll/enrollment-stats');
+      if (stats.success) {
+        const totalEl = document.getElementById('statTotalWorkers');
+        const preEl = document.getElementById('statPrecargados');
+        const regEl = document.getElementById('statRegistrados');
+        const pctEl = document.getElementById('statEnrollmentPct');
+        const barEl = document.getElementById('statEnrollmentBar');
+
+        if (totalEl) totalEl.textContent = stats.total_workers.toLocaleString();
+        if (preEl) preEl.textContent = stats.precargados.toLocaleString();
+        if (regEl) regEl.textContent = stats.registrados.toLocaleString();
+        if (pctEl) pctEl.textContent = `${stats.progress_pct}%`;
+        if (barEl) barEl.style.width = `${stats.progress_pct}%`;
+      }
+    } catch (e) {
+      console.warn('No se pudieron cargar estadísticas de formalización:', e.message);
+    }
+  };
+
+  document.getElementById('btnRefreshEnrollmentStats')?.addEventListener('click', () => {
+    window.refreshEnrollmentStats();
+    window.showToast('Estadísticas de formalización actualizadas', 'info');
+  });
+
+  // Carga inicial de estadísticas
+  window.refreshEnrollmentStats();
 
   // 2.2 JSON Batch Import (SFTP Simulator)
   document.getElementById('btnSendBatchImport')?.addEventListener('click', async () => {

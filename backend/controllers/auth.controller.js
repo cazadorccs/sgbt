@@ -11,7 +11,9 @@ const {
   verifyDelegationToken,
   generateSessionToken,
   verifySessionToken,
-  verifyOfflineSignature
+  verifyOfflineSignature,
+  hashPassword,
+  verifyPassword
 } = require('../crypto-utils');
 
 // Servicios de dominio modularizados
@@ -262,6 +264,140 @@ const login = async (req, res) => {
         }
         res.setHeader('X-Security-Warning', 'Acceso administrativo sin MFA permitido exclusivamente en entorno de pruebas/demostración.');
       }
+    } else if (worker.role === 'worker') {
+      // 3. Validación de Formalización Previa para Beneficiarios Titulares (Campaña 27/11/2026 - Límite 12/11/2026)
+      const enrollmentStatus = worker.enrollment_status || 'precargado';
+
+      // 3.1. Si está en estado 'precargado' (ingresado desde nómina Excel/CSV), requiere formalización con clave y fotografía
+      if (enrollmentStatus === 'precargado') {
+        console.log(`ℹ️ [AUTH] Beneficiario precargado ${worker.document_id} requiere formalización obligatoria (plazo 12/11/2026).`);
+        return res.json({
+          success: false,
+          requires_enrollment: true,
+          worker: {
+            id: worker.id,
+            document_id: worker.document_id,
+            full_name: worker.full_name,
+            email: worker.email,
+            department_name: worker.department_name,
+            job_title: worker.job_title,
+            phone_number: worker.phone_number,
+            enrollment_status: 'precargado'
+          },
+          onboarding_token: onboardingToken,
+          deadline_date: '2026-11-12',
+          campaign_date: '2026-11-27',
+          message: 'Se requiere la formalización del beneficiario (asignación de clave y captura de fotografía) antes del 12 de Noviembre de 2026 para participar en la Gran Jornada del 27/11/2026.'
+        });
+      }
+
+      // 3.2. Si ya está 'registrado' y tiene contraseña configurada:
+      if (enrollmentStatus === 'registrado' && worker.password_hash) {
+        const { password } = req.body;
+        if (!password && !passkey_proof) {
+          return res.json({
+            success: false,
+            requires_password: true,
+            worker: {
+              id: worker.id,
+              document_id: worker.document_id,
+              full_name: worker.full_name,
+              avatar_url: worker.avatar_url
+            },
+            message: 'Ingrese su contraseña de beneficiario para acceder.'
+          });
+        }
+
+        if (password) {
+          const isValid = verifyPassword(password, worker.password_hash);
+          if (!isValid) {
+            console.warn(`[AUTH] Contraseña incorrecta para beneficiario registrado: ${worker.document_id}`);
+            return res.status(401).json({
+              success: false,
+              error: 'Contraseña de beneficiario incorrecta. Verifique sus datos o contacte a RRHH.'
+            });
+          }
+        }
+      }
+    }
+
+    // 4. CANDADO ESTRICTO DE DISPOSITIVO (AMARRE HARDWARE & ANTI-PRÉSTAMO)
+    let deviceLockInfo = null;
+    if (worker.role === 'worker') {
+      const deviceId = (req.body.device_id && String(req.body.device_id).trim())
+        ? String(req.body.device_id).trim()
+        : null;
+
+      // Verificar si el trabajador tiene combos pendientes hoy
+      const checkDeliv = db.prepare("SELECT id FROM deliveries WHERE worker_id = ? AND entitlement_id = ?");
+      const hasPendingCombos = allEntitlements.some(e => !checkDeliv.get(worker.id, e.id) && e.status !== 'claimed');
+
+      if (hasPendingCombos && deviceId) {
+        // Regla 1 (Anti-Préstamo): ¿Este dispositivo tiene una entrega pendiente activa para OTRO beneficiario?
+        const lockedByOther = db.prepare(`
+          SELECT dl.*, w.full_name as owner_name, w.document_id as owner_doc
+          FROM device_locks dl
+          JOIN workers w ON dl.worker_id = w.id
+          WHERE dl.device_id = ? AND dl.valid_date = ? AND dl.status = 'active' AND dl.worker_id != ?
+        `).get(deviceId, today, worker.id);
+
+        if (lockedByOther) {
+          console.warn(`[DEVICE LOCK REJECT] Dispositivo ${deviceId} bloqueado por entrega pendiente de: ${lockedByOther.owner_doc} (${lockedByOther.owner_name})`);
+          return res.status(423).json({
+            success: false,
+            code: 'DEVICE_LOCKED_OTHER_WORKER',
+            error: `Dispositivo bloqueado: Este teléfono tiene una entrega en curso asignada a ${lockedByOther.owner_name} (${lockedByOther.owner_doc}). Por política anti-fraude no se permite el préstamo de teléfonos hasta completar o liberar la entrega pendiente.`,
+            locked_by: lockedByOther.owner_name,
+            locked_doc: lockedByOther.owner_doc,
+            valid_date: today
+          });
+        }
+
+        // Regla 2 (Anti-Doble Login): ¿El trabajador ya tiene una entrega activa iniciada en OTRO dispositivo hoy?
+        const lockedElsewhere = db.prepare(`
+          SELECT * FROM device_locks
+          WHERE worker_id = ? AND valid_date = ? AND status = 'active' AND device_id != ?
+        `).get(worker.id, today, deviceId);
+
+        if (lockedElsewhere) {
+          console.warn(`[DEVICE LOCK REJECT] Beneficiario ${worker.document_id} tiene entrega activa en otro teléfono (${lockedElsewhere.device_id})`);
+          return res.status(423).json({
+            success: false,
+            code: 'WORKER_LOCKED_OTHER_DEVICE',
+            error: 'Entrega en curso en otro dispositivo: Ya inició jornada de entrega en su teléfono móvil original. Para evitar duplicidades y préstamo de dispositivos, debe culminar el retiro con su teléfono original o solicitar liberación al supervisor de mesa.',
+            active_device_id: lockedElsewhere.device_id,
+            claim_key: lockedElsewhere.claim_key,
+            valid_date: today
+          });
+        }
+
+        // Crear o recuperar candado de dispositivo activo
+        let activeLock = db.prepare(`
+          SELECT * FROM device_locks
+          WHERE device_id = ? AND worker_id = ? AND valid_date = ? AND status = 'active'
+        `).get(deviceId, worker.id, today);
+
+        if (!activeLock) {
+          const claimKey = 'KEY-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+          const lockId = crypto.randomUUID();
+          db.prepare(`
+            INSERT INTO device_locks (id, device_id, worker_id, valid_date, claim_key, status)
+            VALUES (?, ?, ?, ?, ?, 'active')
+          `).run(lockId, deviceId, worker.id, today, claimKey);
+          activeLock = { id: lockId, device_id: deviceId, worker_id: worker.id, valid_date: today, claim_key: claimKey, status: 'active' };
+
+          try {
+            db.prepare("UPDATE workers SET bound_device_id = ? WHERE id = ?").run(deviceId, worker.id);
+          } catch (e) {}
+        }
+
+        deviceLockInfo = {
+          status: activeLock.status,
+          claim_key: activeLock.claim_key,
+          device_id: activeLock.device_id,
+          valid_date: activeLock.valid_date
+        };
+      }
     }
 
     // Generar token de sesión institucional firmado criptográficamente (12 horas)
@@ -289,6 +425,8 @@ const login = async (req, res) => {
     console.log(`   Tipo        : ${worker.worker_type}`);
     console.log(`   Departamento: ${worker.department_name || 'N/A'}`);
     console.log(`   Passkeys    : ${Boolean(passkey) ? 'Registrada' : 'Sin passkey'}`);
+    console.log(`   Estado Form : ${worker.enrollment_status || 'precargado'}`);
+    console.log(`   Candado Disp: ${deviceLockInfo ? `${deviceLockInfo.claim_key} (${deviceLockInfo.device_id})` : 'Sin candado activo'}`);
     console.log(`   Latencia DB : ${elapsed}ms`);
     console.log(`================================================================\n`);
 
@@ -302,6 +440,9 @@ const login = async (req, res) => {
         role: worker.role || 'worker',
         worker_type: worker.worker_type || 'activo',
         department: worker.department_name,
+        job_title: worker.job_title || null,
+        avatar_url: worker.avatar_url || null,
+        enrollment_status: worker.enrollment_status || 'precargado',
         has_passkey: Boolean(passkey),
         has_smartphone: Boolean(worker.has_smartphone)
       },
@@ -309,6 +450,7 @@ const login = async (req, res) => {
       token: sessionToken,
       entitlement: entitlement || null,
       entitlements: allEntitlements || [],
+      device_lock: deviceLockInfo,
       onboarding_token: onboardingToken
     });
   } catch (err) {
@@ -317,18 +459,202 @@ const login = async (req, res) => {
   }
 };
 
+/**
+ * Consulta pública/protegida de estado de formalización previa a la Jornada del 27/11/2026.
+ */
+const checkEnrollmentStatus = (req, res) => {
+  const { document_id } = req.params;
+  if (!document_id || !document_id.trim()) {
+    return res.status(400).json({ error: 'Cédula de Identidad requerida' });
+  }
+
+  const cleanDoc = document_id.trim().toUpperCase();
+  const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
+
+  try {
+    const worker = db.prepare(`
+      SELECT w.id, w.document_id, w.full_name, w.email, w.job_title, w.hire_date,
+             w.phone_number, w.avatar_url, w.enrollment_status, w.enrolled_at,
+             d.name as department_name
+      FROM workers w
+      LEFT JOIN departments d ON w.department_id = d.id
+      WHERE w.document_id IN (?, ?, ?, ?) OR w.id = ?
+      LIMIT 1
+    `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
+
+    if (!worker) {
+      return res.status(404).json({
+        success: false,
+        found: false,
+        error: 'La Cédula no se encuentra registrada en la nómina precargada de beneficiarios MIPPCI.'
+      });
+    }
+
+    res.json({
+      success: true,
+      found: true,
+      deadline_date: '2026-11-12',
+      campaign_date: '2026-11-27',
+      worker: {
+        id: worker.id,
+        document_id: worker.document_id,
+        full_name: worker.full_name,
+        email: worker.email,
+        department_name: worker.department_name,
+        job_title: worker.job_title,
+        hire_date: worker.hire_date,
+        phone_number: worker.phone_number,
+        has_photo: Boolean(worker.avatar_url),
+        avatar_url: worker.avatar_url || null,
+        enrollment_status: worker.enrollment_status || 'precargado',
+        enrolled_at: worker.enrolled_at
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al consultar estado de formalización: ' + err.message });
+  }
+};
+
+/**
+ * Formalización de Beneficiario: asignación obligatoria de contraseña y captura de fotografía.
+ * Habilita el acceso del trabajador a las jornadas de entrega.
+ */
+const enrollBeneficiary = (req, res) => {
+  const { document_id, password, photo_base64, phone_number, device_id } = req.body;
+
+  if (!document_id || !document_id.trim()) {
+    return res.status(400).json({ error: 'La Cédula de Identidad es requerida para la formalización' });
+  }
+  if (!password || String(password).trim().length < 4) {
+    return res.status(400).json({ error: 'La contraseña debe contener al menos 4 caracteres numéricos o alfanuméricos' });
+  }
+  if (!photo_base64 || !String(photo_base64).trim()) {
+    return res.status(400).json({ error: 'La fotografía del beneficiario es obligatoria para la formalización' });
+  }
+
+  const cleanDoc = document_id.trim().toUpperCase();
+  const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
+
+  try {
+    const worker = db.prepare(`
+      SELECT w.*, d.name as department_name
+      FROM workers w
+      LEFT JOIN departments d ON w.department_id = d.id
+      WHERE w.document_id IN (?, ?, ?, ?) OR w.id = ?
+      LIMIT 1
+    `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
+
+    if (!worker) {
+      return res.status(404).json({ error: 'La Cédula no figura en la nómina precargada oficial de beneficiarios.' });
+    }
+
+    const passwordHash = hashPassword(String(password).trim());
+    const boundDeviceId = device_id || req.headers['user-agent'] || `dev_${crypto.randomUUID()}`;
+
+    // Actualizar registro en base de datos
+    db.prepare(`
+      UPDATE workers
+      SET password_hash = ?,
+          avatar_url = ?,
+          phone_number = COALESCE(?, phone_number),
+          bound_device_id = ?,
+          enrollment_status = 'registrado',
+          enrolled_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(
+      passwordHash,
+      photo_base64,
+      phone_number ? phone_number.trim() : null,
+      boundDeviceId,
+      worker.id
+    );
+
+    // Auto-asignación de combos activos de la jornada
+    const today = new Date().toISOString().split('T')[0];
+    try {
+      const activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+      const existingCombos = db.prepare("SELECT combo_id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").all(worker.id, today);
+      const existingIds = new Set(existingCombos.map(e => e.combo_id));
+      const insEnt = db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+      `);
+      for (const c of activeCombos) {
+        if (!existingIds.has(c.id)) {
+          insEnt.run(crypto.randomUUID(), worker.id, c.id, today);
+        }
+      }
+    } catch (e) {
+      console.warn('[ENROLL AUTO-ENTITLEMENT WARNING]', e.message);
+    }
+
+    const allEntitlements = db.prepare(`
+      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon
+      FROM daily_entitlements de
+      JOIN combos c ON de.combo_id = c.id
+      WHERE de.worker_id = ? AND de.valid_date = ? AND c.is_active = 1
+      ORDER BY c.created_at ASC
+    `).all(worker.id, today);
+
+    // Generar sesión institucional de 12 horas
+    const sessionToken = generateSessionToken({
+      userId: worker.id,
+      role: worker.role || 'worker',
+      documentId: worker.document_id
+    }, 12);
+
+    res.cookie('sgbt_session', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+      maxAge: 12 * 3600 * 1000
+    });
+
+    console.log(`✅ [BENEFICIARY FORMALIZED] Cédula ${worker.document_id} (${worker.full_name}) formalizada con éxito.`);
+
+    res.json({
+      success: true,
+      message: '¡Formalización de beneficiario completada exitosamente! Beneficio confirmado para la Gran Jornada del 27/11/2026.',
+      session_token: sessionToken,
+      token: sessionToken,
+      user: {
+        id: worker.id,
+        document_id: worker.document_id,
+        full_name: worker.full_name,
+        email: worker.email,
+        role: worker.role || 'worker',
+        worker_type: worker.worker_type || 'activo',
+        department: worker.department_name,
+        job_title: worker.job_title || null,
+        avatar_url: photo_base64,
+        enrollment_status: 'registrado',
+        has_passkey: false,
+        has_smartphone: Boolean(worker.has_smartphone)
+      },
+      entitlement: allEntitlements[0] || null,
+      entitlements: allEntitlements || []
+    });
+  } catch (err) {
+    console.error('[ENROLL ERROR]', err);
+    res.status(500).json({ error: 'Error al procesar formalización del beneficiario: ' + err.message });
+  }
+};
+
 const registerChallenge = (req, res) => {
-  const { worker_id } = req.body;
+  const { worker_id, hostname } = req.body;
   if (!worker_id) {
     return res.status(400).json({ error: 'worker_id es requerido' });
   }
 
-  const worker = db.prepare('SELECT id, full_name, email FROM workers WHERE id = ?').get(worker_id);
+  const worker = db.prepare('SELECT id, full_name, email, document_id FROM workers WHERE id = ?').get(worker_id);
   if (!worker) {
     return res.status(404).json({ error: 'Trabajador no encontrado' });
   }
 
-  const options = createRegisterChallenge(worker);
+  const clientHost = hostname || req.hostname || req.headers.host?.split(':')[0] || 'localhost';
+  const options = createRegisterChallenge(worker, clientHost);
   res.json(options);
 };
 
@@ -779,6 +1105,20 @@ const verifyQr = (req, res) => {
     const remainingCount = pendingEnts.length - 1;
     const isAllCompleted = remainingCount === 0;
 
+    // Liberación automática del candado de dispositivo una vez retirados todos los combos
+    if (isAllCompleted) {
+      try {
+        db.prepare(`
+          UPDATE device_locks
+          SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+          WHERE worker_id = ? AND valid_date = ? AND status = 'active'
+        `).run(wid, today);
+        console.log(`🔓 [DEVICE LOCK COMPLETED] Candado de dispositivo liberado automáticamente tras completar entrega para beneficiario: ${wid}`);
+      } catch (lockErr) {
+        console.warn('[DEVICE LOCK RELEASE WARN]', lockErr.message);
+      }
+    }
+
     const targetToastMsg = `🎉 ¡RETIRO APROBADO! Ya puede retirar su ${targetEnt.icon || '📦'} ${targetEnt.combo_name}.`;
 
     const deliveryPayload = {
@@ -1082,10 +1422,76 @@ const logout = (req, res) => {
   }
 };
 
+/**
+ * Liberación de Emergencia de Candado de Dispositivo (Supervisor / Administrador / Director)
+ * Permite desbloquear un teléfono extraviado o con pantalla rota para que el beneficiario
+ * pueda iniciar sesión en otro smartphone de reemplazo.
+ */
+const releaseDeviceLock = (req, res) => {
+  const { worker_id, document_id, device_id, reason } = req.body;
+  const supervisorId = req.user?.id || null;
+
+  let targetWorkerId = worker_id;
+  if (!targetWorkerId && document_id) {
+    const cleanDoc = document_id.trim().toUpperCase();
+    const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
+    const w = db.prepare('SELECT id FROM workers WHERE document_id IN (?, ?, ?, ?) OR id = ?')
+      .get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
+    if (w) targetWorkerId = w.id;
+  }
+
+  if (!targetWorkerId && !device_id) {
+    return res.status(400).json({ error: 'Debe especificar Cédula/ID de beneficiario o identificador de dispositivo a liberar.' });
+  }
+
+  try {
+    let result;
+    if (targetWorkerId && device_id) {
+      result = db.prepare(`
+        UPDATE device_locks
+        SET status = 'released', released_at = CURRENT_TIMESTAMP, released_by = ?, release_reason = ?
+        WHERE worker_id = ? AND device_id = ? AND status = 'active'
+      `).run(supervisorId, reason || 'Liberación autorizada por supervisor de mesa', targetWorkerId, device_id);
+    } else if (targetWorkerId) {
+      result = db.prepare(`
+        UPDATE device_locks
+        SET status = 'released', released_at = CURRENT_TIMESTAMP, released_by = ?, release_reason = ?
+        WHERE worker_id = ? AND status = 'active'
+      `).run(supervisorId, reason || 'Liberación autorizada por supervisor de mesa', targetWorkerId);
+    } else {
+      result = db.prepare(`
+        UPDATE device_locks
+        SET status = 'released', released_at = CURRENT_TIMESTAMP, released_by = ?, release_reason = ?
+        WHERE device_id = ? AND status = 'active'
+      `).run(supervisorId, reason || 'Liberación autorizada por supervisor de mesa', device_id);
+    }
+
+    logInfo('SUPERVISOR_DEVICE_RELEASE', {
+      supervisor_id: supervisorId,
+      target_worker_id: targetWorkerId,
+      device_id,
+      reason: reason || 'Liberación de emergencia por supervisor',
+      released_count: result.changes
+    });
+
+    return res.json({
+      success: true,
+      message: result.changes > 0 
+        ? `Se liberó exitosamente el bloqueo del dispositivo (${result.changes} registro(s) actualizado(s)). El beneficiario ya puede iniciar sesión en su nuevo teléfono.`
+        : 'No se encontraron bloqueos activos pendientes para el beneficiario o dispositivo especificado.',
+      released_count: result.changes
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error al liberar dispositivo: ' + err.message });
+  }
+};
+
 module.exports = {
   login,
   magicLogin,
   logout,
+  checkEnrollmentStatus,
+  enrollBeneficiary,
   registerChallenge,
   registerVerify,
   signOffline,
@@ -1093,6 +1499,7 @@ module.exports = {
   verifyQr,
   createDelegation,
   contingencyOverride,
+  releaseDeviceLock,
   getDeliveryStatus,
   deliveryStream
 };

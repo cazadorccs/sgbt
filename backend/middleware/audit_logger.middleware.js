@@ -41,9 +41,11 @@ function auditLoggerMiddleware(req, res, next) {
     // Determinar la acción semántica
     let action = 'API_REQUEST';
     if (req.path.includes('/verify/qr')) action = 'SCAN_VERIFY_QR';
+    else if (req.path.includes('/auth/enroll')) action = 'BENEFICIARY_FORMALIZED';
     else if (req.path.includes('/auth/login')) action = 'USER_LOGIN';
     else if (req.path.includes('/auth/passkey/sign-offline')) action = 'PASSKEY_SIGN_OFFLINE';
     else if (req.path.includes('/auth/passkey/register')) action = 'PASSKEY_ENROLLMENT';
+    else if (req.path.includes('/payroll/batch-import')) action = 'PAYROLL_EXCEL_INGESTION';
     else if (req.path.includes('/manual-dispatch/deliver')) action = 'MANUAL_DELIVERY';
     else if (req.path.includes('/supervisor/contingency')) action = 'CONTINGENCY_OVERRIDE';
     else if (req.path.includes('/combos') && req.method !== 'GET') action = 'COMBO_MUTATION';

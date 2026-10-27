@@ -1,41 +1,86 @@
 {
-  "objective": "Garantizar la actualización inmediata y consistente de los Combos Programados (KPIs) en todos los escenarios de activación, desactivación, edición y eliminación de combos en el catálogo institucional",
-  "steps": [
+  "objective": "Hoja de Ruta Operativa y Tecnológica acordada con Recursos Humanos (RRHH) para la Gran Jornada de Despacho del 27/11/2026 y Cierre de Formalización al 12/11/2026",
+  "phases": [
     {
-      "step": 1,
-      "description": "Actualizar backend/controllers/admin.controller.js en toggleComboStatus, updateCombo y deleteCombo para conciliar automáticamente daily_entitlements al desactivar/activar combos",
-      "verification": "node -c backend/controllers/admin.controller.js y pruebas unitarias de cambio de estado"
+      "phase": 1,
+      "name": "Precarga de Nómina Excel (.xlsx), Asignación de Clave y Formalización con Selfie",
+      "status": "COMPLETADO",
+      "deadline": "2026-11-12",
+      "description": "Parser Excel para ingesta directa de bd.xlsx, migración de esquema relacional (enrollment_status, password_hash, selfie_url, bound_device_id, enrolled_at) y modal con cámara en vivo para formalización obligatoria previa a la jornada.",
+      "deliverables": [
+        "xlsx instalado y funcionando en backend",
+        "POST /api/v1/payroll/batch-import con scrypt hash",
+        "GET /api/v1/payroll/enrollment-stats",
+        "POST /api/v1/payroll/formalize con captura selfie",
+        "public/templates/modals.html modal de formalización"
+      ],
+      "verification": "node scratch/test_phase1_flow.js (100% aprobado)"
     },
     {
-      "step": 2,
-      "description": "Blindar las consultas de cálculo de KPIs en getKpis y getTodayStatsAndRecent para filtrar estrictamente combos activos (c.is_active = 1 y status != 'cancelled')",
-      "verification": "Llamada a /api/v1/admin/kpis devuelve 4544 cuando un combo de 5 está desactivado"
+      "phase": 2,
+      "name": "Biometría WebAuthn (Huella / Face ID) y Amarre Estricto de Dispositivo Móvil",
+      "status": "COMPLETADO",
+      "deadline": "2026-11-12",
+      "description": "Autenticación WebAuthn FIDO2 en Android BiometricPrompt y Apple Touch ID / Face ID con amarre estricto a hardware mediante tabla device_locks para impedir préstamo de teléfonos y multicuentas, con llave efímera claim_key y desbloqueo de emergencia para supervisores.",
+      "deliverables": [
+        "Dynamic rp.id y multi-algoritmo (ES256/RS256) en passkey.service.js",
+        "Tabla device_locks e índices compuestos en db.js",
+        "Reglas HTTP 423 DEVICE_LOCKED_OTHER_WORKER y WORKER_LOCKED_OTHER_DEVICE en login",
+        "Liberación automática de device_lock al verificar entrega de combo",
+        "POST /api/v1/auth/device/release con perfil supervisor/admin/director",
+        "Insignia de candado de hardware en carnet de beneficiario y modal supervisor"
+      ],
+      "verification": "node scratch/test_phase2_flow.js (100% aprobado) y test_e2e_suite.js (26/26 aprobado)"
     },
     {
-      "step": 3,
-      "description": "Blindar /api/v1/sync/daily-pack para incluir exclusivamente entitlements de combos activos (c.is_active = 1)",
-      "verification": "Descarga de Daily Pack contiene únicamente combos activos"
+      "phase": 3,
+      "name": "Simplificación de Despacho a Retiro Único Totalizado (Totalidad de Combos en 1 solo Escaneo QR)",
+      "status": "PENDIENTE",
+      "target_sprint": "Próxima implementación",
+      "description": "Unificación de la validación de entrega en un solo código QR atómico que liquide la totalidad de combos asignados al trabajador en la jornada (Víveres Secos + Proteína + Combos Especiales) en una única transacción de base de datos.",
+      "deliverables": [
+        "QR consolidado multifunción en carnet de beneficiario",
+        "Transacción atómica SQL en dispatch.controller.js (despacho totalizado)",
+        "Transición de device_locks a completed al primer escaneo atómico",
+        "Modo Retiro Total vs Modo Estación en mesa de despacho de almacén",
+        "Comprobante digital consolidado de entrega total"
+      ],
+      "verification": "Pruebas de despacho atómico sin dobles consumos y verificación de liberación inmediata de candado"
     },
     {
-      "step": 4,
-      "description": "Actualizar public/js/modules/combos.js para que tras activar/desactivar/editar un combo llame proactivamente a refreshPortalData y emita eventos de actualización para todos los módulos",
-      "verification": "Verificación de eventos en frontend y actualización en tiempo real de kpiAssignedToday y manualKpiAssigned"
+      "phase": 4,
+      "name": "Módulo de Entregas Masivas por Dependencia / Unidad y Cadena de Aprobación",
+      "status": "PENDIENTE",
+      "target_sprint": "Pre-Jornada",
+      "description": "Gestión de lotes institucionales (ej. 300 combos) asignados a direcciones o viceministerios, con cadena de aprobación jerárquica (Solicitud -> RRHH -> Almacén), deducción masiva de stock y marcado automático de beneficiarios adscritos con firma de token de delegación.",
+      "deliverables": [
+        "Selector de departamentos y asignación masiva de lote",
+        "Flujo de estados de aprobación (pending_review, approved, dispatched)",
+        "Marcado automático en bloque de beneficiarios como 'Entregado por Lote'",
+        "Acta digital de entrega departamental firmada por delegado receptor",
+        "Deducción atómica de inventario institucional"
+      ],
+      "verification": "Prueba de lote de 300 combos con verificación de descuento de stock y bloqueo de retiro individual"
     },
     {
-      "step": 5,
-      "description": "Crear y ejecutar suite integral de pruebas para TODOS los escenarios: Desactivación, Reactivación, Edición, Creación, Eliminación y Consulta de KPIs",
-      "verification": "Ejecución exitosa de test suite con cobertura total de los 6 escenarios"
-    },
-    {
-      "step": 6,
-      "description": "Verificación visual con navegador para confirmar que al alternar el estado en el Catálogo de Combos los Combos Programados pasan de 5680 a 4544 de inmediato",
-      "verification": "Captura de pantalla y reporte visual en navegador"
+      "phase": 5,
+      "name": "Monitor de Formalización Previa (Cierre 12/Nov) y Auditoría Ministerial (Jornada 27/Nov)",
+      "status": "PENDIENTE",
+      "target_sprint": "Cierre Operativo",
+      "description": "Panel de control gerencial para seguimiento del porcentaje de formalización antes de la fecha límite del 12 de noviembre, exportación de reportes de rezagados, congelamiento formal del padrón y generación de actas oficiales con firma criptográfica SHA-256 para la jornada del 27 de noviembre.",
+      "deliverables": [
+        "Dashboard con KPIs de formalización y semaforización por viceministerio/dirección",
+        "Módulo de reporte y exportación de personal no formalizado (rezagados)",
+        "Bloqueo automático de formalización post-12/11/2026",
+        "Generador de Acta Ministerial Definitiva con hash SHA-256 para auditoría de Despacho e Inspectoría"
+      ],
+      "verification": "Auditoría de integridad de nómina cerrada y generación exitosa del acta ministerial criptográfica"
     }
   ],
-  "rollback_strategy": "Git restore de los controladores y archivos modificados si alguna verificación falla",
+  "rollback_strategy": "Git restore de los controladores y esquemas modificados si alguna verificación falla",
   "risks": [
-    "No afectar las entregas ya reclamadas históricamente (status = 'claimed' y registros en deliveries)",
-    "Mantener sincronización bidireccional con Supabase Cloud sin errores de clave foránea",
-    "Preservar compatibilidad con el motor de despacho offline y PWA"
+    "Evitar inconsistencias en stock durante retiros masivos por departamento",
+    "Garantizar que la simplificación a 1 solo QR no genere vulnerabilidad de replay ni dobles entregas",
+    "Preservar compatibilidad offline estricta durante el escaneo en almacenes y sótanos"
   ]
 }
