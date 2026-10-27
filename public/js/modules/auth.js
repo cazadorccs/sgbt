@@ -6,6 +6,11 @@ window.currentLoginMode = 'beneficiary';
 
 window.setLoginMode = function(mode) {
   window.currentLoginMode = mode;
+  const loginSection = document.getElementById('view-login');
+  if (loginSection && !loginSection.classList.contains('active-view') && typeof navigateTo === 'function') {
+    navigateTo('view-login');
+  }
+
   const alertBox = document.getElementById('loginAlertBox');
   if (alertBox) alertBox.style.display = 'none';
 
@@ -148,7 +153,8 @@ window.setupAuth = function() {
       if (!doc) return;
 
       const isAdminProfile = doc === '13537582' || doc === 'V-11123987' || doc === 'V-13222333';
-      if (isAdminProfile && window.currentLoginMode === 'admin') {
+      if (doc === '13537582' || (isAdminProfile && window.currentLoginMode === 'admin')) {
+        window.setLoginMode('admin');
         const adminDoc = document.getElementById('adminDocNumber');
         const adminPin = document.getElementById('adminSecretKey');
         if (adminDoc) adminDoc.value = doc;

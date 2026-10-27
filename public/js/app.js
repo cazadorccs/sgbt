@@ -296,8 +296,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTemplates();
   }
 
-  // 1. Núcleo UI y Navegación
+  // 1. Núcleo UI, Navegación y Autenticación INMEDIATA (0 ms)
   setupNavigation();
+  if (typeof setupAuth === 'function') setupAuth();
+  if (typeof setupUserMenuDropdown === 'function') setupUserMenuDropdown();
   if (typeof setupGeneralSettings === 'function') setupGeneralSettings();
   setupNetworkToggle();
 
@@ -310,16 +312,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof setupDistributionPointsManagement === 'function') setupDistributionPointsManagement();
   if (typeof initCombosManagement === 'function') initCombosManagement();
 
-  // 3. Sistema y PWA
-  await checkSystemDbStatus();
+  // 3. Sistema y PWA (asíncrono, no bloquea interactividad UI)
+  checkSystemDbStatus().catch(err => console.warn('checkSystemDbStatus warning:', err));
   setupPwa();
 
-  // 4. Autenticación, Seguridad Bancaria de Sesión y RBAC
+  // 4. Seguridad Bancaria de Sesión y Asistente Inicial
   if (window.SessionManager && typeof window.SessionManager.init === 'function') {
     window.SessionManager.init();
   }
-  if (typeof setupAuth === 'function') setupAuth();
-  if (typeof setupUserMenuDropdown === 'function') setupUserMenuDropdown();
   if (typeof initSetupWizard === 'function') initSetupWizard();
 
   // 5. Marca institucional, configuración y avisos
