@@ -535,6 +535,24 @@ const enrollBeneficiary = (req, res) => {
   const cleanDoc = document_id.trim().toUpperCase();
   const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
 
+  // Verificación de Congelamiento / Cierre del Padrón (Fase 5 - Cierre 12/Nov)
+  try {
+    const tenant = db.prepare("SELECT is_census_locked, census_cutoff_date FROM tenant_settings WHERE id = 'current_tenant'").get();
+    const isLocked = tenant && tenant.is_census_locked === 1;
+    const cutoffDate = (tenant && tenant.census_cutoff_date) ? new Date(tenant.census_cutoff_date) : new Date('2026-11-12T23:59:59');
+    const isPastCutoff = new Date() > cutoffDate;
+
+    if (isLocked || (isPastCutoff && tenant && tenant.is_census_locked !== 0)) {
+      return res.status(423).json({
+        error: '¡PERÍODO DE FORMALIZACIÓN CERRADO! El censo previo para la Gran Jornada cerró el 12 de Noviembre de 2026. Comuníquese con la Dirección General de Gestión Humana (RRHH).',
+        code: 'CENSUS_LOCKED',
+        deadline_date: '2026-11-12'
+      });
+    }
+  } catch (e) {
+    console.warn('[CENSUS LOCK CHECK WARNING]', e.message);
+  }
+
   try {
     const worker = db.prepare(`
       SELECT w.*, d.name as department_name
@@ -833,12 +851,25 @@ const verifyQr = (req, res) => {
     }
 
     // Verificar si ya fue entregado hoy (idx_unique_daily_claim)
-    const alreadyDelivered = db.prepare('SELECT id, delivered_at FROM deliveries WHERE worker_id = ? AND entitlement_id = ? LIMIT 1').get(workerId, ent.id);
+    const alreadyDelivered = db.prepare('SELECT id, delivered_at, batch_order_id FROM deliveries WHERE worker_id = ? AND entitlement_id = ? LIMIT 1').get(workerId, ent.id);
     if (alreadyDelivered) {
+      let duplicateMsg = '¡ALERTA DE SEGURIDAD! El beneficio de este trabajador ya fue retirado el día de hoy.';
+      if (alreadyDelivered.batch_order_id) {
+        const bOrder = db.prepare(`
+          SELECT bo.order_number, d.name as department_name 
+          FROM department_batch_orders bo
+          LEFT JOIN departments d ON bo.department_id = d.id
+          WHERE bo.id = ?
+        `).get(alreadyDelivered.batch_order_id);
+        if (bOrder) {
+          duplicateMsg = `¡ALERTA DE SEGURIDAD! El beneficio de este funcionario ya fue retirado mediante el Lote Departamental ${bOrder.order_number} (${bOrder.department_name || 'Dirección'}).`;
+        }
+      }
       return res.status(409).json({
         valid: false,
         code: 'DUPLICATE_DELIVERY_BLOCKED',
-        message: '¡ALERTA DE SEGURIDAD! El beneficio de este trabajador ya fue retirado el día de hoy.'
+        batch_order_id: alreadyDelivered.batch_order_id || null,
+        message: duplicateMsg
       });
     }
 
@@ -995,10 +1026,24 @@ const verifyQr = (req, res) => {
 
     if (pendingEnts.length === 0) {
       logScan('REJECTED_ALL_CLAIMED', qr_payload, { worker_id: wid }, { req, ip: req.ip });
+      const batchDel = db.prepare(`
+        SELECT del.batch_order_id, bo.order_number, d.name as department_name
+        FROM deliveries del
+        LEFT JOIN department_batch_orders bo ON del.batch_order_id = bo.id
+        LEFT JOIN departments d ON bo.department_id = d.id
+        WHERE del.worker_id = ? AND del.batch_order_id IS NOT NULL
+        LIMIT 1
+      `).get(wid);
+
+      const errorMsg = batchDel && batchDel.order_number
+        ? `¡ALERTA DE SEGURIDAD! El beneficio de este funcionario ya fue retirado mediante el Lote Departamental ${batchDel.order_number} (${batchDel.department_name || 'Dirección'}).`
+        : '¡ALERTA DE SEGURIDAD! Todos los combos de hoy ya fueron retirados por este titular (idx_unique_daily_claim).';
+
       return res.status(409).json({
         valid: false,
         code: 'DUPLICATE_DELIVERY_BLOCKED',
-        message: '¡ALERTA DE SEGURIDAD! Todos los combos de hoy ya fueron retirados por este titular (idx_unique_daily_claim).'
+        batch_order_id: batchDel?.batch_order_id || null,
+        message: errorMsg
       });
     }
 
@@ -1006,40 +1051,10 @@ const verifyQr = (req, res) => {
       ? String(station).toLowerCase() 
       : (qr_payload && qr_payload.station ? String(qr_payload.station).toLowerCase() : 'all');
 
-    let targetEnt = null;
-    if (reqStation !== 'all') {
-      targetEnt = pendingEnts.find(e => 
-        e.combo_id === reqStation || 
-        (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
-        (e.shift && e.shift.toLowerCase() === reqStation) ||
-        (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))
-      );
-      if (!targetEnt) {
-        const alreadyClaimed = entitlements.find(e => 
-          (e.combo_id === reqStation || 
-          (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
-          (e.shift && e.shift.toLowerCase() === reqStation) ||
-          (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))) &&
-          (checkDelivery.get(wid, e.id) || e.status === 'claimed')
-        );
-        if (alreadyClaimed) {
-          logScan('REJECTED_COMBO_CLAIMED', qr_payload, { combo_name: alreadyClaimed.combo_name }, { req, ip: req.ip });
-          return res.status(409).json({
-            valid: false,
-            code: 'DUPLICATE_DELIVERY_BLOCKED',
-            combo_name: alreadyClaimed.combo_name,
-            message: `¡ATENCIÓN! Su ${alreadyClaimed.combo_name} ya fue retirado previamente.`
-          });
-        }
-      }
-    }
+    const isTotalClaim = reqStation === 'all' || 
+                         (qr_payload && qr_payload.mode === 'total') || 
+                         (req.body && req.body.mode === 'total');
 
-    // Fallback tolerante: Si no se especificó estación o el combo solicitado no está pendiente, asignar el primer combo activo disponible
-    if (!targetEnt) {
-      targetEnt = pendingEnts[0];
-    }
-
-    const deliveryId = crypto.randomUUID();
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     const campId = activeCamp ? activeCamp.id : null;
 
@@ -1056,6 +1071,156 @@ const verifyQr = (req, res) => {
 
     const methodUsed = verification_method || (qr_payload && qr_payload.transport === 'nfc' ? 'passkey_nfc' : 'passkey_qr');
     const nowIso = new Date().toISOString();
+    const worker = db.prepare('SELECT full_name, document_id, worker_type FROM workers WHERE id = ?').get(wid);
+
+    // ========================================================================
+    // FASE 3: RETIRO ÚNICO TOTALIZADO (DESPACHO ATÓMICO EN 1 SOLA TRANSACCIÓN)
+    // ========================================================================
+    if (isTotalClaim) {
+      const insertDeliveryStmt = db.prepare(`
+        INSERT INTO deliveries (
+          id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+          verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+      `);
+      const updateEntStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+      const updateLockStmt = db.prepare(`
+        UPDATE device_locks
+        SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+        WHERE worker_id = ? AND valid_date = ? AND status = 'active'
+      `);
+
+      const deliveredCombos = [];
+      const deliveriesCreated = [];
+
+      const tx = db.transaction(() => {
+        for (const ent of pendingEnts) {
+          const dId = crypto.randomUUID();
+          insertDeliveryStmt.run(
+            dId,
+            ent.id,
+            wid,
+            finalPointId,
+            finalOperatorId,
+            methodUsed,
+            sig,
+            nonce,
+            nowIso,
+            campId
+          );
+          updateEntStmt.run(ent.id);
+
+          deliveriesCreated.push({
+            id: dId,
+            entitlement_id: ent.id,
+            combo_id: ent.combo_id,
+            combo_name: ent.combo_name,
+            mesa_number: ent.mesa_number || 1,
+            mesa_name: ent.mesa_name || 'Mesa General'
+          });
+
+          deliveredCombos.push({
+            combo_id: ent.combo_id,
+            combo_name: ent.combo_name,
+            combo_category: ent.combo_category,
+            icon: ent.icon || '📦',
+            mesa_name: ent.mesa_name || 'Mesa General',
+            mesa_number: ent.mesa_number || 1
+          });
+        }
+
+        // Liberación atómica del candado de dispositivo (Fase 3)
+        updateLockStmt.run(wid, today);
+      });
+
+      tx();
+
+      // Sincronización asíncrona hacia Supabase si está disponible
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const sbInserts = deliveriesCreated.map(d => ({
+            id: d.id,
+            entitlement_id: d.entitlement_id,
+            worker_id: wid,
+            distribution_point_id: finalPointId,
+            delivered_by_user_id: finalOperatorId,
+            verification_method: methodUsed,
+            signature_proof: sig,
+            challenge_nonce: nonce,
+            is_offline_sync: false,
+            delivered_at: nowIso
+          }));
+          supabase.from('deliveries').insert(sbInserts).catch(e => console.warn('[DELIVERY SUPABASE SYNC ERROR]', e.message));
+          for (const d of deliveriesCreated) {
+            supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', d.entitlement_id).catch(() => {});
+          }
+        }
+      } catch (e) {}
+
+      console.log(`⚡ [ATOMIC DISPATCH VERIFY] Retiro Totalizado completado para ${worker ? worker.full_name : wid} (${deliveredCombos.length} combos en 1 transacción SQL)`);
+
+      const totalToastMsg = `🎉 ¡RETIRO ÚNICO TOTALIZADO APROBADO! Se despacharon todos sus combos asignados (${deliveredCombos.length} de ${deliveredCombos.length}).`;
+
+      const deliveryPayload = {
+        valid: true,
+        delivery_type: 'atomic_total_claim',
+        delivery_id: deliveriesCreated[0]?.id || crypto.randomUUID(),
+        deliveries: deliveriesCreated,
+        worker_id: wid,
+        worker_name: worker ? worker.full_name : 'Beneficiario',
+        document_id: worker ? worker.document_id : 'C.I.',
+        worker_type: (worker && worker.worker_type) || 'activo',
+        station: 'all',
+        station_name: 'Despacho Totalizado (Todas las Mesas)',
+        combos_delivered: deliveredCombos,
+        total_combos: deliveredCombos.length,
+        toast_message: totalToastMsg,
+        message: totalToastMsg,
+        remaining_pending: 0,
+        all_completed: true,
+        device_lock_released: true,
+        verification_method: methodUsed,
+        delivered_at: nowIso
+      };
+
+      notifyDeliveryStream(wid, deliveryPayload);
+      logScan('APPROVED_ATOMIC_TOTAL', qr_payload, deliveryPayload, { req, ip: req.ip });
+
+      return res.json(deliveryPayload);
+    }
+
+    // ========================================================================
+    // CASO B: MODO ESTACIÓN ESPECÍFICA (DESPACHO INDIVIDUAL POR MESA)
+    // ========================================================================
+    let targetEnt = pendingEnts.find(e => 
+      e.combo_id === reqStation || 
+      (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
+      (e.shift && e.shift.toLowerCase() === reqStation) ||
+      (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))
+    );
+
+    if (!targetEnt) {
+      const alreadyClaimed = entitlements.find(e => 
+        (e.combo_id === reqStation || 
+        (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
+        (e.shift && e.shift.toLowerCase() === reqStation) ||
+        (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))) &&
+        (checkDelivery.get(wid, e.id) || e.status === 'claimed')
+      );
+      if (alreadyClaimed) {
+        logScan('REJECTED_COMBO_CLAIMED', qr_payload, { combo_name: alreadyClaimed.combo_name }, { req, ip: req.ip });
+        return res.status(409).json({
+          valid: false,
+          code: 'DUPLICATE_DELIVERY_BLOCKED',
+          combo_name: alreadyClaimed.combo_name,
+          message: `¡ATENCIÓN! Su ${alreadyClaimed.combo_name} ya fue retirado previamente.`
+        });
+      }
+      targetEnt = pendingEnts[0];
+    }
+
+    const deliveryId = crypto.randomUUID();
 
     db.prepare(`
       INSERT INTO deliveries (
@@ -1101,7 +1266,6 @@ const verifyQr = (req, res) => {
       }
     } catch (e) {}
 
-    const worker = db.prepare('SELECT full_name, document_id, worker_type FROM workers WHERE id = ?').get(wid);
     const remainingCount = pendingEnts.length - 1;
     const isAllCompleted = remainingCount === 0;
 

@@ -228,6 +228,7 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
     wid: worker_id,
     ent: finalEntId,
     station: isStation2 ? '2' : (isStationAll ? 'all' : '1'),
+    mode: isStationAll ? 'total' : 'station',
     ts,
     nonce
   };

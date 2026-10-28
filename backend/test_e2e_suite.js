@@ -484,10 +484,21 @@ test('E2E-26: Validación Criptográfica por Proximidad NFC Móvil (Tap-to-Claim
 // ----------------------------------------------------------------------------
 // EJECUTOR DE LA SUITE
 // ----------------------------------------------------------------------------
+let serverInstance = null;
+
 async function runSuite() {
   console.log('\n================================================================');
   console.log('🚀 INICIANDO SUITE DE PRUEBAS E2E Y ARQUITECTURA (FASE 4)');
   console.log('================================================================\n');
+
+  try {
+    await request('GET', '/api/v1/health');
+  } catch (e) {
+    const app = require('./server');
+    await new Promise((resolve) => {
+      serverInstance = app.listen(3000, () => resolve());
+    });
+  }
 
   let passed = 0;
   let failed = 0;
@@ -512,6 +523,10 @@ async function runSuite() {
   console.log(`📊 RESULTADO FINAL: ${passed}/${tests.length} PRUEBAS EXITOSAS (${failed} FALLOS)`);
   console.log(`⏱️ TIEMPO TOTAL DE EJECUCIÓN: ${totalTime}ms`);
   console.log('================================================================\n');
+
+  if (serverInstance) {
+    serverInstance.close();
+  }
 
   if (failed > 0) {
     process.exit(1);

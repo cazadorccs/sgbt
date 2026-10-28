@@ -44,10 +44,37 @@ function httpRequest(options, postData = null) {
   });
 }
 
+let testServer = null;
+
+async function ensureServerRunning() {
+  try {
+    await new Promise((resolve, reject) => {
+      const checkReq = http.request({ hostname: 'localhost', port: 3000, path: '/api/v1/docs', method: 'GET', timeout: 600 }, (res) => {
+        resolve();
+      });
+      checkReq.on('error', reject);
+      checkReq.on('timeout', () => {
+        checkReq.destroy();
+        reject(new Error('timeout'));
+      });
+      checkReq.end();
+    });
+  } catch (e) {
+    const app = require('../backend/server');
+    await new Promise((resolve) => {
+      testServer = app.listen(3000, () => {
+        resolve();
+      });
+    });
+  }
+}
+
 async function runTestSuite() {
   console.log('================================================================');
   console.log('🧪 SUITE E2E: OFFLINE ENGINE, IDEMPOTENCIA Y ESTÁNDAR RFC 7807');
   console.log('================================================================\n');
+
+  await ensureServerRunning();
 
   let passed = 0;
   let total = 0;
@@ -205,6 +232,10 @@ async function runTestSuite() {
   console.log('\n================================================================');
   console.log(`📊 RESULTADO SUITE E2E: ${passed}/${total} PRUEBAS EXITOSAS`);
   console.log('================================================================');
+
+  if (testServer) {
+    testServer.close();
+  }
 
   if (passed !== total) {
     process.exit(1);

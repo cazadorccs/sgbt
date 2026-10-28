@@ -80,6 +80,16 @@ window.refreshPortalData = async function() {
     await loadAuditStats();
     await loadAuditDeliveries();
 
+    // 8. Lotes Departamentales Institucionales (Fase 4)
+    if (window.DepartmentBatches && typeof window.DepartmentBatches.loadData === 'function') {
+      await window.DepartmentBatches.loadData();
+    }
+
+    // 9. Monitor de Formalización Previa y Auditoría Ministerial (Fase 5)
+    if (window.MinisterialAudit && typeof window.MinisterialAudit.loadData === 'function') {
+      await window.MinisterialAudit.loadData();
+    }
+
   } catch (err) {
     console.error('Error cargando datos del portal:', err);
   }

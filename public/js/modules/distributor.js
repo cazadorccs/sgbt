@@ -210,6 +210,44 @@ async function loadDistributorCombos() {
   return combos;
 }
 
+function setDistributorDispatchMode(mode = 'total') {
+  STATE.dispatchMode = mode;
+  if (mode === 'total') {
+    STATE.activeStation = 'all';
+    STATE.activeStationName = 'Despacho Totalizado';
+  }
+
+  const btnTotal = document.getElementById('btnDispatchModeTotal');
+  const btnStation = document.getElementById('btnDispatchModeStation');
+
+  if (btnTotal && btnStation) {
+    if (mode === 'total') {
+      btnTotal.className = 'btn btn-primary active-mode-tab';
+      btnTotal.style.background = 'linear-gradient(135deg, #059669, #047857)';
+      btnTotal.style.borderColor = '#34d399';
+      btnTotal.style.color = '#fff';
+      btnStation.className = 'btn btn-outline';
+      btnStation.style.background = '';
+      btnStation.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+      btnStation.style.color = '#94a3b8';
+    } else {
+      btnStation.className = 'btn btn-primary active-mode-tab';
+      btnStation.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+      btnStation.style.borderColor = '#38bdf8';
+      btnStation.style.color = '#fff';
+      btnTotal.className = 'btn btn-outline';
+      btnTotal.style.background = '';
+      btnTotal.style.borderColor = 'rgba(148, 163, 184, 0.3)';
+      btnTotal.style.color = '#94a3b8';
+    }
+  }
+
+  if (STATE.distributorCombos) {
+    renderDistributorCombos(STATE.distributorCombos);
+  }
+}
+window.setDistributorDispatchMode = setDistributorDispatchMode;
+
 function renderDistributorCombos(combos) {
   if (!combos || !Array.isArray(combos)) return;
   const tabsContainer = document.getElementById('distributorStationTabs');
@@ -217,22 +255,66 @@ function renderDistributorCombos(combos) {
   const countBadge = document.getElementById('assignedCombosCountBadge');
   const badge = document.getElementById('activeStationBadge');
 
+  STATE.dispatchMode = STATE.dispatchMode || 'total';
+
   // Filtrar combos activos del catálogo
   const activeList = Array.isArray(combos) 
     ? combos.filter(c => c.is_active === undefined || c.is_active === 1 || c.is_active === true || c.is_active === '1')
     : [];
 
-  // Localizar combo asignado: Primero Útiles Escolares si está activo, o el asignado a Mesa 1, o el primero activo
-  let activeStationCombo = activeList.find(c => 
-    c.id === '0f74d741-6310-4d6c-b8e5-8cd6e76f9113' ||
-    c.category === 'utiles_escolares' ||
-    (c.name && (c.name.toLowerCase().includes('útiles') || c.name.toLowerCase().includes('utiles')))
-  );
+  // ==========================================================================
+  // CASO 1: MODO RETIRO TOTALIZADO (FASE 3 - PREDETERMINADO)
+  // ==========================================================================
+  if (STATE.dispatchMode === 'total') {
+    STATE.activeStation = 'all';
+    STATE.activeStationName = 'Despacho Totalizado (Todos los Combos)';
 
-  if (!activeStationCombo) {
-    activeStationCombo = activeList.find(c => c.mesa_name && c.mesa_name.toLowerCase().includes('mesa 1')) || activeList[0];
+    if (badge) {
+      badge.className = 'badge badge-proteina';
+      badge.style.background = '#059669';
+      badge.style.color = '#fff';
+      badge.textContent = `🌟 Modo Retiro Totalizado: ${activeList.length} Combos en 1 Solo Escaneo QR`;
+    }
+
+    if (countBadge) {
+      countBadge.textContent = `${activeList.length} Combos Asignados (Despacho Simultáneo)`;
+    }
+
+    if (tabsContainer) {
+      tabsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 0.65rem 0.85rem; background: linear-gradient(135deg, rgba(5, 150, 105, 0.2), rgba(2, 132, 199, 0.2)); border: 1.5px solid #10b981; border-radius: 8px; text-align: center;">
+          <strong style="color: #34d399; font-size: 0.85rem;">🌟 RETIRO ÚNICO TOTALIZADO ACTIVO</strong><br>
+          <span style="font-size: 0.72rem; color: #cbd5e1;">Un único escaneo QR liquidará y despachará simultáneamente la totalidad de combos asignados al trabajador en la jornada.</span>
+        </div>
+      `;
+    }
+
+    if (checklistContainer) {
+      checklistContainer.innerHTML = activeList.map(c => `
+        <div class="checklist-card checked" data-combo-id="${c.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)" style="margin-bottom: 0.4rem;">
+          <div class="checklist-checkbox">✓</div>
+          <div class="checklist-info">
+            <div class="checklist-title">
+              <span style="font-size: 1.15rem; margin-right: 0.3rem;">${c.icon || '📦'}</span>
+              <strong>${c.name}</strong>
+              <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">${c.mesa_name || 'Mesa'}</span>
+              ${c.weight_kg ? `<span class="badge" style="font-size: 0.62rem; background: rgba(148, 163, 184, 0.15); color: #94a3b8; margin-left: 0.25rem;">${c.weight_kg} kg</span>` : ''}
+            </div>
+            <div class="checklist-subtitle" style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.2rem;">
+              ${c.items_detail || 'Artículos y víveres asignados &middot; Despacho oficial'}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    return;
   }
 
+  // ==========================================================================
+  // CASO 2: MODO ESTACIÓN ESPECÍFICA (MESA INDIVIDUAL)
+  // ==========================================================================
+  let activeStationCombo = activeList.find(c => c.id === STATE.activeStation) || activeList[0];
   if (!activeStationCombo) {
     activeStationCombo = {
       id: 'c1a2b3c4-1111-2222-3333-444455556666',
@@ -250,17 +332,19 @@ function renderDistributorCombos(combos) {
   STATE.activeStation = activeStationCombo.id;
   STATE.activeStationName = activeStationCombo.mesa_name || 'Mesa 1';
 
-  // 1. "Estación / Combo de Despacho Activo:" Solo debe mostrar la Estacion a la que fue asignado: Mesa 1
   if (tabsContainer) {
-    tabsContainer.innerHTML = `
-      <button type="button" class="btn btn-outline active-station-tab" data-station="${activeStationCombo.id}" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
-        ${activeStationCombo.icon || '📦'} ${activeStationCombo.mesa_name || 'Mesa 1'}<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">${activeStationCombo.name}</span>
-      </button>
-    `;
+    tabsContainer.innerHTML = activeList.map(c => {
+      const isSelected = c.id === STATE.activeStation;
+      return `
+        <button type="button" class="btn btn-outline ${isSelected ? 'active-station-tab' : ''}" data-station="${c.id}" style="padding: 0.45rem 0.7rem; font-size: 0.75rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; ${isSelected ? 'background: rgba(14, 165, 233, 0.25); border-color: #0284c7; color: #38bdf8;' : 'border-color: rgba(148, 163, 184, 0.2); color: #94a3b8;'}">
+          ${c.icon || '📦'} ${c.mesa_name || 'Mesa'}<br><span style="font-size: 0.65rem; font-weight: 600; opacity: 0.9;">${c.name}</span>
+        </button>
+      `;
+    }).join('');
 
     tabsContainer.querySelectorAll('button[data-station]').forEach(btn => {
       btn.addEventListener('click', () => {
-        updateStationUI(activeStationCombo.id);
+        updateStationUI(btn.dataset.station);
       });
     });
   }
@@ -272,7 +356,6 @@ function renderDistributorCombos(combos) {
     badge.textContent = `${activeStationCombo.icon || '📦'} ${activeStationCombo.mesa_name || 'Mesa 1'}: ${activeStationCombo.name}`;
   }
 
-  // 2. "Combos Asignados (Verificación Física en Mesa):" Solo debe mostrar el asignado a dicha mesa
   if (countBadge) {
     countBadge.textContent = `1 Combo Asignado (${activeStationCombo.mesa_name || 'Mesa 1'})`;
   }
@@ -294,19 +377,24 @@ function renderDistributorCombos(combos) {
       </div>
     `;
   }
-
-  updateStationUI(activeStationCombo.id);
 }
 
 function updateStationUI(st) {
+  if (STATE.distributorCombos && Array.isArray(STATE.distributorCombos)) {
+    const found = STATE.distributorCombos.find(c => c.id === st);
+    if (found) {
+      STATE.assignedCombo = found;
+      STATE.activeStation = found.id;
+      STATE.activeStationName = found.mesa_name || 'Mesa';
+    }
+  }
+
   const currentCombo = STATE.assignedCombo || {
     id: 'c1a2b3c4-1111-2222-3333-444455556666',
     name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)',
     icon: '🌾',
     mesa_name: 'Mesa 1'
   };
-  STATE.activeStation = currentCombo.id;
-  STATE.activeStationName = currentCombo.mesa_name || 'Mesa 1';
 
   const badge = document.getElementById('activeStationBadge');
   if (badge) {
@@ -315,10 +403,27 @@ function updateStationUI(st) {
     badge.style.color = '#fff';
     badge.textContent = `${currentCombo.icon || '📦'} ${currentCombo.mesa_name || 'Mesa 1'}: ${currentCombo.name}`;
   }
+
+  if (STATE.distributorCombos) {
+    renderDistributorCombos(STATE.distributorCombos);
+  }
 }
 
 function setupStationTabs() {
+  STATE.dispatchMode = STATE.dispatchMode || 'total';
   STATE.activeStation = STATE.activeStation || 'all';
+
+  // Listeners para conmutador de Modo de Despacho (Totalizado vs Estación)
+  document.getElementById('btnDispatchModeTotal')?.addEventListener('click', () => {
+    setDistributorDispatchMode('total');
+    window.showToast('🌟 Modo Retiro Totalizado activado: Despacha todos los combos en 1 solo escaneo.', 'info');
+  });
+
+  document.getElementById('btnDispatchModeStation')?.addEventListener('click', () => {
+    setDistributorDispatchMode('station');
+    window.showToast('📦 Modo Estación Específica activado: Escaneo por mesa individual.', 'info');
+  });
+
   window.updateDistributorStationUI = updateStationUI;
   window.renderDistributorCombos = renderDistributorCombos;
   window.loadDistributorCombos = loadDistributorCombos;
@@ -968,19 +1073,26 @@ async function processQrPayload(payload, isLiveCamera = false) {
     return;
   }
 
-  const qrStation = (payload && payload.station) ? String(payload.station) : (STATE.activeStation || '1');
-  const stationCacheKey = payload.wid + '_station_' + qrStation;
+  const isTotalMode = STATE.dispatchMode === 'total' || 
+                      (payload && payload.mode === 'total') || 
+                      (payload && payload.station === 'all') || 
+                      (STATE.activeStation === 'all');
 
-  if (STATE.localCache.deliveredEntitlements.has(payload.ent) || STATE.localCache.deliveredEntitlements.has(stationCacheKey)) {
+  const qrStation = (payload && payload.station) ? String(payload.station) : (STATE.activeStation || '1');
+  const stationCacheKey = payload.wid + '_station_' + (isTotalMode ? 'all' : qrStation);
+
+  if (STATE.localCache.deliveredEntitlements.has(payload.ent) || 
+      STATE.localCache.deliveredEntitlements.has(stationCacheKey) ||
+      STATE.localCache.deliveredEntitlements.has(payload.wid + '_station_all')) {
     const isStation2 = qrStation === '2';
-    const comboLabel = isStation2 ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto de Víveres Secos';
+    const comboLabel = isTotalMode ? 'Retiro Totalizado de Combos' : (isStation2 ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto de Víveres Secos');
     if (window.AppLogger) {
       window.AppLogger.warn('DUPLICATE_DELIVERY_CLIENT_BLOCKED', `${comboLabel} ya entregado hoy`, { payload });
     }
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-      showCameraScanHUD(false, 'INTENTO DE DUPLICADO', `${comboLabel} ya entregado hoy`);
+      showCameraScanHUD(false, 'INTENTO DE DUPLICADO', `${comboLabel} ya retirado`);
     } else {
-      showDistributorFeedback(false, 'INTENTO DE DUPLICADO', `Alerta de Seguridad: El ${comboLabel} de este titular ya fue retirado hoy en la Estación ${qrStation} (idx_unique_daily_claim).`);
+      showDistributorFeedback(false, 'INTENTO DE DUPLICADO', `Alerta de Seguridad: El ${comboLabel} de este titular ya fue retirado hoy (idx_unique_daily_claim).`);
     }
     return;
   }
@@ -999,6 +1111,89 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const worker = STATE.localCache.workers.find(w => w.worker_id === payload.wid);
     const isNfcMobile = payload.transport === 'nfc';
     const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
+    const nowIso = new Date().toISOString();
+
+    // ========================================================================
+    // CASO OFFLINE A: RETIRO ÚNICO TOTALIZADO OFFLINE
+    // ========================================================================
+    if (isTotalMode) {
+      const workerEnts = (worker && worker.entitlements && worker.entitlements.length > 0)
+        ? worker.entitlements
+        : (STATE.localCache.combos || [{ entitlement_id: payload.ent, combo_name: 'Bolsa de Víveres Secos' }]);
+
+      const createdOffline = [];
+      workerEnts.forEach((e, idx) => {
+        const dId = crypto.randomUUID();
+        const entId = e.entitlement_id || e.id || payload.ent;
+        const offRecord = {
+          id: dId,
+          entitlement_id: entId,
+          worker_id: payload.wid,
+          distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
+          verification_method: methodUsed,
+          signature_proof: payload.sig || 'SIG_OFFLINE_TOTAL',
+          challenge_nonce: payload.nonce || 'NONCE_OFFLINE',
+          delivered_by_user_id: STATE.operatorId,
+          delivered_at: nowIso,
+          is_offline_sync: true
+        };
+        STATE.localCache.deliveredEntitlements.add(entId);
+        STATE.localCache.syncQueue.push(offRecord);
+        if (window.OfflineStore && typeof window.OfflineStore.enqueueDelivery === 'function') {
+          window.OfflineStore.enqueueDelivery(offRecord).catch(err => console.warn('[OFFLINE ENQUEUE ERR]', err));
+        }
+        createdOffline.push({ id: dId, combo_name: e.combo_name || `Combo ${idx + 1}` });
+      });
+
+      STATE.localCache.deliveredEntitlements.add(payload.ent);
+      STATE.localCache.deliveredEntitlements.add(stationCacheKey);
+      STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_all');
+      STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_1');
+      STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_2');
+      updateSyncQueueUI();
+
+      const offlineHeader = isNfcMobile ? 'DESPACHO TOTALIZADO NFC (OFFLINE)' : 'DESPACHO TOTALIZADO (OFFLINE)';
+      const offlineDesc = isNfcMobile 
+        ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada. Todos los combos encolados para sincronización.'
+        : 'Entrega totalizada validada correctamente en Almacén Sótano 1 sin conexión.';
+
+      if (window.AppLogger) {
+        window.AppLogger.info('OFFLINE_ATOMIC_DELIVERY_ENQUEUED', 'Retiro totalizado registrado offline', { createdOffline });
+      }
+
+      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+        showCameraScanHUD(
+          true,
+          offlineHeader,
+          `${worker ? worker.full_name : 'Beneficiario'} &middot; ${createdOffline.length} combos despachados`
+        );
+      } else {
+        showDistributorFeedback(
+          true,
+          offlineHeader,
+          `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><strong>🌟 Retiro Totalizado Offline:</strong> ${createdOffline.length} combos despachados y encolados.<br><small style="color: #34d399;">${offlineDesc}</small>`,
+          worker || { worker_type: 'activo' }
+        );
+      }
+
+      broadcastDeliveryApproval({
+        valid: true,
+        delivery_type: 'atomic_total_claim',
+        all_completed: true,
+        worker_id: payload.wid,
+        worker_name: worker ? worker.full_name : 'Beneficiario',
+        document_id: worker ? worker.document_id : 'V-18456123',
+        total_combos: createdOffline.length,
+        toast_message: `🎉 ¡RETIRO ÚNICO TOTALIZADO OFFLINE APROBADO! (${createdOffline.length} combos encolados)`,
+        verification_method: methodUsed
+      }, payload);
+
+      return;
+    }
+
+    // ========================================================================
+    // CASO OFFLINE B: ESTACIÓN INDIVIDUAL OFFLINE
+    // ========================================================================
     const deliveryId = crypto.randomUUID();
     const offlineRecord = {
       id: deliveryId,
@@ -1009,7 +1204,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
       signature_proof: payload.sig,
       challenge_nonce: payload.nonce,
       delivered_by_user_id: STATE.operatorId,
-      delivered_at: new Date().toISOString(),
+      delivered_at: nowIso,
       is_offline_sync: true
     };
 
@@ -1050,13 +1245,14 @@ async function processQrPayload(payload, isLiveCamera = false) {
     broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: offlineComboTitle, station: parseInt(qrStation, 10), verification_method: methodUsed }, payload);
   } else {
     try {
-      const activeStation = qrStation;
+      const activeStation = isTotalMode ? 'all' : qrStation;
       const isNfcMobile = payload.transport === 'nfc';
       const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
       const result = await API.post('/api/v1/verify/qr', {
         qr_payload: payload,
         delivered_by_user_id: STATE.operatorId,
         station: activeStation,
+        mode: isTotalMode ? 'total' : 'station',
         verification_method: methodUsed
       });
 
@@ -1065,35 +1261,69 @@ async function processQrPayload(payload, isLiveCamera = false) {
         STATE.localCache.deliveredEntitlements.add(stationCacheKey);
         STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_' + (result.station || activeStation));
 
-        if (window.AppLogger) {
-          window.AppLogger.info('VERIFY_QR_APPROVED', `Despacho aprobado para ${result.worker_name} (${result.document_id}) - ${result.combo_name}`, result);
+        if (result.delivery_type === 'atomic_total_claim' || result.all_completed) {
+          STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_all');
+          STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_1');
+          STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_2');
+          if (result.combos_delivered && Array.isArray(result.combos_delivered)) {
+            result.combos_delivered.forEach(c => {
+              if (c.combo_id) STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_' + c.combo_id);
+            });
+          }
         }
 
-        // Notificación Toast exacta por estación
-        const toastMsg = result.toast_message || (result.station === 2 
-          ? '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.'
-          : '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.');
+        if (window.AppLogger) {
+          window.AppLogger.info('VERIFY_QR_APPROVED', `Despacho aprobado para ${result.worker_name} (${result.document_id}) - ${result.combo_name || 'Retiro Totalizado'}`, result);
+        }
+
+        // Notificación Toast
+        const toastMsg = result.toast_message || (result.delivery_type === 'atomic_total_claim'
+          ? '🎉 ¡RETIRO ÚNICO TOTALIZADO APROBADO! Todos los combos despachados.'
+          : (result.station === 2 
+            ? '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.'
+            : '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.'));
 
         window.showToast(toastMsg, 'success');
         playAudioFeedback('success');
         if (navigator.vibrate) navigator.vibrate([120, 80, 200]);
 
-        const onlineHeader = isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO' : 'DESPACHO ONLINE AUTORIZADO';
-        const onlineDesc = isNfcMobile 
-          ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada con éxito.'
-          : 'Firma biométrica validada en servidor central.';
+        const isAtomic = result.delivery_type === 'atomic_total_claim';
+        const onlineHeader = isAtomic 
+          ? (isNfcMobile ? 'RETIRO TOTALIZADO NFC APROBADO' : 'RETIRO TOTALIZADO APROBADO')
+          : (isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO' : 'DESPACHO ONLINE AUTORIZADO');
+
+        const onlineDesc = isAtomic
+          ? '🌟 Todos los combos liquidados simultáneamente en 1 sola transacción SQL atómica. Candado de dispositivo liberado.'
+          : (isNfcMobile ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada con éxito.' : 'Firma biométrica validada en servidor central.');
+
+        let combosListHtml = '';
+        if (isAtomic && result.combos_delivered && Array.isArray(result.combos_delivered)) {
+          combosListHtml = `
+            <div style="margin: 0.5rem 0; background: rgba(2, 6, 23, 0.6); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 8px; padding: 0.5rem;">
+              <div style="font-size: 0.72rem; color: #34d399; font-weight: 700; margin-bottom: 0.3rem;">📦 COMBOS LIQUIDADOS SIMULTÁNEAMENTE (${result.combos_delivered.length}):</div>
+              ${result.combos_delivered.map(c => `
+                <div style="font-size: 0.75rem; color: #f1f5f9; padding: 0.2rem 0; border-bottom: 1px dashed rgba(255,255,255,0.08); display: flex; justify-content: space-between;">
+                  <span>${c.icon || '📦'} <strong>${c.combo_name}</strong></span>
+                  <span style="color: #38bdf8;">${c.mesa_name || 'Mesa'}</span>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
 
         if (isLiveCamera && typeof showCameraScanHUD === 'function') {
           showCameraScanHUD(
             true,
             onlineHeader,
-            `${result.worker_name} (${result.document_id}) &middot; ${result.combo_name}`
+            isAtomic 
+              ? `${result.worker_name} &middot; ${result.total_combos || result.combos_delivered?.length || 2} combos despachados`
+              : `${result.worker_name} (${result.document_id}) &middot; ${result.combo_name}`
           );
         } else {
           showDistributorFeedback(
             true,
             onlineHeader,
-            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br>Estación: <strong>${result.station_name || ('Estación ' + (result.station || 1))}</strong> &middot; <strong>${result.combo_name}</strong><br><small style="color: #38bdf8;">${onlineDesc}</small>`,
+            `Beneficiario: <strong>${result.worker_name}</strong> &middot; Cédula: <strong>${result.document_id}</strong><br>${combosListHtml || (`Estación: <strong>${result.station_name || ('Estación ' + (result.station || 1))}</strong> &middot; <strong>${result.combo_name}</strong><br>`)}<small style="color: #34d399;">${onlineDesc}</small>`,
             result
           );
         }

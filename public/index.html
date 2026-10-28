@@ -820,6 +820,16 @@
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
             <span>Identidad & Marca</span>
           </button>
+          <button class="portal-subtab" data-subtab="subtab-department-batches" id="tabBtnDepartmentBatches">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M3 7v14M21 7v14M6 11h2M6 15h2M10 11h2M10 15h2M14 11h2M14 15h2M18 11h2M18 15h2M9 3h6v4H9z"></path></svg>
+            <span>🏢 Lotes Departamentales</span>
+            <span id="badgePendingBatches" style="display: none; background: #ef4444; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 9999px; margin-left: 4px; font-weight: 700;">0</span>
+          </button>
+          <button class="portal-subtab" data-subtab="subtab-ministerial-audit" id="tabBtnMinisterialAudit">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+            <span>⚖️ Monitor & Auditoría Ministerial</span>
+            <span id="badgeCensusLockStatus" style="background: #10b981; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 9999px; margin-left: 4px; font-weight: 700;">Abierto</span>
+          </button>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button id="btnResetDeliveriesToZero" class="btn btn-outline" style="font-size: 0.8rem; border-color: #fca5a5; color: #dc2626;" title="Reiniciar las entregas a 0 para iniciar jornada limpia">
@@ -1681,6 +1691,396 @@
         </div>
       </div>
 
+      <!-- SUBTAB 7: ENTREGAS MASIVAS POR DEPENDENCIA Y CADENA DE APROBACIÓN (FASE 4) -->
+      <div id="subtab-department-batches" class="portal-content-block" style="display: none;">
+        
+        <!-- HEADER HERO / BANNER -->
+        <div style="background: linear-gradient(135deg, #0f172a, #1e293b); border-radius: 14px; padding: 1.25rem 1.5rem; color: #ffffff; margin-bottom: 1.5rem; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25); border: 1px solid rgba(56, 189, 248, 0.25);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; background: #38bdf8; display: inline-block;"></span>
+                Módulo Institucional &middot; Fase 4 &middot; Cadena de Aprobación Jerárquica
+              </div>
+              <h3 style="font-size: 1.35rem; font-weight: 800; margin: 0.4rem 0 0.1rem; color: #ffffff;">
+                Entregas Masivas por Lotes Departamentales
+              </h3>
+              <p style="font-size: 0.82rem; color: #94a3b8; margin: 0; max-width: 800px;">
+                Permite tramitar y liquidar lotes consolidados de combos (50 a 300+ unidades) para Direcciones Generales y Viceministerios. Incluye validación de nómina, aprobación jerárquica de RRHH, descuento atómico en almacén y acta oficial con firma SHA-256.
+              </p>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="btnOpenCreateBatchModal" class="btn btn-primary" style="font-size: 0.8rem; font-weight: 700; padding: 0.55rem 1rem; background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #38bdf8;">
+                ➕ Nueva Solicitud de Lote
+              </button>
+              <button id="btnRefreshDepartmentBatches" class="btn btn-outline" style="font-size: 0.8rem; border-color: #475569; color: #e2e8f0; background: rgba(15, 23, 42, 0.6);">
+                🔄 Actualizar
+              </button>
+            </div>
+          </div>
+
+          <!-- KPIS DEL MÓDULO -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 0.75rem 1rem;">
+              <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 600;">Dependencias Censadas</span>
+              <div id="deptKpiTotalDepts" style="font-size: 1.4rem; font-weight: 800; color: #f8fafc; margin-top: 0.2rem;">--</div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 0.75rem 1rem;">
+              <span style="font-size: 0.7rem; color: #fbbf24; text-transform: uppercase; font-weight: 600;">En Revisión RRHH</span>
+              <div id="deptKpiPendingReview" style="font-size: 1.4rem; font-weight: 800; color: #f59e0b; margin-top: 0.2rem;">0</div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 0.75rem 1rem;">
+              <span style="font-size: 0.7rem; color: #38bdf8; text-transform: uppercase; font-weight: 600;">Aprobados (Listos Despacho)</span>
+              <div id="deptKpiApproved" style="font-size: 1.4rem; font-weight: 800; color: #38bdf8; margin-top: 0.2rem;">0</div>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 10px; padding: 0.75rem 1rem;">
+              <span style="font-size: 0.7rem; color: #34d399; text-transform: uppercase; font-weight: 600;">Combos Despachados por Lotes</span>
+              <div id="deptKpiCombosDispatched" style="font-size: 1.4rem; font-weight: 800; color: #34d399; margin-top: 0.2rem;">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PIPELINE DE LOTES INSTITUCIONALES -->
+        <div class="glass-panel" style="margin-bottom: 1.5rem;">
+          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+            <div>
+              <div class="panel-title" style="font-size: 1.05rem; color: #0f172a; display: flex; align-items: center; gap: 0.45rem;">
+                <span>📋 Órdenes de Entrega Masiva por Dependencia</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b;">
+                Flujo: Solicitud &rarr; Revisión RRHH &rarr; Despacho en Almacén &rarr; Acta Digital SHA-256
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <input type="text" id="filterBatchOrdersInput" class="form-input" placeholder="🔍 Buscar lote, dependencia o delegado..." style="font-size: 0.78rem; padding: 0.4rem 0.75rem; width: 240px;" />
+              <select id="filterBatchStatusSelect" class="form-input" style="font-size: 0.78rem; padding: 0.4rem 0.75rem; width: 170px;">
+                <option value="all">Todos los Estados</option>
+                <option value="pending_review">Pendiente RRHH</option>
+                <option value="approved">Aprobado (Almacén)</option>
+                <option value="dispatched">Despachado</option>
+                <option value="rejected">Rechazado</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- TABLA DE ÓRDENES -->
+          <div class="table-container" style="overflow-x: auto;">
+            <table class="data-table" style="width: 100%; font-size: 0.8rem;">
+              <thead>
+                <tr>
+                  <th style="padding: 0.6rem 0.75rem;">Nº Lote</th>
+                  <th style="padding: 0.6rem 0.75rem;">Dependencia / Dirección</th>
+                  <th style="padding: 0.6rem 0.75rem;">Delegado Receptor</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: center;">Beneficiarios</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: center;">Combos</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: center;">Peso Est.</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: center;">Estado</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: right;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="departmentBatchesTableBody">
+                <tr>
+                  <td colspan="8" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                    Cargando órdenes de entrega departamental...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECCIÓN INFERIOR: RESUMEN DE STOCK EN ALMACÉN Y COBERTURA -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.25rem;">
+          
+          <!-- TARJETA: INVENTARIO DE COMBOS -->
+          <div class="glass-panel">
+            <div class="panel-header" style="margin-bottom: 0.75rem;">
+              <div class="panel-title" style="font-size: 0.95rem; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                <span>📦 Stock Disponible para Lotes</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #64748b;">
+                Inventario descontado automáticamente al liquidar en almacén
+              </div>
+            </div>
+            <div id="departmentBatchStockList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; padding: 1rem;">Cargando inventario...</div>
+            </div>
+          </div>
+
+          <!-- TARJETA: COBERTURA POR DEPENDENCIAS -->
+          <div class="glass-panel">
+            <div class="panel-header" style="margin-bottom: 0.75rem;">
+              <div class="panel-title" style="font-size: 0.95rem; color: #0f172a; display: flex; align-items: center; gap: 0.4rem;">
+                <span>🏛️ Nómina por Dirección Institucional</span>
+              </div>
+              <div style="font-size: 0.72rem; color: #64748b;">
+                Distribución del censo de funcionarios activos
+              </div>
+            </div>
+            <div id="departmentBatchCoverageList" style="display: flex; flex-direction: column; gap: 0.45rem; max-height: 240px; overflow-y: auto;">
+              <div style="font-size: 0.75rem; color: #94a3b8; text-align: center; padding: 1rem;">Cargando dependencias...</div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ======================================================================
+           SUBTAB 6: MONITOR DE FORMALIZACIÓN PREVIA Y AUDITORÍA MINISTERIAL (FASE 5)
+           Fecha Límite Cierre: 12/Nov/2026 | Gran Jornada de Despacho: 27/Nov/2026
+           ====================================================================== -->
+      <div id="subtab-ministerial-audit" class="portal-content-block" style="display: none;">
+        
+        <!-- HERO BANNER MINISTERIAL CON MEMBRETE Y BOTONES DE ACCIÓN -->
+        <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%); border-radius: 16px; padding: 1.5rem 1.75rem; color: #ffffff; margin-bottom: 1.5rem; border: 1.5px solid rgba(56, 189, 248, 0.3); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); position: relative; overflow: hidden;">
+          <div style="position: absolute; right: -20px; top: -20px; opacity: 0.08; font-size: 10rem; pointer-events: none; font-weight: 900;">
+            ⚖️
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; position: relative; z-index: 1;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+                <span style="font-size: 1.4rem;">🏛️</span>
+                <div>
+                  <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #93c5fd; font-weight: 700;">
+                    República Bolivariana de Venezuela • MIPPCI
+                  </div>
+                  <h2 style="font-size: 1.25rem; font-weight: 800; margin: 0; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>Monitor de Formalización Previa & Auditoría Ministerial</span>
+                  </h2>
+                </div>
+              </div>
+              <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0.25rem 0 0 0; max-width: 650px;">
+                Supervisión del censo biométrico de trabajadores previo a la Gran Jornada. Cierre oficial de registro: <strong>12 de Noviembre de 2026</strong>. Jornada Nacional: <strong>27 de Noviembre de 2026</strong>.
+              </p>
+            </div>
+
+            <!-- BOTONES DE ACCIÓN DEL DESPACHO -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+              <button id="btnGenerateMinisterialActa" class="btn btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; font-weight: 700; font-size: 0.82rem; padding: 0.6rem 1rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+                📜 Emitir Acta Ministerial Definitiva (27/Nov)
+              </button>
+              <button id="btnExportRezagadosCsv" class="btn btn-outline" style="background: rgba(15, 23, 42, 0.6); border-color: #38bdf8; color: #38bdf8; font-size: 0.82rem; padding: 0.6rem 0.9rem;" title="Descargar nómina de funcionarios sin formalizar para RRHH">
+                📥 Exportar Rezagados (CSV)
+              </button>
+              <button id="btnRefreshMinisterialMonitor" class="btn btn-outline" style="background: rgba(15, 23, 42, 0.6); border-color: #64748b; color: #e2e8f0; font-size: 0.82rem; padding: 0.6rem 0.9rem;" title="Recargar métricas en vivo">
+                🔄 Actualizar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILA DE KPIS Y ESTADO DEL CENSO -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          
+          <!-- KPI 1: PADRÓN TOTAL -->
+          <div class="glass-panel" style="padding: 1rem 1.15rem; border-top: 3px solid #38bdf8;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #64748b;">Padrón Institucional</span>
+              <span style="font-size: 1.1rem;">👥</span>
+            </div>
+            <div id="ministerialTotalCensus" style="font-size: 1.75rem; font-weight: 800; color: #0f172a; line-height: 1.1;">0</div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.35rem;">
+              Funcionarios activos habilitados
+            </div>
+          </div>
+
+          <!-- KPI 2: FORMALIZADOS -->
+          <div class="glass-panel" style="padding: 1rem 1.15rem; border-top: 3px solid #10b981;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #059669;">Formalizados (Selfie + Clave)</span>
+              <span style="font-size: 1.1rem;">✅</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+              <div id="ministerialFormalizedCount" style="font-size: 1.75rem; font-weight: 800; color: #059669; line-height: 1.1;">0</div>
+              <div id="ministerialFormalizedPct" style="font-size: 0.95rem; font-weight: 700; color: #10b981;">0%</div>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.15); height: 6px; border-radius: 9999px; overflow: hidden; margin-top: 0.4rem;">
+              <div id="ministerialFormalizedProgressBar" style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+            </div>
+          </div>
+
+          <!-- KPI 3: REZAGADOS -->
+          <div class="glass-panel" style="padding: 1rem 1.15rem; border-top: 3px solid #f59e0b;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #d97706;">Rezagados Pendientes</span>
+              <span style="font-size: 1.1rem;">⏳</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+              <div id="ministerialRezagadosCount" style="font-size: 1.75rem; font-weight: 800; color: #d97706; line-height: 1.1;">0</div>
+              <div id="ministerialRezagadosPct" style="font-size: 0.95rem; font-weight: 700; color: #f59e0b;">0%</div>
+            </div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.35rem;">
+              Requieren citación por RRHH
+            </div>
+          </div>
+
+          <!-- KPI 4: WEBAUTHN / BIOMETRÍA -->
+          <div class="glass-panel" style="padding: 1rem 1.15rem; border-top: 3px solid #6366f1;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #4f46e5;">WebAuthn / Passkeys</span>
+              <span style="font-size: 1.1rem;">🔑</span>
+            </div>
+            <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+              <div id="ministerialPasskeyCount" style="font-size: 1.75rem; font-weight: 800; color: #4f46e5; line-height: 1.1;">0</div>
+              <div id="ministerialPasskeyPct" style="font-size: 0.95rem; font-weight: 700; color: #6366f1;">0%</div>
+            </div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.35rem;">
+              Credenciales FIDO2 activas
+            </div>
+          </div>
+
+          <!-- KPI 5: ESTADO DE CONGELAMIENTO (CIERRE 12/NOV) -->
+          <div class="glass-panel" style="padding: 1rem 1.15rem; border-top: 3px solid #ef4444; background: rgba(254, 242, 242, 0.4);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; text-transform: uppercase; font-weight: 700; color: #b91c1c;">Cierre del Padrón</span>
+              <span id="ministerialLockIcon" style="font-size: 1.1rem;">🔓</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.4rem;">
+              <span id="ministerialLockBadge" class="badge" style="background: #10b981; color: white; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                ABIERTO (En Censo)
+              </span>
+            </div>
+            <button id="btnToggleCensusLock" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.5rem; width: 100%; border-color: #ef4444; color: #b91c1c; font-weight: 600;">
+              🔒 Congelar al 12/Nov
+            </button>
+          </div>
+
+        </div>
+
+        <!-- PANEL DE SEMAFORIZACIÓN POR DIRECCIÓN / VICEMINISTERIO -->
+        <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div class="panel-header" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <div class="panel-title" style="font-size: 1.05rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🚦 Semáforo de Cumplimiento por Dirección / Viceministerio</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                Nivel de cobertura biométrica institucional previo a la entrega nacional
+              </div>
+            </div>
+            
+            <!-- LEYENDA DEL SEMÁFORO -->
+            <div style="display: flex; gap: 0.75rem; font-size: 0.72rem; align-items: center; background: rgba(15, 23, 42, 0.05); padding: 0.35rem 0.75rem; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981;"></span>
+                <span>Óptimo (&ge;85%)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #f59e0b;"></span>
+                <span>En Proceso (50%-84%)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.3rem;">
+                <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ef4444;"></span>
+                <span>Crítico (&lt;50%)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- BUSCADOR INTERNO DE DEPENDENCIAS -->
+          <div style="margin-bottom: 0.85rem;">
+            <input type="text" id="inputFilterMinisterialDepts" class="form-input" placeholder="🔍 Filtrar por nombre de dirección o centro de costo..." style="font-size: 0.8rem; width: 100%; max-width: 450px;">
+          </div>
+
+          <!-- TABLA DE SEMAFORIZACIÓN -->
+          <div style="overflow-x: auto; max-height: 380px; overflow-y: auto;">
+            <table style="width: 100%; font-size: 0.78rem; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; text-align: left; background: #f8fafc; position: sticky; top: 0; z-index: 2;">
+                  <th style="padding: 0.6rem 0.75rem;">Semáforo</th>
+                  <th style="padding: 0.6rem 0.75rem;">Dependencia / Viceministerio</th>
+                  <th style="padding: 0.6rem 0.75rem;">Cód. / Centro Costo</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: right;">Total Padrón</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: right;">Formalizados</th>
+                  <th style="padding: 0.6rem 0.75rem; text-align: right;">Rezagados</th>
+                  <th style="padding: 0.6rem 0.75rem; width: 180px;">% Avance</th>
+                </tr>
+              </thead>
+              <tbody id="ministerialDeptsTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                    Cargando semáforo institucional...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- DIRECTORIO NOMINAL DE REZAGADOS (RRHH) -->
+        <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div class="panel-header" style="margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <div class="panel-title" style="font-size: 1.05rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                <span>📋 Directorio Nominal de Rezagados para Citación RRHH</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                Funcionarios con estatus <span class="badge" style="background: #fef3c7; color: #b45309; font-size: 0.68rem;">precargado</span> sin completar selfie ni clave de acceso
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <span id="rezagadosFilteredCount" style="font-size: 0.75rem; color: #64748b; font-weight: 600;">0 rezagados encontrados</span>
+            </div>
+          </div>
+
+          <!-- CONTROLES DE FILTRADO Y BÚSQUEDA -->
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.85rem;">
+            <input type="text" id="inputSearchRezagados" class="form-input" placeholder="🔍 Buscar por Cédula, Nombres o Cargo..." style="flex: 1; min-width: 240px; font-size: 0.8rem;">
+            <select id="selectRezagadosDeptFilter" class="form-select" style="min-width: 220px; font-size: 0.8rem;">
+              <option value="">Todas las Dependencias</option>
+            </select>
+          </div>
+
+          <!-- TABLA NOMINAL DE REZAGADOS -->
+          <div style="overflow-x: auto; max-height: 340px; overflow-y: auto;">
+            <table style="width: 100%; font-size: 0.78rem; border-collapse: collapse;">
+              <thead>
+                <tr style="border-bottom: 2px solid #e2e8f0; color: #475569; text-align: left; background: #f8fafc; position: sticky; top: 0; z-index: 2;">
+                  <th style="padding: 0.55rem 0.75rem;">Cédula</th>
+                  <th style="padding: 0.55rem 0.75rem;">Funcionario</th>
+                  <th style="padding: 0.55rem 0.75rem;">Dependencia / Dirección</th>
+                  <th style="padding: 0.55rem 0.75rem;">Cargo</th>
+                  <th style="padding: 0.55rem 0.75rem;">Combo Asignado</th>
+                  <th style="padding: 0.55rem 0.75rem; text-align: center;">Estatus Censo</th>
+                  <th style="padding: 0.55rem 0.75rem; text-align: center;">Acción</th>
+                </tr>
+              </thead>
+              <tbody id="rezagadosTableBody">
+                <tr>
+                  <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                    Cargando listado nominal de rezagados...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- HISTORIAL DE ACTAS MINISTERIALES DEFINITIVAS EMITIDAS -->
+        <div class="glass-panel" style="padding: 1.25rem;">
+          <div class="panel-header" style="margin-bottom: 1rem;">
+            <div>
+              <div class="panel-title" style="font-size: 1.05rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🛡️ Registro Histórico de Actas Ministeriales con Sello SHA-256</span>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
+                Instrumentos legales y de auditoría pública para el Despacho del Ministro y la Inspectoría General
+              </div>
+            </div>
+            <button id="btnViewLatestActaHeader" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; border-color: #38bdf8; color: #0284c7;">
+              👁️ Ver Última Acta Emitida
+            </button>
+          </div>
+
+          <div id="ministerialActasHistoryList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 0.78rem; color: #94a3b8; text-align: center; padding: 1.5rem;">
+              Consultando registro de actas electrónicas...
+            </div>
+          </div>
+        </div>
+
+      </div>
+
     </section>
 
     <!-- ======================================================================
@@ -1946,6 +2346,11 @@
                 <div class="delivery-receipt-stamp">
                   🛡️ Entrega Verificada con Éxito
                 </div>
+
+                <button type="button" id="btnOpenConsolidatedReceiptModal" class="btn btn-outline" style="width: 100%; margin-top: 0.65rem; font-size: 0.74rem; font-weight: 700; border-color: rgba(52, 211, 153, 0.4); color: #34d399; background: rgba(5, 150, 105, 0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                  <span>📜</span>
+                  <span>Ver Comprobante Consolidado Oficial</span>
+                </button>
               </div>
 
               <p id="workerQrHelpText" style="font-size: 0.7rem; color: var(--text-dim); text-align: center; margin-top: 0.5rem;">
@@ -2072,18 +2477,35 @@
               </div>
             </div>
 
-            <!-- SELECTOR DE ESTACIÓN ACTIVA DE DESPACHO (ASIGNADA A MESA 1) -->
+            <!-- SELECTOR DE MODALIDAD Y ESTACIÓN ACTIVA DE DESPACHO (FASE 3: RETIRO ÚNICO TOTALIZADO) -->
             <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.85rem;">
+              
+              <!-- SELECTOR DE MODALIDAD DUAL DE DESPACHO -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
+                  Modalidad de Despacho en Almacén:
+                </span>
+                <span style="font-size: 0.65rem; color: #34d399; font-weight: 600;">⚡ Retiro Totalizado Activo</span>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 0.75rem;">
+                <button type="button" id="btnDispatchModeTotal" class="btn btn-primary active-mode-tab" style="padding: 0.45rem 0.65rem; font-size: 0.76rem; font-weight: 700; text-align: center; border-radius: 8px; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff; cursor: pointer;">
+                  🌟 Retiro Totalizado<br><span style="font-size: 0.62rem; font-weight: 500; opacity: 0.9;">1 Solo Escaneo (Todos los Combos)</span>
+                </button>
+                <button type="button" id="btnDispatchModeStation" class="btn btn-outline" style="padding: 0.45rem 0.65rem; font-size: 0.76rem; font-weight: 700; text-align: center; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; cursor: pointer;">
+                  📦 Estación Específica<br><span style="font-size: 0.62rem; font-weight: 500; opacity: 0.9;">Mesa Individual (Líneas Separadas)</span>
+                </button>
+              </div>
+
               <div class="flex-between" style="margin-bottom: 0.45rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
                   Estación / Combo de Despacho Activo:
                 </span>
-                <span id="activeStationBadge" class="badge badge-viveres" style="font-size: 0.68rem; background: #0284c7; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
-                  🎒 Mesa 1: Combo de Útiles Escolares
+                <span id="activeStationBadge" class="badge badge-proteina" style="font-size: 0.68rem; background: #059669; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
+                  🌟 Modo Retiro Totalizado: Todos los Combos en 1 Solo Escaneo QR
                 </span>
               </div>
               <div id="distributorStationTabs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem;">
-                <!-- Solo muestra la Estación a la que fue asignado el operador: Mesa 1 -->
+                <!-- Dinámico: Totalizado o Mesas individuales -->
                 <button type="button" class="btn btn-outline active-station-tab" data-station="0f74d741-6310-4d6c-b8e5-8cd6e76f9113" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
                   🎒 Mesa 1<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">Combo de Útiles Escolares</span>
                 </button>
@@ -2787,6 +3209,8 @@ Listo para recibir transacciones de nómina SSOT...
   <script src="/js/modules/distributor.js?v=3.6"></script>
   <script src="/js/modules/admin.js?v=3.2"></script>
   <script src="/js/modules/manual_dispatch.js?v=3.5"></script>
+  <script src="/js/modules/department_batches.js?v=4.0"></script>
+  <script src="/js/modules/ministerial_audit.js?v=5.0"></script>
   <script src="/js/modules/payroll.js?v=3.2"></script>
   <script src="/js/modules/combos.js?v=3.2"></script>
   <script src="/js/modules/notifications.js?v=3.2"></script>

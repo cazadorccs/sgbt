@@ -198,7 +198,102 @@ function processBatchDeliveries(deliveries = [], defaultPointId = null) {
   };
 }
 
+/**
+ * Registra un conjunto de entregas de forma atómica para un beneficiario (Retiro Único Totalizado - Fase 3)
+ */
+function recordAtomicDeliveries({
+  workerId,
+  entitlements = [],
+  distributionPointId = null,
+  deliveredByUserId = null,
+  verificationMethod = 'passkey_qr',
+  signatureProof = null,
+  challengeNonce = null,
+  isOfflineSync = false,
+  deliveredAt = null,
+  campaignId = null
+}) {
+  const finalDeliveredAt = deliveredAt || new Date().toISOString();
+  const today = finalDeliveredAt.split('T')[0];
+
+  let finalPointId = distributionPointId;
+  if (!finalPointId) {
+    const pt = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+    finalPointId = pt ? pt.id : null;
+  }
+
+  let finalOpId = deliveredByUserId;
+  if (!finalOpId) {
+    const op = db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
+    finalOpId = op ? op.id : null;
+  }
+
+  const checkDel = db.prepare("SELECT id FROM deliveries WHERE worker_id = ? AND entitlement_id = ?");
+  const insertStmt = db.prepare(`
+    INSERT INTO deliveries (
+      id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+      verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, synced_at, campaign_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+  `);
+  const updateEntStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+  const updateLockStmt = db.prepare(`
+    UPDATE device_locks
+    SET status = 'completed', completed_at = CURRENT_TIMESTAMP
+    WHERE worker_id = ? AND valid_date = ? AND status = 'active'
+  `);
+
+  const createdDeliveries = [];
+
+  const tx = db.transaction(() => {
+    for (const ent of entitlements) {
+      const entId = typeof ent === 'string' ? ent : (ent.id || ent.entitlement_id);
+      if (checkDel.get(workerId, entId)) {
+        continue;
+      }
+      const dId = (ent && ent.delivery_id) || crypto.randomUUID();
+      insertStmt.run(
+        dId,
+        entId,
+        workerId,
+        finalPointId,
+        finalOpId,
+        verificationMethod,
+        signatureProof,
+        challengeNonce,
+        isOfflineSync ? 1 : 0,
+        finalDeliveredAt,
+        campaignId
+      );
+      updateEntStmt.run(entId);
+      createdDeliveries.push({ id: dId, entitlement_id: entId });
+      enqueueEvent('DELIVERY_RECORDED', 'delivery', dId, {
+        id: dId,
+        entitlement_id: entId,
+        worker_id: workerId,
+        distribution_point_id: finalPointId,
+        delivered_by_user_id: finalOpId,
+        verification_method: verificationMethod,
+        is_offline_sync: Boolean(isOfflineSync),
+        delivered_at: finalDeliveredAt
+      });
+    }
+    updateLockStmt.run(workerId, today);
+  });
+
+  tx();
+
+  return {
+    success: true,
+    workerId,
+    deliveries: createdDeliveries,
+    totalClaimed: createdDeliveries.length,
+    delivered_count: createdDeliveries.length,
+    message: `${createdDeliveries.length} entregas atómicas registradas exitosamente`
+  };
+}
+
 module.exports = {
   recordDelivery,
+  recordAtomicDeliveries,
   processBatchDeliveries
 };

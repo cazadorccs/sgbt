@@ -358,6 +358,60 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_device_locks_active ON device_locks(device_id, status);
     CREATE INDEX IF NOT EXISTS idx_device_locks_worker ON device_locks(worker_id, status);
     CREATE INDEX IF NOT EXISTS idx_device_locks_date ON device_locks(valid_date, status);
+
+    -- 15. ÓRDENES DE DESPACHO MASIVO POR DEPARTAMENTO / LOTE INSTITUCIONAL (FASE 4)
+    CREATE TABLE IF NOT EXISTS department_batch_orders (
+      id TEXT PRIMARY KEY,
+      order_number TEXT UNIQUE NOT NULL,
+      department_id TEXT NOT NULL REFERENCES departments(id),
+      combo_id TEXT REFERENCES combos(id),
+      total_beneficiaries INTEGER NOT NULL,
+      total_combos INTEGER NOT NULL,
+      total_weight_kg REAL DEFAULT 0,
+      delegate_name TEXT NOT NULL,
+      delegate_document_id TEXT NOT NULL,
+      delegate_phone TEXT,
+      delegate_claim_token TEXT UNIQUE,
+      status TEXT NOT NULL DEFAULT 'pending_review', -- 'pending_review', 'approved', 'rejected', 'dispatched'
+      requested_by TEXT REFERENCES workers(id),
+      requested_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      reviewed_by TEXT REFERENCES workers(id),
+      reviewed_at TEXT,
+      review_notes TEXT,
+      dispatched_by TEXT REFERENCES workers(id),
+      dispatched_at TEXT,
+      digital_acta_hash TEXT,
+      digital_acta_data TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_batch_orders_dept ON department_batch_orders(department_id, status);
+    CREATE INDEX IF NOT EXISTS idx_batch_orders_status ON department_batch_orders(status);
+    CREATE INDEX IF NOT EXISTS idx_batch_orders_token ON department_batch_orders(delegate_claim_token);
+
+    -- 16. ACTAS MINISTERIALES DE CIERRE Y AUDITORÍA INSTITUCIONAL (FASE 5)
+    CREATE TABLE IF NOT EXISTS ministerial_actas (
+      id TEXT PRIMARY KEY,
+      acta_number TEXT UNIQUE NOT NULL,
+      acta_type TEXT NOT NULL DEFAULT 'cierre_censo_y_despacho',
+      title TEXT NOT NULL,
+      institution TEXT NOT NULL,
+      campaign_date TEXT NOT NULL,
+      census_cutoff_date TEXT NOT NULL,
+      total_workers_census INTEGER NOT NULL,
+      total_formalized INTEGER NOT NULL,
+      total_rezagados INTEGER NOT NULL,
+      formalization_pct REAL NOT NULL,
+      total_combos_assigned INTEGER NOT NULL,
+      total_gross_weight_tons REAL NOT NULL,
+      passkey_adoption_pct REAL NOT NULL,
+      security_incidents_blocked INTEGER NOT NULL DEFAULT 0,
+      digital_acta_hash TEXT NOT NULL,
+      digital_acta_data TEXT NOT NULL,
+      generated_by TEXT REFERENCES workers(id),
+      generated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      signatories TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_ministerial_actas_date ON ministerial_actas(campaign_date);
+    CREATE INDEX IF NOT EXISTS idx_ministerial_actas_hash ON ministerial_actas(digital_acta_hash);
   `);
 
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes
@@ -370,11 +424,19 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE combos ADD COLUMN conservation TEXT DEFAULT 'Ambiente'"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN target_qty TEXT DEFAULT '1'"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN weight_kg REAL DEFAULT 14.0"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN stock INTEGER DEFAULT 5000"); } catch (e) {}
   try { db.exec("ALTER TABLE deliveries ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
+  try { db.exec("ALTER TABLE deliveries ADD COLUMN batch_order_id TEXT REFERENCES department_batch_orders(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
+  try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN batch_order_id TEXT REFERENCES department_batch_orders(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_census_locked INTEGER DEFAULT 0"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_cutoff_date TEXT DEFAULT '2026-11-12T23:59:59'"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_locked_at TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_locked_by TEXT"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_lock_reason TEXT"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN enrollment_status TEXT DEFAULT 'precargado'"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN password_hash TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN bound_device_id TEXT DEFAULT ''"); } catch (e) {}

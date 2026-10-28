@@ -225,8 +225,8 @@ window.setupWorkerSimulator = function() {
       STATE.activeStation = '2';
       generateWorkerStationQr('2');
     } else {
-      STATE.activeStation = '1';
-      generateWorkerStationQr('1');
+      STATE.activeStation = 'all';
+      generateWorkerStationQr('all');
     }
   });
 
@@ -308,7 +308,7 @@ window.setupWorkerSimulator = function() {
     }, 4000);
   });
 
-  async function generateWorkerStationQr(targetStation = '1') {
+  async function generateWorkerStationQr(targetStation = 'all') {
     if (!STATE.selectedWorkerId) return;
 
     STATE.activeStation = targetStation;
@@ -346,9 +346,13 @@ window.setupWorkerSimulator = function() {
       }
 
       if (btnGenerate) {
-        btnGenerate.textContent = targetStation === '2' 
-          ? '⏳ 2/2 Generando QR Estación 2: Combo Proteico...'
-          : '⏳ 2/2 Generando QR Estación 1: Víveres Secos...';
+        if (targetStation === 'all') {
+          btnGenerate.textContent = '⏳ Generando QR de Retiro Totalizado (Todos los Combos)...';
+        } else if (targetStation === '2') {
+          btnGenerate.textContent = '⏳ 2/2 Generando QR Estación 2: Combo Proteico...';
+        } else {
+          btnGenerate.textContent = '⏳ 2/2 Generando QR Estación 1: Víveres Secos...';
+        }
       }
 
       // 1. Obtener derecho de hoy correspondiente a la estación
@@ -363,12 +367,15 @@ window.setupWorkerSimulator = function() {
             (e.combo_name && e.combo_name.toLowerCase().includes('prote'))
           );
           entitlementId = ent2 ? ent2.entitlement_id : (currentWorker.entitlements[1]?.entitlement_id || currentWorker.entitlements[0].entitlement_id);
-        } else {
+        } else if (targetStation === '1') {
           const ent1 = currentWorker.entitlements.find(e => 
             e.shift === 'estacion_1' || 
             (e.combo_name && e.combo_name.toLowerCase().includes('víveres'))
           );
           entitlementId = ent1 ? ent1.entitlement_id : currentWorker.entitlements[0].entitlement_id;
+        } else {
+          // targetStation === 'all' (Retiro Único Totalizado)
+          entitlementId = currentWorker.entitlements[0].entitlement_id;
         }
       }
 
@@ -422,7 +429,14 @@ window.setupWorkerSimulator = function() {
 
       if (banner && title && badgePill) {
         banner.style.display = 'flex';
-        if (targetStation === '2') {
+        if (targetStation === 'all') {
+          banner.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(2, 132, 199, 0.22))';
+          banner.style.borderColor = 'rgba(52, 211, 153, 0.5)';
+          title.textContent = '🌟 RETIRO ÚNICO TOTALIZADO (VÍVERES + PROTEÍNA + ESPECIALES)';
+          title.style.color = '#34d399';
+          badgePill.className = 'badge badge-proteina';
+          badgePill.textContent = '1 Solo Escaneo';
+        } else if (targetStation === '2') {
           banner.style.background = 'rgba(5, 150, 105, 0.2)';
           banner.style.borderColor = 'rgba(5, 150, 105, 0.45)';
           title.textContent = '🍗 PASO 2 DE 2: ESTACIÓN 2 (CADENA DE FRÍO - PROTEÍNAS)';
@@ -440,7 +454,10 @@ window.setupWorkerSimulator = function() {
       }
 
       if (helpText) {
-        if (targetStation === '2') {
+        if (targetStation === 'all') {
+          helpText.innerHTML = 'Presente este código único en la taquilla de almacén. Liquidará y despachará <strong>todos sus combos asignados</strong> (Víveres Secos + Proteína + Combos Especiales) en un único escaneo.';
+          helpText.style.color = '#34d399';
+        } else if (targetStation === '2') {
           helpText.innerHTML = 'Presente este código en la <strong>Estación 2 (Cavas Refrigeradas)</strong> para retirar su 🍗 Combo Proteico Fresco.';
           helpText.style.color = '#34d399';
         } else {
@@ -460,7 +477,10 @@ window.setupWorkerSimulator = function() {
       }
 
       playAudioFeedback('success');
-      window.showToast(targetStation === '2' ? '¡Código QR para Estación 2 (Combo Proteico) activo!' : '¡Código QR para Estación 1 (Víveres Secos) activo!', 'success');
+      window.showToast(targetStation === 'all'
+        ? '¡Código QR de Retiro Único Totalizado activo!'
+        : (targetStation === '2' ? '¡Código QR para Estación 2 (Combo Proteico) activo!' : '¡Código QR para Estación 1 (Víveres Secos) activo!'),
+        'success');
 
       // Iniciar cuenta regresiva de 180 segundos
       startQrCountdown(180);
@@ -469,9 +489,13 @@ window.setupWorkerSimulator = function() {
       startDeliveryMonitoring(signData.qr_payload);
 
       if (btnGenerate) {
-        btnGenerate.textContent = targetStation === '2' 
-          ? '🍗 Re-generar QR Estación 2 (Combo Proteico)'
-          : '📦 Re-generar QR Estación 1 (Víveres Secos)';
+        if (targetStation === 'all') {
+          btnGenerate.textContent = '🌟 Re-generar QR de Retiro Totalizado';
+        } else if (targetStation === '2') {
+          btnGenerate.textContent = '🍗 Re-generar QR Estación 2 (Combo Proteico)';
+        } else {
+          btnGenerate.textContent = '📦 Re-generar QR Estación 1 (Víveres Secos)';
+        }
       }
 
       qrContainer?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -622,10 +646,10 @@ window.setupWorkerSimulator = function() {
       STATE.deliveredStations = new Set();
     }
 
-    if (data.station_1_delivered || isStation1Event) {
+    if (data.station_1_delivered || isStation1Event || data.delivery_type === 'atomic_total_claim') {
       STATE.deliveredStations.add(1);
     }
-    if (data.station_2_delivered || isStation2Event) {
+    if (data.station_2_delivered || isStation2Event || data.delivery_type === 'atomic_total_claim') {
       STATE.deliveredStations.add(2);
     }
     if (data.deliveries && Array.isArray(data.deliveries)) {
@@ -637,12 +661,14 @@ window.setupWorkerSimulator = function() {
 
     const station1Done = STATE.deliveredStations.has(1);
     const station2Done = STATE.deliveredStations.has(2);
-    const allDone = Boolean(data.all_completed || (station1Done && station2Done));
+    const allDone = Boolean(data.all_completed || data.delivery_type === 'atomic_total_claim' || (station1Done && station2Done));
 
     // Determinar mensaje Toast exacto requerido por el usuario
     let targetToastMsg = data.latest_toast || data.toast_message || delivery.toast_message;
     if (!targetToastMsg) {
-      if (isStation2Event || (station2Done && STATE.activeStation === '2')) {
+      if (data.delivery_type === 'atomic_total_claim') {
+        targetToastMsg = '🎉 ¡RETIRO ÚNICO TOTALIZADO APROBADO! Todos sus combos han sido despachados.';
+      } else if (isStation2Event || (station2Done && STATE.activeStation === '2')) {
         targetToastMsg = '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.';
       } else {
         targetToastMsg = '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.';
@@ -662,11 +688,11 @@ window.setupWorkerSimulator = function() {
     // 2. Actualizar insignias de bultos individualmente
     const badgeViveres = document.getElementById('badgeViveresSecos');
     if (badgeViveres) {
-      if (station1Done) {
+      if (station1Done || data.delivery_type === 'atomic_total_claim') {
         badgeViveres.className = 'package-card-badge';
         badgeViveres.style.background = '#047857';
         badgeViveres.style.color = '#ffffff';
-        badgeViveres.innerHTML = '✅ Retirado en Estación 1';
+        badgeViveres.innerHTML = '✅ Retirado en Retiro Total';
       } else {
         badgeViveres.className = 'package-card-badge badge-viveres';
         badgeViveres.style.background = '#0284c7';
@@ -677,11 +703,11 @@ window.setupWorkerSimulator = function() {
 
     const badgeProteico = document.getElementById('badgeComboProteico');
     if (badgeProteico) {
-      if (station2Done) {
+      if (station2Done || data.delivery_type === 'atomic_total_claim') {
         badgeProteico.className = 'package-card-badge';
         badgeProteico.style.background = '#047857';
         badgeProteico.style.color = '#ffffff';
-        badgeProteico.innerHTML = '✅ Retirado en Estación 2';
+        badgeProteico.innerHTML = '✅ Retirado en Retiro Total';
       } else {
         badgeProteico.className = 'package-card-badge badge-proteina';
         badgeProteico.style.background = '#059669';
@@ -701,7 +727,7 @@ window.setupWorkerSimulator = function() {
 
     // 4. LÓGICA DE TRANSICIÓN Y FINALIZACIÓN INSTANTÁNEA (0 RECARGAS / 0 F5)
     if (allDone) {
-      // AMBAS ESTACIONES COMPLETADAS (2/2): FINALIZACIÓN TOTAL INSTANTÁNEA
+      // AMBAS ESTACIONES O RETIRO TOTALIZADO COMPLETADO: FINALIZACIÓN TOTAL INSTANTÁNEA
       STATE.activeStation = null;
       stopDeliveryMonitoring();
       if (STATE.qrTimerInterval) {
@@ -715,13 +741,25 @@ window.setupWorkerSimulator = function() {
       if (receiptBox) receiptBox.style.display = 'block';
 
       if (helpText) {
-        helpText.innerHTML = '<strong>🎉 ¡Jornada Completa!</strong> Ha retirado su Bolsa de Víveres Secos (Estación 1) y su Combo Proteico Fresco (Estación 2).';
+        if (data.delivery_type === 'atomic_total_claim' || (data.combos_delivered && data.combos_delivered.length > 1)) {
+          helpText.innerHTML = '<strong>🎉 ¡Retiro Único Totalizado Completado!</strong> Se han despachado todos sus combos asignados en un solo escaneo. Su teléfono móvil fue liberado exitosamente.';
+        } else {
+          helpText.innerHTML = '<strong>🎉 ¡Jornada Completa!</strong> Ha retirado su Bolsa de Víveres Secos (Estación 1) y su Combo Proteico Fresco (Estación 2).';
+        }
         helpText.style.color = '#34d399';
       }
 
       if (statusBox) statusBox.className = 'alert-box alert-success';
       if (statusText) {
-        statusText.innerHTML = '<strong>✅ Despacho Total Autorizado:</strong> Sus 2 bultos han sido entregados con éxito en el Almacén Sótano 1.';
+        statusText.innerHTML = '<strong>✅ Despacho Total Autorizado:</strong> Todos sus combos asignados han sido entregados con éxito en 1 solo escaneo en Almacén Sótano 1.';
+      }
+
+      // Actualizar insignia de candado de dispositivo liberado
+      const deviceLockBadge = document.getElementById('deviceLockBadgeContainer');
+      const deviceLockText = document.getElementById('deviceLockText');
+      if (deviceLockBadge && deviceLockText) {
+        deviceLockText.textContent = '🔓 Candado de dispositivo liberado automáticamente tras completar el retiro totalizado.';
+        deviceLockBadge.style.display = 'block';
       }
 
       // Actualizar datos del comprobante final
@@ -734,7 +772,7 @@ window.setupWorkerSimulator = function() {
 
       if (nameEl) nameEl.textContent = delivery.worker_name || 'Funcionario MIPPCI';
       if (docEl) docEl.textContent = delivery.document_id || 'V-18456123';
-      if (locEl) locEl.textContent = 'Almacén Central MIPPCI - Sótano 1';
+      if (locEl) locEl.textContent = 'Almacén Central MIPPCI - Sótano 1 (Despacho Total)';
       
       let dateVal = delivery.delivered_at;
       if (typeof dateVal === 'string' && !dateVal.endsWith('Z') && !dateVal.includes('+')) {
@@ -754,14 +792,16 @@ window.setupWorkerSimulator = function() {
       const shortId = delivery.delivery_id ? delivery.delivery_id.substring(0, 8).toUpperCase() : 'OK-' + Date.now().toString().slice(-6);
       if (idEl) idEl.textContent = `#DEL-${shortId}`;
       if (methodEl) {
-        if (delivery.verification_method === 'passkey_nfc') {
+        if (delivery.delivery_type === 'atomic_total_claim') {
+          methodEl.textContent = '⚡ Retiro Único Totalizado (1 Escaneo QR)';
+        } else if (delivery.verification_method === 'passkey_nfc') {
           methodEl.textContent = 'Validación Segura por Proximidad NFC';
         } else if (delivery.verification_method === 'delegated_proxy_qr') {
           methodEl.textContent = 'Validación por Retiro Delegado';
         } else if (delivery.verification_method && delivery.verification_method.includes('manual')) {
           methodEl.textContent = 'Validación Manual en Mesa';
         } else {
-          methodEl.textContent = 'Validación Segura con Celular';
+          methodEl.textContent = 'Validación Segura con Celular (FIDO2)';
         }
       }
 
@@ -770,7 +810,7 @@ window.setupWorkerSimulator = function() {
       if (pill1 && s1) {
         pill1.style.borderColor = '#34d399';
         pill1.style.background = 'rgba(16, 185, 129, 0.2)';
-        s1.innerHTML = '✅ Retirado en Estación 1 (Almacén)';
+        s1.innerHTML = '✅ Retirado en Retiro Total (Víveres)';
         s1.style.color = '#34d399';
       }
 
@@ -779,7 +819,7 @@ window.setupWorkerSimulator = function() {
       if (pill2 && s2) {
         pill2.style.borderColor = '#34d399';
         pill2.style.background = 'rgba(16, 185, 129, 0.2)';
-        s2.innerHTML = '✅ Retirado en Estación 2 (Cavas Frías)';
+        s2.innerHTML = '✅ Retirado en Retiro Total (Proteína)';
         s2.style.color = '#34d399';
       }
 
@@ -787,7 +827,7 @@ window.setupWorkerSimulator = function() {
         btnGenerate.disabled = true;
         btnGenerate.style.background = 'linear-gradient(135deg, #059669, #047857)';
         btnGenerate.style.borderColor = '#34d399';
-        btnGenerate.innerHTML = '<span>✅ Entrega Finalizada (2/2 Bultos Entregados)</span>';
+        btnGenerate.innerHTML = '<span>✅ Retiro Totalizado Finalizado (Todos los Bultos Entregados)</span>';
       }
 
       receiptBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -951,6 +991,69 @@ window.setupWorkerSimulator = function() {
         btnGenerate.textContent = '⚡ Generar QR de Entrega (Firma Biométrica)';
       }
     }
+  });
+
+  // Manejador del Comprobante Digital Consolidado (Modal Fase 3: Retiro Único Totalizado)
+  const openConsolidatedModal = () => {
+    const modal = document.getElementById('consolidatedReceiptModalBackdrop');
+    if (!modal) return;
+
+    const workerName = document.getElementById('receiptWorkerName')?.textContent || (STATE.currentUser ? STATE.currentUser.full_name : 'Carlos Mendoza');
+    const workerDoc = document.getElementById('receiptWorkerDoc')?.textContent || (STATE.currentUser ? STATE.currentUser.document_id : 'V-18456123');
+    const timestamp = document.getElementById('receiptTimestamp')?.textContent || new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
+    const txId = document.getElementById('receiptDeliveryId')?.textContent || '#TX-ATOMIC-' + Date.now().toString().slice(-6);
+
+    const nameEl = document.getElementById('modalConsolidatedWorkerName');
+    const docEl = document.getElementById('modalConsolidatedWorkerDoc');
+    const timeEl = document.getElementById('modalConsolidatedTimestamp');
+    const txEl = document.getElementById('modalConsolidatedTxId');
+    const combosListEl = document.getElementById('modalConsolidatedCombosList');
+    const grossWeightEl = document.getElementById('modalConsolidatedGrossWeight');
+    const countEl = document.getElementById('modalConsolidatedCombosCount');
+
+    if (nameEl) nameEl.textContent = workerName;
+    if (docEl) docEl.textContent = workerDoc;
+    if (timeEl) timeEl.textContent = `${new Date().toLocaleDateString('es-VE')} · ${timestamp}`;
+    if (txEl) txEl.textContent = txId;
+
+    const combos = [
+      { name: 'Bolsa de Víveres Secos (Canasta Básica)', icon: '🌾', mesa: 'Mesa 1', weight: 14.5, desc: 'Harina, arroz, pasta, aceite, azúcar, granos, sardinas' },
+      { name: 'Combo Proteico Fresco (Cadena de Frío)', icon: '🍗', mesa: 'Mesa 2', weight: 14.0, desc: 'Pollo entero refrigerado, carne molida, mortadela' }
+    ];
+
+    if (combosListEl) {
+      combosListEl.innerHTML = combos.map(c => `
+        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 6px; padding: 0.5rem 0.65rem; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 700; color: #f1f5f9; font-size: 0.78rem;">
+              <span>${c.icon}</span> <strong>${c.name}</strong>
+              <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-left: 0.35rem; padding: 0.1rem 0.4rem;">${c.mesa}</span>
+            </div>
+            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 0.15rem;">${c.desc}</div>
+          </div>
+          <div style="text-align: right; min-width: 65px;">
+            <span style="font-weight: 800; color: #34d399; font-size: 0.75rem;">${c.weight} kg</span>
+            <div style="font-size: 0.62rem; color: #34d399;">✅ Entregado</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    if (countEl) countEl.textContent = `${combos.length} Combos Liquidados`;
+    if (grossWeightEl) grossWeightEl.textContent = `~28.5 kg`;
+
+    modal.classList.add('active');
+  };
+
+  document.getElementById('btnOpenConsolidatedReceiptModal')?.addEventListener('click', openConsolidatedModal);
+  document.getElementById('btnCloseConsolidatedReceiptModal')?.addEventListener('click', () => {
+    document.getElementById('consolidatedReceiptModalBackdrop')?.classList.remove('active');
+  });
+  document.getElementById('btnCloseConsolidatedReceiptModalBtn')?.addEventListener('click', () => {
+    document.getElementById('consolidatedReceiptModalBackdrop')?.classList.remove('active');
+  });
+  document.getElementById('btnPrintConsolidatedReceipt')?.addEventListener('click', () => {
+    window.print();
   });
 
   // Carga inicial

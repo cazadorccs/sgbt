@@ -1690,3 +1690,662 @@
     </div>
   </div>
 </div>
+
+<!-- ======================================================================
+     MODAL: COMPROBANTE DIGITAL CONSOLIDADO - RETIRO ÚNICO TOTALIZADO (FASE 3)
+     ====================================================================== -->
+<div id="consolidatedReceiptModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 560px;">
+    <div class="panel-header" style="border-bottom: 1.5px solid rgba(52, 211, 153, 0.3);">
+      <div class="panel-title" style="color: #34d399; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+        🌟 Comprobante Consolidado &middot; Retiro Único Totalizado
+      </div>
+      <button id="btnCloseConsolidatedReceiptModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="padding: 0.5rem 0;">
+      <!-- CABECERA INSTITUCIONAL CON LOGO Y FECHA -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.85rem; padding-bottom: 0.65rem; border-bottom: 1px dashed rgba(255, 255, 255, 0.1);">
+        <div>
+          <div style="font-size: 0.88rem; font-weight: 800; color: #fff;">🏛️ MIPPCI &middot; Gestión Institucional de Beneficios</div>
+          <div style="font-size: 0.72rem; color: #94a3b8;">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
+        </div>
+        <div style="text-align: right;">
+          <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(52, 211, 153, 0.4);">
+            ✅ 100% Entregado
+          </span>
+          <div id="modalConsolidatedTimestamp" style="font-size: 0.68rem; color: #64748b; margin-top: 0.2rem;">--</div>
+        </div>
+      </div>
+
+      <!-- DATOS DEL BENEFICIARIO TITULAR -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.78rem;">
+          <div>
+            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Beneficiario Titular:</span>
+            <div id="modalConsolidatedWorkerName" style="font-weight: 700; color: #f8fafc;">--</div>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Cédula de Identidad:</span>
+            <div id="modalConsolidatedWorkerDoc" class="text-mono" style="font-weight: 700; color: #38bdf8;">--</div>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Modalidad de Despacho:</span>
+            <div style="font-weight: 600; color: #34d399;">⚡ Retiro Único Totalizado (1 Escaneo)</div>
+          </div>
+          <div>
+            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Estado de Candado:</span>
+            <div style="font-weight: 600; color: #38bdf8;">🔓 Liberado en Automático</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DESGLOSE DE COMBOS DESPACHADOS SIMULTÁNEAMENTE -->
+      <div style="margin-bottom: 0.85rem;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
+          📦 Desglose de Combos Entregados en el Mismo Acto:
+        </div>
+        <div id="modalConsolidatedCombosList" style="display: flex; flex-direction: column; gap: 0.45rem;">
+          <!-- Dinámico -->
+        </div>
+      </div>
+
+      <!-- RESUMEN DE PESO Y MÉTRICAS -->
+      <div style="background: linear-gradient(135deg, rgba(5, 150, 105, 0.12), rgba(2, 132, 199, 0.12)); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">Total Bultos Despachados:</span>
+          <div id="modalConsolidatedCombosCount" style="font-size: 1.1rem; font-weight: 800; color: #34d399;">2 Combos</div>
+        </div>
+        <div style="text-align: right;">
+          <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">Peso Bruto Estimado:</span>
+          <div id="modalConsolidatedGrossWeight" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">~28.5 kg</div>
+        </div>
+      </div>
+
+      <!-- SELLO CRIPTOGRÁFICO DE VERIFICACIÓN -->
+      <div style="background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 1rem; font-size: 0.68rem; color: #64748b;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+          <span>Sello Criptográfico ECDSA P-256:</span>
+          <span id="modalConsolidatedTxId" class="text-mono" style="color: #a7f3d0;">#TX-ATOMIC-OK</span>
+        </div>
+        <div id="modalConsolidatedHash" class="text-mono" style="word-break: break-all; color: #475569; font-size: 0.62rem;">
+          SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        </div>
+      </div>
+
+      <!-- ACCIONES DEL MODAL -->
+      <div style="display: flex; gap: 0.65rem;">
+        <button type="button" id="btnPrintConsolidatedReceipt" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff;">
+          🖨️ Imprimir Comprobante Oficial
+        </button>
+        <button type="button" id="btnCloseConsolidatedReceiptModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 1: CREAR SOLICITUD DE LOTE DEPARTAMENTAL (FASE 4 - ETAPA 1)
+     ====================================================================== -->
+<div id="createDepartmentBatchModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 600px;">
+    <div class="panel-header" style="border-bottom: 1.5px solid rgba(56, 189, 248, 0.3);">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+        <span>🏢 Nueva Solicitud de Lote Departamental</span>
+      </div>
+      <button id="btnCloseCreateBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <form id="createBatchOrderForm" onsubmit="event.preventDefault();" style="padding: 0.75rem 0;">
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.78rem; color: #94a3b8; line-height: 1.4;">
+        ℹ️ Tramite el retiro consolidado de combos para su Dirección. Esta solicitud pasará a revisión de <strong>Gestión Humana (RRHH)</strong> y posteriormente a despacho físico en el Almacén Central.
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+        <!-- Dependencia -->
+        <div>
+          <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.35rem;">
+            Dependencia / Dirección Solicitante: *
+          </label>
+          <select id="createBatchDeptSelect" class="form-input" style="font-size: 0.82rem;" required>
+            <option value="">Seleccione una Dependencia...</option>
+          </select>
+        </div>
+
+        <!-- Combo Específico o Catálogo Completo -->
+        <div>
+          <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.35rem;">
+            Tipo de Combo Alimenticio:
+          </label>
+          <select id="createBatchComboSelect" class="form-input" style="font-size: 0.82rem;">
+            <option value="">Todos los Combos Activos de la Jornada</option>
+          </select>
+        </div>
+
+        <!-- Delegado Receptor Acreditado -->
+        <div style="border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 0.75rem;">
+          <div style="font-size: 0.75rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.5rem;">
+            👤 Delegado Receptor Acreditado (Responsable del Retiro):
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div>
+              <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Nombre Completo: *</label>
+              <input type="text" id="createBatchDelegateName" class="form-input" placeholder="Ej: Juan Pérez" required style="font-size: 0.82rem;" />
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Cédula de Identidad: *</label>
+              <input type="text" id="createBatchDelegateDoc" class="form-input" placeholder="Ej: V-12345678" required style="font-size: 0.82rem; text-transform: uppercase;" />
+            </div>
+          </div>
+          <div style="margin-top: 0.5rem;">
+            <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Teléfono de Contacto:</label>
+            <input type="tel" id="createBatchDelegatePhone" class="form-input" placeholder="Ej: 0412-1234567" style="font-size: 0.82rem;" />
+          </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div>
+          <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Observaciones / Justificación:</label>
+          <textarea id="createBatchNotes" class="form-input" rows="2" placeholder="Ej: Solicitud de despacho institucional para el personal de turno..." style="font-size: 0.8rem; resize: vertical;"></textarea>
+        </div>
+
+        <!-- Resumen de Cálculo en Vivo -->
+        <div id="createBatchSummaryBox" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem;">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.4rem;">
+            📊 Proyección del Lote Departamental:
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center;">
+            <div>
+              <span style="font-size: 0.68rem; color: #94a3b8;">Beneficiarios:</span>
+              <div id="createBatchCalcWorkers" style="font-size: 1.1rem; font-weight: 800; color: #f8fafc;">0</div>
+            </div>
+            <div>
+              <span style="font-size: 0.68rem; color: #94a3b8;">Total Combos:</span>
+              <div id="createBatchCalcCombos" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">0</div>
+            </div>
+            <div>
+              <span style="font-size: 0.68rem; color: #94a3b8;">Peso Aprox:</span>
+              <div id="createBatchCalcWeight" style="font-size: 1.1rem; font-weight: 800; color: #34d399;">0 kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.65rem; margin-top: 1.25rem;">
+        <button type="submit" id="btnSubmitCreateBatchOrder" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
+          📝 Registrar Solicitud de Lote
+        </button>
+        <button type="button" id="btnCancelCreateBatchModal" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 2: REVISIÓN Y APROBACIÓN POR RRHH (FASE 4 - ETAPA 2)
+     ====================================================================== -->
+<div id="reviewDepartmentBatchModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 520px;">
+    <div class="panel-header" style="border-bottom: 1.5px solid rgba(245, 158, 11, 0.4);">
+      <div class="panel-title" style="color: #fbbf24; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+        <span>⚖️ Revisión de Lote Departamental (RRHH)</span>
+      </div>
+      <button id="btnCloseReviewBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="padding: 0.75rem 0;">
+      <input type="hidden" id="reviewBatchOrderId" />
+
+      <!-- Tarjeta Resumen de la Orden -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+          <span style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Orden de Lote:</span>
+          <span id="reviewBatchOrderNumber" class="text-mono" style="font-weight: 800; color: #38bdf8;">LOTE-XXXX</span>
+        </div>
+        <div style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.4rem;" id="reviewBatchDeptName">
+          Dirección...
+        </div>
+        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.6rem;">
+          Delegado: <strong id="reviewBatchDelegate" style="color: #e2e8f0;">--</strong>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; background: rgba(2, 6, 23, 0.5); padding: 0.5rem; border-radius: 6px; text-align: center;">
+          <div>
+            <span style="font-size: 0.65rem; color: #94a3b8;">Beneficiarios:</span>
+            <div id="reviewBatchWorkers" style="font-weight: 800; color: #f8fafc; font-size: 0.95rem;">0</div>
+          </div>
+          <div>
+            <span style="font-size: 0.65rem; color: #94a3b8;">Combos:</span>
+            <div id="reviewBatchCombos" style="font-weight: 800; color: #38bdf8; font-size: 0.95rem;">0</div>
+          </div>
+          <div>
+            <span style="font-size: 0.65rem; color: #94a3b8;">Peso Total:</span>
+            <div id="reviewBatchWeight" style="font-weight: 800; color: #34d399; font-size: 0.95rem;">0 kg</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Observaciones de RRHH -->
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem;">
+          Observaciones de Gestión Humana:
+        </label>
+        <textarea id="reviewBatchNotesInput" class="form-input" rows="3" placeholder="Indique observaciones de conformidad o motivo de rechazo..." style="font-size: 0.8rem; resize: vertical;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 0.65rem;">
+        <button type="button" id="btnApproveBatchOrder" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff;">
+          ✅ Aprobar y Pasar a Almacén
+        </button>
+        <button type="button" id="btnRejectBatchOrder" class="btn btn-outline" style="padding: 0.65rem 1rem; border-color: #ef4444; color: #fca5a5;">
+          ❌ Rechazar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 3: DESPACHO FÍSICO EN ALMACÉN (FASE 4 - ETAPA 3)
+     ====================================================================== -->
+<div id="dispatchDepartmentBatchModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 540px;">
+    <div class="panel-header" style="border-bottom: 1.5px solid rgba(52, 211, 153, 0.4);">
+      <div class="panel-title" style="color: #34d399; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+        <span>📦 Despacho y Liquidación en Almacén</span>
+      </div>
+      <button id="btnCloseDispatchBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="padding: 0.75rem 0;">
+      <input type="hidden" id="dispatchBatchOrderId" />
+
+      <!-- Tarjeta Resumen -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+          <span style="font-size: 0.72rem; color: #94a3b8; text-transform: uppercase;">Orden Aprobada:</span>
+          <span id="dispatchBatchOrderNumber" class="text-mono" style="font-weight: 800; color: #34d399;">LOTE-XXXX</span>
+        </div>
+        <div style="font-size: 0.9rem; font-weight: 800; color: #f8fafc; margin-bottom: 0.35rem;" id="dispatchBatchDeptName">
+          Dirección...
+        </div>
+        <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.6rem;">
+          Delegado Acreditado: <strong id="dispatchBatchDelegate" style="color: #e2e8f0;">--</strong>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(2, 6, 23, 0.5); padding: 0.65rem 0.85rem; border-radius: 6px;">
+          <div>
+            <span style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase;">Combos a Descontar:</span>
+            <div id="dispatchBatchCombosCount" style="font-size: 1.25rem; font-weight: 800; color: #38bdf8;">0 Combos</div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase;">Peso de la Carga:</span>
+            <div id="dispatchBatchGrossWeight" style="font-size: 1.25rem; font-weight: 800; color: #34d399;">0 kg</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Token de Acreditación / Delegación -->
+      <div style="margin-bottom: 1rem;">
+        <label style="display: block; font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 0.35rem;">
+          🔑 Token Criptográfico de Delegación:
+        </label>
+        <input type="text" id="dispatchBatchTokenInput" class="form-input text-mono" readonly style="font-size: 0.85rem; background: rgba(2, 6, 23, 0.7); color: #38bdf8; font-weight: 700;" />
+        <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.25rem;">
+          Token único generado al aprobarse por RRHH para verificar la identidad del delegado al retirar.
+        </div>
+      </div>
+
+      <!-- Aviso de Transacción Atómica -->
+      <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 0.65rem 0.85rem; margin-bottom: 1rem; font-size: 0.74rem; color: #fbbf24; line-height: 1.4;">
+        ⚠️ <strong>Impacto Inmediato:</strong> Al despachar, el inventario de combos se rebajará automáticamente en el almacén, se marcarán los funcionarios como entregados y se generará el Acta Digital con sello SHA-256.
+      </div>
+
+      <div style="display: flex; gap: 0.65rem;">
+        <button type="button" id="btnConfirmBatchDispatch" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff;">
+          🚀 Ejecutar Despacho Masivo en Almacén
+        </button>
+        <button type="button" id="btnCancelDispatchBatchModal" class="btn btn-outline" style="padding: 0.75rem 1rem;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 4: ACTA DIGITAL OFICIAL DE ENTREGA INSTITUCIONAL (FASE 4)
+     ====================================================================== -->
+<div id="departmentBatchActaModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+    <div class="panel-header" style="border-bottom: 1.5px solid rgba(56, 189, 248, 0.3);">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+        <span>📜 Acta Oficial de Entrega Institucional por Lote</span>
+      </div>
+      <button id="btnCloseBatchActaModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div id="actaPrintableArea" style="padding: 0.75rem 0; color: #e2e8f0;">
+      
+      <!-- ENCABEZADO OFICIAL DE LA REPÚBLICA -->
+      <div style="text-align: center; border-bottom: 2px solid rgba(255, 255, 255, 0.15); padding-bottom: 0.85rem; margin-bottom: 1rem;">
+        <div style="font-size: 0.82rem; font-weight: 800; letter-spacing: 0.05em; color: #f8fafc; text-transform: uppercase;">
+          REPÚBLICA BOLIVARIANA DE VENEZUELA
+        </div>
+        <div style="font-size: 0.76rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">
+          MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN (MIPPCI)
+        </div>
+        <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.15rem;">
+          DIRECCIÓN GENERAL DE GESTIÓN HUMANA &middot; CONTROL DE BIENESTAR ALIMENTARIO
+        </div>
+        <div style="margin-top: 0.6rem; display: inline-block; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); padding: 0.25rem 0.85rem; border-radius: 9999px; font-size: 0.78rem; font-weight: 800; color: #38bdf8;">
+          ACTA DE ENTREGA INSTITUCIONAL &middot; LOTE <span id="actaOrderNumber">LOTE-XXXX</span>
+        </div>
+      </div>
+
+      <!-- DATOS DE LA DIRECCIÓN Y DELEGADO -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.78rem;">
+          <div>
+            <span style="color: #94a3b8; font-size: 0.7rem; text-transform: uppercase;">Dependencia / Dirección:</span>
+            <div id="actaDeptName" style="font-weight: 800; color: #f8fafc;">--</div>
+            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.1rem;">
+              Código: <span id="actaDeptCode" class="text-mono">--</span> | Centro de Costo: <span id="actaCostCenter">--</span>
+            </div>
+          </div>
+          <div>
+            <span style="color: #94a3b8; font-size: 0.7rem; text-transform: uppercase;">Delegado Receptor:</span>
+            <div id="actaDelegateName" style="font-weight: 800; color: #38bdf8;">--</div>
+            <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.1rem;">
+              Cédula: <span id="actaDelegateDoc" class="text-mono" style="color: #e2e8f0;">--</span> | Tel: <span id="actaDelegatePhone">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MÉTRICAS DE LA CARGA -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; margin-bottom: 1rem; text-align: center;">
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem;">
+          <span style="font-size: 0.68rem; color: #94a3b8; text-transform: uppercase;">Beneficiarios Titulares</span>
+          <div id="actaTotalBeneficiaries" style="font-size: 1.3rem; font-weight: 800; color: #f8fafc; margin-top: 0.2rem;">0</div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 0.75rem;">
+          <span style="font-size: 0.68rem; color: #38bdf8; text-transform: uppercase;">Combos Entregados</span>
+          <div id="actaTotalCombos" style="font-size: 1.3rem; font-weight: 800; color: #38bdf8; margin-top: 0.2rem;">0</div>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 8px; padding: 0.75rem;">
+          <span style="font-size: 0.68rem; color: #34d399; text-transform: uppercase;">Peso Bruto de la Carga</span>
+          <div id="actaTotalWeight" style="font-size: 1.3rem; font-weight: 800; color: #34d399; margin-top: 0.2rem;">0 kg</div>
+        </div>
+      </div>
+
+      <!-- MUESTRA NOMINAL DE BENEFICIARIOS INCLUIDOS -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem;">
+          📋 Listado Nominal de Titulares Amparados en el Lote:
+        </div>
+        <div style="max-height: 160px; overflow-y: auto;">
+          <table style="width: 100%; font-size: 0.72rem; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; text-align: left;">
+                <th style="padding: 0.35rem 0.5rem;">Cédula</th>
+                <th style="padding: 0.35rem 0.5rem;">Funcionario / Titular</th>
+                <th style="padding: 0.35rem 0.5rem;">Cargo</th>
+                <th style="padding: 0.35rem 0.5rem;">Combo</th>
+              </tr>
+            </thead>
+            <tbody id="actaBeneficiariesSampleBody">
+              <!-- Se inyecta dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- FIRMAS Y RESPONSABLES DE LA CADENA -->
+      <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.65rem; text-align: center;">
+          Cadena de Custodia y Firmantes Autorizados:
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; font-size: 0.72rem;">
+          <div style="border-top: 1px solid #475569; padding-top: 0.5rem;">
+            <div id="actaSignRequested" style="font-weight: 700; color: #f8fafc;">Solicitado por</div>
+            <div style="color: #64748b; font-size: 0.68rem; margin-top: 0.15rem;">Delegado / Dirección</div>
+          </div>
+          <div style="border-top: 1px solid #475569; padding-top: 0.5rem;">
+            <div id="actaSignReviewed" style="font-weight: 700; color: #f8fafc;">Revisado por</div>
+            <div style="color: #64748b; font-size: 0.68rem; margin-top: 0.15rem;">Gestión Humana (RRHH)</div>
+          </div>
+          <div style="border-top: 1px solid #475569; padding-top: 0.5rem;">
+            <div id="actaSignDispatched" style="font-weight: 700; color: #f8fafc;">Despachado por</div>
+            <div style="color: #64748b; font-size: 0.68rem; margin-top: 0.15rem;">Responsable Almacén</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SELLO CRIPTOGRÁFICO SHA-256 -->
+      <div style="background: rgba(2, 6, 23, 0.7); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
+        <div id="actaQrTarget" style="background: #ffffff; padding: 6px; border-radius: 6px; width: 84px; height: 84px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"></div>
+        <div style="flex: 1; font-size: 0.7rem; color: #94a3b8; overflow: hidden;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+            <span style="font-weight: 800; color: #38bdf8;">🔒 Sello Criptográfico SHA-256</span>
+            <span id="actaDateStamp" style="color: #64748b; font-size: 0.65rem;">--</span>
+          </div>
+          <div id="actaHashLabel" class="text-mono" style="word-break: break-all; color: #a7f3d0; font-size: 0.66rem; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px;">
+            e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+          </div>
+          <div style="margin-top: 0.25rem; font-size: 0.65rem; color: #64748b;">
+            Documento electrónico inalterable emitido por la Plataforma SGBT MIPPCI.
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCIONES -->
+      <div style="display: flex; gap: 0.65rem;">
+        <button type="button" id="btnPrintBatchActa" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
+          🖨️ Imprimir Acta Oficial
+        </button>
+        <button type="button" id="btnCloseBatchActaModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 16: ACTA MINISTERIAL DEFINITIVA DE CONSOLIDACIÓN Y LIQUIDACIÓN (FASE 5)
+     Instrumento Oficial para el Despacho del Ministro e Inspectoría General
+     ====================================================================== -->
+<div id="ministerialActaModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 780px;">
+    
+    <!-- ENCABEZADO CON MEMBRETE REPUBLICANO -->
+    <div style="text-align: center; border-bottom: 2px solid #38bdf8; padding-bottom: 1rem; margin-bottom: 1.25rem; position: relative;">
+      <button id="btnCloseMinisterialActaModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar" style="position: absolute; right: 0; top: 0;">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+        <span style="font-size: 1.6rem;">🇻🇪</span>
+        <div style="font-size: 0.72rem; font-weight: 800; letter-spacing: 0.12em; color: #cbd5e1; text-transform: uppercase;">
+          República Bolivariana de Venezuela
+        </div>
+      </div>
+      <div style="font-size: 0.82rem; font-weight: 700; color: #93c5fd; text-transform: uppercase;">
+        Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)
+      </div>
+      <div style="font-size: 0.95rem; font-weight: 800; color: #ffffff; margin-top: 0.4rem; letter-spacing: 0.04em;">
+        ACTA DEFINITIVA DE CONSOLIDACIÓN DEL CENSO Y LIQUIDACIÓN PÚBLICA
+      </div>
+      <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.2rem;">
+        Gran Jornada Nacional de Despacho de Beneficios Sociales • 27 de Noviembre de 2026
+      </div>
+    </div>
+
+    <!-- METADATOS DEL ACTA -->
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; font-size: 0.75rem;">
+      <div>
+        <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Instrumento Oficial:</span>
+        <div id="ministerialActaNumber" class="text-mono" style="font-weight: 800; color: #38bdf8; font-size: 0.85rem;">ACTA-MIN-20261127-001</div>
+      </div>
+      <div>
+        <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Fecha y Hora de Emisión:</span>
+        <div id="ministerialActaGeneratedDate" style="font-weight: 600; color: #f8fafc;">--</div>
+      </div>
+      <div>
+        <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Autoridad Emisora:</span>
+        <div id="ministerialActaGeneratedBy" style="font-weight: 600; color: #f8fafc;">Despacho Ministerial / OTIC</div>
+      </div>
+    </div>
+
+    <!-- CONSOLIDADO DE INDICADORES DE IMPACTO -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; margin-bottom: 1rem;">
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+        <span style="font-size: 0.65rem; color: #38bdf8; text-transform: uppercase; font-weight: 700;">Padrón Cerrado</span>
+        <div id="ministerialActaTotalCensus" style="font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin-top: 0.15rem;">0</div>
+        <span style="font-size: 0.65rem; color: #64748b;">Funcionarios</span>
+      </div>
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+        <span style="font-size: 0.65rem; color: #34d399; text-transform: uppercase; font-weight: 700;">Formalizados</span>
+        <div id="ministerialActaTotalFormalized" style="font-size: 1.25rem; font-weight: 800; color: #34d399; margin-top: 0.15rem;">0</div>
+        <span id="ministerialActaFormalizationPct" style="font-size: 0.65rem; color: #10b981; font-weight: 700;">0%</span>
+      </div>
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+        <span style="font-size: 0.65rem; color: #fbbf24; text-transform: uppercase; font-weight: 700;">Combos Asignados</span>
+        <div id="ministerialActaTotalCombos" style="font-size: 1.25rem; font-weight: 800; color: #fbbf24; margin-top: 0.15rem;">0</div>
+        <span style="font-size: 0.65rem; color: #64748b;">Unidades</span>
+      </div>
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+        <span style="font-size: 0.65rem; color: #c084fc; text-transform: uppercase; font-weight: 700;">Tonelaje Bruto</span>
+        <div id="ministerialActaGrossWeightTons" style="font-size: 1.25rem; font-weight: 800; color: #c084fc; margin-top: 0.15rem;">0.00</div>
+        <span style="font-size: 0.65rem; color: #64748b;">Toneladas</span>
+      </div>
+    </div>
+
+    <!-- MÉTRICAS DE ADOPCIÓN TECNOLÓGICA & SEGURIDAD -->
+    <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; justify-content: space-around; font-size: 0.72rem; text-align: center;">
+      <div>
+        <span style="color: #64748b;">Adopción WebAuthn / Passkeys:</span>
+        <strong id="ministerialActaPasskeyPct" style="color: #818cf8; margin-left: 0.3rem;">0%</strong>
+      </div>
+      <div>
+        <span style="color: #64748b;">Rezagados / Inasistencias:</span>
+        <strong id="ministerialActaTotalRezagados" style="color: #f87171; margin-left: 0.3rem;">0</strong>
+      </div>
+      <div>
+        <span style="color: #64748b;">Incidentes / Duplicados Bloqueados:</span>
+        <strong id="ministerialActaBlockedIncidents" style="color: #34d399; margin-left: 0.3rem;">0</strong>
+      </div>
+    </div>
+
+    <!-- MUESTRA DE LAS PRINCIPALES DEPENDENCIAS AMPARADAS -->
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+      <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; display: flex; justify-content: space-between;">
+        <span>🏛️ Balance por Viceministerios y Direcciones Principales:</span>
+        <span style="color: #38bdf8;">Consolidado Auditoría</span>
+      </div>
+      <div style="max-height: 150px; overflow-y: auto;">
+        <table style="width: 100%; font-size: 0.72rem; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; text-align: left;">
+              <th style="padding: 0.35rem 0.5rem;">Dependencia / Viceministerio</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Padrón</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Formalizados</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Rezagados</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: center;">% Cobertura</th>
+            </tr>
+          </thead>
+          <tbody id="ministerialActaTopDeptsBody">
+            <!-- Inyección dinámica -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CADENA INSTITUCIONAL DE CUSTODIA Y FIRMANTES -->
+    <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+      <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.65rem; text-align: center;">
+        Firmas Institucionales de Conformidad y Cierre:
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center; font-size: 0.7rem;">
+        <div style="border-top: 1px solid #475569; padding-top: 0.4rem;">
+          <div id="signMinisterialViceminister" style="font-weight: 700; color: #f8fafc; font-size: 0.68rem;">Despacho Viceministro</div>
+          <div style="color: #64748b; font-size: 0.65rem;">Gestión Comunicacional</div>
+        </div>
+        <div style="border-top: 1px solid #475569; padding-top: 0.4rem;">
+          <div id="signMinisterialRrhh" style="font-weight: 700; color: #f8fafc; font-size: 0.68rem;">Dirección Gral. RRHH</div>
+          <div style="color: #64748b; font-size: 0.65rem;">Gestión Humana</div>
+        </div>
+        <div style="border-top: 1px solid #475569; padding-top: 0.4rem;">
+          <div id="signMinisterialOtic" style="font-weight: 700; color: #f8fafc; font-size: 0.68rem;">Dirección OTIC</div>
+          <div style="color: #64748b; font-size: 0.65rem;">Tecnología y Seguridad</div>
+        </div>
+        <div style="border-top: 1px solid #475569; padding-top: 0.4rem;">
+          <div id="signMinisterialAudit" style="font-weight: 700; color: #f8fafc; font-size: 0.68rem;">Inspectoría General</div>
+          <div style="color: #64748b; font-size: 0.65rem;">Auditoría Interna</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SELLO CRIPTOGRÁFICO SHA-256 Y CÓDIGO QR -->
+    <div style="background: rgba(2, 6, 23, 0.7); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 1rem;">
+      <div id="ministerialActaQrTarget" style="background: #ffffff; padding: 6px; border-radius: 6px; width: 84px; height: 84px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"></div>
+      <div style="flex: 1; font-size: 0.7rem; color: #94a3b8; overflow: hidden;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+          <span style="font-weight: 800; color: #38bdf8;">🔒 Sello Criptográfico SHA-256 Definitivo</span>
+          <span id="ministerialActaDateStamp" style="color: #64748b; font-size: 0.65rem;">2026-11-27</span>
+        </div>
+        <div id="ministerialActaHashLabel" class="text-mono" style="word-break: break-all; color: #a7f3d0; font-size: 0.66rem; background: rgba(0,0,0,0.3); padding: 4px; border-radius: 4px;">
+          e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        </div>
+        <div style="margin-top: 0.25rem; font-size: 0.65rem; color: #64748b;">
+          Instrumento legal emitido bajo el marco normativo del SGBT. Sello inalterable e incorruptible.
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCIONES -->
+    <div style="display: flex; gap: 0.65rem;">
+      <button type="button" id="btnPrintMinisterialActaModal" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
+        🖨️ Imprimir / Exportar Acta Definitiva
+      </button>
+      <button type="button" id="btnCloseMinisterialActaModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+        Cerrar
+      </button>
+    </div>
+
+  </div>
+</div>

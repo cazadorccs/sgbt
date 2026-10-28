@@ -35,46 +35,50 @@
     {
       "phase": 3,
       "name": "Simplificación de Despacho a Retiro Único Totalizado (Totalidad de Combos en 1 solo Escaneo QR)",
-      "status": "PENDIENTE",
-      "target_sprint": "Próxima implementación",
+      "status": "COMPLETADO",
+      "target_sprint": "Sprint 3",
       "description": "Unificación de la validación de entrega en un solo código QR atómico que liquide la totalidad de combos asignados al trabajador en la jornada (Víveres Secos + Proteína + Combos Especiales) en una única transacción de base de datos.",
       "deliverables": [
-        "QR consolidado multifunción en carnet de beneficiario",
-        "Transacción atómica SQL en dispatch.controller.js (despacho totalizado)",
-        "Transición de device_locks a completed al primer escaneo atómico",
-        "Modo Retiro Total vs Modo Estación en mesa de despacho de almacén",
-        "Comprobante digital consolidado de entrega total"
+        "QR consolidado multifunción en carnet de beneficiario (targetStation = 'all')",
+        "Transacción atómica SQL en dispatch.controller.js (POST /api/v1/dispatch/atomic-claim)",
+        "Transición inmediata de device_locks a completed al primer escaneo atómico",
+        "Modo Retiro Total vs Modo Estación con conmutador en terminal de almacén",
+        "Comprobante digital consolidado (#consolidatedReceiptModalBackdrop)",
+        "Motor de sincronización atómica offline recordAtomicDeliveries en delivery.service.js"
       ],
-      "verification": "Pruebas de despacho atómico sin dobles consumos y verificación de liberación inmediata de candado"
+      "verification": "node scratch/test_phase3_flow.js (100% aprobado), npm test (26/26 aprobado), npm run test:offline (9/9 aprobado)"
     },
     {
       "phase": 4,
       "name": "Módulo de Entregas Masivas por Dependencia / Unidad y Cadena de Aprobación",
-      "status": "PENDIENTE",
+      "status": "COMPLETADO",
       "target_sprint": "Pre-Jornada",
-      "description": "Gestión de lotes institucionales (ej. 300 combos) asignados a direcciones o viceministerios, con cadena de aprobación jerárquica (Solicitud -> RRHH -> Almacén), deducción masiva de stock y marcado automático de beneficiarios adscritos con firma de token de delegación.",
+      "description": "Gestión de lotes institucionales (50 a 300+ combos por lote) asignados a direcciones o viceministerios, con cadena de aprobación jerárquica (Solicitud -> RRHH -> Almacén), deducción atómica de inventario en combos, marcado automático de beneficiarios adscritos con token de delegación, liberación de candados de dispositivo y acta oficial con firma criptográfica SHA-256.",
       "deliverables": [
-        "Selector de departamentos y asignación masiva de lote",
-        "Flujo de estados de aprobación (pending_review, approved, dispatched)",
-        "Marcado automático en bloque de beneficiarios como 'Entregado por Lote'",
-        "Acta digital de entrega departamental firmada por delegado receptor",
-        "Deducción atómica de inventario institucional"
+        "Tabla department_batch_orders con índices y migraciones en backend/db.js",
+        "Controlador modular department_batch.controller.js y rutas department_batch.routes.js",
+        "Cadena de aprobación en 3 etapas: Solicitud -> Revisión RRHH -> Despacho en Almacén",
+        "Subtab en portal web (subtab-department-batches) y módulo frontend department_batches.js",
+        "4 Ventanas modales (#createDepartmentBatchModalBackdrop, #reviewDepartmentBatchModalBackdrop, #dispatchDepartmentBatchModalBackdrop, #departmentBatchActaModalBackdrop)",
+        "Bloqueo anti-fraude estricto en dispatch.controller y auth.controller (HTTP 409 con mensaje de lote)",
+        "Acta digital de entrega con sello criptográfico SHA-256 y muestra nominal de funcionarios"
       ],
-      "verification": "Prueba de lote de 300 combos con verificación de descuento de stock y bloqueo de retiro individual"
+      "verification": "node scratch/test_phase4_flow.js (8/8 pruebas exitosas - 100%), npm test (26/26 pruebas exitosas), npm run test:offline (9/9 pruebas exitosas)"
     },
     {
       "phase": 5,
       "name": "Monitor de Formalización Previa (Cierre 12/Nov) y Auditoría Ministerial (Jornada 27/Nov)",
-      "status": "PENDIENTE",
+      "status": "COMPLETADO",
       "target_sprint": "Cierre Operativo",
       "description": "Panel de control gerencial para seguimiento del porcentaje de formalización antes de la fecha límite del 12 de noviembre, exportación de reportes de rezagados, congelamiento formal del padrón y generación de actas oficiales con firma criptográfica SHA-256 para la jornada del 27 de noviembre.",
       "deliverables": [
-        "Dashboard con KPIs de formalización y semaforización por viceministerio/dirección",
-        "Módulo de reporte y exportación de personal no formalizado (rezagados)",
-        "Bloqueo automático de formalización post-12/11/2026",
-        "Generador de Acta Ministerial Definitiva con hash SHA-256 para auditoría de Despacho e Inspectoría"
+        "Dashboard con KPIs de formalización y semaforización por viceministerio/dirección (verde/amarillo/rojo)",
+        "Módulo de reporte y exportación nominal de personal rezagado en CSV oficial (BOM UTF-8)",
+        "Mecanismo de congelamiento administrativo (HTTP 423 Locked) y prórroga extraordinaria del padrón",
+        "Generador de Acta Ministerial Definitiva con sello criptográfico SHA-256, cálculo de tonelaje y 4 firmas institucionales",
+        "Subtab web institucional subtab-ministerial-audit, modal oficial ministerialActaModalBackdrop y módulo JS ministerial_audit.js"
       ],
-      "verification": "Auditoría de integridad de nómina cerrada y generación exitosa del acta ministerial criptográfica"
+      "verification": "node scratch/test_phase5_flow.js (8/8 pruebas exitosas - 100%), node scratch/test_phase4_flow.js (8/8 pruebas exitosas), node scratch/test_phase3_flow.js (6/6 pruebas exitosas), npm test (26/26 pruebas exitosas), npm run test:offline (9/9 pruebas exitosas)"
     }
   ],
   "rollback_strategy": "Git restore de los controladores y esquemas modificados si alguna verificación falla",
