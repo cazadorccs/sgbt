@@ -322,6 +322,15 @@ function initializeDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 11.1 VINCULACIÓN MULTI-COMBO POR JORNADA
+    CREATE TABLE IF NOT EXISTS campaign_combos (
+      campaign_id TEXT NOT NULL REFERENCES delivery_campaigns(id) ON DELETE CASCADE,
+      combo_id TEXT NOT NULL REFERENCES combos(id) ON DELETE CASCADE,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (campaign_id, combo_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_campaign_combos_camp ON campaign_combos(campaign_id);
+
     -- 12. NOTIFICACIONES DEL SISTEMA (IN-APP & WEB PUSH)
     CREATE TABLE IF NOT EXISTS system_notifications (
       id TEXT PRIMARY KEY,
@@ -630,20 +639,42 @@ function initializeDatabase() {
     `).run(crypto.randomUUID(), campId);
   }
 
-  // Actualizar detalle de rubros para combos existentes si están vacíos
+  // Actualizar detalle de rubros para los cuatro combos institucionales
   try {
     db.prepare(`
       UPDATE combos 
       SET items_detail = '4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros (Caraotas), 2 Latas de Sardinas en Aceite',
-          icon = '🌾'
-      WHERE category = 'almuerzo' OR category = 'bolsa_viveres'
+          icon = '🌾',
+          weight_kg = 14.5,
+          is_active = 1
+      WHERE category = 'bolsa_viveres' OR category = 'almuerzo' OR id = 'c1a2b3c4-1111-2222-3333-444455556666'
     `).run();
 
     db.prepare(`
       UPDATE combos 
-      SET items_detail = '2 Polleras Enteras Beneficiadas (aprox. 4.2 kg), 1 Pieza de Carne de Res para Guisar (1.5 kg), 1 Cartón de Huevos Frescos (30 unidades)',
-          icon = '🍗'
-      WHERE category = 'proteico'
+      SET items_detail = '4 artículos esenciales: 4 Jabones de Tocador, 1 Crema Dental (100ml), 1 Champú Familiar (400ml), 4 Rollos de Papel Higiénico',
+          icon = '🧼',
+          weight_kg = 5.2,
+          is_active = 1
+      WHERE id = '3df50537-3333-4fce-8bdc-f4ecbb567adf' OR (name LIKE '%Higiene%' AND name NOT LIKE '%Limpieza%')
+    `).run();
+
+    db.prepare(`
+      UPDATE combos 
+      SET items_detail = 'Artículos de limpieza: 1 Detergente en Polvo (1kg), 1 Jabón Lavaplatos en Crema (500g), 1 Desinfectante Multiuso (1 Lt), 1 Cloro Concentrado (1 Lt)',
+          icon = '🧹',
+          weight_kg = 5.2,
+          is_active = 1
+      WHERE id = '2e39c4a5-0611-4a03-b10c-08ef7e270684' OR name LIKE '%Limpieza%'
+    `).run();
+
+    db.prepare(`
+      UPDATE combos 
+      SET items_detail = 'Cadena de frío: 1 Pieza Queso Blanco Semiduro (1.2 kg), 1 Jamón de Espalda Cocido (1.0 kg), 1 Mortadela Especial (1.0 kg), 1 Paquete de Salchichas (500g)',
+          icon = '🧀',
+          weight_kg = 3.7,
+          is_active = 1
+      WHERE id = 'c1a2b3c4-1111-2222-3333-444455557777' OR name LIKE '%Charcuter%'
     `).run();
 
     // Garantizar asignaciones para todos los combos activos para hoy (en bloque atómico)

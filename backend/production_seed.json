@@ -20105,6 +20105,30 @@
       "status": "finalizada",
       "notification_sent": 1,
       "created_at": "2026-10-20 16:42:47"
+    },
+    {
+      "id": "camp_20261023_historica",
+      "name": "Jornada Integral de Despacho Institucional - Octubre 2026",
+      "description": "Jornada efectuada el pasado viernes 23/10/2026. Despacho completo y simultáneo de los 4 combos institucionales: Víveres, Higiene, Limpieza y Charcutería a todo el personal convocado.",
+      "start_date": "2026-10-23",
+      "end_date": "2026-10-23",
+      "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
+      "target_group": "all",
+      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
+      "status": "finalizada",
+      "notification_sent": 1
+    },
+    {
+      "id": "camp_20261127_programada",
+      "name": "Jornada Integral de Despacho Institucional - Noviembre 2026",
+      "description": "Programación de despacho conjunto de los 4 combos institucionales (Víveres, Higiene, Limpieza y Charcutería) para el viernes 27 de noviembre de 2026.",
+      "start_date": "2026-11-27",
+      "end_date": "2026-11-27",
+      "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
+      "target_group": "all",
+      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
+      "status": "programada",
+      "notification_sent": 0
     }
   ],
   "system_notifications": [

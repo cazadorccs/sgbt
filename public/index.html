@@ -1579,12 +1579,26 @@
             </div>
           </div>
 
-          <div style="background: #f0f9ff; border-left: 3px solid #0284c7; border-radius: var(--radius-xs); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #0369a1; display: flex; align-items: center; gap: 0.5rem;">
-            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div><strong>Asignación por Jornada:</strong> Al programar una jornada puede seleccionar el universo objetivo (todos los trabajadores, activos, jubilados o por departamento), vincular un combo específico y enviar avisos a los beneficiarios.</div>
+          <!-- SELECTOR DE VISTA: JORNADAS ACTIVAS vs HISTÓRICO -->
+          <div style="display: flex; gap: 0.6rem; margin-bottom: 1.25rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.85rem; flex-wrap: wrap;">
+            <button type="button" id="tabCampaignsActive" onclick="if(typeof window.switchCampaignsView === 'function') window.switchCampaignsView('active');" class="btn btn-primary" style="font-size: 0.82rem; font-weight: 700; padding: 0.5rem 1.15rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span>Jornadas Activas y Programadas</span>
+              <span id="badgeCountActiveCampaigns" class="badge" style="background: rgba(255,255,255,0.25); color: #ffffff; font-size: 0.72rem; padding: 0.15rem 0.45rem;">0</span>
+            </button>
+            <button type="button" id="tabCampaignsHistory" onclick="if(typeof window.switchCampaignsView === 'function') window.switchCampaignsView('history');" class="btn btn-outline" style="font-size: 0.82rem; font-weight: 700; padding: 0.5rem 1.15rem; background: #ffffff; display: inline-flex; align-items: center; gap: 0.45rem;">
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              <span>Histórico de Jornadas Realizadas</span>
+              <span id="badgeCountHistoryCampaigns" class="badge" style="background: #e2e8f0; color: #475569; font-size: 0.72rem; padding: 0.15rem 0.45rem;">0</span>
+            </button>
           </div>
 
-          <!-- GRID DE JORNADAS ACTIVAS Y PROGRAMADAS -->
+          <div id="campaignsInfoAlert" style="background: #f0f9ff; border-left: 3px solid #0284c7; border-radius: var(--radius-xs); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #0369a1; display: flex; align-items: center; gap: 0.5rem;">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            <div id="campaignsInfoText"><strong>Planificación Operativa:</strong> Al programar una jornada puede convocar a la nómina institucional, asignar los combos de Víveres, Higiene, Limpieza y Charcutería, y monitorear el avance en tiempo real.</div>
+          </div>
+
+          <!-- CONTENEDOR DE JORNADAS ACTIVAS O HISTÓRICO -->
           <div id="campaignsGrid" class="campaigns-grid">
             <!-- Se inyecta dinámicamente con JavaScript -->
           </div>
