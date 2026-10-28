@@ -741,6 +741,20 @@ window.ManualDispatch = (function() {
         await searchWorker(docId);
         await loadTodaySummary();
 
+        // Difundir evento para sincronización en tiempo real en todos los paneles
+        if (typeof window.broadcastDeliveryApproval === 'function') {
+          window.broadcastDeliveryApproval({
+            valid: true,
+            worker: currentWorkerData.worker,
+            document_id: currentWorkerData.worker.document_id,
+            worker_name: currentWorkerData.worker.full_name,
+            combo_name: 'Despacho Manual RRHH',
+            verification_method: 'manual_rrhh'
+          }, { wid: currentWorkerData.worker.id });
+        } else {
+          window.dispatchEvent(new CustomEvent('delivery:completed', { detail: res }));
+        }
+
         // Limpiar el campo de búsqueda y reenfocar
         const searchInput = document.getElementById('inputManualCedula');
         if (searchInput) {
@@ -923,9 +937,36 @@ window.addEventListener('combos:updated', () => {
 });
 
 // Actualizar automáticamente tras cada entrega validada en cualquier módulo
-window.addEventListener('delivery:completed', () => {
+window.addEventListener('delivery:completed', (e) => {
+  console.log('⚡ [MANUAL DISPATCH] Evento delivery:completed detectado, refrescando feed en vivo...');
   if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
     window.ManualDispatch.loadTodaySummary();
+  }
+});
+
+// Sincronización en tiempo real entre pestañas mediante BroadcastChannel
+if ('BroadcastChannel' in window) {
+  try {
+    const liveDispatchChannel = new BroadcastChannel('sgbt_qr_channel');
+    liveDispatchChannel.onmessage = (event) => {
+      if (event && event.data && (event.data.type === 'DELIVERY_APPROVED' || event.data.type === 'DELIVERY_COMPLETED')) {
+        console.log('📡 [MANUAL DISPATCH] Mensaje BroadcastChannel recibido:', event.data);
+        if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+          window.ManualDispatch.loadTodaySummary();
+        }
+      }
+    };
+  } catch (bcErr) {
+    console.warn('[MANUAL DISPATCH] Error inicializando BroadcastChannel:', bcErr);
+  }
+}
+
+// Respaldo de sincronización inter-ventanas mediante StorageEvent
+window.addEventListener('storage', (e) => {
+  if (e.key === 'sgbt_last_delivery_event') {
+    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+      window.ManualDispatch.loadTodaySummary();
+    }
   }
 });
 
@@ -935,6 +976,19 @@ window.addEventListener('focus', () => {
     window.ManualDispatch.loadTodaySummary();
   }
 });
+
+// Sondeo adaptativo en segundo plano cada 5 segundos si el panel o el modal de despachos están visibles
+setInterval(() => {
+  const isModalOpen = document.getElementById('recentDeliveriesModalBackdrop')?.classList.contains('active');
+  const isManualTabActive = document.getElementById('subtab-manual-dispatch')?.style.display === 'block';
+  const isDistributorActive = document.getElementById('view-distributor')?.classList.contains('active-view');
+  
+  if ((isModalOpen || isManualTabActive || isDistributorActive) && document.visibilityState === 'visible') {
+    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+      window.ManualDispatch.loadTodaySummary();
+    }
+  }
+}, 5000);
 
 document.addEventListener('DOMContentLoaded', () => {
   if (window.ManualDispatch && typeof window.ManualDispatch.init === 'function') {

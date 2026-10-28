@@ -193,6 +193,20 @@ const deliverManualCombos = (req, res) => {
 
     tx();
 
+    // Notificar evento a clientes SSE conectados
+    try {
+      const { notifyDeliveryStream } = require('../services/sse.service');
+      notifyDeliveryStream(worker.id, {
+        valid: true,
+        type: 'manual_rrhh',
+        worker_id: worker.id,
+        worker_name: worker.full_name,
+        document_id: worker.document_id,
+        combos_delivered: deliveredItems,
+        delivered_at: new Date().toISOString()
+      });
+    } catch (e) {}
+
     // Consultar resumen actualizado
     const allEnts = db.prepare("SELECT status FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").all(worker.id, today);
     const remainingPending = allEnts.filter(e => e.status === 'pending').length;
@@ -393,7 +407,7 @@ const incorporateAndDeliver = (req, res) => {
 };
 
 // 4. Estadísticas del día y lista de despachos recientes
-const getTodayStatsAndRecent = (req, res) => {
+const getTodayStatsAndRecent = async (req, res) => {
   const todayUtc = new Date().toISOString().split('T')[0];
   const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
   const today = todayVzla;
@@ -402,6 +416,44 @@ const getTodayStatsAndRecent = (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+
+    // Hidratación reactiva desde Supabase Cloud si estamos en serverless y no hay entregas locales
+    try {
+      const localCount = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE delivered_at >= datetime('now', '-24 hours')").get()?.c || 0;
+      if (localCount === 0) {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 800));
+          const queryPromise = supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(60);
+          const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
+          if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
+            const insRemoteDelivery = db.prepare(`
+              INSERT OR IGNORE INTO deliveries (
+                id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+                verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            for (const d of remoteDeliveries) {
+              insRemoteDelivery.run(
+                d.id,
+                d.entitlement_id,
+                d.worker_id,
+                d.distribution_point_id,
+                d.delivered_by_user_id,
+                d.verification_method || 'passkey_qr',
+                d.signature_proof,
+                d.challenge_nonce,
+                d.is_offline_sync ? 1 : 0,
+                d.delivered_at,
+                d.campaign_id
+              );
+            }
+          }
+        }
+      }
+    } catch (sbSyncErr) {
+      // Ignorar fallback silenciosamente
+    }
 
     const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active'").get().c;
     const totalAssigned = db.prepare(`

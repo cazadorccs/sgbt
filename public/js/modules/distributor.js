@@ -504,12 +504,25 @@ function broadcastDeliveryApproval(deliveryResult, payload = {}) {
       timestamp: Date.now(),
       worker_id: (deliveryResult.worker && deliveryResult.worker.id) || deliveryResult.worker_id || payload.wid,
       document_id: (deliveryResult.worker && deliveryResult.worker.document_id) || deliveryResult.document_id,
+      worker_name: (deliveryResult.worker && deliveryResult.worker.full_name) || deliveryResult.worker_name,
+      combo_name: deliveryResult.combo_name || (deliveryResult.combos_delivered?.[0]?.combo_name),
       entitlement_id: payload.ent,
       nonce: payload.nonce,
       station: deliveryResult.station || (STATE.activeStation === '2' ? 2 : 1),
       toast_message: deliveryResult.toast_message,
       delivery: deliveryResult
     };
+
+    // 1. Notificar inmediatamente a la ventana y componentes locales
+    window.dispatchEvent(new CustomEvent('delivery:completed', { detail: data }));
+    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+      window.ManualDispatch.loadTodaySummary();
+    }
+    if (typeof window.refreshPortalData === 'function') {
+      window.refreshPortalData();
+    }
+
+    // 2. Difundir a otras pestañas o ventanas activas
     if ('BroadcastChannel' in window) {
       const bc = new BroadcastChannel('sgbt_qr_channel');
       bc.postMessage(data);
