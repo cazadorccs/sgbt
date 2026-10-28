@@ -110,6 +110,38 @@
       if (btnPrintActa) {
         btnPrintActa.addEventListener('click', () => this.printActa());
       }
+
+      // 8. Respaldo delegado por si los elementos se inyectaron asíncronamente
+      document.addEventListener('click', (e) => {
+        if (e.target.closest('#btnCloseCreateBatchModal, #btnCancelCreateBatchModal')) {
+          this.closeCreateModal();
+        } else if (e.target.closest('#btnCloseReviewBatchModal')) {
+          this.closeReviewModal();
+        } else if (e.target.closest('#btnCloseDispatchBatchModal, #btnCancelDispatchBatchModal')) {
+          this.closeDispatchModal();
+        } else if (e.target.closest('#btnCloseBatchActaModal, #btnCloseBatchActaModalBtn')) {
+          this.closeActaModal();
+        }
+      });
+
+      // 9. Re-vincular al completarse la inyección de plantillas HTML
+      window.addEventListener('templates:loaded', () => {
+        const createForm = document.getElementById('createBatchOrderForm');
+        if (createForm && !createForm._hasBatchListener) {
+          createForm._hasBatchListener = true;
+          createForm.addEventListener('submit', (e) => this.submitCreateOrder(e));
+        }
+        const deptSelect = document.getElementById('createBatchDeptSelect');
+        if (deptSelect && !deptSelect._hasBatchListener) {
+          deptSelect._hasBatchListener = true;
+          deptSelect.addEventListener('change', () => this.updateCreateProjection());
+        }
+        const comboSelect = document.getElementById('createBatchComboSelect');
+        if (comboSelect && !comboSelect._hasBatchListener) {
+          comboSelect._hasBatchListener = true;
+          comboSelect.addEventListener('change', () => this.updateCreateProjection());
+        }
+      });
     },
 
     /**

@@ -12,6 +12,7 @@ const STATIC_ASSETS = [
   '/js/qrcode.js',
   '/js/html5-qrcode.min.js',
   '/js/core/templates.js',
+  '/js/core/modal_controller.js',
   '/js/core/state.js',
   '/js/core/offline_store.js',
   '/js/core/audio.js',

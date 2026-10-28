@@ -1831,7 +1831,7 @@
       <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
         <span>🏢 Nueva Solicitud de Lote Departamental</span>
       </div>
-      <button id="btnCloseCreateBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+      <button id="btnCloseCreateBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar" onclick="window.DepartmentBatches && window.DepartmentBatches.closeCreateModal()">
         <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -1918,7 +1918,7 @@
         <button type="submit" id="btnSubmitCreateBatchOrder" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
           📝 Registrar Solicitud de Lote
         </button>
-        <button type="button" id="btnCancelCreateBatchModal" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+        <button type="button" id="btnCancelCreateBatchModal" class="btn btn-outline" style="padding: 0.65rem 1rem;" onclick="window.DepartmentBatches && window.DepartmentBatches.closeCreateModal()" data-dismiss="modal">
           Cancelar
         </button>
       </div>
@@ -1935,7 +1935,7 @@
       <div class="panel-title" style="color: #fbbf24; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
         <span>⚖️ Revisión de Lote Departamental (RRHH)</span>
       </div>
-      <button id="btnCloseReviewBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+      <button id="btnCloseReviewBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar" onclick="window.DepartmentBatches && window.DepartmentBatches.closeReviewModal()" data-dismiss="modal">
         <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -2004,7 +2004,7 @@
       <div class="panel-title" style="color: #34d399; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
         <span>📦 Despacho y Liquidación en Almacén</span>
       </div>
-      <button id="btnCloseDispatchBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+      <button id="btnCloseDispatchBatchModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar" onclick="window.DepartmentBatches && window.DepartmentBatches.closeDispatchModal()" data-dismiss="modal">
         <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -2060,7 +2060,7 @@
         <button type="button" id="btnConfirmBatchDispatch" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff;">
           🚀 Ejecutar Despacho Masivo en Almacén
         </button>
-        <button type="button" id="btnCancelDispatchBatchModal" class="btn btn-outline" style="padding: 0.75rem 1rem;">
+        <button type="button" id="btnCancelDispatchBatchModal" class="btn btn-outline" style="padding: 0.75rem 1rem;" onclick="window.DepartmentBatches && window.DepartmentBatches.closeDispatchModal()" data-dismiss="modal">
           Cancelar
         </button>
       </div>
@@ -2077,7 +2077,7 @@
       <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
         <span>📜 Acta Oficial de Entrega Institucional por Lote</span>
       </div>
-      <button id="btnCloseBatchActaModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+      <button id="btnCloseBatchActaModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar" onclick="window.DepartmentBatches && window.DepartmentBatches.closeActaModal()" data-dismiss="modal">
         <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>

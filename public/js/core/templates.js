@@ -36,6 +36,7 @@ window.loadTemplates = async function() {
     const html = await res.text();
     container.innerHTML = html;
     console.log('✅ [Templates] 15 Ventanas modales institucionales inyectadas en el DOM.');
+    window.dispatchEvent(new CustomEvent('templates:loaded'));
   } catch (err) {
     console.error('❌ [Templates] Error cargando /templates/modals.html:', err);
     if (typeof window.showToast === 'function') {
