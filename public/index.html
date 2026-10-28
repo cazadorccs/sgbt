@@ -267,6 +267,20 @@
 
           <!-- CONTENEDOR 1: ACCESO BENEFICIARIO / ALMACÉN -->
           <div id="beneficiaryFieldsContainer">
+            <!-- PROCESO OBLIGATORIO Y SINE QUA NON: FORMALIZACIÓN Y VALIDACIÓN (CAMPAÑA 27/NOV) -->
+            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 0.95rem; font-size: 0.78rem; color: #065f46; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);">
+              <span style="font-size: 1.25rem; line-height: 1;">📋</span>
+              <div style="flex: 1;">
+                <div style="font-weight: 800; color: #065f46; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <span>Formalización y Validación Obligatoria</span>
+                  <span style="background: #059669; color: #ffffff; font-size: 0.62rem; padding: 1px 6px; border-radius: 9999px; font-weight: 700;">Jornada 27/Nov</span>
+                </div>
+                <div style="font-size: 0.71rem; color: #047857; margin-top: 0.2rem; line-height: 1.35;">
+                  Proceso indispensable para activar su derecho y retirar su beneficio. Ingrese su Cédula y el sistema le guiará automáticamente.
+                </div>
+              </div>
+            </div>
+
             <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
               Cédula de Identidad del Trabajador
             </label>
@@ -306,22 +320,10 @@
               </div>
             </div>
 
-            <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700; gap: 0.5rem;">
+            <button id="btnLoginSubmit" type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem; font-size: 0.95rem; font-weight: 700; gap: 0.5rem; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-              <span>Ingresar / Consultar Beneficio</span>
+              <span>Continuar con Cédula de Identidad</span>
             </button>
-
-            <div style="margin-top: 0.65rem; text-align: center;">
-              <button type="button" id="btnCheckBeneficiaryEnrollment" style="background: none; border: none; font-size: 0.74rem; color: #0284c7; cursor: pointer; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
-                <span>📋 Formalización y Validación de Beneficiario (Campaña 27/Nov)</span>
-              </button>
-            </div>
-
-            <div style="margin-top: 0.5rem; text-align: center;">
-              <button type="button" id="btnSwitchToAdminLogin" onclick="window.setLoginMode && window.setLoginMode('admin');" style="background: none; border: none; font-size: 0.76rem; color: #64748b; cursor: pointer; text-decoration: underline; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
-                <span>🔒 ¿Desea administrar el sistema? Ingrese aquí</span>
-              </button>
-            </div>
           </div>
 
           <!-- CONTENEDOR 2: ACCESO DE ADMINISTRACIÓN Y SUPERVISIÓN -->
@@ -470,9 +472,6 @@
           <div style="display: flex; align-items: center; gap: 0.35rem;">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
             <span>Sistema Oficial Protegido &middot; Ministerio del Poder Popular para la Comunicación y la Información</span>
-          </div>
-          <div style="margin-top: 0.25rem;">
-            <a href="dossier.html" target="_blank" style="color: #0284c7; text-decoration: underline; font-weight: 600; font-size: 0.72rem;">📄 Ver Dossier Ejecutivo / One-Pager</a>
           </div>
         </div>
 
@@ -844,6 +843,10 @@
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Exportar CSV</span>
           </button>
+          <a href="dossier.html" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; color: #0284c7; border-color: #38bdf8; background: #f0f9ff; text-decoration: none;" title="Abrir Dossier Ejecutivo Ministerial / One-Pager">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <span>📄 Dossier Ejecutivo</span>
+          </a>
         </div>
       </div>
 
@@ -1237,12 +1240,8 @@
               <option value="activo">Funcionario Activo</option>
               <option value="contratado">Personal Contratado</option>
             </select>
-            <select id="filterShiftSelect" class="form-select">
+            <select id="filterShiftSelect" class="form-select" style="display: none;">
               <option value="">Todos los Turnos</option>
-              <option value="jornada_continua">Jornada Continua</option>
-              <option value="mañana">Mañana</option>
-              <option value="tarde">Tarde</option>
-              <option value="noche">Noche</option>
             </select>
             <select id="filterStatusSelect" class="form-select">
               <option value="">Todos los Estados</option>
@@ -1255,12 +1254,12 @@
             <table class="modern-table">
               <thead>
                 <tr>
+                  <th style="width: 56px; text-align: center;">Foto</th>
                   <th>Cédula / Documento</th>
                   <th>Nombre Completo</th>
                   <th>Rol Institucional</th>
                   <th>Condición Laboral</th>
                   <th>Departamento</th>
-                  <th>Turno</th>
                   <th>Método de Validación</th>
                   <th>Derecho de Hoy</th>
                   <th>Acciones</th>
@@ -1543,6 +1542,23 @@
                 Personalice la plataforma con el nombre, logotipo oficial, lema y paleta de colores de cualquier ministerio, gobernación, alcaldía o ente público.
               </div>
             </div>
+          </div>
+
+          <!-- TARJETA DESTACADA: DOSSIER EJECUTIVO / ONE-PAGER MINISTERIAL -->
+          <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 12px; padding: 1.15rem 1.35rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.08);">
+            <div>
+              <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.25rem;">📄</span>
+                <span>Dossier Ejecutivo & One-Pager Institucional</span>
+              </div>
+              <div style="font-size: 0.78rem; color: #0284c7; margin-top: 0.25rem; max-width: 540px; line-height: 1.4;">
+                Consulte y comparta el informe técnico de alto nivel con arquitectura, trazabilidad criptográfica, mitigaciones de seguridad y modelo operativo ministerial.
+              </div>
+            </div>
+            <a href="dossier.html" target="_blank" class="btn btn-primary" style="font-size: 0.82rem; padding: 0.6rem 1.15rem; font-weight: 700; background: #0284c7; display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; border: none; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);">
+              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+              <span>Abrir Dossier Ejecutivo</span>
+            </a>
           </div>
 
           <form id="brandingForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 1.25rem;">

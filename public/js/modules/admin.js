@@ -165,7 +165,47 @@ function renderWorkersPage() {
         ? '<span class="badge badge-override">Pendiente</span>'
         : '<span class="badge" style="background: rgba(255,255,255,0.05); color: #94a3b8;">Sin Asignar</span>';
 
+      // Generación de Foto / Avatar del Empleado
+      let avatarHtml = '';
+      const nameParts = (w.full_name || 'U').trim().split(/\s+/);
+      const initials = nameParts.length >= 2 
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+        : nameParts[0].substring(0, 2).toUpperCase();
+
+      const bgColors = ['#0284c7', '#0d9488', '#4f46e5', '#7c3aed', '#c026d3', '#db2777', '#ea580c', '#059669'];
+      let hash = 0;
+      for (let i = 0; i < (w.full_name || '').length; i++) {
+        hash = (hash << 5) - hash + w.full_name.charCodeAt(i);
+        hash |= 0;
+      }
+      const initialBg = bgColors[Math.abs(hash) % bgColors.length];
+      const safeWorkerName = (w.full_name || '').replace(/'/g, "\\'");
+
+      if (w.avatar_url && w.avatar_url.trim().length > 0) {
+        avatarHtml = `
+          <div style="display: flex; justify-content: center; align-items: center;">
+            <img src="${w.avatar_url}" alt="${w.full_name}" 
+                 style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #0284c7; box-shadow: 0 2px 5px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.15s ease;"
+                 onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"
+                 onclick="window.previewWorkerPhoto('${w.avatar_url}', '${safeWorkerName}', '${w.document_id}', true)"
+                 title="Ver foto de ${w.full_name}"
+                 onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width:38px;height:38px;border-radius:50%;background:${initialBg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;box-shadow:0 2px 4px rgba(0,0,0,0.1);\\' title=\\'${safeWorkerName}\\'>${initials}</div>';">
+          </div>
+        `;
+      } else {
+        avatarHtml = `
+          <div style="display: flex; justify-content: center; align-items: center;">
+            <div style="width: 38px; height: 38px; border-radius: 50%; background: ${initialBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3); cursor: pointer;"
+                 onclick="window.previewWorkerPhoto('', '${safeWorkerName}', '${w.document_id}', false)"
+                 title="Sin foto formalizada - ${w.full_name}">
+              ${initials}
+            </div>
+          </div>
+        `;
+      }
+
       tr.innerHTML = `
+        <td style="text-align: center; vertical-align: middle;">${avatarHtml}</td>
         <td class="text-mono" style="font-weight: 600;">${w.document_id}</td>
         <td>
           <div style="font-weight: 600;">${w.full_name}</div>
@@ -174,7 +214,6 @@ function renderWorkersPage() {
         <td>${roleSelectHtml}</td>
         <td>${condBadge}</td>
         <td>${w.department_name || 'Sin Asignar'}</td>
-        <td style="text-transform: capitalize;">${(w.shift || '').replace('_', ' ')}</td>
         <td>
           <span class="badge ${badgeClass}">${badgeIcon} ${w.auth_label}</span>
         </td>
@@ -498,14 +537,47 @@ window.openSecurityDossier = async function(workerId) {
       dossierBadge = '<span class="badge badge-contratado">📋 Personal Contratado</span>';
     }
 
+    // Generar avatar / foto para la cabecera del Expediente Digital
+    const dNameParts = (worker.full_name || 'U').trim().split(/\s+/);
+    const dInitials = dNameParts.length >= 2 
+      ? (dNameParts[0][0] + dNameParts[dNameParts.length - 1][0]).toUpperCase()
+      : dNameParts[0].substring(0, 2).toUpperCase();
+    const safeWorkerName = (worker.full_name || '').replace(/'/g, "\\'");
+
+    let dossierPhotoHtml = '';
+    if (worker.avatar_url && worker.avatar_url.trim().length > 0) {
+      dossierPhotoHtml = `
+        <div style="position: relative; flex-shrink: 0; cursor: pointer;" onclick="window.previewWorkerPhoto('${worker.avatar_url}', '${safeWorkerName}', '${worker.document_id}', true)" title="Clic para ampliar fotografía">
+          <img src="${worker.avatar_url}" alt="${worker.full_name}" 
+               style="width: 68px; height: 68px; border-radius: 12px; object-fit: cover; border: 2.5px solid #0284c7; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15);" />
+          <span style="position: absolute; bottom: -4px; right: -4px; background: #10b981; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; border: 2px solid #fff;" title="Fotografía Biométrica Formalizada">✓</span>
+        </div>
+      `;
+    } else {
+      dossierPhotoHtml = `
+        <div style="width: 68px; height: 68px; border-radius: 12px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 1.25rem; flex-shrink: 0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.15); border: 2px solid #cbd5e1; cursor: pointer;" onclick="window.previewWorkerPhoto('', '${safeWorkerName}', '${worker.document_id}', false)" title="Sin fotografía formalizada">
+          ${dInitials}
+          <span style="font-size: 0.52rem; font-weight: 700; opacity: 0.9; margin-top: 1px; letter-spacing: 0.5px;">SIN FOTO</span>
+        </div>
+      `;
+    }
+
     content.innerHTML = `
-      <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <div>
-          <h4 style="color: #0f172a; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+      <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.85rem; display: flex; gap: 0.85rem; align-items: center; margin-bottom: 1rem;">
+        ${dossierPhotoHtml}
+        <div style="flex: 1; min-width: 0;">
+          <h4 style="color: #0f172a; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
             ${worker.full_name}
             ${dossierBadge}
           </h4>
-          <div style="font-size: 0.75rem; color: #475569; margin-top: 0.2rem;">Cédula: <span class="text-mono" style="color: #0f172a; font-weight: 700;">${worker.document_id}</span> &middot; Depto: ${worker.department_name || 'N/A'}</div>
+          <div style="font-size: 0.78rem; color: #475569; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+            <span>Cédula: <strong class="text-mono" style="color: #0f172a;">${worker.document_id}</strong></span>
+            <span>&middot;</span>
+            <span>Depto: <strong>${worker.department_name || 'N/A'}</strong></span>
+          </div>
+          <div style="font-size: 0.72rem; margin-top: 0.35rem;">
+            ${worker.avatar_url ? '<span style="color: #059669; font-weight: 600;">📸 Fotografía Biométrica Registrada</span>' : '<span style="color: #d97706; font-weight: 600;">⚠️ Fotografía Pendiente por Formalizar</span>'}
+          </div>
         </div>
       </div>
 
@@ -576,8 +648,63 @@ window.assignNfcCard = async function(workerId) {
   }
 };
 
+window.previewWorkerPhoto = function(photoUrl, fullName, docId, hasPhoto) {
+  const modal = document.getElementById('workerPhotoPreviewModalBackdrop');
+  if (!modal) return;
+  const nameEl = document.getElementById('workerPhotoPreviewName');
+  const docEl = document.getElementById('workerPhotoPreviewDoc');
+  const statusEl = document.getElementById('workerPhotoPreviewStatus');
+  const wrapper = document.getElementById('workerPhotoPreviewWrapper');
+
+  if (nameEl) nameEl.textContent = fullName || 'Beneficiario Institucional';
+  if (docEl) docEl.textContent = docId || '';
+
+  if (hasPhoto && photoUrl && photoUrl.trim().length > 0) {
+    if (wrapper) {
+      wrapper.innerHTML = `
+        <img id="workerPhotoPreviewImg" src="${photoUrl}" alt="${fullName}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#0284c7;color:#fff;font-size:3rem;font-weight:800;\\'>${(fullName||'U').substring(0,2).toUpperCase()}</div>';" />
+      `;
+    }
+    if (statusEl) {
+      statusEl.textContent = '✓ Identidad Biométrica Formalizada';
+      statusEl.style.color = '#059669';
+      statusEl.style.background = '#ecfdf5';
+      statusEl.style.borderColor = '#a7f3d0';
+    }
+  } else {
+    const nameParts = (fullName || 'U').trim().split(/\s+/);
+    const initials = nameParts.length >= 2 
+      ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+      : nameParts[0].substring(0, 2).toUpperCase();
+    if (wrapper) {
+      wrapper.innerHTML = `
+        <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff;">
+          <span style="font-size: 3.5rem; font-weight: 800; line-height: 1;">${initials}</span>
+          <span style="font-size: 0.72rem; font-weight: 600; margin-top: 0.6rem; opacity: 0.9; text-transform: uppercase; letter-spacing: 0.5px;">Sin Fotografía Formalizada</span>
+        </div>
+      `;
+    }
+    if (statusEl) {
+      statusEl.textContent = '⚠️ Fotografía Pendiente por Formalizar';
+      statusEl.style.color = '#d97706';
+      statusEl.style.background = '#fffbeb';
+      statusEl.style.borderColor = '#fde68a';
+    }
+  }
+
+  modal.classList.add('active');
+};
+
 // Wire up events
 document.addEventListener('DOMContentLoaded', () => {
+  const photoModal = document.getElementById('workerPhotoPreviewModalBackdrop');
+  document.getElementById('btnClosePhotoPreviewModal')?.addEventListener('click', () => {
+    photoModal?.classList.remove('active');
+  });
+  photoModal?.addEventListener('click', (e) => {
+    if (e.target === photoModal) photoModal.classList.remove('active');
+  });
+
   let searchWorkerTimeout;
   document.getElementById('searchWorkerInput')?.addEventListener('input', () => {
     clearTimeout(searchWorkerTimeout);

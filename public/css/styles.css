@@ -2750,5 +2750,52 @@ html, body {
   max-width: 100vw;
 }
 
+/* ============================================================================
+   WEB INTERFACE GUIDELINES (Vercel Guidelines Compliance)
+   ============================================================================ */
+
+/* 1. Touch & Interaction: eliminar retraso de tap en dispositivos móviles */
+button, .btn, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 2. Focus States: anillo de foco accesible con :focus-visible */
+:focus-visible,
+.btn:focus-visible,
+.form-input:focus-visible,
+.form-select:focus-visible,
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #0284c7 !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.25) !important;
+}
+
+/* 3. Contención de scroll en modales y hojas */
+.modal-backdrop,
+.modal-dialog,
+.table-scroll-container {
+  overscroll-behavior: contain;
+}
+
+/* 4. Respeto a usuarios con sensibilidad a animaciones (A11y prefers-reduced-motion) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 5. Tipografía y alineación de números tabulares */
+table, .modern-table, .text-mono, .badge-count, .kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+
 
 

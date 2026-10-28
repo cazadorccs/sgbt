@@ -126,7 +126,7 @@ const getWorkers = (req, res) => {
 
   let sql = `
     SELECT 
-      w.id, w.document_id, w.full_name, w.email, w.role, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason,
+      w.id, w.document_id, w.full_name, w.email, w.role, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason, w.avatar_url,
       d.name as department_name,
       (SELECT COUNT(*) FROM passkey_credentials WHERE worker_id = w.id AND status = 'active') as active_passkeys,
       (SELECT card_uid FROM nfc_cards WHERE worker_id = w.id AND status = 'active' LIMIT 1) as nfc_uid,
