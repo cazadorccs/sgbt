@@ -463,6 +463,7 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE combos ADD COLUMN target_qty TEXT DEFAULT '1'"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN weight_kg REAL DEFAULT 14.0"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN stock INTEGER DEFAULT 5000"); } catch (e) {}
+  try { db.exec("ALTER TABLE combos ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE deliveries ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE deliveries ADD COLUMN batch_order_id TEXT REFERENCES department_batch_orders(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}

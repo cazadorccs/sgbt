@@ -446,14 +446,31 @@ const getCombos = async (req, res) => {
     }
   } catch (err) {}
 
-  const combos = db.prepare('SELECT * FROM combos ORDER BY created_at DESC').all();
+  const combos = db.prepare(`
+    SELECT c.*,
+           COALESCE(c.campaign_id, dc.id, de_camp.id) as campaign_id,
+           COALESCE(camp_direct.name, dc.name, de_camp.name) as campaign_name,
+           COALESCE(camp_direct.status, dc.status, de_camp.status) as campaign_status,
+           COALESCE(camp_direct.start_date, dc.start_date, de_camp.start_date) as campaign_start_date,
+           COALESCE(camp_direct.end_date, dc.end_date, de_camp.end_date) as campaign_end_date
+    FROM combos c
+    LEFT JOIN delivery_campaigns camp_direct ON c.campaign_id = camp_direct.id
+    LEFT JOIN delivery_campaigns dc ON dc.combo_id = c.id
+    LEFT JOIN (
+      SELECT DISTINCT de.combo_id, camp.id, camp.name, camp.status, camp.start_date, camp.end_date
+      FROM daily_entitlements de
+      JOIN delivery_campaigns camp ON de.campaign_id = camp.id
+    ) de_camp ON de_camp.combo_id = c.id
+    GROUP BY c.id
+    ORDER BY c.created_at DESC
+  `).all();
   res.json(combos);
 };
 
 const createCombo = async (req, res) => {
   const { 
     name, description, category, dietary_info, calories, items_detail, 
-    icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active 
+    icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active, campaign_id 
   } = req.body;
 
   if (!name || !name.trim()) {
@@ -472,16 +489,17 @@ const createCombo = async (req, res) => {
   const cons = conservation || (info.includes('Frío') ? 'Cadena de Frío (-18°C)' : 'Ambiente');
   const target = target_qty || '1';
   const activeVal = is_active !== undefined ? (is_active ? 1 : 0) : 1;
+  const cleanCampaignId = campaign_id && campaign_id.trim() ? campaign_id.trim() : null;
 
   try {
     const insert = db.prepare(`
       INSERT INTO combos (
         id, name, description, category, calories, dietary_info, items_detail, 
-        icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active
+        icon, weight_kg, mesa_name, mesa_number, conservation, target_qty, is_active, campaign_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    insert.run(newId, name.trim(), items || description || '', cat, cal, info, items, comboIcon, weight, mesa, mesaNum, cons, target, activeVal);
+    insert.run(newId, name.trim(), items || description || '', cat, cal, info, items, comboIcon, weight, mesa, mesaNum, cons, target, activeVal, cleanCampaignId);
 
     // Sincronización asíncrona garantizada con Supabase Cloud
     try {
@@ -600,7 +618,7 @@ const deleteCombo = async (req, res) => {
 
 const updateCombo = async (req, res) => {
   const { id } = req.params;
-  const { name, description, category, dietary_info, calories, items_detail, icon, weight_kg, is_active, mesa_name, mesa_number, conservation, target_qty } = req.body;
+  const { name, description, category, dietary_info, calories, items_detail, icon, weight_kg, is_active, mesa_name, mesa_number, conservation, target_qty, campaign_id } = req.body;
 
   try {
     const existing = db.prepare('SELECT * FROM combos WHERE id = ?').get(id);
@@ -610,6 +628,7 @@ const updateCombo = async (req, res) => {
 
     const cat = category !== undefined ? category : existing.category;
     const comboIcon = icon !== undefined ? icon : (existing.icon || (cat === 'proteico' || cat === 'combo_proteico' ? '🍗' : '🍱'));
+    const newCampId = campaign_id !== undefined ? (campaign_id && campaign_id.trim() ? campaign_id.trim() : null) : existing.campaign_id;
 
     db.prepare(`
       UPDATE combos SET
@@ -625,7 +644,8 @@ const updateCombo = async (req, res) => {
         mesa_name = COALESCE(?, mesa_name),
         mesa_number = COALESCE(?, mesa_number),
         conservation = COALESCE(?, conservation),
-        target_qty = COALESCE(?, target_qty)
+        target_qty = COALESCE(?, target_qty),
+        campaign_id = ?
       WHERE id = ?
     `).run(
       name !== undefined ? name.trim() : null,
@@ -641,6 +661,7 @@ const updateCombo = async (req, res) => {
       mesa_number !== undefined ? parseInt(mesa_number, 10) : null,
       conservation !== undefined ? conservation : null,
       target_qty !== undefined ? target_qty : null,
+      newCampId,
       id
     );
 

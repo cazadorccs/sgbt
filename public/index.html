@@ -1330,8 +1330,57 @@
             <div><strong>Gestión Flexible de Beneficios:</strong> Todo combo registrado en este catálogo queda disponible para asignación en jornadas, generación de QR biométricos con Passkeys y verificación física en los puntos de despacho.</div>
           </div>
 
-          <div id="combosCatalogGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.25rem;">
-            <!-- Se llena dinámicamente con app.js -->
+          <!-- BARRA DE AGRUPACIÓN, FILTRO Y ORDENAMIENTO POR JORNADAS -->
+          <div class="panel-header flex-between" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+              <!-- Selector / Botón de Agrupación -->
+              <div style="display: flex; flex-direction: column;">
+                <label style="font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 0.2rem;">Organización Visual:</label>
+                <div style="display: flex; gap: 0.25rem; background: #e2e8f0; padding: 2px; border-radius: 6px;">
+                  <button type="button" id="btnGroupCombosByCampaign" class="btn btn-sm" style="font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 4px; background: #0284c7; color: white; border: none; cursor: pointer;" title="Agrupar los combos en secciones por cada jornada">
+                    🗂️ Por Jornadas
+                  </button>
+                  <button type="button" id="btnUngroupCombos" class="btn btn-sm" style="font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 4px; background: transparent; color: #475569; border: none; cursor: pointer;" title="Ver todos los combos en una cuadrícula continua">
+                    📦 Cuadrícula Plana
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filtro por Jornada Específica -->
+              <div style="display: flex; flex-direction: column;">
+                <label for="filterCombosCampaignSelect" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 0.2rem;">Filtrar por Jornada:</label>
+                <select id="filterCombosCampaignSelect" class="form-select" style="font-size: 0.78rem; font-weight: 600; min-width: 230px; height: 32px; padding: 0.2rem 0.6rem;">
+                  <option value="all">🌐 Todas las Jornadas</option>
+                  <!-- Poblado dinámicamente -->
+                </select>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; margin-left: auto;">
+              <!-- Ordenamiento -->
+              <div style="display: flex; flex-direction: column;">
+                <label for="sortCombosSelect" style="font-size: 0.65rem; text-transform: uppercase; font-weight: 700; color: #64748b; margin-bottom: 0.2rem;">Ordenar Por:</label>
+                <select id="sortCombosSelect" class="form-select" style="font-size: 0.78rem; font-weight: 600; min-width: 210px; height: 32px; padding: 0.2rem 0.6rem;">
+                  <option value="campaign_desc">🗓️ Jornada: Más Reciente Primero</option>
+                  <option value="campaign_asc">🗓️ Jornada: Más Antigua Primero</option>
+                  <option value="name_asc">🔤 Nombre: A → Z</option>
+                  <option value="name_desc">🔤 Nombre: Z → A</option>
+                  <option value="weight_desc">⚖️ Mayor Peso (~kg)</option>
+                  <option value="status_active">● Disponibles / Activos Primero</option>
+                </select>
+              </div>
+
+              <!-- Contador de Combos visibles -->
+              <div style="align-self: flex-end; padding-bottom: 4px;">
+                <span id="combosCatalogCounterBadge" class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 0.72rem; padding: 0.35rem 0.65rem; border: 1px solid #bae6fd;">
+                  0 combos
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div id="combosCatalogGrid" style="display: flex; flex-direction: column; gap: 1.5rem;">
+            <!-- Se llena dinámicamente agrupado o en cuadrícula plana -->
           </div>
         </div>
       </div>

@@ -4,253 +4,531 @@
 
 let cachedDistributionPoints = [];
 let cachedCombos = [];
+let cachedCampaignsList = [];
+let currentCombosGrouping = 'campaign'; // 'campaign' | 'flat'
+let currentCombosCampaignFilter = 'all'; // 'all' | 'unassigned' | <uuid>
+let currentCombosSortOrder = 'campaign_desc';
+
+window.populateComboCampaignModalSelect = async function(selectedId = '') {
+  const select = document.getElementById('comboCampaignSelect');
+  if (!select) return;
+
+  if (!cachedCampaignsList || cachedCampaignsList.length === 0) {
+    try {
+      const res = await API.get('/api/v1/admin/campaigns');
+      cachedCampaignsList = Array.isArray(res) ? res : (res && res.campaigns ? res.campaigns : []);
+    } catch (e) {
+      console.warn('No se pudieron precargar jornadas para modal:', e);
+    }
+  }
+
+  select.innerHTML = '<option value="">🌐 Sin Jornada Fija (Beneficio Permanente / Multijornada)</option>';
+  cachedCampaignsList.forEach(camp => {
+    const opt = document.createElement('option');
+    opt.value = camp.id;
+    const statusText = camp.status === 'active' ? 'EN CURSO' : (camp.status === 'scheduled' ? 'PROGRAMADA' : 'FINALIZADA');
+    opt.textContent = `📅 ${camp.name} [${statusText}]`;
+    if (camp.id === selectedId) opt.selected = true;
+    select.appendChild(opt);
+  });
+  if (selectedId) {
+    select.value = selectedId;
+  }
+};
+
+function updateCombosToolbarCampaignFilter() {
+  const filterSelect = document.getElementById('filterCombosCampaignSelect');
+  if (!filterSelect) return;
+
+  const currentVal = filterSelect.value || currentCombosCampaignFilter || 'all';
+  filterSelect.innerHTML = `
+    <option value="all">🌐 Todas las Jornadas</option>
+    <option value="unassigned">🌐 Combos Permanentes / Sin Jornada</option>
+  `;
+
+  cachedCampaignsList.forEach(camp => {
+    const opt = document.createElement('option');
+    opt.value = camp.id;
+    const statusText = camp.status === 'active' ? 'En Curso' : (camp.status === 'scheduled' ? 'Programada' : 'Finalizada');
+    opt.textContent = `📅 ${camp.name} (${statusText})`;
+    filterSelect.appendChild(opt);
+  });
+
+  if ([...filterSelect.options].some(o => o.value === currentVal)) {
+    filterSelect.value = currentVal;
+  } else {
+    filterSelect.value = 'all';
+    currentCombosCampaignFilter = 'all';
+  }
+}
+
+function buildComboCardElement(c) {
+  const card = document.createElement('div');
+  
+  let cardClass = 'package-card';
+  let icon = '⭐';
+  let tagClass = 'badge-viveres';
+  let categoryLabel = (c.category || '').replace('_', ' ').toUpperCase();
+
+  switch (c.category) {
+    case 'bolsa_viveres':
+      cardClass += ' viveres-card';
+      icon = '📦';
+      tagClass = 'badge-viveres';
+      categoryLabel = 'VÍVERES SECOS';
+      break;
+    case 'combo_proteico':
+    case 'proteico':
+      cardClass += ' proteina-card';
+      icon = '🍗';
+      tagClass = 'badge-proteina';
+      categoryLabel = 'PROTEÍNA FRESCA';
+      break;
+    case 'utiles_escolares':
+      cardClass += ' escolar-card';
+      icon = '🎒';
+      tagClass = 'badge-escolar';
+      categoryLabel = 'ÚTILES ESCOLARES';
+      break;
+    case 'combo_higienico':
+      cardClass += ' higienico-card';
+      icon = '🧼';
+      tagClass = 'badge-higienico';
+      categoryLabel = 'HIGIENE & ASEO';
+      break;
+    case 'dotacion_uniformes':
+      cardClass += ' dotacion-card';
+      icon = '🦺';
+      tagClass = 'badge-dotacion';
+      categoryLabel = 'DOTACIÓN & UNIFORME';
+      break;
+    case 'combo_navideno':
+      cardClass += ' especial-card';
+      icon = '🎁';
+      tagClass = 'badge-proteina';
+      categoryLabel = 'EDICIÓN NAVIDEÑA';
+      break;
+    case 'combo_salud':
+      cardClass += ' higienico-card';
+      icon = '💊';
+      tagClass = 'badge-higienico';
+      categoryLabel = 'BOTIQUÍN & SALUD';
+      break;
+    default:
+      cardClass += ' especial-card';
+      icon = '⭐';
+      tagClass = 'badge-viveres';
+      break;
+  }
+
+  if (!c.is_active) {
+    cardClass += ' combo-card-inactive';
+  }
+
+  const rubrosText = c.items_detail || c.description || '';
+  const rubros = rubrosText.split(/,|\n/).map(r => r.trim()).filter(Boolean);
+  const rubrosHtml = rubros.length > 0 
+    ? `<div style="margin: 0.6rem 0; font-size: 0.76rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem;">
+         <strong style="color: #0284c7; display: block; margin-bottom: 0.25rem;">📋 Rubros Incluidos:</strong>
+         <ul style="margin: 0; padding-left: 1.1rem; line-height: 1.4;">
+           ${rubros.slice(0, 5).map(item => `<li>${item}</li>`).join('')}
+           ${rubros.length > 5 ? `<li style="color: #64748b; font-style: italic;">... y ${rubros.length - 5} rubros más</li>` : ''}
+         </ul>
+       </div>`
+    : `<p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.6rem;">${c.description || 'Sin descripción'}</p>`;
+
+  const isCold = (c.conservation || '').includes('Frío');
+
+  // Badge de Jornada Institucional
+  let campaignBadgeHtml = '';
+  if (c.campaign_name) {
+    const isAct = c.campaign_status === 'active';
+    const isSched = c.campaign_status === 'scheduled';
+    const bg = isAct ? '#dcfce7' : (isSched ? '#fef9c3' : '#f1f5f9');
+    const color = isAct ? '#15803d' : (isSched ? '#854d0e' : '#475569');
+    const border = isAct ? '#bbf7d0' : (isSched ? '#fef08a' : '#cbd5e1');
+    const dot = isAct ? '🟢' : (isSched ? '🟡' : '⚪');
+    campaignBadgeHtml = `
+      <div style="margin: 0.35rem 0 0.5rem 0; display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; font-size: 0.72rem; background: ${bg}; color: ${color}; border: 1px solid ${border}; padding: 0.25rem 0.55rem; border-radius: 6px; font-weight: 700;">
+        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;" title="Jornada: ${c.campaign_name}">
+          📅 ${c.campaign_name}
+        </span>
+        <span style="font-size: 0.65rem; white-space: nowrap;">${dot} ${(c.campaign_status || 'activa').toUpperCase()}</span>
+      </div>
+    `;
+  } else {
+    campaignBadgeHtml = `
+      <div style="margin: 0.35rem 0 0.5rem 0; display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; background: #f8fafc; color: #64748b; border: 1px dashed #cbd5e1; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 600;">
+        <span>🌐</span>
+        <span>Beneficio Permanente / Multijornada</span>
+      </div>
+    `;
+  }
+
+  card.className = cardClass;
+  card.style.opacity = c.is_active ? '1' : '0.78';
+  card.style.border = c.is_active ? '1px solid rgba(2, 132, 199, 0.25)' : '1px dashed #cbd5e1';
+
+  card.innerHTML = `
+    <div class="package-card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+      <div class="package-card-title">
+        <span style="font-size: 1.05rem; font-weight: 800;">${c.icon || icon} ${c.name}</span>
+      </div>
+      <div style="display: flex; gap: 0.35rem; align-items: center;">
+        <span class="package-card-badge ${tagClass}">${categoryLabel}</span>
+        <span class="badge" style="background: ${c.is_active ? '#dcfce7' : '#fee2e2'}; color: ${c.is_active ? '#15803d' : '#991b1b'}; font-weight: 800; font-size: 0.68rem; padding: 0.2rem 0.5rem; border-radius: 999px; border: 1px solid ${c.is_active ? '#bbf7d0' : '#fecaca'};">
+          ${c.is_active ? '● Activo' : '○ Inactivo'}
+        </span>
+      </div>
+    </div>
+    ${campaignBadgeHtml}
+    ${c.mesa_name ? `
+      <div style="display: flex; gap: 0.35rem; align-items: center; margin: 0.25rem 0 0.5rem 0; flex-wrap: wrap;">
+        <span style="font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #1e293b; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #cbd5e1;">📍 ${c.mesa_name}</span>
+        <span style="font-size: 0.72rem; font-weight: 700; background: ${isCold ? '#e0f2fe' : '#f0fdf4'}; color: ${isCold ? '#0369a1' : '#166534'}; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid ${isCold ? '#bae6fd' : '#bbf7d0'};">
+          ${isCold ? '❄️ Cadena de Frío' : '🌡️ Ambiente'}
+        </span>
+        ${c.weight_kg ? `<span style="font-size: 0.7rem; color: #475569; font-weight: 700;">⚖️ ~${c.weight_kg} kg</span>` : ''}
+        ${c.target_qty ? `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">(Cuota: ${c.target_qty})</span>` : ''}
+      </div>
+    ` : ''}
+    ${rubrosHtml}
+    
+    <!-- BARRA DE GESTIÓN: ACTIVAR/DESACTIVAR, EDITAR Y ELIMINAR -->
+    <div class="combo-meta" style="font-size: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 0.65rem; margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
+      <span style="color: #64748b; font-size: 0.72rem;">📦 ${c.dietary_info || (c.conservation ? c.conservation : 'Almacén Estándar')}</span>
+      <div style="display: flex; gap: 0.35rem; align-items: center; margin-left: auto;">
+        <!-- BOTÓN ACTIVAR / DESACTIVAR -->
+        <button class="btn btn-outline btn-toggle-combo" data-id="${c.id}" data-name="${c.name}" style="padding: 0.22rem 0.6rem; font-size: 0.72rem; font-weight: 700; border-radius: 6px; ${c.is_active ? 'border-color: #fde047; color: #854d0e; background: #fefce8;' : 'border-color: #86efac; color: #166534; background: #f0fdf4;'}" title="${c.is_active ? 'Desactivar este combo' : 'Activar este combo'}">
+          ${c.is_active ? '⏸️ Desactivar' : '▶️ Activar'}
+        </button>
+
+        <!-- BOTÓN EDITAR -->
+        <button class="btn btn-outline btn-edit-combo" data-id="${c.id}" style="padding: 0.22rem 0.6rem; font-size: 0.72rem; font-weight: 700; border-color: #bae6fd; color: #0284c7; background: #f0f9ff; border-radius: 6px;" title="Editar datos y rubros del combo">
+          ✏️ Editar
+        </button>
+
+        <!-- BOTÓN ELIMINAR -->
+        <button class="btn btn-outline btn-delete-combo" data-id="${c.id}" style="padding: 0.22rem 0.5rem; font-size: 0.72rem; border-color: #fca5a5; color: #dc2626; border-radius: 6px;" title="Eliminar del catálogo">
+          🗑️
+        </button>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+function attachComboCardActionListeners() {
+  document.querySelectorAll('.btn-toggle-combo').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      btn.disabled = true;
+      try {
+        let res;
+        if (window.API && typeof window.API.patch === 'function') {
+          res = await window.API.patch(`/api/v1/admin/combos/${id}/toggle-status`, {});
+        } else {
+          const resp = await fetch(`/api/v1/admin/combos/${id}/toggle-status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          res = await resp.json();
+        }
+        if (window.Toast && typeof window.Toast.success === 'function') {
+          window.Toast.success(res.message);
+        } else if (typeof window.showToast === 'function') {
+          window.showToast(res.message, 'success');
+        }
+        if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
+        await loadCombosCatalog();
+        if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+        if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+          await window.ManualDispatch.loadTodaySummary();
+        }
+        window.dispatchEvent(new CustomEvent('combos:updated', { detail: res }));
+      } catch (err) {
+        console.error('[TOGGLE COMBO ERROR]', err);
+        if (window.Toast && typeof window.Toast.error === 'function') {
+          window.Toast.error('Error al cambiar estado: ' + err.message);
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('Error al cambiar estado: ' + err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-edit-combo').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const combo = cachedCombos.find(item => item.id === id);
+      if (combo && typeof window.openEditComboModal === 'function') {
+        window.openEditComboModal(combo);
+      }
+    });
+  });
+
+  document.querySelectorAll('.btn-delete-combo').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      if (!confirm('¿Desea eliminar o retirar este beneficio del catálogo activo?')) return;
+      btn.disabled = true;
+      try {
+        let delData;
+        if (window.API && typeof window.API.delete === 'function') {
+          delData = await window.API.delete(`/api/v1/admin/combos/${id}`);
+        } else {
+          const resp = await fetch(`/api/v1/admin/combos/${id}`, { method: 'DELETE' });
+          delData = await resp.json();
+        }
+        if (window.Toast && typeof window.Toast.info === 'function') {
+          window.Toast.info(delData.message || 'Beneficio eliminado');
+        } else if (typeof window.showToast === 'function') {
+          window.showToast(delData.message || 'Beneficio eliminado', 'info');
+        }
+        await loadCombosCatalog();
+        if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+        if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+          await window.ManualDispatch.loadTodaySummary();
+        }
+        window.dispatchEvent(new CustomEvent('combos:updated', { detail: delData }));
+      } catch (err) {
+        console.error('[DELETE COMBO ERROR]', err);
+        if (window.Toast && typeof window.Toast.error === 'function') {
+          window.Toast.error('Error al eliminar beneficio: ' + err.message);
+        } else if (typeof window.showToast === 'function') {
+          window.showToast('Error al eliminar beneficio: ' + err.message, 'error');
+        }
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+}
+
+window.renderCombosView = function() {
+  const grid = document.getElementById('combosCatalogGrid');
+  if (!grid) return;
+
+  grid.innerHTML = '';
+
+  // 1. Filtrado
+  let filtered = [...cachedCombos];
+  if (currentCombosCampaignFilter === 'unassigned') {
+    filtered = filtered.filter(c => !c.campaign_id);
+  } else if (currentCombosCampaignFilter !== 'all') {
+    filtered = filtered.filter(c => c.campaign_id === currentCombosCampaignFilter);
+  }
+
+  // Actualizar contador
+  const badgeCounter = document.getElementById('combosCatalogCounterBadge');
+  if (badgeCounter) {
+    badgeCounter.textContent = `${filtered.length} ${filtered.length === 1 ? 'combo' : 'combos'}`;
+  }
+
+  // Si está vacío
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="text-align: center; padding: 2.5rem 1.5rem; color: #475569; background: #ffffff; border: 2px dashed #cbd5e1; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+        <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📦</div>
+        <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">No se encontraron beneficios con los filtros aplicados</div>
+        <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.45;">
+          ${currentCombosCampaignFilter !== 'all' ? 'No hay combos asociados a la jornada seleccionada.' : 'Configure los combos institucionales para las jornadas de despacho.'}
+        </p>
+        <button type="button" class="btn btn-primary" onclick="if(typeof openCreateComboModal === 'function') openCreateComboModal();" style="font-size: 0.85rem; font-weight: 700; padding: 0.65rem 1.4rem; display: inline-flex; align-items: center; gap: 0.45rem;">
+          <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <span>Crear Nuevo Beneficio Institucional</span>
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  // 2. Ordenamiento
+  filtered.sort((a, b) => {
+    switch (currentCombosSortOrder) {
+      case 'campaign_desc': {
+        if (a.campaign_id && !b.campaign_id) return -1;
+        if (!a.campaign_id && b.campaign_id) return 1;
+        const dateA = a.campaign_start_date || a.created_at || '';
+        const dateB = b.campaign_start_date || b.created_at || '';
+        if (dateB !== dateA) return dateB.localeCompare(dateA);
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      case 'campaign_asc': {
+        if (a.campaign_id && !b.campaign_id) return -1;
+        if (!a.campaign_id && b.campaign_id) return 1;
+        const dateA = a.campaign_start_date || a.created_at || '';
+        const dateB = b.campaign_start_date || b.created_at || '';
+        if (dateA !== dateB) return dateA.localeCompare(dateB);
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      case 'name_asc':
+        return (a.name || '').localeCompare(b.name || '');
+      case 'name_desc':
+        return (b.name || '').localeCompare(a.name || '');
+      case 'weight_desc':
+        return (parseFloat(b.weight_kg) || 0) - (parseFloat(a.weight_kg) || 0);
+      case 'status_active': {
+        const actA = a.is_active ? 1 : 0;
+        const actB = b.is_active ? 1 : 0;
+        if (actB !== actA) return actB - actA;
+        return (a.name || '').localeCompare(b.name || '');
+      }
+      default:
+        return 0;
+    }
+  });
+
+  // 3. Renderizado según modo de agrupación
+  if (currentCombosGrouping === 'campaign') {
+    const groups = new Map();
+    filtered.forEach(c => {
+      const key = c.campaign_id || '__unassigned__';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(c);
+    });
+
+    const sortedGroupKeys = Array.from(groups.keys()).sort((k1, k2) => {
+      if (k1 === '__unassigned__') return 1;
+      if (k2 === '__unassigned__') return -1;
+      const c1 = groups.get(k1)[0];
+      const c2 = groups.get(k2)[0];
+      if (currentCombosSortOrder === 'campaign_asc') {
+        const d1 = c1.campaign_start_date || '';
+        const d2 = c2.campaign_start_date || '';
+        return d1.localeCompare(d2);
+      } else {
+        const d1 = c1.campaign_start_date || '';
+        const d2 = c2.campaign_start_date || '';
+        return d2.localeCompare(d1);
+      }
+    });
+
+    sortedGroupKeys.forEach(key => {
+      const combosInGroup = groups.get(key);
+      const isUnassigned = key === '__unassigned__';
+      const sample = combosInGroup[0];
+
+      const groupSection = document.createElement('div');
+      groupSection.className = 'campaign-combos-group-block';
+      groupSection.style.cssText = `
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: var(--radius-md);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      `;
+
+      let headerHtml = '';
+      if (isUnassigned) {
+        headerHtml = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.4rem;">🌐</span>
+              <div>
+                <h4 style="margin: 0; font-size: 1rem; font-weight: 800; color: #1e293b;">Combos Permanentes & Multijornada</h4>
+                <div style="font-size: 0.74rem; color: #64748b;">Disponibles para asignación libre o despachos generales en cualquier punto</div>
+              </div>
+            </div>
+            <span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 999px; border: 1px solid #cbd5e1;">
+              📦 ${combosInGroup.length} ${combosInGroup.length === 1 ? 'combo disponible' : 'combos disponibles'}
+            </span>
+          </div>
+        `;
+      } else {
+        const statusBadge = sample.campaign_status === 'active'
+          ? '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #bbf7d0;">🟢 En Curso</span>'
+          : (sample.campaign_status === 'scheduled'
+             ? '<span class="badge" style="background: #fef9c3; color: #854d0e; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #fef08a;">🟡 Programada</span>'
+             : '<span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #cbd5e1;">⚪ Finalizada</span>');
+
+        const dateRangeText = (sample.campaign_start_date || sample.campaign_end_date)
+          ? `🗓️ ${sample.campaign_start_date || ''} ${sample.campaign_end_date ? '→ ' + sample.campaign_end_date : ''}`
+          : '';
+
+        headerHtml = `
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.4rem;">📅</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                  <h4 style="margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a;">${sample.campaign_name || 'Jornada Institucional'}</h4>
+                  ${statusBadge}
+                </div>
+                ${dateRangeText ? `<div style="font-size: 0.74rem; color: #64748b; margin-top: 0.15rem; font-weight: 600;">${dateRangeText}</div>` : ''}
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge" style="background: #e0f2fe; color: #0369a1; font-weight: 800; font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 999px; border: 1px solid #bae6fd;">
+                🍱 ${combosInGroup.length} ${combosInGroup.length === 1 ? 'combo asignado' : 'combos asignados'}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+
+      groupSection.innerHTML = headerHtml;
+
+      const subGrid = document.createElement('div');
+      subGrid.className = 'combos-group-subgrid';
+      subGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1rem;';
+
+      combosInGroup.forEach(c => {
+        subGrid.appendChild(buildComboCardElement(c));
+      });
+
+      groupSection.appendChild(subGrid);
+      grid.appendChild(groupSection);
+    });
+  } else {
+    // Cuadrícula plana continua
+    const flatGrid = document.createElement('div');
+    flatGrid.className = 'combos-flat-grid';
+    flatGrid.style.cssText = 'display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.25rem;';
+
+    filtered.forEach(c => {
+      flatGrid.appendChild(buildComboCardElement(c));
+    });
+
+    grid.appendChild(flatGrid);
+  }
+
+  // Delegar eventos de botones
+  attachComboCardActionListeners();
+};
 
 window.loadCombosCatalog = async function() {
   const grid = document.getElementById('combosCatalogGrid');
   if (!grid) return;
 
   try {
-    const combos = await API.get('/api/v1/admin/combos');
-    cachedCombos = Array.isArray(combos) ? combos : [];
-    grid.innerHTML = '';
+    const [combosRes, campaignsRes] = await Promise.allSettled([
+      API.get('/api/v1/admin/combos'),
+      API.get('/api/v1/admin/campaigns')
+    ]);
 
-    if (cachedCombos.length === 0) {
-      grid.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1.5rem; color: #475569; background: #ffffff; border: 2px dashed #cbd5e1; border-radius: var(--radius-md); box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-          <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📦</div>
-          <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">Catálogo de Beneficios Vacío</div>
-          <p style="font-size: 0.82rem; color: #64748b; margin-bottom: 1.25rem; max-width: 480px; margin-left: auto; margin-right: auto; line-height: 1.45;">
-            Configure los combos institucionales (Víveres, Proteína, Útiles, Higiene) para las jornadas de despacho.
-          </p>
-          <button type="button" class="btn btn-primary" onclick="if(typeof openCreateComboModal === 'function') openCreateComboModal();" style="font-size: 0.85rem; font-weight: 700; padding: 0.65rem 1.4rem; display: inline-flex; align-items: center; gap: 0.45rem;">
-            <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            <span>Crear Primer Combo Institucional</span>
-          </button>
-        </div>
-      `;
-      return;
+    if (combosRes.status === 'fulfilled') {
+      const combos = combosRes.value;
+      cachedCombos = Array.isArray(combos) ? combos : (combos && combos.combos ? combos.combos : []);
+    } else {
+      console.warn('Error cargando combos:', combosRes.reason);
     }
 
-    cachedCombos.forEach(c => {
-      const card = document.createElement('div');
-      
-      let cardClass = 'package-card';
-      let icon = '⭐';
-      let tagClass = 'badge-viveres';
-      let categoryLabel = (c.category || '').replace('_', ' ').toUpperCase();
+    if (campaignsRes.status === 'fulfilled') {
+      const camps = campaignsRes.value;
+      cachedCampaignsList = Array.isArray(camps) ? camps : (camps && camps.campaigns ? camps.campaigns : []);
+    }
 
-      switch (c.category) {
-        case 'bolsa_viveres':
-          cardClass += ' viveres-card';
-          icon = '📦';
-          tagClass = 'badge-viveres';
-          categoryLabel = 'VÍVERES SECOS';
-          break;
-        case 'combo_proteico':
-        case 'proteico':
-          cardClass += ' proteina-card';
-          icon = '🍗';
-          tagClass = 'badge-proteina';
-          categoryLabel = 'PROTEÍNA FRESCA';
-          break;
-        case 'utiles_escolares':
-          cardClass += ' escolar-card';
-          icon = '🎒';
-          tagClass = 'badge-escolar';
-          categoryLabel = 'ÚTILES ESCOLARES';
-          break;
-        case 'combo_higienico':
-          cardClass += ' higienico-card';
-          icon = '🧼';
-          tagClass = 'badge-higienico';
-          categoryLabel = 'HIGIENE & ASEO';
-          break;
-        case 'dotacion_uniformes':
-          cardClass += ' dotacion-card';
-          icon = '🦺';
-          tagClass = 'badge-dotacion';
-          categoryLabel = 'DOTACIÓN & UNIFORME';
-          break;
-        case 'combo_navideno':
-          cardClass += ' especial-card';
-          icon = '🎁';
-          tagClass = 'badge-proteina';
-          categoryLabel = 'EDICIÓN NAVIDEÑA';
-          break;
-        case 'combo_salud':
-          cardClass += ' higienico-card';
-          icon = '💊';
-          tagClass = 'badge-higienico';
-          categoryLabel = 'BOTIQUÍN & SALUD';
-          break;
-        default:
-          cardClass += ' especial-card';
-          icon = '⭐';
-          tagClass = 'badge-viveres';
-          break;
-      }
-
-      if (!c.is_active) {
-        cardClass += ' combo-card-inactive';
-      }
-
-      const rubrosText = c.items_detail || c.description || '';
-      const rubros = rubrosText.split(/,|\n/).map(r => r.trim()).filter(Boolean);
-      const rubrosHtml = rubros.length > 0 
-        ? `<div style="margin: 0.6rem 0; font-size: 0.76rem; color: #334155; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.75rem;">
-             <strong style="color: #0284c7; display: block; margin-bottom: 0.25rem;">📋 Rubros Incluidos:</strong>
-             <ul style="margin: 0; padding-left: 1.1rem; line-height: 1.4;">
-               ${rubros.slice(0, 5).map(item => `<li>${item}</li>`).join('')}
-               ${rubros.length > 5 ? `<li style="color: #64748b; font-style: italic;">... y ${rubros.length - 5} rubros más</li>` : ''}
-             </ul>
-           </div>`
-        : `<p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.6rem;">${c.description || 'Sin descripción'}</p>`;
-
-      const isCold = (c.conservation || '').includes('Frío');
-
-      card.className = cardClass;
-      card.style.opacity = c.is_active ? '1' : '0.78';
-      card.style.border = c.is_active ? '1px solid rgba(2, 132, 199, 0.25)' : '1px dashed #cbd5e1';
-
-      card.innerHTML = `
-        <div class="package-card-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-          <div class="package-card-title">
-            <span style="font-size: 1.05rem; font-weight: 800;">${c.icon || icon} ${c.name}</span>
-          </div>
-          <div style="display: flex; gap: 0.35rem; align-items: center;">
-            <span class="package-card-badge ${tagClass}">${categoryLabel}</span>
-            <span class="badge" style="background: ${c.is_active ? '#dcfce7' : '#fee2e2'}; color: ${c.is_active ? '#15803d' : '#991b1b'}; font-weight: 800; font-size: 0.68rem; padding: 0.2rem 0.5rem; border-radius: 999px; border: 1px solid ${c.is_active ? '#bbf7d0' : '#fecaca'};">
-              ${c.is_active ? '● Activo' : '○ Inactivo'}
-            </span>
-          </div>
-        </div>
-        ${c.mesa_name ? `
-          <div style="display: flex; gap: 0.35rem; align-items: center; margin: 0.25rem 0 0.5rem 0; flex-wrap: wrap;">
-            <span style="font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #1e293b; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid #cbd5e1;">📍 ${c.mesa_name}</span>
-            <span style="font-size: 0.72rem; font-weight: 700; background: ${isCold ? '#e0f2fe' : '#f0fdf4'}; color: ${isCold ? '#0369a1' : '#166534'}; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid ${isCold ? '#bae6fd' : '#bbf7d0'};">
-              ${isCold ? '❄️ Cadena de Frío' : '🌡️ Ambiente'}
-            </span>
-            ${c.weight_kg ? `<span style="font-size: 0.7rem; color: #475569; font-weight: 700;">⚖️ ~${c.weight_kg} kg</span>` : ''}
-            ${c.target_qty ? `<span style="font-size: 0.7rem; color: #64748b; font-weight: 600;">(Cuota: ${c.target_qty})</span>` : ''}
-          </div>
-        ` : ''}
-        ${rubrosHtml}
-        
-        <!-- BARRA DE GESTIÓN: ACTIVAR/DESACTIVAR, EDITAR Y ELIMINAR -->
-        <div class="combo-meta" style="font-size: 0.75rem; border-top: 1px solid #f1f5f9; padding-top: 0.65rem; margin-top: 0.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem;">
-          <span style="color: #64748b; font-size: 0.72rem;">📦 ${c.dietary_info || (c.conservation ? c.conservation : 'Almacén Estándar')}</span>
-          <div style="display: flex; gap: 0.35rem; align-items: center; margin-left: auto;">
-            <!-- BOTÓN ACTIVAR / DESACTIVAR -->
-            <button class="btn btn-outline btn-toggle-combo" data-id="${c.id}" data-name="${c.name}" style="padding: 0.22rem 0.6rem; font-size: 0.72rem; font-weight: 700; border-radius: 6px; ${c.is_active ? 'border-color: #fde047; color: #854d0e; background: #fefce8;' : 'border-color: #86efac; color: #166534; background: #f0fdf4;'}" title="${c.is_active ? 'Desactivar este combo' : 'Activar este combo'}">
-              ${c.is_active ? '⏸️ Desactivar' : '▶️ Activar'}
-            </button>
-
-            <!-- BOTÓN EDITAR -->
-            <button class="btn btn-outline btn-edit-combo" data-id="${c.id}" style="padding: 0.22rem 0.6rem; font-size: 0.72rem; font-weight: 700; border-color: #bae6fd; color: #0284c7; background: #f0f9ff; border-radius: 6px;" title="Editar datos y rubros del combo">
-              ✏️ Editar
-            </button>
-
-            <!-- BOTÓN ELIMINAR -->
-            <button class="btn btn-outline btn-delete-combo" data-id="${c.id}" style="padding: 0.22rem 0.5rem; font-size: 0.72rem; border-color: #fca5a5; color: #dc2626; border-radius: 6px;" title="Eliminar del catálogo">
-              🗑️
-            </button>
-          </div>
-        </div>
-      `;
-      grid.appendChild(card);
-    });
-
-    // Delegación / Eventos para botones dinámicos
-    document.querySelectorAll('.btn-toggle-combo').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-id');
-        btn.disabled = true;
-        try {
-          let res;
-          if (window.API && typeof window.API.patch === 'function') {
-            res = await window.API.patch(`/api/v1/admin/combos/${id}/toggle-status`, {});
-          } else {
-            const resp = await fetch(`/api/v1/admin/combos/${id}/toggle-status`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' }
-            });
-            res = await resp.json();
-          }
-          if (window.Toast && typeof window.Toast.success === 'function') {
-            window.Toast.success(res.message);
-          } else if (typeof window.showToast === 'function') {
-            window.showToast(res.message, 'success');
-          }
-          if (typeof SoundManager !== 'undefined' && SoundManager.playSuccess) SoundManager.playSuccess();
-          await loadCombosCatalog();
-          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
-          if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
-            await window.ManualDispatch.loadTodaySummary();
-          }
-          window.dispatchEvent(new CustomEvent('combos:updated', { detail: res }));
-        } catch (err) {
-          console.error('[TOGGLE COMBO ERROR]', err);
-          if (window.Toast && typeof window.Toast.error === 'function') {
-            window.Toast.error('Error al cambiar estado: ' + err.message);
-          } else if (typeof window.showToast === 'function') {
-            window.showToast('Error al cambiar estado: ' + err.message, 'error');
-          }
-        } finally {
-          btn.disabled = false;
-        }
-      });
-    });
-
-    document.querySelectorAll('.btn-edit-combo').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-id');
-        const combo = cachedCombos.find(item => item.id === id);
-        if (combo && typeof window.openEditComboModal === 'function') {
-          window.openEditComboModal(combo);
-        }
-      });
-    });
-
-    document.querySelectorAll('.btn-delete-combo').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute('data-id');
-        if (!confirm('¿Desea eliminar o retirar este beneficio del catálogo activo?')) return;
-        btn.disabled = true;
-        try {
-          let delData;
-          if (window.API && typeof window.API.delete === 'function') {
-            delData = await window.API.delete(`/api/v1/admin/combos/${id}`);
-          } else {
-            const resp = await fetch(`/api/v1/admin/combos/${id}`, { method: 'DELETE' });
-            delData = await resp.json();
-          }
-          if (window.Toast && typeof window.Toast.info === 'function') {
-            window.Toast.info(delData.message || 'Beneficio eliminado');
-          } else if (typeof window.showToast === 'function') {
-            window.showToast(delData.message || 'Beneficio eliminado', 'info');
-          }
-          await loadCombosCatalog();
-          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
-          if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
-            await window.ManualDispatch.loadTodaySummary();
-          }
-          window.dispatchEvent(new CustomEvent('combos:updated', { detail: delData }));
-        } catch (err) {
-          console.error('[DELETE COMBO ERROR]', err);
-          if (window.Toast && typeof window.Toast.error === 'function') {
-            window.Toast.error('Error al eliminar beneficio: ' + err.message);
-          } else if (typeof window.showToast === 'function') {
-            window.showToast('Error al eliminar beneficio: ' + err.message, 'error');
-          }
-        } finally {
-          btn.disabled = false;
-        }
-      });
-    });
-
+    updateCombosToolbarCampaignFilter();
+    renderCombosView();
   } catch (err) {
     console.error('[LOAD COMBOS ERROR]', err);
   }
@@ -287,6 +565,10 @@ window.openCreateComboModal = async function(preset = null) {
   if (activeLabel) {
     activeLabel.textContent = 'ACTIVO';
     activeLabel.style.color = '#16a34a';
+  }
+
+  if (typeof populateComboCampaignModalSelect === 'function') {
+    await populateComboCampaignModalSelect('');
   }
 
   if (preset === 'escolares') {
@@ -363,6 +645,10 @@ window.openEditComboModal = async function(combo) {
   if (groupSelect) groupSelect.value = combo.target_group || 'Todos los Trabajadores (Universal)';
   if (caloriesInput) caloriesInput.value = combo.calories || 0;
 
+  if (typeof populateComboCampaignModalSelect === 'function') {
+    await populateComboCampaignModalSelect(combo.campaign_id || '');
+  }
+
   const isActive = combo.is_active === 1 || combo.is_active === true;
   if (activeCheckbox) activeCheckbox.checked = isActive;
   if (activeLabel) {
@@ -389,6 +675,50 @@ window.initCombosManagement = function() {
   const btnPresetHigienico = document.getElementById('btnPresetHigienico');
   const activeCheckbox = document.getElementById('comboActiveCheckbox');
   const activeLabel = document.getElementById('comboActiveLabel');
+
+  // Toolbar de Agrupación, Filtro y Ordenamiento por Jornadas
+  const btnGroupByCampaign = document.getElementById('btnGroupCombosByCampaign');
+  const btnUngroup = document.getElementById('btnUngroupCombos');
+  const filterCampaignSelect = document.getElementById('filterCombosCampaignSelect');
+  const sortSelect = document.getElementById('sortCombosSelect');
+
+  const setGroupingMode = (mode) => {
+    currentCombosGrouping = mode;
+    if (btnGroupByCampaign && btnUngroup) {
+      if (mode === 'campaign') {
+        btnGroupByCampaign.style.background = '#0284c7';
+        btnGroupByCampaign.style.color = '#ffffff';
+        btnUngroup.style.background = 'transparent';
+        btnUngroup.style.color = '#475569';
+      } else {
+        btnUngroup.style.background = '#0284c7';
+        btnUngroup.style.color = '#ffffff';
+        btnGroupByCampaign.style.background = 'transparent';
+        btnGroupByCampaign.style.color = '#475569';
+      }
+    }
+    if (typeof renderCombosView === 'function') renderCombosView();
+  };
+
+  btnGroupByCampaign?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setGroupingMode('campaign');
+  });
+
+  btnUngroup?.addEventListener('click', (e) => {
+    e.preventDefault();
+    setGroupingMode('flat');
+  });
+
+  filterCampaignSelect?.addEventListener('change', (e) => {
+    currentCombosCampaignFilter = e.target.value;
+    if (typeof renderCombosView === 'function') renderCombosView();
+  });
+
+  sortSelect?.addEventListener('change', (e) => {
+    currentCombosSortOrder = e.target.value;
+    if (typeof renderCombosView === 'function') renderCombosView();
+  });
 
   const closeModal = () => {
     if (modal) modal.classList.remove('active');
@@ -448,6 +778,7 @@ window.initCombosManagement = function() {
     const targetGroup = document.getElementById('comboTargetGroupSelect')?.value;
     const calories = parseInt(document.getElementById('comboCaloriesInput')?.value, 10) || 0;
     const isActive = document.getElementById('comboActiveCheckbox')?.checked ? 1 : 0;
+    const campaignId = document.getElementById('comboCampaignSelect')?.value || null;
 
     if (!name) {
       Toast.error('Debe ingresar el nombre del beneficio o combo.');
@@ -464,7 +795,8 @@ window.initCombosManagement = function() {
       weight_kg: weight,
       target_group: targetGroup,
       calories,
-      is_active: isActive
+      is_active: isActive,
+      campaign_id: campaignId
     };
 
     const submitBtn = document.getElementById('btnSubmitCreateCombo');
@@ -496,6 +828,7 @@ window.initCombosManagement = function() {
     } catch (err) {
       console.error('[COMBO SAVE ERROR]', err);
       Toast.error(`Error al procesar combo: ${err.message}`);
+    }
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
