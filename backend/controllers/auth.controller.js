@@ -1686,7 +1686,7 @@ const verifyMfa = async (req, res) => {
 
   const mfaSecret = getWorkerMfaSecret(worker.id);
   if (mfaSecret && /^\d{6}$/.test(candidateCode)) {
-    isCodeValid = verifyTotpToken(mfaSecret, candidateCode);
+    isCodeValid = verifyTotpToken(mfaSecret, candidateCode, 2);
   }
 
   if (!isCodeValid) {
@@ -1796,7 +1796,8 @@ const activateMfa = (req, res) => {
     return res.status(400).json({ error: 'Secreto y código de verificación requeridos' });
   }
 
-  const isValid = verifyTotpToken(secret, code);
+  // Tolerancia de +-2 pasos (60s) para compensar desincronizaciones de reloj móvil
+  const isValid = verifyTotpToken(secret, code, 2);
   if (!isValid) {
     return res.status(400).json({
       error: 'El código de 6 dígitos ingresado no coincide con el autenticador. Verifique la hora de su teléfono e intente de nuevo.'

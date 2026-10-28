@@ -1396,129 +1396,90 @@ function openMfaVerificationModal(mfaToken, worker, message, targetMode = 'benef
 
 window.openMfaVerificationModal = openMfaVerificationModal;
 
-// Configuración de eventos para el modal de verificación MFA
-document.addEventListener('DOMContentLoaded', () => {
+/**
+ * Procesa la verificación de desafío MFA durante el inicio de sesión
+ */
+async function handleMfaVerificationSubmit() {
   const modal = document.getElementById('mfaVerificationModalBackdrop');
-  const btnClose = document.getElementById('btnCloseMfaVerificationModal');
   const btnSubmit = document.getElementById('btnSubmitMfaVerification');
   const codeInput = document.getElementById('mfaCodeInput');
   const alertBox = document.getElementById('mfaVerificationAlert');
-  const btnToggleBackup = document.getElementById('btnToggleBackupCodeMode');
-  const form = document.getElementById('mfaVerificationForm');
 
-  const closeModal = () => {
+  if (!currentMfaToken) {
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.textContent = 'Desafío de sesión expirado. Inicie sesión nuevamente.';
+    }
+    window.showToast('Desafío de sesión expirado. Intente iniciar sesión de nuevo.', 'error');
+    return;
+  }
+
+  const rawCode = (codeInput?.value || '').trim();
+  if (!rawCode) {
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.textContent = isBackupCodeMode ? 'Ingrese su código de respaldo.' : 'Ingrese el código de 6 dígitos.';
+    }
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Verificando...';
+  }
+  if (alertBox) alertBox.style.display = 'none';
+
+  try {
+    const payload = {
+      mfa_token: currentMfaToken,
+      device_id: (typeof getPersistentDeviceId === 'function') ? getPersistentDeviceId() : ''
+    };
+    if (isBackupCodeMode) {
+      payload.backup_code = rawCode.replace(/\s+/g, '');
+    } else {
+      payload.code = rawCode.replace(/[\s-]/g, '');
+    }
+
+    const res = await API.post('/api/v1/auth/mfa/verify', payload);
+
+    if (!res.success) {
+      throw new Error(res.error || 'Código de verificación incorrecto.');
+    }
+
+    playAudioFeedback('success');
     if (modal) modal.classList.remove('active');
     currentMfaToken = null;
-  };
 
-  if (btnClose) btnClose.addEventListener('click', closeModal);
-
-  if (btnToggleBackup) {
-    btnToggleBackup.addEventListener('click', () => {
-      isBackupCodeMode = !isBackupCodeMode;
-      if (codeInput) {
-        codeInput.value = '';
-        if (isBackupCodeMode) {
-          codeInput.placeholder = 'XXXX-XXXX';
-          codeInput.maxLength = 9;
-          btnToggleBackup.textContent = '🔢 Volver a código temporal de 6 dígitos';
-        } else {
-          codeInput.placeholder = '000 000';
-          codeInput.maxLength = 7;
-          btnToggleBackup.textContent = '🔑 Usar código de respaldo de emergencia';
-        }
-        codeInput.focus();
-      }
-    });
-  }
-
-  const handleMfaSubmit = async () => {
-    if (!currentMfaToken) {
-      if (alertBox) {
-        alertBox.style.display = 'block';
-        alertBox.textContent = 'Desafío de sesión expirado. Inicie sesión nuevamente.';
-      }
-      return;
+    const user = res.user;
+    if (res.session_token) {
+      sessionStorage.setItem('sgbt_session_token', res.session_token);
+      localStorage.setItem('sgbt_session_token', res.session_token);
     }
 
-    const rawCode = (codeInput?.value || '').trim();
-    if (!rawCode) {
-      if (alertBox) {
-        alertBox.style.display = 'block';
-        alertBox.textContent = isBackupCodeMode ? 'Ingrese su código de respaldo.' : 'Ingrese el código de 6 dígitos.';
-      }
-      return;
-    }
+    console.log(`[CLIENT AUTH] ✅ MFA Verificado. Sesión iniciada: ${user.full_name}`);
+    STATE.setCurrentUser(user);
 
+    sessionStorage.setItem('sgbt_session_view_mode', currentMfaTargetMode);
+    applyUserSession(user, currentMfaTargetMode);
+    window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
+
+  } catch (err) {
+    console.warn('[MFA VERIFY ERROR]', err);
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.textContent = err.message || 'Código de autenticación inválido.';
+    }
+    window.showToast(err.message || 'Código de autenticación inválido.', 'error');
+    playAudioFeedback('error');
+  } finally {
     if (btnSubmit) {
-      btnSubmit.disabled = true;
-      btnSubmit.textContent = '⏳ Verificando...';
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '🚀 Confirmar e Iniciar Sesión';
     }
-    if (alertBox) alertBox.style.display = 'none';
-
-    try {
-      const payload = {
-        mfa_token: currentMfaToken,
-        device_id: (typeof getPersistentDeviceId === 'function') ? getPersistentDeviceId() : ''
-      };
-      if (isBackupCodeMode) {
-        payload.backup_code = rawCode;
-      } else {
-        payload.code = rawCode.replace(/\s+/g, '');
-      }
-
-      const res = await API.post('/api/v1/auth/mfa/verify', payload);
-
-      if (!res.success) {
-        throw new Error(res.error || 'Código de verificación incorrecto.');
-      }
-
-      playAudioFeedback('success');
-      closeModal();
-
-      const user = res.user;
-      if (res.session_token) {
-        sessionStorage.setItem('sgbt_session_token', res.session_token);
-        localStorage.setItem('sgbt_session_token', res.session_token);
-      }
-
-      console.log(`[CLIENT AUTH] ✅ MFA Verificado. Sesión iniciada: ${user.full_name}`);
-      STATE.setCurrentUser(user);
-
-      sessionStorage.setItem('sgbt_session_view_mode', currentMfaTargetMode);
-      applyUserSession(user, currentMfaTargetMode);
-      window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
-
-    } catch (err) {
-      console.warn('[MFA VERIFY ERROR]', err);
-      if (alertBox) {
-        alertBox.style.display = 'block';
-        alertBox.textContent = err.message || 'Código de autenticación inválido.';
-      }
-      playAudioFeedback('error');
-    } finally {
-      if (btnSubmit) {
-        btnSubmit.disabled = false;
-        btnSubmit.textContent = '🚀 Confirmar e Iniciar Sesión';
-      }
-    }
-  };
-
-  if (btnSubmit) btnSubmit.addEventListener('click', handleMfaSubmit);
-  if (form) form.addEventListener('submit', handleMfaSubmit);
-
-  // Auto-submit al completar 6 dígitos numéricos
-  if (codeInput) {
-    codeInput.addEventListener('input', (e) => {
-      if (!isBackupCodeMode) {
-        const clean = e.target.value.replace(/\D/g, '');
-        if (clean.length === 6) {
-          handleMfaSubmit();
-        }
-      }
-    });
   }
-});
+}
+
+window.handleMfaVerificationSubmit = handleMfaVerificationSubmit;
 
 /**
  * Abre el modal de configuración de MFA (Código QR y Códigos de Respaldo)
@@ -1531,10 +1492,16 @@ async function openMfaSetupModal() {
   const codeInput = document.getElementById('mfaSetupVerificationCode');
   const alertBox = document.getElementById('mfaSetupAlert');
 
-  if (alertBox) alertBox.style.display = 'none';
-  if (codeInput) codeInput.value = '';
+  if (alertBox) {
+    alertBox.style.display = 'none';
+    alertBox.textContent = '';
+  }
+  if (codeInput) {
+    codeInput.value = '';
+  }
 
   try {
+    window.showToast('Generando credenciales de doble factor...', 'info');
     const data = await API.post('/api/v1/auth/mfa/setup');
     if (!data.success) {
       throw new Error(data.error || 'No se pudo generar la configuración MFA');
@@ -1548,117 +1515,121 @@ async function openMfaSetupModal() {
 
     if (backupGrid && Array.isArray(data.backup_codes)) {
       backupGrid.innerHTML = data.backup_codes.map(c => `
-        <div style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; text-align: center;">
-          ${window.escapeHTML(c)}
+        <div style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; text-align: center; font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.3);">
+          ${window.escapeHTML ? window.escapeHTML(c) : c}
         </div>
       `).join('');
       backupGrid.setAttribute('data-backup-codes', JSON.stringify(data.backup_codes));
     }
 
-    if (modal) modal.classList.add('active');
+    if (modal) {
+      modal.classList.add('active');
+      setTimeout(() => { if (codeInput) codeInput.focus(); }, 150);
+    }
 
   } catch (err) {
+    console.error('Error al abrir modal MFA setup:', err);
     window.showToast(err.message || 'Error al preparar MFA', 'error');
   }
 }
 
 window.openMfaSetupModal = openMfaSetupModal;
 
-// Configuración de eventos para activación y copia de MFA
-document.addEventListener('DOMContentLoaded', () => {
+/**
+ * Confirma y activa el segundo factor (MFA)
+ */
+async function handleConfirmActivateMfa() {
   const modal = document.getElementById('mfaSetupModalBackdrop');
-  const btnClose = document.getElementById('btnCloseMfaSetupModal');
-  const btnCloseBtn = document.getElementById('btnCloseMfaSetupModalBtn');
-  const btnCopySecret = document.getElementById('btnCopyMfaSecret');
-  const btnCopyBackup = document.getElementById('btnCopyBackupCodes');
-  const btnConfirm = document.getElementById('btnConfirmActivateMfa');
   const secretLabel = document.getElementById('mfaSetupSecretLabel');
   const backupGrid = document.getElementById('mfaBackupCodesGrid');
   const codeInput = document.getElementById('mfaSetupVerificationCode');
   const alertBox = document.getElementById('mfaSetupAlert');
+  const btnConfirm = document.getElementById('btnConfirmActivateMfa');
 
-  const closeModal = () => {
-    if (modal) modal.classList.remove('active');
-  };
+  const secret = secretLabel?.getAttribute('data-secret') || secretLabel?.textContent?.trim();
+  const rawCode = (codeInput?.value || '').trim();
+  const cleanCode = rawCode.replace(/[\s-]/g, '');
 
-  if (btnClose) btnClose.addEventListener('click', closeModal);
-  if (btnCloseBtn) btnCloseBtn.addEventListener('click', closeModal);
+  let backupCodes = [];
+  try {
+    backupCodes = JSON.parse(backupGrid?.getAttribute('data-backup-codes') || '[]');
+  } catch {}
 
-  if (btnCopySecret) {
-    btnCopySecret.addEventListener('click', () => {
-      const secret = secretLabel?.getAttribute('data-secret');
-      if (secret) {
-        navigator.clipboard.writeText(secret);
-        window.showToast('📋 Clave secreta copiada al portapapeles', 'info');
-      }
-    });
+  if (!secret) {
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+      alertBox.style.color = '#fca5a5';
+      alertBox.textContent = 'Error: Clave secreta no encontrada. Cierre el modal y vuelva a intentarlo.';
+    }
+    window.showToast('Clave secreta no encontrada. Reabra el modal.', 'error');
+    return;
   }
 
-  if (btnCopyBackup) {
-    btnCopyBackup.addEventListener('click', () => {
-      const raw = backupGrid?.getAttribute('data-backup-codes');
-      if (raw) {
-        try {
-          const list = JSON.parse(raw);
-          navigator.clipboard.writeText(list.join('\n'));
-          window.showToast('📋 Códigos de respaldo copiados al portapapeles', 'info');
-        } catch {}
-      }
-    });
+  if (!cleanCode || cleanCode.length < 6) {
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+      alertBox.style.color = '#fca5a5';
+      alertBox.textContent = 'Ingrese el código de 6 dígitos que muestra su app autenticadora.';
+    }
+    if (codeInput) codeInput.focus();
+    return;
   }
 
   if (btnConfirm) {
-    btnConfirm.addEventListener('click', async () => {
-      const secret = secretLabel?.getAttribute('data-secret');
-      const code = (codeInput?.value || '').trim();
-      let backupCodes = [];
-      try {
-        backupCodes = JSON.parse(backupGrid?.getAttribute('data-backup-codes') || '[]');
-      } catch {}
-
-      if (!code) {
-        if (alertBox) {
-          alertBox.style.display = 'block';
-          alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
-          alertBox.style.color = '#fca5a5';
-          alertBox.textContent = 'Ingrese el código de 6 dígitos de su aplicación autenticadora.';
-        }
-        return;
-      }
-
-      btnConfirm.disabled = true;
-      btnConfirm.textContent = '⏳ Activando...';
-
-      try {
-        const res = await API.post('/api/v1/auth/mfa/activate', {
-          secret,
-          code,
-          backup_codes: backupCodes
-        });
-
-        if (!res.success) {
-          throw new Error(res.error || 'Código incorrecto');
-        }
-
-        playAudioFeedback('success');
-        window.showToast('🛡️ ¡Autenticación multifactor activada con éxito!', 'success');
-        closeModal();
-
-      } catch (err) {
-        if (alertBox) {
-          alertBox.style.display = 'block';
-          alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
-          alertBox.style.color = '#fca5a5';
-          alertBox.textContent = err.message || 'Error al activar MFA.';
-        }
-        playAudioFeedback('error');
-      } finally {
-        btnConfirm.disabled = false;
-        btnConfirm.textContent = '🛡️ Activar Autenticación Multifactor';
-      }
-    });
+    btnConfirm.disabled = true;
+    btnConfirm.textContent = '⏳ Activando...';
   }
-});
+  if (alertBox) alertBox.style.display = 'none';
+
+  try {
+    console.log('[MFA SETUP] Enviando activación TOTP con código:', cleanCode);
+    const res = await API.post('/api/v1/auth/mfa/activate', {
+      secret,
+      code: cleanCode,
+      backup_codes: backupCodes
+    });
+
+    if (!res.success) {
+      throw new Error(res.error || 'Código incorrecto');
+    }
+
+    playAudioFeedback('success');
+    window.showToast('🛡️ ¡Autenticación multifactor activada con éxito!', 'success');
+
+    if (modal) modal.classList.remove('active');
+
+    // Actualizar indicador en menú de usuario si está visible
+    const mfaBtn = document.getElementById('btnOpenMfaSetup');
+    if (mfaBtn) {
+      const span = mfaBtn.querySelector('span');
+      if (span) span.textContent = '🛡️ MFA Activado (Configurar)';
+    }
+
+  } catch (err) {
+    console.warn('[MFA ACTIVATE ERROR]', err);
+    if (alertBox) {
+      alertBox.style.display = 'block';
+      alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+      alertBox.style.color = '#fca5a5';
+      alertBox.textContent = err.message || 'Error al activar MFA.';
+    }
+    window.showToast(err.message || 'Error al activar MFA.', 'error');
+    playAudioFeedback('error');
+    if (codeInput) {
+      codeInput.value = '';
+      codeInput.focus();
+    }
+  } finally {
+    if (btnConfirm) {
+      btnConfirm.disabled = false;
+      btnConfirm.textContent = '🛡️ Activar Autenticación Multifactor';
+    }
+  }
+}
+
+window.handleConfirmActivateMfa = handleConfirmActivateMfa;
 
 /**
  * Abre el modal de sesiones de dispositivos activos
@@ -1667,9 +1638,10 @@ async function openDeviceSessionsModal() {
   const modal = document.getElementById('deviceSessionsModalBackdrop');
   const container = document.getElementById('deviceSessionsContainer');
 
-  if (!container) return;
-  container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1rem;">⏳ Cargando dispositivos conectados...</div>';
   if (modal) modal.classList.add('active');
+  if (!container) return;
+
+  container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1.5rem;">⏳ Cargando dispositivos conectados...</div>';
 
   try {
     const data = await API.get('/api/v1/auth/sessions');
@@ -1678,18 +1650,18 @@ async function openDeviceSessionsModal() {
     }
 
     if (data.sessions.length === 0) {
-      container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 1rem;">No hay sesiones registradas.</div>';
+      container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 1.5rem;">No hay sesiones registradas.</div>';
       return;
     }
 
     container.innerHTML = data.sessions.map(s => {
       const isCur = Boolean(s.is_current);
-      const devName = window.escapeHTML(s.device_name || 'Dispositivo Web');
-      const ip = window.escapeHTML(s.ip_address || '127.0.0.1');
+      const devName = window.escapeHTML ? window.escapeHTML(s.device_name || 'Dispositivo Web') : (s.device_name || 'Dispositivo Web');
+      const ip = window.escapeHTML ? window.escapeHTML(s.ip_address || '127.0.0.1') : (s.ip_address || '127.0.0.1');
       const activeAt = new Date(s.last_active_at).toLocaleString();
 
       return `
-        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid ${isCur ? '#0284c7' : 'rgba(255,255,255,0.08)'}; border-radius: 8px; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid ${isCur ? '#0284c7' : 'rgba(255,255,255,0.08)'}; border-radius: 8px; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
           <div>
             <div style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.85rem; color: #f8fafc;">
               <span>${isCur ? '🟢' : '💻'}</span>
@@ -1701,7 +1673,7 @@ async function openDeviceSessionsModal() {
             </div>
           </div>
           ${!isCur ? `
-            <button type="button" class="btn btn-sm btn-outline btn-revoke-session" data-session-id="${window.escapeHTML(s.id)}" style="color: #fca5a5; border-color: rgba(239,68,68,0.3); font-size: 0.7rem; padding: 4px 8px;">
+            <button type="button" class="btn btn-sm btn-outline btn-revoke-session" data-session-id="${window.escapeHTML ? window.escapeHTML(s.id) : s.id}" style="color: #fca5a5; border-color: rgba(239,68,68,0.3); font-size: 0.7rem; padding: 4px 8px; cursor: pointer;">
               Cerrar
             </button>
           ` : ''}
@@ -1709,51 +1681,190 @@ async function openDeviceSessionsModal() {
       `;
     }).join('');
 
-    // Asignar eventos de revocación individual
-    container.querySelectorAll('.btn-revoke-session').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const sessId = e.currentTarget.getAttribute('data-session-id');
-        if (!sessId) return;
-        try {
-          await API.post('/api/v1/auth/sessions/revoke', { session_id: sessId });
-          window.showToast('Sesión remota cerrada', 'info');
-          openDeviceSessionsModal();
-        } catch (err) {
-          window.showToast(err.message || 'Error al cerrar sesión', 'error');
-        }
-      });
-    });
-
   } catch (err) {
-    container.innerHTML = `<div style="text-align: center; color: #f87171; padding: 1rem;">❌ ${window.escapeHTML(err.message)}</div>`;
+    container.innerHTML = `<div style="text-align: center; color: #f87171; padding: 1.5rem;">❌ ${window.escapeHTML ? window.escapeHTML(err.message) : err.message}</div>`;
   }
 }
 
 window.openDeviceSessionsModal = openDeviceSessionsModal;
 
-document.addEventListener('DOMContentLoaded', () => {
-  const modal = document.getElementById('deviceSessionsModalBackdrop');
-  const btnClose = document.getElementById('btnCloseDeviceSessionsModal');
-  const btnCloseBtn = document.getElementById('btnCloseDeviceSessionsModalBtn');
-  const btnRevokeOthers = document.getElementById('btnRevokeOtherSessions');
+// DELEGACIÓN GLOBAL DE EVENTOS PARA MODALES DE SEGURIDAD (MFA Y DISPOSITIVOS)
+// Garantiza funcionamiento instantáneo sin importar cuándo se cargue templates/modals.html
+document.addEventListener('click', async (e) => {
+  // 1. Confirmar activación de MFA
+  const btnConfirmMfa = e.target.closest('#btnConfirmActivateMfa');
+  if (btnConfirmMfa) {
+    e.preventDefault();
+    handleConfirmActivateMfa();
+    return;
+  }
 
-  const closeModal = () => {
-    if (modal) modal.classList.remove('active');
-  };
+  // 2. Copiar clave secreta
+  const btnCopySecret = e.target.closest('#btnCopyMfaSecret');
+  if (btnCopySecret) {
+    e.preventDefault();
+    const secretLabel = document.getElementById('mfaSetupSecretLabel');
+    const secret = secretLabel?.getAttribute('data-secret') || secretLabel?.textContent?.trim();
+    if (secret) {
+      navigator.clipboard.writeText(secret).then(() => {
+        window.showToast('📋 Clave secreta copiada al portapapeles', 'info');
+      }).catch(() => {
+        window.showToast('Clave: ' + secret, 'info');
+      });
+    }
+    return;
+  }
 
-  if (btnClose) btnClose.addEventListener('click', closeModal);
-  if (btnCloseBtn) btnCloseBtn.addEventListener('click', closeModal);
-
-  if (btnRevokeOthers) {
-    btnRevokeOthers.addEventListener('click', async () => {
-      if (!confirm('¿Desea cerrar la sesión en todos los demás dispositivos conectados?')) return;
+  // 3. Copiar códigos de respaldo
+  const btnCopyBackup = e.target.closest('#btnCopyBackupCodes');
+  if (btnCopyBackup) {
+    e.preventDefault();
+    const backupGrid = document.getElementById('mfaBackupCodesGrid');
+    const raw = backupGrid?.getAttribute('data-backup-codes');
+    if (raw) {
       try {
-        const res = await API.post('/api/v1/auth/sessions/revoke-others');
-        window.showToast(res.message || 'Sesiones cerradas en los demás dispositivos', 'success');
-        openDeviceSessionsModal();
-      } catch (err) {
-        window.showToast(err.message || 'Error cerrando sesiones', 'error');
+        const list = JSON.parse(raw);
+        navigator.clipboard.writeText(list.join('\n')).then(() => {
+          window.showToast('📋 Códigos de respaldo copiados al portapapeles', 'info');
+        }).catch(() => {
+          window.showToast('Códigos copiados', 'info');
+        });
+      } catch {}
+    }
+    return;
+  }
+
+  // 4. Cerrar modal de configuración MFA
+  const btnCloseMfaSetup = e.target.closest('#btnCloseMfaSetupModal') || e.target.closest('#btnCloseMfaSetupModalBtn');
+  if (btnCloseMfaSetup) {
+    e.preventDefault();
+    const modal = document.getElementById('mfaSetupModalBackdrop');
+    if (modal) modal.classList.remove('active');
+    return;
+  }
+
+  // 5. Cerrar modal de verificación de login MFA
+  const btnCloseMfaVerif = e.target.closest('#btnCloseMfaVerificationModal');
+  if (btnCloseMfaVerif) {
+    e.preventDefault();
+    const modal = document.getElementById('mfaVerificationModalBackdrop');
+    if (modal) modal.classList.remove('active');
+    currentMfaToken = null;
+    return;
+  }
+
+  // 6. Alternar modo código de respaldo en verificación
+  const btnToggleBackup = e.target.closest('#btnToggleBackupCodeMode');
+  if (btnToggleBackup) {
+    e.preventDefault();
+    isBackupCodeMode = !isBackupCodeMode;
+    const codeInput = document.getElementById('mfaCodeInput');
+    if (codeInput) {
+      codeInput.value = '';
+      if (isBackupCodeMode) {
+        codeInput.placeholder = 'XXXX-XXXX';
+        codeInput.maxLength = 9;
+        btnToggleBackup.textContent = '🔢 Volver a código temporal de 6 dígitos';
+      } else {
+        codeInput.placeholder = '000 000';
+        codeInput.maxLength = 7;
+        btnToggleBackup.textContent = '🔑 Usar código de respaldo de emergencia';
       }
-    });
+      codeInput.focus();
+    }
+    return;
+  }
+
+  // 7. Enviar verificación de login MFA
+  const btnSubmitMfa = e.target.closest('#btnSubmitMfaVerification');
+  if (btnSubmitMfa) {
+    e.preventDefault();
+    handleMfaVerificationSubmit();
+    return;
+  }
+
+  // 8. Cerrar modal de sesiones
+  const btnCloseSessions = e.target.closest('#btnCloseDeviceSessionsModal') || e.target.closest('#btnCloseDeviceSessionsModalBtn');
+  if (btnCloseSessions) {
+    e.preventDefault();
+    const modal = document.getElementById('deviceSessionsModalBackdrop');
+    if (modal) modal.classList.remove('active');
+    return;
+  }
+
+  // 9. Revocar sesión individual
+  const btnRevokeSingle = e.target.closest('.btn-revoke-session');
+  if (btnRevokeSingle) {
+    e.preventDefault();
+    const sessId = btnRevokeSingle.getAttribute('data-session-id');
+    if (!sessId) return;
+    try {
+      btnRevokeSingle.disabled = true;
+      await API.post('/api/v1/auth/sessions/revoke', { session_id: sessId });
+      window.showToast('Sesión remota cerrada', 'info');
+      openDeviceSessionsModal();
+    } catch (err) {
+      window.showToast(err.message || 'Error al cerrar sesión', 'error');
+      btnRevokeSingle.disabled = false;
+    }
+    return;
+  }
+
+  // 10. Revocar todas las demás sesiones
+  const btnRevokeOthers = e.target.closest('#btnRevokeOtherSessions');
+  if (btnRevokeOthers) {
+    e.preventDefault();
+    if (!confirm('¿Desea cerrar la sesión en todos los demás dispositivos conectados?')) return;
+    try {
+      btnRevokeOthers.disabled = true;
+      const res = await API.post('/api/v1/auth/sessions/revoke-others');
+      window.showToast(res.message || 'Sesiones cerradas en los demás dispositivos', 'success');
+      openDeviceSessionsModal();
+    } catch (err) {
+      window.showToast(err.message || 'Error cerrando sesiones', 'error');
+    } finally {
+      btnRevokeOthers.disabled = false;
+    }
+    return;
+  }
+});
+
+// Auto-submit o filtrado al tipear en el input de código de configuración MFA
+document.addEventListener('input', (e) => {
+  if (e.target && e.target.id === 'mfaSetupVerificationCode') {
+    const val = e.target.value;
+    // Limpiar caracteres extraños
+    const clean = val.replace(/[^\d\s-]/g, '');
+    if (clean !== val) e.target.value = clean;
+
+    const digitsOnly = clean.replace(/[\s-]/g, '');
+    if (digitsOnly.length === 6) {
+      // Si ya hay 6 dígitos y el usuario termina de escribir, podemos auto-activar o resaltar el botón
+      const btn = document.getElementById('btnConfirmActivateMfa');
+      if (btn) btn.style.boxShadow = '0 0 12px rgba(56, 189, 248, 0.6)';
+    }
+  }
+
+  if (e.target && e.target.id === 'mfaCodeInput') {
+    if (!isBackupCodeMode) {
+      const clean = e.target.value.replace(/\D/g, '');
+      if (clean.length === 6) {
+        handleMfaVerificationSubmit();
+      }
+    }
+  }
+});
+
+// Soporte para tecla Enter en inputs de modales
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    if (e.target && e.target.id === 'mfaSetupVerificationCode') {
+      e.preventDefault();
+      handleConfirmActivateMfa();
+    }
+    if (e.target && e.target.id === 'mfaCodeInput') {
+      e.preventDefault();
+      handleMfaVerificationSubmit();
+    }
   }
 });
