@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>BIENESTAR ALIMENTARIO | Despacho de Víveres y Proteína con Passkeys (MIPPCI)</title>
+  <title>Sistema de Gestión de Beneficios a Trabajadores | MIPPCI</title>
   
   <!-- PWA & Mobile Web App Meta Tags -->
   <link rel="manifest" href="/manifest.json">
@@ -62,7 +62,7 @@
         Instalar PWA
       </button>
 
-      <!-- 3. MENÚ DE USUARIO UNIFICADO (DROPDOWN B2G ENTERPRISE) -->
+      <!-- 3. MENÚ DE USUARIO UNIFICADO -->
       <div id="userSessionPill" class="user-profile-menu-container" style="display: none;">
         <button id="btnUserMenuTrigger" class="user-menu-trigger" aria-haspopup="true" aria-expanded="false" title="Opciones de Cuenta y Sistema">
           <div id="userAvatarCircle" class="user-avatar-circle">U</div>
@@ -185,11 +185,11 @@
     <nav class="master-nav" id="masterNav" style="display: none;">
       <button class="nav-tab-btn" data-view="view-portal">
         <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
-        <span>Portal RRHH</span>
+        <span>Administración</span>
       </button>
       <button class="nav-tab-btn" data-view="view-worker">
         <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-        <span>App Beneficiario</span>
+        <span>Beneficiario</span>
       </button>
       <button class="nav-tab-btn" data-view="view-distributor">
         <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
@@ -197,7 +197,7 @@
       </button>
       <button class="nav-tab-btn" data-view="view-payroll">
         <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-        <span>Nómina SSOT / API</span>
+        <span>Padrón de Personal</span>
       </button>
     </nav>
   </header>
@@ -217,13 +217,13 @@
             </svg>
           </div>
           <div id="loginBadgeStatus" style="display: inline-block; padding: 0.2rem 0.65rem; background: #e0f2fe; color: #0284c7; font-size: 0.68rem; font-weight: 700; border-radius: 9999px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; transition: all 0.3s ease;">
-            Validación Segura &middot; Huella o FaceID
+            Acceso al Sistema &middot; Identificación
           </div>
           <h2 id="loginTitle" style="font-size: 1.35rem; color: #0f172a; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.35rem;">
-            BIENESTAR ALIMENTARIO MIPPCI
+            SISTEMA DE GESTIÓN DE BENEFICIOS A TRABAJADORES
           </h2>
           <p id="loginSubtitle" style="font-size: 0.82rem; color: #64748b; line-height: 1.4;">
-            Acceso Institucional por Rol &middot; Beneficiarios, Almacén y Supervisión
+            Acceso Institucional de Personal &middot; MIPPCI
           </p>
         </div>
 
@@ -235,7 +235,7 @@
           </button>
           <button type="button" id="tabModeAdmin" onclick="window.setLoginMode && window.setLoginMode('admin');" class="login-tab-btn" style="flex: 1; padding: 0.65rem 0.5rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.45rem; background: transparent; color: #64748b;">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <span>🛡️ Administrar Sistema</span>
+            <span>Acceso Administrativo</span>
           </button>
         </div>
 
@@ -244,16 +244,16 @@
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem;">
             <div style="font-weight: 800; color: #0369a1; font-size: 0.88rem; display: flex; align-items: center; gap: 0.45rem;">
               <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #0284c7; color: #ffffff; border-radius: 50%; font-size: 0.72rem;">⚙️</span>
-              <span>Instalación y Primera Configuración</span>
+              <span>Configuración Inicial del Sistema</span>
             </div>
             <span class="badge" style="background: #e0f2fe; color: #0284c7; font-size: 0.65rem; font-weight: 700; border: 1px solid #bae6fd;">Puesta en Marcha</span>
           </div>
           <div style="font-size: 0.78rem; color: #334155; line-height: 1.4; margin-bottom: 0.85rem;">
-            Configure la plataforma oficial del ministerio, cree el perfil del Administrador Principal y comience a operar en modo de producción institucional.
+            Registro del Administrador Principal y parámetros de la institución para iniciar operaciones.
           </div>
           <button type="button" id="btnLaunchInstallWizard" class="btn btn-primary" style="font-size: 0.82rem; padding: 0.6rem 1rem; font-weight: 700; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 3px 10px rgba(2, 132, 199, 0.3);">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            <span>Iniciar Instalación y Configuración Inicial</span>
+            <span>Iniciar Configuración Inicial</span>
           </button>
         </div>
 
@@ -261,13 +261,13 @@
         <div id="setupPendingBanner" style="display: none; background: #fffbeb; border: 1px solid #fef3c7; border-radius: var(--radius-sm); padding: 0.85rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: #b45309; text-align: left;">
           <div style="font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-            <span>Plataforma Pendiente por Configuración</span>
+            <span>Sistema sin Configuración Inicial</span>
           </div>
           <div style="font-size: 0.76rem; color: #92400e; margin-bottom: 0.65rem;">
-            La base de datos se encuentra en blanco o fue puesta a cero. Debe completar el Asistente Inicial para registrar al Administrador Principal.
+            La base de datos no contiene registros. Registre al Administrador Principal mediante el formulario de inicio.
           </div>
           <button type="button" id="btnLaunchWizardFromLogin" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.4rem 0.85rem; font-weight: 700; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
-            <span>Iniciar Asistente de Configuración →</span>
+            <span>Iniciar Configuración →</span>
           </button>
         </div>
 
@@ -277,16 +277,16 @@
 
           <!-- CONTENEDOR 1: ACCESO BENEFICIARIO / ALMACÉN -->
           <div id="beneficiaryFieldsContainer">
-            <!-- PROCESO OBLIGATORIO Y SINE QUA NON: FORMALIZACIÓN Y VALIDACIÓN (CAMPAÑA 27/NOV) -->
+            <!-- VALIDACIÓN DE DATOS DEL BENEFICIARIO -->
             <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 0.95rem; font-size: 0.78rem; color: #065f46; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);">
               <span style="font-size: 1.25rem; line-height: 1;">📋</span>
               <div style="flex: 1;">
                 <div style="font-weight: 800; color: #065f46; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                  <span>Formalización y Validación Obligatoria</span>
+                  <span>Validación de Datos del Beneficiario</span>
                   <span style="background: #059669; color: #ffffff; font-size: 0.62rem; padding: 1px 6px; border-radius: 9999px; font-weight: 700;">Jornada 27/Nov</span>
                 </div>
                 <div style="font-size: 0.71rem; color: #047857; margin-top: 0.2rem; line-height: 1.35;">
-                  Proceso indispensable para activar su derecho y retirar su beneficio. Ingrese su Cédula y el sistema le guiará automáticamente.
+                  Ingrese su número de documento de identidad para verificar su asignación e iniciar la entrega.
                 </div>
               </div>
             </div>
@@ -341,8 +341,8 @@
             <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 0.95rem; font-size: 0.78rem; color: #0369a1; display: flex; align-items: center; gap: 0.55rem;">
               <span style="font-size: 1.25rem;">🛡️</span>
               <div>
-                <strong style="color: #0369a1; font-size: 0.82rem;">Módulo de Administración del Sistema</strong>
-                <div style="font-size: 0.7rem; color: #0284c7;">Gestión Humana, Control de Entregas, Catálogo y Reportes.</div>
+                <strong style="color: #0369a1; font-size: 0.82rem;">Módulo de Administración</strong>
+                <div style="font-size: 0.7rem; color: #0284c7;">Padrón de personal, control de entregas, catálogo y reportes.</div>
               </div>
             </div>
 
@@ -595,7 +595,7 @@
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1.5rem;">
               <h3 style="font-size: 1.05rem; color: #0f172a; font-weight: 700; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.5rem;">
                 <svg class="icon-svg icon-sm" style="color: var(--sea-pacific);" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
-                <span>Paso 2: Identidad Institucional y Marca (B2G)</span>
+                <span>Paso 2: Identidad Institucional</span>
               </h3>
               <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1rem;">
                 Defina el nombre oficial, logotipo y colores corporativos para todo el sistema y las pantallas de los funcionarios.
@@ -807,7 +807,7 @@
           </button>
           <button class="portal-subtab" data-subtab="subtab-dashboard">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            <span>Dashboard KPIs</span>
+            <span>Panel de Indicadores</span>
           </button>
           <button class="portal-subtab" data-subtab="subtab-campaigns">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
@@ -853,9 +853,9 @@
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             <span>Exportar CSV</span>
           </button>
-          <a href="dossier.html" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; color: #0284c7; border-color: #38bdf8; background: #f0f9ff; text-decoration: none;" title="Abrir Dossier Ejecutivo Ministerial / One-Pager">
+          <a href="dossier.html" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.4rem; color: #0284c7; border-color: #38bdf8; background: #f0f9ff; text-decoration: none;" title="Abrir Memoria Técnica y Operativa">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-            <span>📄 Dossier Ejecutivo</span>
+            <span>📄 Memoria Técnica</span>
           </a>
         </div>
       </div>
@@ -869,13 +869,13 @@
             <div>
               <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: rgba(255, 255, 255, 0.2); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
                 <span class="status-dot" style="width: 8px; height: 8px; border-radius: 50%; background: #4ade80;"></span>
-                Primera Jornada Institucional Activa &middot; Modalidad Manual por Cédula
+                Jornada Institucional Activa &middot; Modalidad Manual por Cédula
               </div>
               <h3 style="font-size: 1.35rem; font-weight: 800; margin: 0.4rem 0 0.1rem; color: #ffffff;">
-                Consola de Despacho y Entrega Rápida de Combos
+                Despacho y Entrega de Combos
               </h3>
               <p style="font-size: 0.82rem; opacity: 0.9; margin: 0;">
-                Ingrese el número de cédula del trabajador para validar asignación, descontar combos e incorporar personal no censado al instante.
+                Ingrese el número de documento del trabajador para consultar cuota asignada, registrar entrega o incorporar beneficiarios no registrados.
               </p>
             </div>
             <div style="display: flex; gap: 0.5rem;">
@@ -1581,7 +1581,7 @@
 
           <div style="background: #f0f9ff; border-left: 3px solid #0284c7; border-radius: var(--radius-xs); padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; color: #0369a1; display: flex; align-items: center; gap: 0.5rem;">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-            <div><strong>Modelo de Entrega B2G:</strong> Al programar una jornada puede seleccionar el universo objetivo (todos los trabajadores, activos, jubilados o por departamento), vincular un combo o paquete específico y disparar avisos directos a la aplicación de los beneficiarios.</div>
+            <div><strong>Asignación por Jornada:</strong> Al programar una jornada puede seleccionar el universo objetivo (todos los trabajadores, activos, jubilados o por departamento), vincular un combo específico y enviar avisos a los beneficiarios.</div>
           </div>
 
           <!-- GRID DE JORNADAS ACTIVAS Y PROGRAMADAS -->
@@ -1591,35 +1591,35 @@
         </div>
       </div>
 
-      <!-- SUBTAB 6: PERSONALIZACIÓN DE MARCA BLANCA (ENTE GUBERNAMENTAL) -->
+      <!-- SUBTAB 6: PERSONALIZACIÓN DE IDENTIDAD INSTITUCIONAL -->
       <div id="subtab-branding" class="portal-content-block" style="display: none;">
         <div class="glass-panel" style="max-width: 900px; margin: 0 auto;">
           <div class="panel-header" style="margin-bottom: 1.25rem;">
             <div>
               <div class="panel-title" style="font-size: 1.15rem; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
                 <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C22 6.5 17.5 2 12 2z"></path></svg>
-                <span>Configuración de Marca Blanca & Modelo B2G</span>
+                <span>Configuración de Identidad Institucional</span>
               </div>
               <div style="font-size: 0.78rem; color: #64748b; margin-top: 0.25rem;">
-                Personalice la plataforma con el nombre, logotipo oficial, lema y paleta de colores de cualquier ministerio, gobernación, alcaldía o ente público.
+                Configuración de nombre oficial, logotipo y colores representativos de la institución.
               </div>
             </div>
           </div>
 
-          <!-- TARJETA DESTACADA: DOSSIER EJECUTIVO / ONE-PAGER MINISTERIAL -->
+          <!-- TARJETA DESTACADA: MEMORIA TÉCNICA Y OPERATIVA -->
           <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #bae6fd; border-radius: 12px; padding: 1.15rem 1.35rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: 0 4px 15px rgba(2, 132, 199, 0.08);">
             <div>
               <div style="font-weight: 800; color: #0369a1; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
                 <span style="font-size: 1.25rem;">📄</span>
-                <span>Dossier Ejecutivo & One-Pager Institucional</span>
+                <span>Memoria Técnica y Operativa</span>
               </div>
               <div style="font-size: 0.78rem; color: #0284c7; margin-top: 0.25rem; max-width: 540px; line-height: 1.4;">
-                Consulte y comparta el informe técnico de alto nivel con arquitectura, trazabilidad criptográfica, mitigaciones de seguridad y modelo operativo ministerial.
+                Documento técnico con especificaciones de arquitectura, trazabilidad criptográfica y esquema operativo de despacho.
               </div>
             </div>
             <a href="dossier.html" target="_blank" class="btn btn-primary" style="font-size: 0.82rem; padding: 0.6rem 1.15rem; font-weight: 700; background: #0284c7; display: inline-flex; align-items: center; gap: 0.45rem; text-decoration: none; border: none; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);">
               <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-              <span>Abrir Dossier Ejecutivo</span>
+              <span>Abrir Memoria Técnica</span>
             </a>
           </div>
 
@@ -2816,16 +2816,16 @@
     </section>
 
     <!-- ======================================================================
-         VISTA 4: NÓMINA SSOT & CONTRATOS RESTFUL (WEBHOOKS / BATCH / KILL-SWITCH)
+         VISTA 4: PADRÓN DE PERSONAL E INTEGRACIÓN DE NÓMINA
          ====================================================================== -->
     <section id="view-payroll" class="view-section">
       <div class="glass-panel" style="margin-bottom: 1.5rem;">
         <div class="panel-header">
-          <div class="panel-title">⚡ Sincronización de Nómina y Single Source of Truth (SSOT)</div>
+          <div class="panel-title">Sincronización del Padrón Institucional de Nómina</div>
           <span class="badge badge-passkey">HMAC-SHA256 Activo</span>
         </div>
         <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-          Prueba de contratos API REST especificados en el documento 9 para integración directa con SAP, Workday, Meta4 y cargas batch SFTP encriptadas con PGP.
+          Mecanismos de actualización mediante servicio web RESTful, sincronización con sistemas de recursos humanos y carga masiva de archivos de personal.
         </p>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
@@ -2833,10 +2833,10 @@
           <!-- 1. SIMULADOR WEBHOOK TIEMPO REAL -->
           <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 1.25rem;">
             <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: #38bdf8;">
-              1. Webhook Novedades RRHH (POST /api/v1/payroll/webhook)
+              1. Notificación de Novedades de Personal (POST /api/v1/payroll/webhook)
             </h3>
             <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem;">
-              Firma con cabecera <code>X-Payroll-Signature: sha256={hmac}</code>. Actualiza o crea el empleado en tiempo real.
+              Firma con cabecera <code>X-Payroll-Signature: sha256={hmac}</code>. Actualiza o crea el registro en base de datos.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
@@ -2857,7 +2857,7 @@
             </div>
 
             <button id="btnSendPayrollWebhook" class="btn btn-cyan" style="width: 100%;">
-              🚀 Disparar Webhook Firmado HMAC
+              Enviar Notificación de Nómina (Firma HMAC)
             </button>
           </div>
 
@@ -2865,7 +2865,7 @@
           <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 1.25rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
               <h3 style="font-size: 0.95rem; font-weight: 700; color: #10b981; margin: 0;">
-                2. Ingesta de Nómina Oficial y Formalización de Beneficiarios
+                2. Carga de Nómina Oficial y Registro de Beneficiarios
               </h3>
               <!-- Selector de Modo Excel/CSV vs JSON -->
               <div style="display: flex; gap: 0.25rem; background: #0f172a; padding: 2px; border-radius: 6px; border: 1px solid #334155;">
@@ -2874,7 +2874,7 @@
               </div>
             </div>
             <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 0.75rem;">
-              Cargue la nómina en formato Excel oficial (.xlsx) o .CSV institucional. Los funcionarios ingresan en estado <code>precargado</code> y deben formalizar su registro con clave y foto antes del 12/11/2026.
+              Cargue la nómina en formato Excel (.xlsx) o .CSV institucional. Los registros ingresan en estado <code>precargado</code> para validación previa al despacho.
             </p>
 
             <!-- MONITOR DE FORMALIZACIÓN PARA JORNADA 27/NOV -->
@@ -2882,7 +2882,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
                 <div>
                   <strong style="color: #38bdf8; font-size: 0.82rem;">🗓️ Campaña de Despacho: 27 de Noviembre de 2026</strong>
-                  <div style="font-size: 0.7rem; color: #fbbf24;">Límite de Formalización de Beneficiarios: 12 de Noviembre de 2026</div>
+                  <div style="font-size: 0.7rem; color: #fbbf24;">Plazo de Registro de Beneficiarios: 12 de Noviembre de 2026</div>
                 </div>
                 <button type="button" id="btnRefreshEnrollmentStats" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;" title="Actualizar Estadísticas">
                   🔄 Actualizar
@@ -2919,7 +2919,7 @@
             <!-- VISTA A: IMPORTADOR VIA EXCEL / CSV -->
             <div id="payrollCsvContainer">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Compatible con bd.xlsx oficial, SAP, Meta4, RRHH</span>
+                <span style="font-size: 0.72rem; color: #64748b; font-weight: 600;">Compatible con archivos Excel (.xlsx) y .CSV</span>
                 <a href="/api/v1/payroll/sample-payroll.csv" download="nomina_oficial_mippci_plantilla.csv" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.25rem 0.5rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.3rem;">
                   <span>📥 Plantilla CSV / Excel</span>
                 </a>
@@ -2931,18 +2931,18 @@
                 <div style="font-size: 1.8rem; margin-bottom: 0.25rem;">📊</div>
                 <div style="font-weight: 700; font-size: 0.88rem; color: #0284c7;">Haga clic o arrastre el archivo Excel (.xlsx / .xls) o CSV de nómina</div>
                 <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">
-                  Detección automática de columnas MIPPCI: <code>CEDULA</code>, <code>NOMBRES Y APELLIDOS</code>, <code>UNIDAD DE ADSCRIPCIÓN</code>, <code>CARGO</code>, <code>FECHA DE INGRESO</code>
+                  Columnas admitidas: <code>CEDULA</code>, <code>NOMBRES Y APELLIDOS</code>, <code>UNIDAD DE ADSCRIPCIÓN</code>, <code>CARGO</code>, <code>FECHA DE INGRESO</code>
                 </div>
               </div>
 
               <!-- RESUMEN PREVIO DE INGESTA EXCEL / CSV -->
               <div id="payrollCsvPreviewSummary" style="display: none; background: #020617; border: 1px solid #1e293b; border-radius: 6px; padding: 0.75rem; font-size: 0.75rem; margin-bottom: 0.75rem; color: #a5f3fc;">
-                <div style="font-weight: 700; margin-bottom: 0.35rem; color: #38bdf8;">✓ Archivo de Nómina Listo para Ingesta</div>
+                <div style="font-weight: 700; margin-bottom: 0.35rem; color: #38bdf8;">✓ Archivo de Nómina Listo para Procesamiento</div>
                 <div id="payrollCsvStatsText" style="color: #cbd5e1; font-size: 0.72rem;"></div>
               </div>
 
               <button id="btnProcessCsvBatch" class="btn btn-primary" style="width: 100%; display: none; font-weight: 700; padding: 0.75rem; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
-                🚀 Ingerir Nómina a Base de Datos (Estado: Precargado)
+                Cargar Nómina en Base de Datos (Estado: Precargado)
               </button>
             </div>
 
@@ -2968,29 +2968,29 @@
   }
 ]</textarea>
               <button id="btnSendBatchImport" class="btn btn-primary" style="width: 100%;">
-                📦 Importar Lote de Nómina (JSON)
+                Importar Lote de Nómina
               </button>
             </div>
           </div>
 
-          <!-- 3. KILL-SWITCH DE BAJAS INMEDIATAS -->
+          <!-- 3. DESVINCULACIÓN Y REVOCACIÓN DE CREDENCIALES -->
           <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(244, 63, 94, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
             <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.5rem; color: #fb7185;">
-              3. Kill-Switch Bajas Inmediatas (POST /terminate)
+              3. Desvinculación y Revocación de Credenciales (POST /terminate)
             </h3>
             <p style="font-size: 0.75rem; color: var(--text-dim); margin-bottom: 1rem;">
-              Revoca en cascada todas las credenciales Passkey, tarjetas NFC y asignaciones vigentes al instante.
+              Inactiva al trabajador, desactiva credenciales biométricas FIDO2 y cancela beneficios pendientes.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
               <select id="killSwitchWorkerSelect" class="form-select">
                 <!-- Se llena con trabajadores activos -->
               </select>
-              <input id="killSwitchReasonInput" type="text" class="form-input" placeholder="Motivo de la desvinculación" value="Renuncia inmediata / Desvinculación">
+              <input id="killSwitchReasonInput" type="text" class="form-input" placeholder="Motivo de la desvinculación" value="Desvinculación institucional">
             </div>
 
             <button id="btnExecuteKillSwitch" class="btn btn-danger" style="width: 100%;">
-              🛑 Ejecutar Kill-Switch Inmediato
+              Revocar Credenciales y Desvincular
             </button>
           </div>
 
@@ -3002,7 +3002,7 @@
             Registro de Auditoría de Sincronización de Nómina:
           </h4>
           <pre id="payrollLogsConsole" class="text-mono" style="background: #020617; border: 1px solid var(--bg-card-border); border-radius: var(--radius-sm); padding: 1rem; font-size: 0.75rem; color: #a5f3fc; max-height: 200px; overflow-y: auto;">
-Listo para recibir transacciones de nómina SSOT...
+Listo para recibir transacciones de nómina institucional...
           </pre>
         </div>
       </div>

@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dossier Ejecutivo — Plataforma SGBT MIPPCI</title>
+  <title>Informe Técnico y Operativo - Sistema SGBT MIPPCI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -1024,13 +1024,13 @@
             style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
         </div>
         <div>
-          <div class="brand-title">Sistema de gestión de Beneficios a Trabajadores SGBT</div>
-          <div class="brand-subtitle">Bienestar Social & Despacho con Passkeys FIDO2 &middot; MIPPCI</div>
+          <div class="brand-title">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
+          <div class="brand-subtitle">Despacho Institucional y Verificación Biométrica FIDO2 &middot; MIPPCI</div>
         </div>
       </div>
       <div class="header-actions">
         <a href="../docs/diagrams/c4-containers.html" target="_blank" class="btn btn-outline">Ver Diagrama C4</a>
-        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary">Abrir Aplicativo Demo ↗</a>
+        <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary">Abrir Demostración ↗</a>
       </div>
     </div>
   </header>
@@ -1038,13 +1038,10 @@
   <!-- HERO SECTION -->
   <section class="hero">
     <div class="container">
-      <span class="badge-pill reveal">🛡️ GovTech & Enterprise Logistics &middot; Dossier Ejecutivo</span>
-      <h1 class="hero-title reveal delay-1">Automatización, Soberanía y Control en Despacho de Beneficios <span>100%
-          Offline</span></h1>
+      <span class="badge-pill reveal">Informe Técnico y Operativo de Despacho</span>
+      <h1 class="hero-title reveal delay-1">Control de Despacho Institucional de Beneficios y Registro Local <span>Sin Conexión</span></h1>
       <p class="hero-subtitle reveal delay-2">
-        Elimine las colas, las hojas de Excel y el fraude por suplantación en almacenes y depósitos. SGBT garantiza
-        verificación biométrica FIDO2 en menos de 2 segundos, cero duplicados y actas de auditoría con sello
-        criptográfico.
+        Sistema para el registro, deducción de inventario y entrega de combos institucionales en almacén. Ejecuta verificación biométrica FIDO2 en menos de 2 segundos, control relacional de entrega única por beneficiario y actas de auditoría con sello criptográfico SHA-256.
       </p>
 
       <!-- METRICAS / KPIS CLAVE -->
@@ -1052,22 +1049,22 @@
         <div class="kpi-card reveal delay-1">
           <div class="kpi-num">&lt; 2s</div>
           <div class="kpi-label">Tiempo de Verificación</div>
-          <div class="kpi-desc">Escaneo óptico y deducción instantánea en mesa de almacén.</div>
+          <div class="kpi-desc">Lectura óptica de código y deducción en mesa de entrega.</div>
         </div>
         <div class="kpi-card reveal delay-2">
           <div class="kpi-num">100%</div>
-          <div class="kpi-label">Operatividad Offline</div>
-          <div class="kpi-desc">Funciona sin Internet ni cobertura celular en sótanos.</div>
+          <div class="kpi-label">Operación Local sin Red</div>
+          <div class="kpi-desc">Registro en base de datos local SQLite y almacenamiento de navegador.</div>
         </div>
         <div class="kpi-card reveal delay-3">
           <div class="kpi-num">0%</div>
           <div class="kpi-label">Duplicidad de Entregas</div>
-          <div class="kpi-desc">Garantía matemática con Idempotency-Key y clave relacional única.</div>
+          <div class="kpi-desc">Restricción relacional de entrega única e identificación por Idempotency-Key.</div>
         </div>
         <div class="kpi-card reveal delay-4">
           <div class="kpi-num">1,136+</div>
-          <div class="kpi-label">Padrón Activo Demostrado</div>
-          <div class="kpi-desc">MIPPCI: Trabajadores activos, jubilados y contratados.</div>
+          <div class="kpi-label">Padrón de Beneficiarios</div>
+          <div class="kpi-desc">Personal activo, contratado y jubilado registrado en nómina ministerial.</div>
         </div>
       </div>
     </div>
@@ -1078,32 +1075,25 @@
     style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);">
     <div class="container">
       <div class="section-header reveal">
-        <h2 class="section-title">Pilares Tecnológicos y Ventajas Competitivas</h2>
-        <p class="section-subtitle">Diseñado con estándares bancarios y criptográficos para garantizar soberanía y
-          trazabilidad ante entes contralores.</p>
+        <h2 class="section-title">Especificaciones Técnicas del Sistema</h2>
+        <p class="section-subtitle">Mecanismos de autenticación, almacenamiento local y control de auditoría para entrega de beneficios.</p>
       </div>
 
       <div class="features-grid">
         <div class="feature-card reveal delay-1">
           <div class="feature-icon">🔐</div>
-          <h3 class="feature-title">Passkeys FIDO2 / ECDSA P-256 &middot; QR y NFC</h3>
-          <p class="feature-text">Autenticación biométrica anclada al chip físico del teléfono (Apple Secure Enclave o
-            Android StrongBox). Admite doble presentación en mesa: escaneo óptico de QR dinámico (180s) o validación por
-            proximidad NFC P2P al tocar el teléfono del beneficiario con el del despachador, evaluando la firma
-            criptográfica al instante.</p>
+          <h3 class="feature-title">Autenticación FIDO2 con Claves Asimétricas P-256</h3>
+          <p class="feature-text">Verificación biométrica en el módulo de seguridad del dispositivo móvil. Validación en mesa de despacho mediante lectura de código QR temporal (vigencia de 180 segundos) o comunicación por proximidad NFC, con comprobación de firma digital en servidor local.</p>
         </div>
         <div class="feature-card reveal delay-2">
           <div class="feature-icon">⚡</div>
-          <h3 class="feature-title">Motor Offline-First e Idempotencia</h3>
-          <p class="feature-text">Almacenamiento local mediante Service Workers v2.6 e IndexedDB. Si la red parpadea
-            durante la entrega, la cabecera <code>Idempotency-Key</code> garantiza que no se produzca doble descuento de
-            inventario.</p>
+          <h3 class="feature-title">Operación sin Red y Control de Idempotencia</h3>
+          <p class="feature-text">Persistencia local en el navegador mediante IndexedDB y caché de Service Worker. Cada solicitud de entrega incluye una cabecera Idempotency-Key para evitar duplicidad de registros si se interrumpe la conexión.</p>
         </div>
         <div class="feature-card reveal delay-3">
           <div class="feature-icon">📑</div>
-          <h3 class="feature-title">Actas Oficiales y Trazabilidad Forense</h3>
-          <p class="feature-text">Generación inmediata de comprobantes digitales firmados criptográficamente y actas de
-            despacho ministeriales desglosadas por dirección, tonelaje y tipo de combo.</p>
+          <h3 class="feature-title">Actas de Entrega y Registro de Auditoría</h3>
+          <p class="feature-text">Emisión de actas de recepción con firma digital y reportes de cierre de jornada con desglose por dirección administrativa, masa total en kilogramos y tipo de combo.</p>
         </div>
       </div>
     </div>
@@ -1113,20 +1103,18 @@
   <section class="section">
     <div class="container">
       <div class="section-header reveal">
-        <h2 class="section-title">Experiencia de Usuario PWA y Gobernanza</h2>
-        <p class="section-subtitle">Diseño responsivo móvil y desktop optimizado con cabeceras fijas, retroalimentación
-          táctil háptica y contención ergonómica de modales.</p>
+        <h2 class="section-title">Módulos del Sistema</h2>
+        <p class="section-subtitle">Interfaces adaptadas para terminales móviles y estaciones de escritorio en almacén y áreas administrativas.</p>
       </div>
 
       <!-- PORTAL ADMINISTRATIVO -->
       <div class="showcase-block reveal">
         <div class="showcase-header">
           <div>
-            <h3 class="showcase-title">Portal de Gobernanza y Dashboard Administrativo</h3>
-            <p class="showcase-desc">Monitoreo de auditoría en tiempo real, métricas de adopción de Passkeys,
-              importación de nómina y exportación oficial.</p>
+            <h3 class="showcase-title">Módulo de Administración</h3>
+            <p class="showcase-desc">Panel de indicadores operativos, registro de eventos, importación de nómina de personal y exportación de reportes.</p>
           </div>
-          <span class="badge-pill" style="margin-bottom:0;">Rol: Super Administrador</span>
+          <span class="badge-pill" style="margin-bottom:0;">Perfil: Administrador</span>
         </div>
         <div class="showcase-media">
           <img src="docs/admin_dashboard.png" alt="Portal Administrativo SGBT" loading="lazy">
@@ -1139,15 +1127,14 @@
         <div class="showcase-block reveal delay-1" style="margin-bottom:0;">
           <div class="showcase-header">
             <div>
-              <h3 class="showcase-title">Blindaje Criptográfico y Biometría Passkeys FIDO2</h3>
-              <p class="showcase-desc">Escudo institucional de ciberdefensa con claves asimétricas P-256 ancladas en
-                hardware seguro.</p>
+              <h3 class="showcase-title">Validación de Identidad con Claves Criptográficas</h3>
+              <p class="showcase-desc">Generación de pares de claves asimétricas en el dispositivo del usuario para comprobación de identidad en cada retiro.</p>
             </div>
             <span class="badge-pill"
-              style="margin-bottom:0; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;">Cero Suplantación</span>
+              style="margin-bottom:0; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;">Verificación Digital</span>
           </div>
           <div class="showcase-media" style="max-height: 340px;">
-            <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo Dorado de Seguridad y Ciberdefensa SGBT"
+            <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo de Seguridad SGBT"
               loading="lazy" style="width: 100%; height: 340px; object-fit: cover;">
           </div>
         </div>
@@ -1155,15 +1142,14 @@
         <div class="showcase-block reveal delay-2" style="margin-bottom:0;">
           <div class="showcase-header">
             <div>
-              <h3 class="showcase-title">Logística y Despacho de Combos Alimenticios</h3>
-              <p class="showcase-desc">Organización en cajas de madera y estibas con víveres secos, proteínas y canasta
-                básica.</p>
+              <h3 class="showcase-title">Organización y Despacho de Combos</h3>
+              <p class="showcase-desc">Control de inventario por rubro: víveres secos, proteínas, productos de higiene y limpieza.</p>
             </div>
             <span class="badge-pill"
-              style="margin-bottom:0; background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t Auditadas</span>
+              style="margin-bottom:0; background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t Registradas</span>
           </div>
           <div class="showcase-media" style="max-height: 340px;">
-            <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas de madera con combos alimenticios SGBT" loading="lazy"
+            <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas con combos alimenticios SGBT" loading="lazy"
               style="width: 100%; height: 340px; object-fit: cover;">
           </div>
         </div>
@@ -1174,12 +1160,11 @@
         <div class="showcase-block reveal delay-1" style="margin-bottom:0;">
           <div class="showcase-header">
             <div>
-              <h3 class="showcase-title">Vista de la App del Beneficiario</h3>
-              <p class="showcase-desc">Consulta de combos asignados, detalle de rubros por canasta básica y carnet
-                digital interactivo.</p>
+              <h3 class="showcase-title">Módulo del Beneficiario</h3>
+              <p class="showcase-desc">Consulta de beneficio asignado, desglose de rubros y credencial digital para retiro.</p>
             </div>
             <span class="badge-pill"
-              style="margin-bottom:0; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">Autogestión PWA</span>
+              style="margin-bottom:0; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">Acceso Móvil</span>
           </div>
           <div class="showcase-media">
             <img src="docs/app_beneficiario.png" alt="Vista de la App del Beneficiario SGBT" loading="lazy">
@@ -1189,9 +1174,8 @@
         <div class="showcase-block reveal delay-2" style="margin-bottom:0;">
           <div class="showcase-header">
             <div>
-              <h3 class="showcase-title">Vista de la Mesa de Despacho</h3>
-              <p class="showcase-desc">Operación de entrega en almacén, verificación física por estación y respaldo
-                local offline.</p>
+              <h3 class="showcase-title">Módulo de Mesa de Despacho</h3>
+              <p class="showcase-desc">Registro de entrega en estación de almacén con verificación de credencial y almacenamiento local.</p>
             </div>
             <span class="badge-pill"
               style="margin-bottom:0; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">Estación de
@@ -1214,18 +1198,16 @@
       <div class="section-header reveal"
         style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">🏛️ Entregable
-            Oficial de Auditoría &middot; Cierre de Jornada</span>
-          <h2 class="section-title">Acta Oficial Ministerial y Rendición Logística</h2>
+          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">Documento de Cierre de Jornada</span>
+          <h2 class="section-title">Acta de Despacho y Balance de Jornada</h2>
           <p class="section-subtitle">
-            Documento de valor legal y contralor generado automáticamente con sello criptográfico SHA-256 inmutable,
-            tonelaje acumulado y desglose por dependencia.
+            Informe de cierre con código de verificación SHA-256, cálculo de masa total despachada y balance clasificado por dependencia administrativa.
           </p>
         </div>
         <div>
           <a href="acta_oficial.html" target="_blank" class="btn btn-primary"
             style="box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
-            <span>🖨️ Ver / Imprimir Acta Oficial Completa ↗</span>
+            <span>Ver e Imprimir Acta de Despacho ↗</span>
           </a>
         </div>
       </div>
@@ -1467,16 +1449,14 @@
           </table>
         </div>
 
-        <!-- SELLO DE INTEGRIDAD DIGITAL INMUTABLE SHA-256 -->
+        <!-- SELLO DE INTEGRIDAD DIGITAL SHA-256 -->
         <div class="crypto-seal-card reveal delay-2">
           <div class="seal-icon-badge">🔒</div>
           <div class="seal-body">
-            <div class="seal-title">Sello de Integridad Criptográfica de la Jornada (SHA-256)</div>
+            <div class="seal-title">Código de Integridad Criptográfica del Acta (SHA-256)</div>
             <code class="seal-hash">fd4df29e4b6025d5d94c313667a1779145c42167bdda360747855dde45e59156</code>
             <div class="seal-note">
-              ✓ <strong>Inmutabilidad Matemática:</strong> Este hash se genera mediante la concatenación secuencial de
-              cada registro de entrega, cédula y marca de tiempo micro-precisa. Cualquier intento de alteración
-              posterior invalida matemáticamente el acta ante el cuerpo de auditores o tribunales competentes.
+              El código se calcula mediante la concatenación ordenada de cada registro de entrega, número de documento de identidad y marca de tiempo. Cualquier modificación posterior en los registros altera el resultado de la función hash.
             </div>
           </div>
         </div>
@@ -1485,7 +1465,7 @@
         <div class="ministerial-signatures reveal delay-3">
           <div class="sig-block">
             <div class="sig-name">Msc. Sahib A Franco</div>
-            <div class="sig-role">Super Administrador &bull; Dirección de Tecnología</div>
+            <div class="sig-role">Administrador Principal &bull; Dirección de Tecnología</div>
             <div class="sig-digital-mark">Firmado Digitalmente &bull; Token ID: 13537582</div>
           </div>
           <div class="sig-block">
@@ -1503,32 +1483,31 @@
     </div>
   </section>
 
-  <!-- DIAGRAMAS DE INGENIERIA (ARCHIFY) -->
+  <!-- DIAGRAMAS DE INGENIERIA -->
   <section class="section" style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8);">
     <div class="container">
       <div class="section-header reveal">
-        <h2 class="section-title">Arquitectura e Ingeniería Documentada</h2>
-        <p class="section-subtitle">Modelos interactivos de alta fidelidad elaborados bajo la especificación Archify
-          v3.2.0 (Showcase Quality).</p>
+        <h2 class="section-title">Diagramas de Arquitectura del Sistema</h2>
+        <p class="section-subtitle">Modelos técnicos de componentes, flujos de autenticación y estructura de base de datos.</p>
       </div>
 
-      <!-- VISOR INTERACTIVO CENTRALIZADO (UN SOLO LUGAR) -->
+      <!-- VISOR INTERACTIVO CENTRALIZADO -->
       <div class="diagram-hub reveal">
         <div class="diagram-hub-nav">
           <button type="button" class="diagram-tab active" onclick="selectDossierDiagram('c4', this)">
-            <span class="tab-kicker">C4 Model &middot; Nivel 2</span>
+            <span class="tab-kicker">Modelo C4 &middot; Nivel 2</span>
             <span class="tab-title">🏗️ Arquitectura General</span>
-            <span class="tab-sub">Actores, PWA Edge, Express, SQLite WAL y Supabase Cloud</span>
+            <span class="tab-sub">Actores, interfaz de usuario, backend en Node.js, SQLite WAL y réplica en nube</span>
           </button>
           <button type="button" class="diagram-tab" onclick="selectDossierDiagram('sequence', this)">
-            <span class="tab-kicker" style="color: #be185d;">Secuencia Criptográfica</span>
-            <span class="tab-title">⚡ QR & Tap NFC P2P</span>
-            <span class="tab-sub">Passkeys FIDO2, ECDSA P-256, Idempotencia y SSE Push</span>
+            <span class="tab-kicker" style="color: #be185d;">Secuencia de Entrega</span>
+            <span class="tab-title">⚡ QR y Proximidad NFC P2P</span>
+            <span class="tab-sub">Autenticación biométrica FIDO2, ECDSA P-256, Idempotencia y Server-Sent Events</span>
           </button>
           <button type="button" class="diagram-tab" onclick="selectDossierDiagram('erd', this)">
             <span class="tab-kicker" style="color: #047857;">Modelo Relacional</span>
             <span class="tab-title">🗄️ Modelo de Datos (ERD)</span>
-            <span class="tab-sub">Identidad, Cuotas Diarias, Despachos y Clave Anti-Duplicados</span>
+            <span class="tab-sub">Identidad de trabajadores, cuotas de jornada, despachos y restricción de entrega única</span>
           </button>
         </div>
 
@@ -1558,7 +1537,7 @@
 
           <div class="diagram-iframe-box">
             <iframe id="dossier-diagram-iframe" src="diagrams/c4-containers.html"
-              title="Visor de Arquitectura Archify"></iframe>
+              title="Visor de Arquitectura"></iframe>
           </div>
         </div>
       </div>
@@ -1567,10 +1546,9 @@
       <div class="diagram-cards">
         <div class="diagram-card reveal delay-1">
           <div>
-            <span class="diagram-badge">C4 Model &middot; Nivel 2</span>
+            <span class="diagram-badge">Modelo C4 &middot; Nivel 2</span>
             <h4>Arquitectura General de Contenedores</h4>
-            <p>Mapeo integral de actores (Beneficiario, Operador, Admin), capas PWA frontales, microservicios backend y
-              persistencia híbrida SQLite WAL + Supabase.</p>
+            <p>Estructura de actores (Beneficiario, Operador de Almacén, Administrador), interfaces de usuario, servicios backend y almacenamiento local con SQLite WAL.</p>
           </div>
           <a href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Diagrama C4 ↗</a>
@@ -1578,23 +1556,20 @@
 
         <div class="diagram-card reveal delay-2">
           <div>
-            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia
-              Criptográfica</span>
-            <h4>Flujo de Datos y User Journey</h4>
-            <p>Trazabilidad cronológica del retiro: biometría en Secure Enclave, QR dinámico o Proximidad NFC P2P, POST
-              con Idempotency-Key y feedback háptico.</p>
+            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia de Entrega</span>
+            <h4>Flujo de Validación y Entrega</h4>
+            <p>Registro cronológico del retiro: lectura de código QR temporal o proximidad NFC, comprobación de firma digital, envío con Idempotency-Key y confirmación en terminal.</p>
           </div>
           <a href="diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline"
-            style="justify-content:center;">Abrir Flujo de Secuencia ↗</a>
+            style="justify-content:center;">Abrir Diagrama de Secuencia ↗</a>
         </div>
 
         <div class="diagram-card reveal delay-3">
           <div>
             <span class="diagram-badge" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">Modelo
               Relacional</span>
-            <h4>Modelo de Datos (ERD Simplificado)</h4>
-            <p>Estructura relacional en 3 dominios funcionales (Identidad, Beneficios y Auditoría Forense) con claves
-              compuestas y tabla de idempotencia.</p>
+            <h4>Modelo de Datos (ERD)</h4>
+            <p>Estructura de tablas para identidad de personal, asignación de beneficios, registro de despachos y auditoría de eventos con claves únicas.</p>
           </div>
           <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Modelo ERD ↗</a>
@@ -1603,22 +1578,19 @@
     </div>
   </section>
 
-  <!-- LLAMADO A LA ACCION / PILOTO -->
+  <!-- DEMOSTRACIÓN OPERATIVA -->
   <section class="section" style="text-align: center;">
     <div class="container reveal" style="max-width: 800px;">
-      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">🚀 Prueba de Concepto
-        (PoC)</span>
-      <h2 class="section-title" style="font-size: 2.2rem; margin-top: 0.5rem;">¿Listo para una Demostración en Vivo de 5
-        Minutos?</h2>
+      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Evaluación Funcional</span>
+      <h2 class="section-title" style="font-size: 2rem; margin-top: 0.5rem;">Demostración del Sistema</h2>
       <p class="section-subtitle" style="margin: 1rem auto 2rem; font-size: 1.05rem;">
-        Compruebe la efectividad del sistema en una jornada real. Ofrecemos un Piloto Controlado de 30 días para medir
-        la reducción de tiempos de cola y la eliminación total de extravíos.
+        Entorno disponible para comprobar tiempos de procesamiento en entrega, registro de beneficiarios y emisión del acta de cierre de jornada.
       </p>
       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
         <a href="https://sgbt-bice.vercel.app/" target="_blank" class="btn btn-primary"
-          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Iniciar Entorno Demostración en la Nube ↗</a>
+          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Acceder a Demostración ↗</a>
         <a href="../Propuesta de Comercialización.md" target="_blank" class="btn btn-outline"
-          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Leer Propuesta Comercial</a>
+          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Consultar Documento Técnico</a>
       </div>
     </div>
   </section>
@@ -1627,12 +1599,12 @@
   <footer>
     <div class="container footer-content">
       <div>
-        <div class="footer-brand">Sistema de gestión de Beneficios a Trabajadores SGBT</div>
+        <div class="footer-brand">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
         <div style="margin-top: 0.35rem;">Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)
         </div>
       </div>
       <div>
-        Soberanía Tecnológica &middot; FIDO2 / WebAuthn &middot; SQLite WAL &middot; PWA Offline
+        Autenticación FIDO2 / WebAuthn &middot; Base de Datos SQLite WAL &middot; Soporte de Operación Local
       </div>
     </div>
   </footer>
@@ -1647,7 +1619,7 @@
         json: 'diagrams/c4-containers.json'
       },
       sequence: {
-        title: 'Flujo Criptográfico QR & Tap NFC P2P (Passkeys FIDO2 / ECDSA P-256) · SGBT MIPPCI',
+        title: 'Flujo de Validación QR y Proximidad NFC P2P (Passkeys FIDO2 / ECDSA P-256) · SGBT MIPPCI',
         url: 'diagrams/user-journey-sequence.html',
         json: 'diagrams/user-journey-sequence.json'
       },
