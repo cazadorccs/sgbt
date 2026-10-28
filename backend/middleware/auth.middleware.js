@@ -3,6 +3,23 @@
 
 const { verifySessionToken } = require('../crypto-utils');
 const { db } = require('../db');
+const { validateAndUpdateDeviceSession } = require('../services/session.service');
+
+function extractDeviceId(req) {
+  if (req.headers && req.headers['x-device-id']) {
+    return String(req.headers['x-device-id']).trim();
+  }
+  if (req.cookies && req.cookies.sgbt_device) {
+    return String(req.cookies.sgbt_device).trim();
+  }
+  if (req.body && req.body.device_id) {
+    return String(req.body.device_id).trim();
+  }
+  if (req.query && req.query.device_id) {
+    return String(req.query.device_id).trim();
+  }
+  return null;
+}
 
 function extractToken(req) {
   // 1. Cabecera Authorization: Bearer
@@ -57,6 +74,13 @@ function authenticate(req, res, next) {
     return next();
   }
 
+  const incomingDeviceId = extractDeviceId(req);
+  const sessionCheck = validateAndUpdateDeviceSession(result.payload?.jti, incomingDeviceId);
+  if (!sessionCheck.valid) {
+    req.user = null;
+    return next();
+  }
+
   try {
     const worker = db.prepare(`
       SELECT id, document_id, full_name, email, role, status, worker_type
@@ -66,6 +90,8 @@ function authenticate(req, res, next) {
 
     if (worker && worker.status === 'active') {
       req.user = worker;
+      req.sessionJti = result.payload?.jti;
+      req.sessionDeviceId = result.payload?.dev;
     } else {
       req.user = null;
     }
@@ -101,6 +127,14 @@ function requireAuth(req, res, next) {
     });
   }
 
+  const incomingDeviceId = extractDeviceId(req);
+  const sessionCheck = validateAndUpdateDeviceSession(result.payload?.jti, incomingDeviceId);
+  if (!sessionCheck.valid) {
+    return res.status(401).json({
+      error: sessionCheck.error || 'La sesión en este dispositivo ha sido revocada o pertenece a otro equipo.'
+    });
+  }
+
   try {
     const worker = db.prepare(`
       SELECT id, document_id, full_name, email, role, status, worker_type
@@ -115,6 +149,8 @@ function requireAuth(req, res, next) {
     }
 
     req.user = worker;
+    req.sessionJti = result.payload?.jti;
+    req.sessionDeviceId = result.payload?.dev;
     next();
   } catch (err) {
     console.error('[AUTH MIDDLEWARE ERROR]', err);

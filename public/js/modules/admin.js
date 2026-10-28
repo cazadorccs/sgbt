@@ -254,9 +254,29 @@ function renderWorkersPage() {
   if (btnNext) btnNext.disabled = (currentWorkersPage >= totalPages);
 }
 
+async function ensureDepartmentFilterPopulated() {
+  const filterDeptSelect = document.getElementById('filterDepartmentSelect');
+  if (!filterDeptSelect || filterDeptSelect.options.length > 1) return;
+  try {
+    const res = await API.get('/api/v1/tenant/settings');
+    if (res && res.departments) {
+      const cur = filterDeptSelect.value;
+      filterDeptSelect.innerHTML = '<option value="">🏢 Todos los Departamentos</option>';
+      res.departments.forEach(d => {
+        filterDeptSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+      });
+      if (cur) filterDeptSelect.value = cur;
+    }
+  } catch (e) {
+    console.warn('No se pudieron precargar los departamentos para el filtro:', e);
+  }
+}
+
 window.loadWorkersDirectory = async function(preservePage = false) {
+  await ensureDepartmentFilterPopulated();
   const search = document.getElementById('searchWorkerInput')?.value || '';
   const role = document.getElementById('filterRoleSelect')?.value || '';
+  const department = document.getElementById('filterDepartmentSelect')?.value || '';
   const workerType = document.getElementById('filterWorkerTypeSelect')?.value || '';
   const shift = document.getElementById('filterShiftSelect')?.value || '';
   const status = document.getElementById('filterStatusSelect')?.value || '';
@@ -265,13 +285,13 @@ window.loadWorkersDirectory = async function(preservePage = false) {
   if (!tbody) return;
 
   try {
-    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
+    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&department=${encodeURIComponent(department)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
     const data = await API.get(url);
     allFilteredWorkers = data.workers || [];
     if (!preservePage) {
       currentWorkersPage = 1;
     } else {
-      const totalPages = Math.ceil(allFilteredWorkers.length / WORKERS_PAGE_SIZE) || 1;
+      const totalPages = Math.ceil(allFilteredWorkers.length / WORKERS_PER_PAGE) || 1;
       if (currentWorkersPage > totalPages) currentWorkersPage = totalPages;
     }
     renderWorkersPage();
@@ -712,6 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('filterRoleSelect')?.addEventListener('change', loadWorkersDirectory);
+  document.getElementById('filterDepartmentSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterWorkerTypeSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterShiftSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterStatusSelect')?.addEventListener('change', loadWorkersDirectory);

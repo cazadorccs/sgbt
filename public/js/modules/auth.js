@@ -189,6 +189,25 @@ window.setupAuth = function() {
   btnWorkerMobileLogout?.addEventListener('click', handleLogout);
   document.getElementById('btnDistributorLogout')?.addEventListener('click', handleLogout);
 
+  // Seguridad: MFA y Sesiones por Dispositivo
+  const btnOpenMfaSetup = document.getElementById('btnOpenMfaSetup');
+  const btnOpenDeviceSessions = document.getElementById('btnOpenDeviceSessions');
+  const btnWorkerMfaSetup = document.getElementById('btnWorkerMfaSetup');
+  const btnWorkerDeviceSessions = document.getElementById('btnWorkerDeviceSessions');
+
+  btnOpenMfaSetup?.addEventListener('click', () => {
+    if (typeof openMfaSetupModal === 'function') openMfaSetupModal();
+  });
+  btnOpenDeviceSessions?.addEventListener('click', () => {
+    if (typeof openDeviceSessionsModal === 'function') openDeviceSessionsModal();
+  });
+  btnWorkerMfaSetup?.addEventListener('click', () => {
+    if (typeof openMfaSetupModal === 'function') openMfaSetupModal();
+  });
+  btnWorkerDeviceSessions?.addEventListener('click', () => {
+    if (typeof openDeviceSessionsModal === 'function') openDeviceSessionsModal();
+  });
+
   // Conmutador de Modo de Demostración vs Producción
   const btnToggleDemo = document.getElementById('btnToggleDemoMode');
   btnToggleDemo?.addEventListener('click', async () => {
@@ -413,6 +432,12 @@ async function executeLogin(rawDocId) {
     const data = await API.post('/api/v1/auth/login', payload);
     console.log(`[CLIENT AUTH] 📥 Respuesta recibida del servidor:`, data);
 
+    if (data.mfa_required) {
+      console.log('[CLIENT AUTH] 🔐 Autenticación multifactor requerida:', data);
+      openMfaVerificationModal(data.mfa_token, data.worker, data.message, 'beneficiary');
+      return;
+    }
+
     if (data.requires_enrollment) {
       console.log('[CLIENT AUTH] ⚠️ Formalización previa requerida para:', data.worker);
       if (typeof window.openBeneficiaryEnrollmentModal === 'function') {
@@ -536,6 +561,12 @@ async function executeAdminLogin(identifier, secret) {
       require_admin: true,
       honeypot
     });
+
+    if (data.mfa_required) {
+      console.log('[CLIENT AUTH] 🔐 Autenticación multifactor requerida para administrador:', data);
+      openMfaVerificationModal(data.mfa_token, data.worker, data.message, 'admin');
+      return;
+    }
 
     if (!data.success) {
       console.warn(`[CLIENT AUTH] ❌ Acceso administrativo denegado:`, data.error);
@@ -1315,3 +1346,414 @@ function initDeviceReleaseModal() {
     }
   });
 }
+
+// ============================================================================
+// FUNCIONES Y MODALES DE AUTENTICACIÓN MULTIFACTOR (MFA) Y SESIONES
+// ============================================================================
+
+let currentMfaToken = null;
+let currentMfaTargetMode = 'beneficiary';
+let isBackupCodeMode = false;
+
+/**
+ * Abre el modal de verificación MFA de 6 dígitos o código de respaldo
+ */
+function openMfaVerificationModal(mfaToken, worker, message, targetMode = 'beneficiary') {
+  currentMfaToken = mfaToken;
+  currentMfaTargetMode = targetMode;
+  isBackupCodeMode = false;
+
+  const modal = document.getElementById('mfaVerificationModalBackdrop');
+  const nameLabel = document.getElementById('mfaWorkerNameLabel');
+  const promptLabel = document.getElementById('mfaPromptMessage');
+  const codeInput = document.getElementById('mfaCodeInput');
+  const alertBox = document.getElementById('mfaVerificationAlert');
+  const btnBackup = document.getElementById('btnToggleBackupCodeMode');
+
+  if (nameLabel && worker) {
+    nameLabel.textContent = `Hola, ${window.escapeHTML(worker.full_name || 'Funcionario(a)')}`;
+  }
+  if (promptLabel) {
+    promptLabel.textContent = message || 'Ingrese el código de 6 dígitos de su aplicación autenticadora o código de respaldo.';
+  }
+  if (alertBox) {
+    alertBox.style.display = 'none';
+  }
+  if (codeInput) {
+    codeInput.value = '';
+    codeInput.placeholder = '000 000';
+    codeInput.maxLength = 7;
+  }
+  if (btnBackup) {
+    btnBackup.textContent = '🔑 Usar código de respaldo de emergencia';
+  }
+
+  if (modal) {
+    modal.classList.add('active');
+    setTimeout(() => { if (codeInput) codeInput.focus(); }, 150);
+  }
+}
+
+window.openMfaVerificationModal = openMfaVerificationModal;
+
+// Configuración de eventos para el modal de verificación MFA
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('mfaVerificationModalBackdrop');
+  const btnClose = document.getElementById('btnCloseMfaVerificationModal');
+  const btnSubmit = document.getElementById('btnSubmitMfaVerification');
+  const codeInput = document.getElementById('mfaCodeInput');
+  const alertBox = document.getElementById('mfaVerificationAlert');
+  const btnToggleBackup = document.getElementById('btnToggleBackupCodeMode');
+  const form = document.getElementById('mfaVerificationForm');
+
+  const closeModal = () => {
+    if (modal) modal.classList.remove('active');
+    currentMfaToken = null;
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+
+  if (btnToggleBackup) {
+    btnToggleBackup.addEventListener('click', () => {
+      isBackupCodeMode = !isBackupCodeMode;
+      if (codeInput) {
+        codeInput.value = '';
+        if (isBackupCodeMode) {
+          codeInput.placeholder = 'XXXX-XXXX';
+          codeInput.maxLength = 9;
+          btnToggleBackup.textContent = '🔢 Volver a código temporal de 6 dígitos';
+        } else {
+          codeInput.placeholder = '000 000';
+          codeInput.maxLength = 7;
+          btnToggleBackup.textContent = '🔑 Usar código de respaldo de emergencia';
+        }
+        codeInput.focus();
+      }
+    });
+  }
+
+  const handleMfaSubmit = async () => {
+    if (!currentMfaToken) {
+      if (alertBox) {
+        alertBox.style.display = 'block';
+        alertBox.textContent = 'Desafío de sesión expirado. Inicie sesión nuevamente.';
+      }
+      return;
+    }
+
+    const rawCode = (codeInput?.value || '').trim();
+    if (!rawCode) {
+      if (alertBox) {
+        alertBox.style.display = 'block';
+        alertBox.textContent = isBackupCodeMode ? 'Ingrese su código de respaldo.' : 'Ingrese el código de 6 dígitos.';
+      }
+      return;
+    }
+
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = '⏳ Verificando...';
+    }
+    if (alertBox) alertBox.style.display = 'none';
+
+    try {
+      const payload = {
+        mfa_token: currentMfaToken,
+        device_id: (typeof getPersistentDeviceId === 'function') ? getPersistentDeviceId() : ''
+      };
+      if (isBackupCodeMode) {
+        payload.backup_code = rawCode;
+      } else {
+        payload.code = rawCode.replace(/\s+/g, '');
+      }
+
+      const res = await API.post('/api/v1/auth/mfa/verify', payload);
+
+      if (!res.success) {
+        throw new Error(res.error || 'Código de verificación incorrecto.');
+      }
+
+      playAudioFeedback('success');
+      closeModal();
+
+      const user = res.user;
+      if (res.session_token) {
+        sessionStorage.setItem('sgbt_session_token', res.session_token);
+        localStorage.setItem('sgbt_session_token', res.session_token);
+      }
+
+      console.log(`[CLIENT AUTH] ✅ MFA Verificado. Sesión iniciada: ${user.full_name}`);
+      STATE.setCurrentUser(user);
+
+      sessionStorage.setItem('sgbt_session_view_mode', currentMfaTargetMode);
+      applyUserSession(user, currentMfaTargetMode);
+      window.showToast(`Bienvenido(a), ${user.full_name}`, 'success');
+
+    } catch (err) {
+      console.warn('[MFA VERIFY ERROR]', err);
+      if (alertBox) {
+        alertBox.style.display = 'block';
+        alertBox.textContent = err.message || 'Código de autenticación inválido.';
+      }
+      playAudioFeedback('error');
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = '🚀 Confirmar e Iniciar Sesión';
+      }
+    }
+  };
+
+  if (btnSubmit) btnSubmit.addEventListener('click', handleMfaSubmit);
+  if (form) form.addEventListener('submit', handleMfaSubmit);
+
+  // Auto-submit al completar 6 dígitos numéricos
+  if (codeInput) {
+    codeInput.addEventListener('input', (e) => {
+      if (!isBackupCodeMode) {
+        const clean = e.target.value.replace(/\D/g, '');
+        if (clean.length === 6) {
+          handleMfaSubmit();
+        }
+      }
+    });
+  }
+});
+
+/**
+ * Abre el modal de configuración de MFA (Código QR y Códigos de Respaldo)
+ */
+async function openMfaSetupModal() {
+  const modal = document.getElementById('mfaSetupModalBackdrop');
+  const qrImage = document.getElementById('mfaSetupQrImage');
+  const secretLabel = document.getElementById('mfaSetupSecretLabel');
+  const backupGrid = document.getElementById('mfaBackupCodesGrid');
+  const codeInput = document.getElementById('mfaSetupVerificationCode');
+  const alertBox = document.getElementById('mfaSetupAlert');
+
+  if (alertBox) alertBox.style.display = 'none';
+  if (codeInput) codeInput.value = '';
+
+  try {
+    const data = await API.post('/api/v1/auth/mfa/setup');
+    if (!data.success) {
+      throw new Error(data.error || 'No se pudo generar la configuración MFA');
+    }
+
+    if (qrImage) qrImage.src = data.qr_code;
+    if (secretLabel) {
+      secretLabel.textContent = data.secret;
+      secretLabel.setAttribute('data-secret', data.secret);
+    }
+
+    if (backupGrid && Array.isArray(data.backup_codes)) {
+      backupGrid.innerHTML = data.backup_codes.map(c => `
+        <div style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; text-align: center;">
+          ${window.escapeHTML(c)}
+        </div>
+      `).join('');
+      backupGrid.setAttribute('data-backup-codes', JSON.stringify(data.backup_codes));
+    }
+
+    if (modal) modal.classList.add('active');
+
+  } catch (err) {
+    window.showToast(err.message || 'Error al preparar MFA', 'error');
+  }
+}
+
+window.openMfaSetupModal = openMfaSetupModal;
+
+// Configuración de eventos para activación y copia de MFA
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('mfaSetupModalBackdrop');
+  const btnClose = document.getElementById('btnCloseMfaSetupModal');
+  const btnCloseBtn = document.getElementById('btnCloseMfaSetupModalBtn');
+  const btnCopySecret = document.getElementById('btnCopyMfaSecret');
+  const btnCopyBackup = document.getElementById('btnCopyBackupCodes');
+  const btnConfirm = document.getElementById('btnConfirmActivateMfa');
+  const secretLabel = document.getElementById('mfaSetupSecretLabel');
+  const backupGrid = document.getElementById('mfaBackupCodesGrid');
+  const codeInput = document.getElementById('mfaSetupVerificationCode');
+  const alertBox = document.getElementById('mfaSetupAlert');
+
+  const closeModal = () => {
+    if (modal) modal.classList.remove('active');
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+  if (btnCloseBtn) btnCloseBtn.addEventListener('click', closeModal);
+
+  if (btnCopySecret) {
+    btnCopySecret.addEventListener('click', () => {
+      const secret = secretLabel?.getAttribute('data-secret');
+      if (secret) {
+        navigator.clipboard.writeText(secret);
+        window.showToast('📋 Clave secreta copiada al portapapeles', 'info');
+      }
+    });
+  }
+
+  if (btnCopyBackup) {
+    btnCopyBackup.addEventListener('click', () => {
+      const raw = backupGrid?.getAttribute('data-backup-codes');
+      if (raw) {
+        try {
+          const list = JSON.parse(raw);
+          navigator.clipboard.writeText(list.join('\n'));
+          window.showToast('📋 Códigos de respaldo copiados al portapapeles', 'info');
+        } catch {}
+      }
+    });
+  }
+
+  if (btnConfirm) {
+    btnConfirm.addEventListener('click', async () => {
+      const secret = secretLabel?.getAttribute('data-secret');
+      const code = (codeInput?.value || '').trim();
+      let backupCodes = [];
+      try {
+        backupCodes = JSON.parse(backupGrid?.getAttribute('data-backup-codes') || '[]');
+      } catch {}
+
+      if (!code) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+          alertBox.style.color = '#fca5a5';
+          alertBox.textContent = 'Ingrese el código de 6 dígitos de su aplicación autenticadora.';
+        }
+        return;
+      }
+
+      btnConfirm.disabled = true;
+      btnConfirm.textContent = '⏳ Activando...';
+
+      try {
+        const res = await API.post('/api/v1/auth/mfa/activate', {
+          secret,
+          code,
+          backup_codes: backupCodes
+        });
+
+        if (!res.success) {
+          throw new Error(res.error || 'Código incorrecto');
+        }
+
+        playAudioFeedback('success');
+        window.showToast('🛡️ ¡Autenticación multifactor activada con éxito!', 'success');
+        closeModal();
+
+      } catch (err) {
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+          alertBox.style.color = '#fca5a5';
+          alertBox.textContent = err.message || 'Error al activar MFA.';
+        }
+        playAudioFeedback('error');
+      } finally {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = '🛡️ Activar Autenticación Multifactor';
+      }
+    });
+  }
+});
+
+/**
+ * Abre el modal de sesiones de dispositivos activos
+ */
+async function openDeviceSessionsModal() {
+  const modal = document.getElementById('deviceSessionsModalBackdrop');
+  const container = document.getElementById('deviceSessionsContainer');
+
+  if (!container) return;
+  container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1rem;">⏳ Cargando dispositivos conectados...</div>';
+  if (modal) modal.classList.add('active');
+
+  try {
+    const data = await API.get('/api/v1/auth/sessions');
+    if (!data.success || !Array.isArray(data.sessions)) {
+      throw new Error(data.error || 'Error al consultar sesiones');
+    }
+
+    if (data.sessions.length === 0) {
+      container.innerHTML = '<div style="text-align: center; color: #64748b; padding: 1rem;">No hay sesiones registradas.</div>';
+      return;
+    }
+
+    container.innerHTML = data.sessions.map(s => {
+      const isCur = Boolean(s.is_current);
+      const devName = window.escapeHTML(s.device_name || 'Dispositivo Web');
+      const ip = window.escapeHTML(s.ip_address || '127.0.0.1');
+      const activeAt = new Date(s.last_active_at).toLocaleString();
+
+      return `
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid ${isCur ? '#0284c7' : 'rgba(255,255,255,0.08)'}; border-radius: 8px; padding: 0.75rem; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.85rem; color: #f8fafc;">
+              <span>${isCur ? '🟢' : '💻'}</span>
+              <span>${devName}</span>
+              ${isCur ? '<span style="font-size: 0.65rem; background: #0284c7; color: #fff; padding: 1px 6px; border-radius: 10px; font-weight: 600;">Este Dispositivo</span>' : ''}
+            </div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.2rem;">
+              IP: ${ip} · Actividad: ${activeAt}
+            </div>
+          </div>
+          ${!isCur ? `
+            <button type="button" class="btn btn-sm btn-outline btn-revoke-session" data-session-id="${window.escapeHTML(s.id)}" style="color: #fca5a5; border-color: rgba(239,68,68,0.3); font-size: 0.7rem; padding: 4px 8px;">
+              Cerrar
+            </button>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+
+    // Asignar eventos de revocación individual
+    container.querySelectorAll('.btn-revoke-session').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const sessId = e.currentTarget.getAttribute('data-session-id');
+        if (!sessId) return;
+        try {
+          await API.post('/api/v1/auth/sessions/revoke', { session_id: sessId });
+          window.showToast('Sesión remota cerrada', 'info');
+          openDeviceSessionsModal();
+        } catch (err) {
+          window.showToast(err.message || 'Error al cerrar sesión', 'error');
+        }
+      });
+    });
+
+  } catch (err) {
+    container.innerHTML = `<div style="text-align: center; color: #f87171; padding: 1rem;">❌ ${window.escapeHTML(err.message)}</div>`;
+  }
+}
+
+window.openDeviceSessionsModal = openDeviceSessionsModal;
+
+document.addEventListener('DOMContentLoaded', () => {
+  const modal = document.getElementById('deviceSessionsModalBackdrop');
+  const btnClose = document.getElementById('btnCloseDeviceSessionsModal');
+  const btnCloseBtn = document.getElementById('btnCloseDeviceSessionsModalBtn');
+  const btnRevokeOthers = document.getElementById('btnRevokeOtherSessions');
+
+  const closeModal = () => {
+    if (modal) modal.classList.remove('active');
+  };
+
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+  if (btnCloseBtn) btnCloseBtn.addEventListener('click', closeModal);
+
+  if (btnRevokeOthers) {
+    btnRevokeOthers.addEventListener('click', async () => {
+      if (!confirm('¿Desea cerrar la sesión en todos los demás dispositivos conectados?')) return;
+      try {
+        const res = await API.post('/api/v1/auth/sessions/revoke-others');
+        window.showToast(res.message || 'Sesiones cerradas en los demás dispositivos', 'success');
+        openDeviceSessionsModal();
+      } catch (err) {
+        window.showToast(err.message || 'Error cerrando sesiones', 'error');
+      }
+    });
+  }
+});

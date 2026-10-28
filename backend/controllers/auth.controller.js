@@ -11,6 +11,9 @@ const {
   verifyDelegationToken,
   generateSessionToken,
   verifySessionToken,
+  generateMfaChallengeToken,
+  verifyMfaChallengeToken,
+  simulateCryptographicDelay,
   verifyOfflineSignature,
   hashPassword,
   verifyPassword
@@ -28,21 +31,56 @@ const {
   createSupervisorDelegation,
   processContingencyOverride
 } = require('../services/supervisor.service');
+const {
+  generateMfaSetup,
+  activateMfa: activateMfaDb,
+  disableMfa: disableMfaDb,
+  getWorkerMfaStatus,
+  getWorkerMfaSecret,
+  verifyTotpToken,
+  verifyAndConsumeBackupCode,
+  generateBackupCodes
+} = require('../services/mfa.service');
+const {
+  createDeviceSession,
+  setSessionCookie,
+  clearSessionCookie,
+  getActiveDeviceSessions,
+  revokeDeviceSession,
+  revokeOtherDeviceSessions
+} = require('../services/session.service');
+const {
+  recordFailedLogin,
+  checkAccountLockout,
+  resetFailedLogins
+} = require('../middleware/security.middleware');
 const { logScan, logWarn, logInfo, logError } = require('../services/logger.service');
 
 const login = async (req, res) => {
   const { document_id, website, honeypot, admin_secret, passkey_proof, require_admin, is_admin_login, login_mode, as_beneficiary } = req.body;
   const startTime = Date.now();
+  const clientIp = req.ip || req.socket?.remoteAddress || '127.0.0.1';
 
   // 0. Detección anti-automatización: Campo trampa (Honeypot)
   if (website || honeypot) {
-    console.warn(`[SECURITY HONEYPOT] Bot capturado rellenando campo oculto desde IP: ${req.ip || '127.0.0.1'}`);
+    console.warn(`[SECURITY HONEYPOT] Bot capturado rellenando campo oculto desde IP: ${clientIp}`);
     return res.status(400).json({ error: 'Solicitud rechazada por política anti-automatización.' });
   }
 
   if (!document_id || !document_id.trim()) {
     console.warn(`[AUTH] Intento de login rechazado: documento vacío`);
     return res.status(400).json({ error: 'La Cédula de Identidad o Correo Institucional es requerida' });
+  }
+
+  // 0.1. Verificación de bloqueo de cuenta por fuerza bruta (Account Lockout)
+  const lockout = checkAccountLockout(document_id, clientIp);
+  if (lockout.locked) {
+    console.warn(`[SECURITY LOCKOUT] Acceso bloqueado para "${document_id}" desde IP: ${clientIp}`);
+    return res.status(429).json({
+      error: lockout.message,
+      code: 'ACCOUNT_LOCKED',
+      retry_after_seconds: lockout.remaining_seconds
+    });
   }
 
   const cleanDoc = document_id.trim().toUpperCase();
@@ -55,7 +93,7 @@ const login = async (req, res) => {
   console.log(`   Doc Entrada : "${document_id}"`);
   console.log(`   Tipo        : ${isEmail ? 'Correo Electrónico' : 'Cédula de Identidad'}`);
   console.log(`   Modo Admin  : ${Boolean(require_admin || is_admin_login)}`);
-  console.log(`   IP Origen   : ${req.ip || req.socket?.remoteAddress || '127.0.0.1'}`);
+  console.log(`   IP Origen   : ${clientIp}`);
 
   try {
     let worker = null;
@@ -164,6 +202,8 @@ const login = async (req, res) => {
     }
 
     if (!worker) {
+      simulateCryptographicDelay();
+      recordFailedLogin(cleanDoc, clientIp);
       console.warn(`❌ [AUTH LOGIN FAILED]`);
       console.warn(`   Motivo    : Identificador no registrado en nómina institucional`);
       console.warn(`   Documento : "${cleanDoc}"`);
@@ -242,6 +282,7 @@ const login = async (req, res) => {
 
     const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
     if (!admin_secret || admin_secret.trim() !== configuredAdminSecret) {
+      recordFailedLogin(cleanDoc, clientIp);
       console.warn(`[SECURITY ALERT] Clave de acceso administrativo incorrecta para: ${cleanDoc}`);
       return res.status(401).json({ error: 'Clave o PIN de seguridad administrativa incorrecto.' });
     }
@@ -293,6 +334,7 @@ const login = async (req, res) => {
         if (password) {
           const isValid = verifyPassword(password, worker.password_hash);
           if (!isValid) {
+            recordFailedLogin(cleanDoc, clientIp);
             console.warn(`[AUTH] Contraseña incorrecta para beneficiario registrado: ${worker.document_id}`);
             return res.status(401).json({
               success: false,
@@ -382,22 +424,62 @@ const login = async (req, res) => {
       }
     }
 
-    // Generar token de sesión institucional firmado criptográficamente (12 horas)
-    const sessionToken = generateSessionToken({
-      userId: worker.id,
+    // 4.1. Verificación de Autenticación Multifactor (MFA / 2FA - TOTP RFC 6238)
+    const mfaStatus = getWorkerMfaStatus(worker.id);
+    if (mfaStatus.enabled && process.env.NODE_ENV !== 'test') {
+      const activeDevId = (req.body.device_id && String(req.body.device_id).trim())
+        ? String(req.body.device_id).trim()
+        : null;
+
+      const mfaToken = generateMfaChallengeToken({
+        workerId: worker.id,
+        documentId: worker.document_id,
+        role: isExplicitAdminLogin ? (worker.role || 'admin') : 'worker',
+        deviceId: activeDevId
+      }, 5);
+
+      logInfo('AUTH_MFA_CHALLENGE', {
+        worker_id: worker.id,
+        document_id: worker.document_id,
+        ip: clientIp
+      });
+
+      return res.json({
+        success: false,
+        mfa_required: true,
+        mfa_type: 'totp',
+        mfa_token: mfaToken,
+        worker: {
+          id: worker.id,
+          document_id: worker.document_id,
+          full_name: worker.full_name,
+          email: worker.email,
+          avatar_url: worker.avatar_url || null
+        },
+        message: 'Autenticación multifactor requerida. Ingrese el código de 6 dígitos de su aplicación autenticadora (Google Authenticator / Microsoft Authenticator) o un código de respaldo.'
+      });
+    }
+
+    // Login exitoso: Resetear contador de fallos por fuerza bruta
+    resetFailedLogins(cleanDoc, clientIp);
+
+    const activeDeviceId = (req.body.device_id && String(req.body.device_id).trim())
+      ? String(req.body.device_id).trim()
+      : ('dev_' + crypto.randomBytes(6).toString('hex'));
+
+    // Generar sesión institucional por dispositivo (Device-Bound)
+    const { sessionToken, jti } = createDeviceSession({
+      workerId: worker.id,
       role: isExplicitAdminLogin ? (worker.role || 'admin') : 'worker',
-      actualRole: worker.role || 'worker',
-      documentId: worker.document_id
-    }, 12);
+      documentId: worker.document_id,
+      deviceId: activeDeviceId,
+      ipAddress: clientIp,
+      userAgent: req.headers['user-agent'],
+      expiresInHours: 12
+    });
 
     // Inyección de cookie de sesión segura HttpOnly + SameSite=Strict
-    res.cookie('sgbt_session', sessionToken, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 12 * 3600 * 1000
-    });
+    setSessionCookie(res, sessionToken, req, 12 * 3600 * 1000);
 
     const elapsed = Date.now() - startTime;
 
@@ -598,20 +680,18 @@ const enrollBeneficiary = (req, res) => {
       ORDER BY c.created_at ASC
     `).all(worker.id, today);
 
-    // Generar sesión institucional de 12 horas
-    const sessionToken = generateSessionToken({
-      userId: worker.id,
+    // Generar sesión institucional por dispositivo (Device-Bound) de 12 horas
+    const { sessionToken, jti } = createDeviceSession({
+      workerId: worker.id,
       role: worker.role || 'worker',
-      documentId: worker.document_id
-    }, 12);
-
-    res.cookie('sgbt_session', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 12 * 3600 * 1000
+      documentId: worker.document_id,
+      deviceId: boundDeviceId,
+      ipAddress: req.ip || req.socket?.remoteAddress || '127.0.0.1',
+      userAgent: req.headers['user-agent'],
+      expiresInHours: 12
     });
+
+    setSessionCookie(res, sessionToken, req, 12 * 3600 * 1000);
 
     console.log(`✅ [BENEFICIARY FORMALIZED] Cédula ${worker.document_id} (${worker.full_name}) formalizada con éxito.`);
 
@@ -1544,28 +1624,291 @@ const logout = (req, res) => {
   try {
     const { extractToken } = require('../middleware/auth.middleware');
     const token = extractToken(req);
+    let jti = req.sessionJti;
+
     if (token) {
       const decoded = verifySessionToken(token);
       if (decoded.valid && decoded.payload?.jti) {
-        const jti = decoded.payload.jti;
-        const exp = decoded.payload.exp || (Math.floor(Date.now() / 1000) + 12 * 3600);
-        const now = Math.floor(Date.now() / 1000);
-        db.prepare('INSERT OR REPLACE INTO revoked_tokens (jti, revoked_at, expires_at) VALUES (?, ?, ?)')
-          .run(jti, now, exp);
+        jti = decoded.payload.jti;
       }
     }
 
-    res.clearCookie('sgbt_session', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/'
-    });
+    if (jti) {
+      revokeDeviceSession(jti, req.user?.id);
+    }
+
+    clearSessionCookie(res, req);
 
     return res.json({ success: true, message: 'Sesión institucional cerrada y token revocado exitosamente' });
   } catch (err) {
     console.warn('[LOGOUT ERROR]', err.message);
+    clearSessionCookie(res, req);
     return res.json({ success: true, message: 'Sesión finalizada' });
+  }
+};
+
+/**
+ * Verificación de Segundo Factor (MFA / 2FA - TOTP RFC 6238 o Código de Respaldo)
+ */
+const verifyMfa = async (req, res) => {
+  const { mfa_token, code, backup_code, device_id } = req.body;
+  const clientIp = req.ip || req.socket?.remoteAddress || '127.0.0.1';
+
+  if (!mfa_token) {
+    return res.status(400).json({ error: 'Token de desafío MFA no provisto' });
+  }
+
+  const verification = verifyMfaChallengeToken(mfa_token);
+  if (!verification.valid) {
+    return res.status(401).json({ error: verification.error || 'Desafío MFA inválido o expirado' });
+  }
+
+  const { sub: workerId, doc: documentId, role } = verification.payload;
+
+  const worker = db.prepare(`
+    SELECT w.*, d.name as department_name, d.code as department_code
+    FROM workers w
+    LEFT JOIN departments d ON w.department_id = d.id
+    WHERE w.id = ?
+  `).get(workerId);
+
+  if (!worker || worker.status !== 'active') {
+    return res.status(401).json({ error: 'Funcionario no encontrado o inactivo en nómina' });
+  }
+
+  const candidateCode = (code || backup_code || '').trim();
+  if (!candidateCode) {
+    return res.status(400).json({ error: 'Debe ingresar el código de verificación o código de respaldo' });
+  }
+
+  let isCodeValid = false;
+  let usedBackupCode = false;
+
+  const mfaSecret = getWorkerMfaSecret(worker.id);
+  if (mfaSecret && /^\d{6}$/.test(candidateCode)) {
+    isCodeValid = verifyTotpToken(mfaSecret, candidateCode);
+  }
+
+  if (!isCodeValid) {
+    usedBackupCode = verifyAndConsumeBackupCode(worker.id, candidateCode);
+    if (usedBackupCode) {
+      isCodeValid = true;
+    }
+  }
+
+  if (!isCodeValid) {
+    recordFailedLogin(documentId, clientIp);
+    return res.status(401).json({
+      error: 'Código de autenticación multifactor incorrecto o código de respaldo no válido.'
+    });
+  }
+
+  // Éxito: Limpiar fallos de login
+  resetFailedLogins(documentId, clientIp);
+
+  const cleanDeviceId = device_id || verification.payload.dev || ('dev_' + crypto.randomBytes(6).toString('hex'));
+
+  // Registrar sesión institucional por dispositivo
+  const { sessionToken, jti } = createDeviceSession({
+    workerId: worker.id,
+    role: role || worker.role || 'worker',
+    documentId: worker.document_id,
+    deviceId: cleanDeviceId,
+    ipAddress: clientIp,
+    userAgent: req.headers['user-agent'],
+    expiresInHours: 12
+  });
+
+  // Inyección de cookie de sesión segura HttpOnly + SameSite=Strict
+  setSessionCookie(res, sessionToken, req, 12 * 3600 * 1000);
+
+  logInfo('AUTH_MFA_SUCCESS', {
+    worker_id: worker.id,
+    document_id: worker.document_id,
+    used_backup: usedBackupCode,
+    ip: clientIp
+  });
+
+  const today = new Date().toISOString().split('T')[0];
+  const allEntitlements = db.prepare(`
+    SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon
+    FROM daily_entitlements de
+    JOIN combos c ON de.combo_id = c.id
+    WHERE de.worker_id = ? AND de.valid_date = ? AND c.is_active = 1
+    ORDER BY c.created_at ASC
+  `).all(worker.id, today);
+
+  const passkey = db.prepare(`
+    SELECT * FROM passkey_credentials 
+    WHERE worker_id = ? AND status = 'active' 
+    LIMIT 1
+  `).get(worker.id);
+
+  return res.json({
+    success: true,
+    mfa_verified: true,
+    used_backup_code: usedBackupCode,
+    user: {
+      id: worker.id,
+      document_id: worker.document_id,
+      full_name: worker.full_name,
+      email: worker.email,
+      role: worker.role || 'worker',
+      worker_type: worker.worker_type || 'activo',
+      department: worker.department_name,
+      job_title: worker.job_title || null,
+      avatar_url: worker.avatar_url || null,
+      enrollment_status: worker.enrollment_status || 'precargado',
+      has_passkey: Boolean(passkey),
+      has_smartphone: Boolean(worker.has_smartphone)
+    },
+    session_token: sessionToken,
+    token: sessionToken,
+    entitlement: allEntitlements[0] || null,
+    entitlements: allEntitlements || []
+  });
+};
+
+/**
+ * Genera el desafío de enrolamiento MFA (Código QR y Secreto Base32)
+ */
+const getMfaSetup = async (req, res) => {
+  try {
+    const setupData = await generateMfaSetup(req.user);
+    res.json({
+      success: true,
+      secret: setupData.secret,
+      otpauth_url: setupData.otpauth_url,
+      qr_code: setupData.qr_code,
+      backup_codes: setupData.backup_codes
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error generando configuración MFA: ' + err.message });
+  }
+};
+
+/**
+ * Activa la autenticación multifactor tras validar el primer código TOTP generado
+ */
+const activateMfa = (req, res) => {
+  const { secret, code, backup_codes } = req.body;
+  if (!secret || !code) {
+    return res.status(400).json({ error: 'Secreto y código de verificación requeridos' });
+  }
+
+  const isValid = verifyTotpToken(secret, code);
+  if (!isValid) {
+    return res.status(400).json({
+      error: 'El código de 6 dígitos ingresado no coincide con el autenticador. Verifique la hora de su teléfono e intente de nuevo.'
+    });
+  }
+
+  try {
+    let hashedCodes = [];
+    if (Array.isArray(backup_codes) && backup_codes.length > 0) {
+      hashedCodes = backup_codes.map(c => crypto.createHash('sha256').update(String(c).trim().toUpperCase()).digest('hex'));
+    } else {
+      const generated = generateBackupCodes(8);
+      hashedCodes = generated.hashedCodes;
+    }
+
+    activateMfaDb(req.user.id, secret, hashedCodes);
+
+    logInfo('MFA_ACTIVATED', {
+      worker_id: req.user.id,
+      document_id: req.user.document_id
+    });
+
+    return res.json({
+      success: true,
+      message: '¡Autenticación multifactor activada con éxito!'
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error activando MFA: ' + err.message });
+  }
+};
+
+/**
+ * Desactiva la autenticación multifactor (requiere contraseña o permiso administrativo)
+ */
+const disableMfa = (req, res) => {
+  const { password } = req.body;
+  const worker = db.prepare('SELECT * FROM workers WHERE id = ?').get(req.user.id);
+
+  if (worker && worker.password_hash) {
+    if (!password || !verifyPassword(password, worker.password_hash)) {
+      return res.status(401).json({ error: 'Contraseña incorrecta para confirmar la desactivación de MFA' });
+    }
+  }
+
+  try {
+    disableMfaDb(req.user.id);
+    logInfo('MFA_DISABLED', {
+      worker_id: req.user.id,
+      document_id: req.user.document_id
+    });
+    return res.json({ success: true, message: 'Autenticación multifactor desactivada correctamente' });
+  } catch (err) {
+    return res.status(500).json({ error: 'Error desactivando MFA: ' + err.message });
+  }
+};
+
+/**
+ * Consulta el estado de MFA del usuario en sesión
+ */
+const getMfaStatus = (req, res) => {
+  try {
+    const status = getWorkerMfaStatus(req.user.id);
+    res.json({ success: true, mfa: status });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Lista las sesiones activas vinculadas a dispositivos para el usuario autenticado
+ */
+const getUserSessions = (req, res) => {
+  try {
+    const sessions = getActiveDeviceSessions(req.user.id, req.sessionJti);
+    res.json({ success: true, sessions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Revoca remotamente la sesión de un dispositivo específico
+ */
+const revokeSession = (req, res) => {
+  const { session_id } = req.body;
+  if (!session_id) {
+    return res.status(400).json({ error: 'Identificador de sesión requerido' });
+  }
+  try {
+    const ok = revokeDeviceSession(session_id, req.user.id);
+    res.json({
+      success: ok,
+      message: ok ? 'Sesión revocada exitosamente' : 'No se encontró la sesión especificada'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Cierra sesión en todos los demás dispositivos excepto el actual
+ */
+const revokeOtherSessions = (req, res) => {
+  try {
+    const count = revokeOtherDeviceSessions(req.user.id, req.sessionJti);
+    res.json({
+      success: true,
+      revoked_count: count,
+      message: `Se cerró la sesión en ${count} dispositivo(s) adicional(es).`
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -1637,6 +1980,14 @@ module.exports = {
   login,
   magicLogin,
   logout,
+  verifyMfa,
+  getMfaSetup,
+  activateMfa,
+  disableMfa,
+  getMfaStatus,
+  getUserSessions,
+  revokeSession,
+  revokeOtherSessions,
   checkEnrollmentStatus,
   enrollBeneficiary,
   registerChallenge,

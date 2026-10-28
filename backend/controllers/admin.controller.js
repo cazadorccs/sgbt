@@ -95,17 +95,18 @@ const getKpis = (req, res) => {
 };
 
 const getWorkers = (req, res) => {
-  const { search, shift, status, worker_type, role } = req.query;
+  const { search, shift, status, worker_type, role, department, department_id } = req.query;
   const today = new Date().toISOString().split('T')[0];
+  const deptFilter = (department || department_id || '').trim();
 
   // Solo conciliar asignaciones pendientes en carga general sin filtros de búsqueda
-  if (!search && !role && !worker_type && !shift && !status) {
+  if (!search && !role && !worker_type && !shift && !status && !deptFilter) {
     try {
       const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
       const unassignedWorkers = db.prepare(`
         SELECT id, shift FROM workers 
         WHERE status = 'active' 
-          AND id NOT IN (SELECT worker_id FROM daily_entitlements WHERE valid_date = ?)
+        AND id NOT IN (SELECT worker_id FROM daily_entitlements WHERE valid_date = ?)
         LIMIT 100
       `).all(today);
 
@@ -127,6 +128,7 @@ const getWorkers = (req, res) => {
   let sql = `
     SELECT 
       w.id, w.document_id, w.full_name, w.email, w.role, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason, w.avatar_url,
+      w.department_id,
       d.name as department_name,
       (SELECT COUNT(*) FROM passkey_credentials WHERE worker_id = w.id AND status = 'active') as active_passkeys,
       (SELECT card_uid FROM nfc_cards WHERE worker_id = w.id AND status = 'active' LIMIT 1) as nfc_uid,
@@ -155,6 +157,10 @@ const getWorkers = (req, res) => {
   if (role) {
     sql += ` AND w.role = ?`;
     params.push(role);
+  }
+  if (deptFilter) {
+    sql += ` AND (w.department_id = ? OR d.name = ? OR d.code = ?)`;
+    params.push(deptFilter, deptFilter, deptFilter);
   }
   if (shift) {
     sql += ` AND w.shift = ?`;

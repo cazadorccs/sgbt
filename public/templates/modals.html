@@ -2380,3 +2380,173 @@
 
   </div>
 </div>
+
+<!-- ======================================================================
+     MODAL 17: VERIFICACIÓN DE SEGUNDO FACTOR (MFA / 2FA - TOTP RFC 6238)
+     ====================================================================== -->
+<div id="mfaVerificationModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 440px;">
+    <div class="panel-header">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🔐</span> Autenticación Multifactor (MFA)
+      </div>
+      <button id="btnCloseMfaVerificationModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="text-align: center; margin-bottom: 1.25rem;">
+      <div style="width: 56px; height: 56px; margin: 0 auto 0.75rem auto; background: rgba(56, 189, 248, 0.12); border: 1.5px solid rgba(56, 189, 248, 0.4); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">
+        🛡️
+      </div>
+      <h3 style="font-size: 1.05rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.35rem;" id="mfaWorkerNameLabel">
+        Verificación de Identidad
+      </h3>
+      <p style="font-size: 0.8rem; color: #94a3b8; line-height: 1.4;" id="mfaPromptMessage">
+        Ingrese el código temporal de 6 dígitos generado por su aplicación autenticadora (Google Authenticator, Microsoft Authenticator) o un código de respaldo.
+      </p>
+    </div>
+
+    <form id="mfaVerificationForm" onsubmit="return false;">
+      <div style="margin-bottom: 1.25rem;">
+        <label for="mfaCodeInput" style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.5px;">
+          Código de Verificación:
+        </label>
+        <input type="text" id="mfaCodeInput" maxlength="9" placeholder="000 000" autocomplete="one-time-code" autofocus
+          style="width: 100%; text-align: center; font-size: 1.6rem; letter-spacing: 6px; font-weight: 800; font-family: monospace; padding: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 2px solid #0284c7; border-radius: 8px; color: #38bdf8; outline: none; box-shadow: 0 0 12px rgba(2, 132, 199, 0.25);" />
+      </div>
+
+      <div id="mfaVerificationAlert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.78rem; margin-bottom: 1rem; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5;"></div>
+
+      <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+        <button type="submit" id="btnSubmitMfaVerification" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
+          🚀 Confirmar e Iniciar Sesión
+        </button>
+        <button type="button" id="btnToggleBackupCodeMode" class="btn btn-outline" style="width: 100%; font-size: 0.78rem; border-color: rgba(255, 255, 255, 0.15); color: #94a3b8;">
+          🔑 Usar código de respaldo de emergencia
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 18: CONFIGURACIÓN Y ACTIVACIÓN DE AUTENTICACIÓN MULTIFACTOR (MFA)
+     ====================================================================== -->
+<div id="mfaSetupModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 520px;">
+    <div class="panel-header">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+        <span>📲</span> Configuración de Autenticación Multifactor
+      </div>
+      <button id="btnCloseMfaSetupModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.4;">
+      La autenticación multifactor protege su cuenta contra accesos no autorizados exigiendo un código temporal al iniciar sesión.
+    </div>
+
+    <!-- PASO 1: ESCANEAR QR -->
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; text-align: center;">
+      <div style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.65rem;">
+        Paso 1: Escanee el código QR en su aplicación móvil (Google Authenticator / Aegis / Microsoft Auth):
+      </div>
+      <div id="mfaSetupQrContainer" style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.75rem;">
+        <div style="background: #ffffff; padding: 8px; border-radius: 8px; display: inline-block;">
+          <img id="mfaSetupQrImage" src="" alt="Código QR MFA" style="width: 160px; height: 160px; display: block;" />
+        </div>
+      </div>
+      <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.35rem;">
+        ¿No puede escanear? Ingrese esta clave manualmente:
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+        <code id="mfaSetupSecretLabel" class="text-mono" style="font-size: 0.85rem; color: #38bdf8; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px; user-select: all;">
+          Cargando...
+        </code>
+        <button type="button" id="btnCopyMfaSecret" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.7rem;">
+          📋 Copiar
+        </button>
+      </div>
+    </div>
+
+    <!-- PASO 2: CÓDIGOS DE RESPALDO -->
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: #e2e8f0;">Paso 2: Guarde sus códigos de respaldo de emergencia:</span>
+        <button type="button" id="btnCopyBackupCodes" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.68rem;">
+          📋 Copiar Todos
+        </button>
+      </div>
+      <div id="mfaBackupCodesGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.35rem; font-family: monospace; font-size: 0.75rem; color: #a7f3d0; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px;">
+        <!-- Inyección dinámica -->
+      </div>
+      <div style="font-size: 0.68rem; color: #f59e0b; margin-top: 0.4rem;">
+        ⚠️ Guarde estos códigos en un lugar seguro. Le permitirán acceder si extravía su teléfono.
+      </div>
+    </div>
+
+    <!-- PASO 3: CONFIRMAR PRIMER CÓDIGO -->
+    <div style="margin-bottom: 1.25rem;">
+      <label for="mfaSetupVerificationCode" style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem;">
+        Paso 3: Ingrese el código de 6 dígitos que muestra su app para confirmar:
+      </label>
+      <input type="text" id="mfaSetupVerificationCode" maxlength="6" placeholder="000000" autocomplete="off"
+        style="width: 100%; text-align: center; font-size: 1.4rem; letter-spacing: 4px; font-weight: 800; font-family: monospace; padding: 0.65rem; background: rgba(15, 23, 42, 0.8); border: 1.5px solid #0284c7; border-radius: 6px; color: #38bdf8; outline: none;" />
+    </div>
+
+    <div id="mfaSetupAlert" style="display: none; padding: 0.65rem; border-radius: 6px; font-size: 0.78rem; margin-bottom: 1rem;"></div>
+
+    <div style="display: flex; gap: 0.65rem;">
+      <button type="button" id="btnConfirmActivateMfa" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff;">
+        🛡️ Activar Autenticación Multifactor
+      </button>
+      <button type="button" id="btnCloseMfaSetupModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+        Cancelar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL 19: GESTIÓN DE SESIONES ACTIVAS POR DISPOSITIVO
+     ====================================================================== -->
+<div id="deviceSessionsModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 600px;">
+    <div class="panel-header">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💻</span> Sesiones por Dispositivo
+      </div>
+      <button id="btnCloseDeviceSessionsModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.4;">
+      Dispositivos y navegadores actualmente conectados con su cuenta institucional. Las sesiones están vinculadas a cookies seguras HttpOnly protegidas contra robo de identidad.
+    </div>
+
+    <div id="deviceSessionsContainer" style="max-height: 320px; overflow-y: auto; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+      <!-- Inyección dinámica de sesiones -->
+    </div>
+
+    <div style="display: flex; gap: 0.65rem;">
+      <button type="button" id="btnRevokeOtherSessions" class="btn btn-outline" style="flex: 1; padding: 0.65rem; border-color: rgba(239, 68, 68, 0.4); color: #fca5a5;">
+        🚫 Cerrar Sesión en los Demás Dispositivos
+      </button>
+      <button type="button" id="btnCloseDeviceSessionsModalBtn" class="btn btn-primary" style="padding: 0.65rem 1.25rem;">
+        Listo
+      </button>
+    </div>
+  </div>
+</div>

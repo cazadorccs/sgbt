@@ -10,7 +10,7 @@ const path = require('path');
 const { readyPromise } = require('./db');
 const { errorHandler, rfc7807Middleware } = require('./middleware/error.middleware');
 const { idempotencyMiddleware } = require('./middleware/idempotency.middleware');
-const { securityHardening } = require('./middleware/security.middleware');
+const { securityHardening, cookieParserMiddleware, xssSanitizerMiddleware } = require('./middleware/security.middleware');
 const apiRoutes = require('./routes');
 
 const app = express();
@@ -19,11 +19,17 @@ const PORT = process.env.PORT || 3000;
 // Soporte de formato estándar de errores RFC 7807
 app.use(rfc7807Middleware);
 
-// Middleware de seguridad y mitigación de ataques de compresión (CVE-2026-111497)
+// Parser nativo de cookies de sesión HttpOnly
+app.use(cookieParserMiddleware);
+
+// Middleware de seguridad y mitigación de ataques de compresión (CVE-2026-111497) y CSP
 app.use(securityHardening);
 
 // Middlewares base
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: true
+}));
 
 // Raw body retention para verificación HMAC en Webhooks con límite de 50MB
 app.use(express.json({
@@ -33,6 +39,9 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Sanitización activa contra Cross-Site Scripting (XSS) en payloads JSON y formularios
+app.use(xssSanitizerMiddleware);
 
 // Servidor de estáticos (PWA, CSS, JS, Assets)
 app.use(express.static(path.join(__dirname, '../public')));

@@ -202,21 +202,85 @@ const SESSION_SECRET = process.env.SESSION_JWT_SECRET || 'MIPPCI_SGBT_SESSION_SE
 
 /**
  * Genera un token de sesión institucional firmado con HMAC-SHA256 (validez configurable, ej. 12 horas).
+ * Incluye amarre de dispositivo si se provee deviceId.
  */
-function generateSessionToken({ userId, role, documentId }, expiresInHours = 12) {
+function generateSessionToken({ userId, role, documentId, deviceId }, expiresInHours = 12) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const exp = Math.floor(Date.now() / 1000) + (expiresInHours * 3600);
   const jti = generateNonce(16);
-  const payload = Buffer.from(JSON.stringify({
+  const payloadData = {
     sub: String(userId),
     doc: String(documentId),
     role: String(role || 'worker'),
     typ: 'session_auth',
     exp,
     jti
+  };
+  if (deviceId) {
+    payloadData.dev = String(deviceId);
+  }
+  const payload = Buffer.from(JSON.stringify(payloadData)).toString('base64url');
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(`${header}.${payload}`).digest('base64url');
+  return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * Genera un token temporal de desafío MFA (vigencia corta de 5 minutos).
+ */
+function generateMfaChallengeToken({ workerId, documentId, role, deviceId }, expiresInMinutes = 5) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + (expiresInMinutes * 60);
+  const jti = generateNonce(16);
+  const payload = Buffer.from(JSON.stringify({
+    sub: String(workerId),
+    doc: String(documentId),
+    role: String(role || 'worker'),
+    dev: deviceId ? String(deviceId) : null,
+    typ: 'mfa_challenge',
+    exp,
+    jti
   })).toString('base64url');
   const signature = crypto.createHmac('sha256', SESSION_SECRET).update(`${header}.${payload}`).digest('base64url');
   return `${header}.${payload}.${signature}`;
+}
+
+/**
+ * Verifica un token temporal de desafío MFA.
+ */
+function verifyMfaChallengeToken(token) {
+  try {
+    if (!token || typeof token !== 'string') return { valid: false, error: 'Token de desafío MFA no provisto' };
+    const parts = token.trim().split('.');
+    if (parts.length !== 3) return { valid: false, error: 'Formato de token MFA inválido' };
+    const [headerB64, payloadB64, sigB64] = parts;
+    const expectedSig = crypto.createHmac('sha256', SESSION_SECRET).update(`${headerB64}.${payloadB64}`).digest('base64url');
+    const bufA = Buffer.from(sigB64, 'utf8');
+    const bufB = Buffer.from(expectedSig, 'utf8');
+    if (bufA.length !== bufB.length || !crypto.timingSafeEqual(bufA, bufB)) {
+      return { valid: false, error: 'Firma de desafío MFA inválida o adulterada' };
+    }
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'));
+    if (payload.typ !== 'mfa_challenge') {
+      return { valid: false, error: 'Tipo de token inválido para verificación MFA' };
+    }
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp < now) {
+      return { valid: false, error: 'El desafío MFA ha expirado. Inicie sesión nuevamente.' };
+    }
+    return { valid: true, payload };
+  } catch (err) {
+    return { valid: false, error: err.message };
+  }
+}
+
+/**
+ * Mitigación activa de Timing Attacks: ejecuta una computación con coste equivalente
+ * cuando un usuario no existe o las credenciales no son encontradas.
+ */
+function simulateCryptographicDelay() {
+  try {
+    crypto.scryptSync('dummy_timing_mitigation_password', 'dummy_salt_constant_9999', 64);
+  } catch {}
 }
 
 /**
@@ -286,6 +350,9 @@ module.exports = {
   verifyDelegationToken,
   generateSessionToken,
   verifySessionToken,
+  generateMfaChallengeToken,
+  verifyMfaChallengeToken,
+  simulateCryptographicDelay,
   hashPassword,
   verifyPassword
 };

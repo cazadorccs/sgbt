@@ -43,8 +43,16 @@ window.API = {
       if (token && !headers['Authorization'] && !headers['authorization']) {
         headers['Authorization'] = `Bearer ${token}`;
       }
+      // Inyección del identificador único de dispositivo para verificación de amarre de hardware
+      const devId = (typeof window.getPersistentDeviceId === 'function')
+        ? window.getPersistentDeviceId()
+        : (localStorage.getItem('sgbt_device_id') || '');
+      if (devId && !headers['X-Device-Id'] && !headers['x-device-id']) {
+        headers['X-Device-Id'] = devId;
+      }
+
       options.headers = headers;
-      options.credentials = options.credentials || 'same-origin';
+      options.credentials = 'include';
 
       const res = await fetch(url, options);
       const rawText = await res.text();

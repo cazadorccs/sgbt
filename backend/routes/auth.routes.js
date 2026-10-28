@@ -10,6 +10,18 @@ router.post('/auth/login', loginRateLimiter(), validateBody(['document_id']), va
 router.post('/auth/magic-login', loginRateLimiter(), authController.magicLogin);
 router.post('/auth/logout', requireAuth, authController.logout);
 
+// Autenticación Multifactor (MFA / 2FA - TOTP RFC 6238 & Códigos de Respaldo)
+router.post('/auth/mfa/verify', loginRateLimiter(), validateBody(['mfa_token']), authController.verifyMfa);
+router.post('/auth/mfa/setup', requireAuth, authController.getMfaSetup);
+router.post('/auth/mfa/activate', requireAuth, validateBody(['secret', 'code']), authController.activateMfa);
+router.post('/auth/mfa/disable', requireAuth, authController.disableMfa);
+router.get('/auth/mfa/status', requireAuth, authController.getMfaStatus);
+
+// Gestión y Auditoría de Sesiones Institucionales por Dispositivo (Device-Bound Sessions)
+router.get('/auth/sessions', requireAuth, authController.getUserSessions);
+router.post('/auth/sessions/revoke', requireAuth, validateBody(['session_id']), authController.revokeSession);
+router.post('/auth/sessions/revoke-others', requireAuth, authController.revokeOtherSessions);
+
 // Formalización y consulta de estado de beneficiarios (Campaña 27/11/2026 - Límite 12/11/2026)
 router.get('/auth/enrollment-status/:document_id', loginRateLimiter(), authController.checkEnrollmentStatus);
 router.post('/auth/enroll', loginRateLimiter(), validateBody(['document_id', 'password', 'photo_base64']), authController.enrollBeneficiary);

@@ -111,3 +111,42 @@ Se realizó una evaluación integral y rigurosa sobre el 100% de la superficie d
   * 4,544 Asignaciones diarias conciliadas.
   * 0 Entregas residuales (lista para apertura oficial de jornada).
 * **Control de Versiones Git / GitHub:** Todos los cambios confirmados y listos para despliegue.
+
+---
+
+## 5. Blindaje Integral de Login, MFA (RFC 6238), Sesiones por Dispositivo y Anti-XSS (Octubre 2026)
+
+### 5.1. Blindaje contra Ataques al Inicio de Sesión
+* **Mitigación de Timing Attacks:** Implementada simulación de retardo criptográfico de tiempo constante (`simulateCryptographicDelay`) con `crypto.scryptSync` en errores de credenciales, impidiendo la enumeración de usuarios válidos mediante análisis diferencial de latencia.
+* **Account Lockout Progresivo:** Tabla `login_security_tracker` que registra intentos fallidos por cédula e IP. Tras 5 intentos fallidos consecutivos, la cuenta es bloqueada automáticamente por 15 minutos (`checkAccountLockout`), restableciéndose a cero tras un acceso exitoso.
+* **Auditoría Estructurada:** Registro en consola y base de datos de cada intento de login (`[AUTH LOGIN ATTEMPT]`, `[AUTH LOGIN FAILED]`, `[AUTH LOGIN SUCCESS]`) con indicación de IP, timestamp ISO, latencia en base de datos y huella de hardware.
+
+### 5.2. Autenticación Multifactor (MFA / 2FA - RFC 6238)
+* **Motor Criptográfico TOTP:** Implementación nativa conforme a RFC 6238 (HMAC-SHA1, período de 30 segundos, ventana de tolerancia ±1 paso) sin librerías vulnerables de terceros, validado contra los vectores oficiales del Apéndice B de RFC 6238.
+* **Compatibilidad Universal:** Códigos TOTP de 6 dígitos compatibles con Google Authenticator, Microsoft Authenticator, Aegis, Authy y 1Password.
+* **Códigos QR Dinámicos:** Generación local de Data URL con `qrcode` y formato URI estándar `otpauth://totp/SGBT-MIPPCI:...`.
+* **Códigos de Respaldo de Emergencia:** Generación de 8 códigos alfanuméricos (`XXXX-XXXX`) almacenados con hash criptográfico SHA-256 en la tabla `user_mfa`. Son de un solo uso y se destruyen atómicamente tras su primer consumo.
+* **Flujo Step-up en Dos Pasos:** Si el usuario tiene MFA activo, el endpoint `/api/v1/auth/login` emite un token de desafío temporal firmado (`typ: 'mfa_challenge'`, vigencia 5 minutos), requiriendo validación en `/api/v1/auth/mfa/verify` para liberar la sesión final.
+
+### 5.3. Cookies Seguras y Amarre de Sesión por Dispositivo (Device-Bound Sessions)
+* **Atributos de Cookies OWASP:** Emisión de cookie `sgbt_session` con `HttpOnly; Secure; SameSite=Strict; Path=/`. Impide que scripts maliciosos en el navegador puedan leer el token de sesión.
+* **Tabla de Sesiones `user_device_sessions`:** Cada sesión creada queda vinculada a un `device_id` único, nombre de dispositivo/navegador, IP, fecha de creación y timestamp de última actividad (`last_active_at`).
+* **Detección de Sesión Secuestrada:** El middleware `auth.middleware.js` comprueba que el token JWT contenga el identificador del dispositivo (`dev: deviceId`) y valida contra la base de datos que la sesión no haya sido revocada. Discrepancias entre el dispositivo emisor y el token resultan en expulsión inmediata con `HTTP 401`.
+* **Gestión y Revocación Remota:** Modales interactivos en frontend (`#deviceSessionsModalBackdrop`) que permiten al usuario ver todos sus dispositivos conectados, identificar el dispositivo actual y revocar sesiones individuales o cerrar sesión en todos los demás dispositivos (`/api/v1/auth/sessions/revoke-others`).
+
+### 5.4. Prevención Integral de Cross-Site Scripting (XSS)
+* **Content-Security-Policy (CSP) Reforzada:** Directivas `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`, protegiendo contra inyección de iframes o secuestro de formularios.
+* **Sanitizador Recursivo Backend:** Middleware `xssSanitizerMiddleware` activo en Express que desinfecta recursivamente cualquier cadena entrante en `req.body`, `req.query` y `req.params`, neutralizando etiquetas `<script>`, `<iframe>`, `javascript:` y manejadores de eventos inline (`onerror=`, `onload=`).
+* **Capa Defensiva Frontend:** Librería dedicada `public/js/core/xss_protection.js` (`window.escapeHTML`, `window.sanitizeHTML`, `window.safeSetText`, `window.safeSetHTML`, `window.DOMUtils`) integrada antes del renderizado de modales y componentes dinámicos.
+* **Protección de Tokens:** Al almacenarse la sesión en cookies `HttpOnly`, incluso si existiera una inyección HTML en el frontend, el token de sesión es inaccesible desde JavaScript (`document.cookie`), anulando el robo de sesiones.
+
+### 5.5. Suite de Verificación Automatizada
+* **Suite de Seguridad Dedicada:** `tests/security_hardening_mfa.test.js` (6/6 pruebas aprobadas):
+  1. Cabeceras OWASP y CSP Reforzada (Anti-XSS).
+  2. Sanitización Activa Anti-XSS en Peticiones HTTP.
+  3. Inyección y Persistencia de Cookies `HttpOnly` + `SameSite=Strict`.
+  4. Motor Criptográfico TOTP RFC 6238 y validación de ventana temporal.
+  5. Consumo atómico y destrucción de Códigos de Respaldo.
+  6. Amarre de Sesión por Dispositivo y Revocación Remota de Sesiones.
+* **Pruebas Integrales de Plataforma (`npm test`):** 41/41 pruebas superadas al 100% (26 E2E Suite + 9 Offline & Idempotence + 6 Security & MFA).
+

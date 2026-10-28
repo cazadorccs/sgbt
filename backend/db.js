@@ -412,6 +412,44 @@ function initializeDatabase() {
     );
     CREATE INDEX IF NOT EXISTS idx_ministerial_actas_date ON ministerial_actas(campaign_date);
     CREATE INDEX IF NOT EXISTS idx_ministerial_actas_hash ON ministerial_actas(digital_acta_hash);
+
+    -- 17. AUTENTICACIÓN MULTIFACTOR (MFA / 2FA - TOTP RFC 6238 & BACKUP CODES)
+    CREATE TABLE IF NOT EXISTS user_mfa (
+      worker_id TEXT PRIMARY KEY REFERENCES workers(id) ON DELETE CASCADE,
+      mfa_enabled INTEGER NOT NULL DEFAULT 0,
+      totp_secret TEXT,
+      backup_codes TEXT,
+      enrolled_at TEXT,
+      last_used_at TEXT
+    );
+
+    -- 18. SESIONES INSTITUCIONALES POR DISPOSITIVO (DEVICE-BOUND SESSIONS)
+    CREATE TABLE IF NOT EXISTS user_device_sessions (
+      id TEXT PRIMARY KEY,
+      worker_id TEXT NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
+      device_id TEXT NOT NULL,
+      device_name TEXT,
+      ip_address TEXT,
+      user_agent TEXT,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      last_active_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_device_sessions_worker ON user_device_sessions(worker_id, is_active);
+    CREATE INDEX IF NOT EXISTS idx_device_sessions_dev ON user_device_sessions(device_id, is_active);
+
+    -- 19. SEGURIDAD Y CONTROL DE FUERZA BRUTA / ACCOUNT LOCKOUT
+    CREATE TABLE IF NOT EXISTS login_security_tracker (
+      id TEXT PRIMARY KEY,
+      identifier TEXT NOT NULL,
+      ip_address TEXT NOT NULL,
+      failed_attempts INTEGER NOT NULL DEFAULT 0,
+      first_failed_at INTEGER,
+      last_failed_at INTEGER,
+      locked_until INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_login_tracker_lookup ON login_security_tracker(identifier, ip_address);
   `);
 
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes

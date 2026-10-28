@@ -86,6 +86,16 @@ window.loadTenantSettings = async function() {
       });
     }
 
+    const filterDeptSelect = document.getElementById('filterDepartmentSelect');
+    if (filterDeptSelect && departments) {
+      const curVal = filterDeptSelect.value;
+      filterDeptSelect.innerHTML = '<option value="">🏢 Todos los Departamentos</option>';
+      departments.forEach(d => {
+        filterDeptSelect.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+      });
+      if (curVal) filterDeptSelect.value = curVal;
+    }
+
     if (distributionPoints && typeof reloadDistributionPoints === 'function') {
       reloadDistributionPoints();
     }
