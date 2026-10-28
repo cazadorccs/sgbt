@@ -77,6 +77,13 @@ window.setLoginMode = function(mode) {
 };
 
 window.setupAuth = function() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('view') === 'worker') {
+    window.setLoginMode('beneficiary');
+    sessionStorage.setItem('sgbt_intended_view', 'worker');
+    sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
+  }
+
   const loginForm = document.getElementById('loginForm');
   const btnSubmit = document.getElementById('btnLoginSubmit');
   const btnAdminSubmit = document.getElementById('btnAdminLoginSubmit');
@@ -153,7 +160,7 @@ window.setupAuth = function() {
       if (!doc) return;
 
       const isAdminProfile = doc === '13537582' || doc === 'V-11123987' || doc === 'V-13222333';
-      if (doc === '13537582' || (isAdminProfile && window.currentLoginMode === 'admin')) {
+      if (isAdminProfile && window.currentLoginMode === 'admin') {
         window.setLoginMode('admin');
         const adminDoc = document.getElementById('adminDocNumber');
         const adminPin = document.getElementById('adminSecretKey');
@@ -388,6 +395,10 @@ async function executeLogin(rawDocId) {
     console.log(`[CLIENT AUTH] ⏳ Iniciando verificación de identidad para:`, rawDocId);
     let payload = { 
       document_id: rawDocId, 
+      login_mode: 'beneficiary',
+      as_beneficiary: true,
+      require_admin: false,
+      is_admin_login: false,
       honeypot,
       device_id: getPersistentDeviceId()
     };
@@ -397,11 +408,6 @@ async function executeLogin(rawDocId) {
     } else if (window._pendingBeneficiaryPassword) {
       payload.password = window._pendingBeneficiaryPassword;
       delete window._pendingBeneficiaryPassword;
-    }
-
-    if (window._pendingAdminSecret) {
-      payload.admin_secret = window._pendingAdminSecret;
-      delete window._pendingAdminSecret;
     }
 
     const data = await API.post('/api/v1/auth/login', payload);
@@ -462,9 +468,12 @@ async function executeLogin(rawDocId) {
     const isOperator = (user.role === 'operator' || user.role === 'distributor');
     const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor');
     const intendedView = sessionStorage.getItem('sgbt_intended_view');
+    const urlView = new URLSearchParams(window.location.search).get('view');
 
     let targetMode = 'beneficiary';
-    if (isOperator || intendedView === 'distributor') {
+    if (urlView === 'worker' || intendedView === 'worker' || window.currentLoginMode === 'beneficiary') {
+      targetMode = 'beneficiary';
+    } else if (isOperator || intendedView === 'distributor') {
       targetMode = 'operator';
     } else if (isAdmin && window.currentLoginMode === 'admin') {
       targetMode = 'admin';
@@ -495,15 +504,6 @@ async function executeLogin(rawDocId) {
       showLoginAlert(`🔒 AMARRE A DISPOSITIVO ORIGINAL: ${err.message || 'Ya inició su entrega en otro smartphone. Culmine con su teléfono original o contacte a supervisión.'}`);
       playAudioFeedback('error');
       return;
-    }
-
-    // Detección de desafío de segundo factor administrativo (DevSecOps)
-    if (err.message && (err.message.includes('clave de seguridad') || err.message.includes('restringido'))) {
-      const pin = prompt('🛡️ AUTENTICACIÓN ADMINISTRATIVA OBLIGATORIA (MFA)\n\nPerfil con altos privilegios detectado.\nIngrese su Clave de Seguridad Institucional o PIN administrativo:');
-      if (pin && pin.trim()) {
-        window._pendingAdminSecret = pin.trim();
-        return executeLogin(rawDocId);
-      }
     }
 
     showLoginAlert(err.message || 'La Cédula no se encuentra registrada en la nómina institucional de beneficiarios. Debe estar en la lista oficial para acceder a este proceso.');
@@ -930,7 +930,13 @@ window.checkAuthSession = function() {
         if (user && user.id) {
           STATE.currentUser = user;
           const isOp = (user.role === 'operator' || user.role === 'distributor');
-          const savedMode = sessionStorage.getItem('sgbt_session_view_mode') || (isOp ? 'operator' : (user.role === 'worker' ? 'beneficiary' : 'admin'));
+          const urlView = new URLSearchParams(window.location.search).get('view');
+          let savedMode = sessionStorage.getItem('sgbt_session_view_mode');
+          if (urlView === 'worker') {
+            savedMode = 'beneficiary';
+          } else if (!savedMode) {
+            savedMode = isOp ? 'operator' : (user.role === 'worker' ? 'beneficiary' : 'admin');
+          }
           applyUserSession(user, savedMode);
           if (window.SessionManager) {
             window.SessionManager.startWatchdog();

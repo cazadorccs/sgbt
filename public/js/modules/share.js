@@ -589,18 +589,25 @@ window.handleUrlDeepLinks = function() {
 
   if (viewParam) {
     if (viewParam === 'worker') {
-      if (STATE.currentUser && STATE.currentUser.role === 'worker') {
-        navigateTo('view-worker');
-      } else if (!STATE.currentUser) {
+      sessionStorage.setItem('sgbt_intended_view', 'worker');
+      sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
+      if (typeof window.setLoginMode === 'function') {
+        window.setLoginMode('beneficiary');
+      }
+      if (STATE.currentUser) {
+        if (typeof applyUserSession === 'function') {
+          applyUserSession(STATE.currentUser, 'beneficiary');
+        } else {
+          navigateTo('view-worker');
+        }
+      } else {
         navigateTo('view-login');
         const alertBox = document.getElementById('loginAlertBox');
         if (alertBox) {
           alertBox.className = 'alert-box alert-info';
-          alertBox.innerHTML = `📲 <strong>Bienvenido al Portal del Beneficiario (MIPPCI):</strong><br>Ingrese su Cédula abajo para enrolar su huella/rostro y generar su QR de retiro.`;
+          alertBox.innerHTML = `📲 <strong>Bienvenido al Portal del Beneficiario (MIPPCI):</strong><br>Ingrese su Cédula abajo para consultar su beneficio y formalizar su registro de la Gran Jornada.`;
           alertBox.style.display = 'block';
         }
-      } else {
-        navigateTo('view-worker');
       }
     } else if (viewParam === 'distributor') {
       const isOperatorRole = STATE.currentUser && (

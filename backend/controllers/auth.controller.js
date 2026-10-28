@@ -31,7 +31,7 @@ const {
 const { logScan, logWarn, logInfo, logError } = require('../services/logger.service');
 
 const login = async (req, res) => {
-  const { document_id, website, honeypot, admin_secret, passkey_proof, require_admin, is_admin_login } = req.body;
+  const { document_id, website, honeypot, admin_secret, passkey_proof, require_admin, is_admin_login, login_mode, as_beneficiary } = req.body;
   const startTime = Date.now();
 
   // 0. Detección anti-automatización: Campo trampa (Honeypot)
@@ -227,46 +227,28 @@ const login = async (req, res) => {
       isDemoMode = db.prepare('SELECT is_demo_mode FROM tenant_settings WHERE id = ?').get('current_tenant')?.is_demo_mode || 0;
     } catch (e) {}
 
-    // Validación explícita de Acceso de Administración del Sistema
-    if (require_admin || is_admin_login) {
-      const isAdminRole = worker.role === 'admin' || worker.role === 'director' || worker.role === 'supervisor';
-      if (!isAdminRole) {
-        console.warn(`[SECURITY ALERT] Intento de acceso administrativo denegado para usuario sin privilegios (Rol: ${worker.role}) para: ${cleanDoc}`);
-        return res.status(403).json({
-          error: 'Acceso denegado: El usuario no cuenta con privilegios administrativos en el sistema.'
-        });
-      }
+  const isExplicitAdminLogin = Boolean(require_admin || is_admin_login || login_mode === 'admin');
+  const isBeneficiaryAccess = Boolean(as_beneficiary || login_mode === 'beneficiary' || !isExplicitAdminLogin);
 
-      const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
-      if (!admin_secret || admin_secret.trim() !== configuredAdminSecret) {
-        console.warn(`[SECURITY ALERT] Clave de acceso administrativo incorrecta para: ${cleanDoc}`);
-        return res.status(401).json({ error: 'Clave o PIN de seguridad administrativa incorrecto.' });
-      }
-    } else if (isSuperAdmin) {
-      // Defensa en profundidad: Cuentas administrativas generales requieren verificación de credencial secundaria en producción
-      const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
-      if (isProd) {
-        if (!admin_secret && !passkey_proof) {
-          console.warn(`[SECURITY ALERT] Intento de acceso administrativo sin factor secundario en producción para C.I.: ${worker.document_id}`);
-          return res.status(403).json({
-            error: 'Acceso administrativo restringido: Se requiere verificación de clave de seguridad institucional o Passkey para este perfil.',
-            requires_mfa: true,
-            worker_id: worker.id
-          });
-        }
-        if (admin_secret && admin_secret.trim() !== configuredAdminSecret) {
-          console.warn(`[SECURITY ALERT] Clave de acceso administrativo errónea para C.I.: ${worker.document_id}`);
-          return res.status(401).json({ error: 'Clave de acceso administrativo incorrecta.' });
-        }
-      } else {
-        if (admin_secret && admin_secret.trim() !== configuredAdminSecret) {
-          return res.status(401).json({ error: 'Clave de acceso administrativo incorrecta.' });
-        }
-        res.setHeader('X-Security-Warning', 'Acceso administrativo sin MFA permitido exclusivamente en entorno de pruebas/demostración.');
-      }
-    } else if (worker.role === 'worker') {
-      // 3. Validación de Formalización Previa para Beneficiarios Titulares (Campaña 27/11/2026 - Límite 12/11/2026)
-      const enrollmentStatus = worker.enrollment_status || 'precargado';
+  // Validación explícita de Acceso de Administración del Sistema (solo si el usuario ingresó por el módulo de administración)
+  if (isExplicitAdminLogin) {
+    const isAdminRole = worker.role === 'admin' || worker.role === 'director' || worker.role === 'supervisor';
+    if (!isAdminRole) {
+      console.warn(`[SECURITY ALERT] Intento de acceso administrativo denegado para usuario sin privilegios (Rol: ${worker.role}) para: ${cleanDoc}`);
+      return res.status(403).json({
+        error: 'Acceso denegado: El usuario no cuenta con privilegios administrativos en el sistema.'
+      });
+    }
+
+    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+    if (!admin_secret || admin_secret.trim() !== configuredAdminSecret) {
+      console.warn(`[SECURITY ALERT] Clave de acceso administrativo incorrecta para: ${cleanDoc}`);
+      return res.status(401).json({ error: 'Clave o PIN de seguridad administrativa incorrecto.' });
+    }
+  } else {
+    // Modalidad Beneficiario / Trabajador Titular (incluso para directores/administradores que consultan sus beneficios o formalizan su registro)
+    // 3. Validación de Formalización Previa para Beneficiarios Titulares (Campaña 27/11/2026 - Límite 12/11/2026)
+    const enrollmentStatus = worker.enrollment_status || 'precargado';
 
       // 3.1. Si está en estado 'precargado' (ingresado desde nómina Excel/CSV), requiere formalización con clave y fotografía
       if (enrollmentStatus === 'precargado') {
@@ -323,7 +305,7 @@ const login = async (req, res) => {
 
     // 4. CANDADO ESTRICTO DE DISPOSITIVO (AMARRE HARDWARE & ANTI-PRÉSTAMO)
     let deviceLockInfo = null;
-    if (worker.role === 'worker') {
+    if (worker.role === 'worker' || isBeneficiaryAccess) {
       const deviceId = (req.body.device_id && String(req.body.device_id).trim())
         ? String(req.body.device_id).trim()
         : null;
@@ -403,7 +385,8 @@ const login = async (req, res) => {
     // Generar token de sesión institucional firmado criptográficamente (12 horas)
     const sessionToken = generateSessionToken({
       userId: worker.id,
-      role: worker.role || 'worker',
+      role: isExplicitAdminLogin ? (worker.role || 'admin') : 'worker',
+      actualRole: worker.role || 'worker',
       documentId: worker.document_id
     }, 12);
 
