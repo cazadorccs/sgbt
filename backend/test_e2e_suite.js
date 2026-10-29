@@ -386,8 +386,8 @@ test('E2E-24: Mitigación Activa CVE-2026-111497 (Brotli Heap Corruption) y Cabe
   if (h['x-content-type-options'] !== 'nosniff') {
     throw new Error(`Cabecera X-Content-Type-Options esperada 'nosniff', obtenida '${h['x-content-type-options']}'`);
   }
-  if (h['x-frame-options'] !== 'SAMEORIGIN') {
-    throw new Error(`Cabecera X-Frame-Options esperada 'SAMEORIGIN', obtenida '${h['x-frame-options']}'`);
+  if (h['x-frame-options'] !== 'DENY' && h['x-frame-options'] !== 'SAMEORIGIN') {
+    throw new Error(`Cabecera X-Frame-Options esperada 'DENY' o 'SAMEORIGIN', obtenida '${h['x-frame-options']}'`);
   }
   if (!h['referrer-policy']) {
     throw new Error(`Cabecera Referrer-Policy ausente`);

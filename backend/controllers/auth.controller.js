@@ -305,6 +305,7 @@ const login = async (req, res) => {
             department_name: worker.department_name,
             job_title: worker.job_title,
             phone_number: worker.phone_number,
+            avatar_url: worker.avatar_url || null,
             enrollment_status: 'precargado'
           },
           onboarding_token: onboardingToken,
@@ -652,6 +653,34 @@ const enrollBeneficiary = (req, res) => {
       boundDeviceId,
       worker.id
     );
+
+    // Persistencia y respaldo en tiempo real en Supabase Cloud
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const updatePayload = {
+          avatar_url: photo_base64,
+          updated_at: new Date().toISOString()
+        };
+        if (phone_number && String(phone_number).trim()) {
+          updatePayload.phone_number = String(phone_number).trim();
+        }
+        supabase
+          .from('workers')
+          .update(updatePayload)
+          .eq('id', worker.id)
+          .then(({ error }) => {
+            if (error) {
+              console.warn('[SUPABASE ENROLL SYNC ERROR]', error.message);
+            } else {
+              console.log(`[SUPABASE SYNC] Fotografía y datos de formalización persistidos en Supabase Cloud para ${worker.document_id}`);
+            }
+          })
+          .catch(sbErr => console.warn('[SUPABASE ENROLL SYNC PROMISE ERROR]', sbErr.message));
+      }
+    } catch (sbEx) {
+      console.warn('[SUPABASE ENROLL SYNC EXCEPTION]', sbEx.message);
+    }
 
     // Auto-asignación de combos activos de la jornada
     const today = new Date().toISOString().split('T')[0];

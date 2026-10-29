@@ -254,7 +254,14 @@ window.setupAuth = function() {
       const res = await API.get(`/api/v1/auth/enrollment-status/${encodeURIComponent(targetDoc)}`);
       if (res.success && res.worker) {
         if (res.worker.enrollment_status === 'registrado') {
-          window.showToast(`✅ Beneficiario ya Formalizado:\n${res.worker.full_name}\nEstado: Registrado para la jornada del 27/11/2026.`, 'success');
+          const hasPhoto = Boolean(res.worker.has_photo && res.worker.avatar_url);
+          const photoMsg = hasPhoto ? 'Fotografía: Registrada ✓' : 'Fotografía: ⚠️ PENDIENTE POR CARGAR';
+          const wantEdit = confirm(`✅ Beneficiario Formalizado:\n${res.worker.full_name} (${res.worker.document_id})\nEstado: Registrado para la jornada del 27/11/2026.\n${photoMsg}\n\n¿Desea actualizar su fotografía o contraseña en este dispositivo?`);
+          if (wantEdit) {
+            window.openBeneficiaryEnrollmentModal(res.worker, res.deadline_date, res.campaign_date);
+          } else {
+            window.showToast(`Beneficiario formalizado: ${res.worker.full_name}`, 'success');
+          }
         } else {
           window.openBeneficiaryEnrollmentModal(res.worker, res.deadline_date, res.campaign_date);
         }
@@ -779,8 +786,38 @@ window.applyUserSession = function(user, targetMode) {
     ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
     : nameParts[0].substring(0, 2).toUpperCase();
 
-  if (avatarCircle) avatarCircle.textContent = initials;
-  if (dropdownAvatar) dropdownAvatar.textContent = initials;
+  if (avatarCircle) {
+    if (user.avatar_url && String(user.avatar_url).startsWith('data:image')) {
+      avatarCircle.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
+      avatarCircle.style.overflow = 'hidden';
+      avatarCircle.style.padding = '0';
+    } else {
+      avatarCircle.textContent = initials;
+      avatarCircle.style.overflow = '';
+      avatarCircle.style.padding = '';
+    }
+  }
+
+  if (dropdownAvatar) {
+    if (user.avatar_url && String(user.avatar_url).startsWith('data:image')) {
+      dropdownAvatar.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
+      dropdownAvatar.style.overflow = 'hidden';
+      dropdownAvatar.style.padding = '0';
+    } else {
+      dropdownAvatar.textContent = initials;
+      dropdownAvatar.style.overflow = '';
+      dropdownAvatar.style.padding = '';
+    }
+  }
+
+  const workerHeaderAvatar = document.getElementById('workerHeaderAvatar');
+  if (workerHeaderAvatar) {
+    if (user.avatar_url && String(user.avatar_url).startsWith('data:image')) {
+      workerHeaderAvatar.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
+    } else {
+      workerHeaderAvatar.textContent = initials;
+    }
+  }
 
   const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor');
   const isOperator = (user.role === 'operator' || user.role === 'distributor');
@@ -987,6 +1024,7 @@ window.checkAuthSession = function() {
 };
 
 // ============================================================================
+// ============================================================================
 // GESTIÓN DE FORMALIZACIÓN DE BENEFICIARIOS (PRECARGADO -> REGISTRADO)
 // Plazo: 12/Noviembre/2026 | Gran Jornada: 27/Noviembre/2026
 // ============================================================================
@@ -995,9 +1033,88 @@ let currentEnrollmentWorker = null;
 let currentEnrollmentStream = null;
 window._capturedEnrollPhoto = null;
 
+// Procesador centralizado de imágenes (cámara o galería) con compresión y recorte cuadrado
+function processEnrollPhotoFile(file) {
+  if (!file) return;
+
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+  const isImage = file.type ? file.type.startsWith('image/') : /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name);
+  if (!isImage) {
+    window.showToast('Por favor seleccione un archivo de imagen válido (JPG, PNG o WebP).', 'warning');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.getElementById('enrollCameraCanvas') || document.createElement('canvas');
+        canvas.width = 400;
+        canvas.height = 400;
+        const ctx = canvas.getContext('2d');
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 400, 400);
+
+        const compressedB64 = canvas.toDataURL('image/jpeg', 0.82);
+        window._capturedEnrollPhoto = compressedB64;
+
+        const previewImg = document.getElementById('enrollPhotoImgPreview');
+        const placeholder = document.getElementById('enrollPhotoPlaceholder');
+        const videoEl = document.getElementById('enrollCameraVideo');
+        const statusChip = document.getElementById('enrollPhotoStatusChip');
+
+        if (videoEl) videoEl.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'none';
+        if (previewImg) {
+          previewImg.src = compressedB64;
+          previewImg.style.display = 'block';
+        }
+        if (statusChip) {
+          statusChip.style.background = '#10b981';
+          statusChip.style.color = '#fff';
+          statusChip.textContent = '✓ Foto Cargada';
+        }
+
+        window.showToast('Fotografía cargada exitosamente', 'success');
+      } catch (err) {
+        console.error('Error procesando imagen de formalización:', err);
+        window.showToast('Error procesando la imagen. Intente con otra fotografía.', 'error');
+      }
+    };
+    img.onerror = () => {
+      window.showToast('No se pudo procesar la imagen seleccionada. Verifique el formato.', 'error');
+    };
+    img.src = ev.target.result;
+  };
+  reader.onerror = () => {
+    window.showToast('Error al leer el archivo desde el dispositivo.', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+window.stopEnrollmentCamera = function() {
+  if (currentEnrollmentStream) {
+    try {
+      currentEnrollmentStream.getTracks().forEach(track => track.stop());
+    } catch (e) {}
+    currentEnrollmentStream = null;
+  }
+  const videoEl = document.getElementById('enrollCameraVideo');
+  const btnSnapCam = document.getElementById('btnEnrollSnapCamera');
+  const btnStartCam = document.getElementById('btnEnrollStartCamera');
+
+  if (videoEl) videoEl.style.display = 'none';
+  if (btnSnapCam) btnSnapCam.style.display = 'none';
+  if (btnStartCam) btnStartCam.style.display = 'inline-flex';
+};
+
 window.openBeneficiaryEnrollmentModal = function(worker, deadlineDate, campaignDate) {
   currentEnrollmentWorker = worker;
   window._capturedEnrollPhoto = null;
+  window.stopEnrollmentCamera();
 
   const docEl = document.getElementById('enrollWorkerDoc');
   const nameEl = document.getElementById('enrollWorkerName');
@@ -1049,6 +1166,9 @@ window.openBeneficiaryEnrollmentModal = function(worker, deadlineDate, campaignD
   if (modal) {
     modal.classList.add('active');
   }
+
+  // Asegurar listeners activos
+  window.setupEnrollmentModalListeners();
 };
 
 window.setupEnrollmentModalListeners = function() {
@@ -1058,6 +1178,7 @@ window.setupEnrollmentModalListeners = function() {
   const btnSnapCam = document.getElementById('btnEnrollSnapCamera');
   const btnSelectFile = document.getElementById('btnEnrollSelectFile');
   const fileInput = document.getElementById('enrollPhotoFileInput');
+  const cameraFallbackInput = document.getElementById('enrollCameraFallbackInput');
   const videoEl = document.getElementById('enrollCameraVideo');
   const canvasEl = document.getElementById('enrollCameraCanvas');
   const previewImg = document.getElementById('enrollPhotoImgPreview');
@@ -1065,199 +1186,219 @@ window.setupEnrollmentModalListeners = function() {
   const statusChip = document.getElementById('enrollPhotoStatusChip');
   const btnSubmit = document.getElementById('btnSubmitBeneficiaryEnrollment');
 
-  function stopCamera() {
-    if (currentEnrollmentStream) {
-      currentEnrollmentStream.getTracks().forEach(track => track.stop());
-      currentEnrollmentStream = null;
-    }
-    if (videoEl) videoEl.style.display = 'none';
-    if (btnSnapCam) btnSnapCam.style.display = 'none';
-    if (btnStartCam) btnStartCam.style.display = 'inline-flex';
+  // Si los elementos aún no están en el DOM (templates no cargados), salir; la delegación global o templates:loaded los cubrirá
+  if (!modal) return;
+
+  // Cerrar modal
+  if (btnClose && !btnClose._hasEnrollListener) {
+    btnClose._hasEnrollListener = true;
+    btnClose.addEventListener('click', () => {
+      window.stopEnrollmentCamera();
+      modal.classList.remove('active');
+    });
   }
 
-  btnClose?.addEventListener('click', () => {
-    stopCamera();
-    modal?.classList.remove('active');
-  });
-
   // Activar cámara
-  btnStartCam?.addEventListener('click', async () => {
-    try {
-      if (placeholder) placeholder.style.display = 'none';
-      if (previewImg) previewImg.style.display = 'none';
-
-      currentEnrollmentStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
-        audio: false
-      });
-      if (videoEl) {
-        videoEl.srcObject = currentEnrollmentStream;
-        videoEl.style.display = 'block';
-        videoEl.play();
+  if (btnStartCam && !btnStartCam._hasEnrollListener) {
+    btnStartCam._hasEnrollListener = true;
+    btnStartCam.addEventListener('click', async () => {
+      // Si estamos en un contexto no seguro (HTTP en móvil) donde getUserMedia está deshabilitado por el navegador
+      const hasMediaDevices = navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function';
+      if (!hasMediaDevices || (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1')) {
+        // En móviles por HTTP, activar fallback de cámara nativa directamente
+        const camInput = document.getElementById('enrollCameraFallbackInput');
+        if (camInput) {
+          camInput.value = '';
+          camInput.click();
+          return;
+        }
       }
-      btnStartCam.style.display = 'none';
-      if (btnSnapCam) btnSnapCam.style.display = 'inline-flex';
-    } catch (err) {
-      console.warn('Error accediendo a cámara:', err);
-      window.showToast('No se pudo acceder a la cámara. Por favor use la opción de subir archivo o galería.', 'warning');
-      stopCamera();
-      if (placeholder) placeholder.style.display = 'block';
-    }
-  });
 
-  // Capturar foto
-  btnSnapCam?.addEventListener('click', () => {
-    if (!videoEl || !canvasEl) return;
-    const size = Math.min(videoEl.videoWidth || 300, videoEl.videoHeight || 300);
-    canvasEl.width = 400;
-    canvasEl.height = 400;
-    const ctx = canvasEl.getContext('2d');
-    const sx = ((videoEl.videoWidth || 400) - size) / 2;
-    const sy = ((videoEl.videoHeight || 400) - size) / 2;
-    ctx.drawImage(videoEl, sx, sy, size, size, 0, 0, 400, 400);
+      try {
+        if (placeholder) placeholder.style.display = 'none';
+        if (previewImg) previewImg.style.display = 'none';
 
-    const b64 = canvasEl.toDataURL('image/jpeg', 0.82);
-    window._capturedEnrollPhoto = b64;
+        currentEnrollmentStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
+          audio: false
+        });
+        if (videoEl) {
+          videoEl.srcObject = currentEnrollmentStream;
+          videoEl.style.display = 'block';
+          videoEl.play();
+        }
+        btnStartCam.style.display = 'none';
+        if (btnSnapCam) btnSnapCam.style.display = 'inline-flex';
+      } catch (err) {
+        console.warn('Error accediendo a getUserMedia, intentando cámara nativa del sistema:', err);
+        const camInput = document.getElementById('enrollCameraFallbackInput');
+        if (camInput) {
+          camInput.value = '';
+          camInput.click();
+        } else {
+          window.showToast('No se pudo acceder a la cámara en vivo. Por favor use la opción de subir desde galería.', 'warning');
+          window.stopEnrollmentCamera();
+          if (placeholder) placeholder.style.display = 'block';
+        }
+      }
+    });
+  }
 
-    if (previewImg) {
-      previewImg.src = b64;
-      previewImg.style.display = 'block';
-    }
-    stopCamera();
+  // Capturar foto desde video stream
+  if (btnSnapCam && !btnSnapCam._hasEnrollListener) {
+    btnSnapCam._hasEnrollListener = true;
+    btnSnapCam.addEventListener('click', () => {
+      if (!videoEl) return;
+      const canvas = canvasEl || document.createElement('canvas');
+      const size = Math.min(videoEl.videoWidth || 300, videoEl.videoHeight || 300);
+      canvas.width = 400;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+      const sx = ((videoEl.videoWidth || 400) - size) / 2;
+      const sy = ((videoEl.videoHeight || 400) - size) / 2;
+      ctx.drawImage(videoEl, sx, sy, size, size, 0, 0, 400, 400);
 
-    if (statusChip) {
-      statusChip.style.background = '#10b981';
-      statusChip.style.color = '#fff';
-      statusChip.textContent = '✓ Foto Capturada';
-    }
-    window.showToast('Fotografía capturada con éxito', 'success');
-  });
+      const b64 = canvas.toDataURL('image/jpeg', 0.82);
+      window._capturedEnrollPhoto = b64;
 
-  // Seleccionar archivo
-  btnSelectFile?.addEventListener('click', () => {
-    stopCamera();
-    fileInput?.click();
-  });
+      if (previewImg) {
+        previewImg.src = b64;
+        previewImg.style.display = 'block';
+      }
+      window.stopEnrollmentCamera();
 
-  fileInput?.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = canvasEl || document.createElement('canvas');
-          canvas.width = 400;
-          canvas.height = 400;
-          const ctx = canvas.getContext('2d');
-          const minDim = Math.min(img.width, img.height);
-          const sx = (img.width - minDim) / 2;
-          const sy = (img.height - minDim) / 2;
-          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 400, 400);
-          const compressedB64 = canvas.toDataURL('image/jpeg', 0.82);
-          window._capturedEnrollPhoto = compressedB64;
+      if (statusChip) {
+        statusChip.style.background = '#10b981';
+        statusChip.style.color = '#fff';
+        statusChip.textContent = '✓ Foto Capturada';
+      }
+      window.showToast('Fotografía capturada con éxito', 'success');
+    });
+  }
 
-          if (previewImg) {
-            previewImg.src = compressedB64;
-            previewImg.style.display = 'block';
-          }
-          if (placeholder) placeholder.style.display = 'none';
-          if (statusChip) {
-            statusChip.style.background = '#10b981';
-            statusChip.style.color = '#fff';
-            statusChip.textContent = '✓ Foto Cargada';
-          }
-          window.showToast('Fotografía cargada exitosamente', 'success');
-        };
-        img.src = ev.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-  });
+  // Seleccionar archivo desde galería
+  if (btnSelectFile && !btnSelectFile._hasEnrollListener) {
+    btnSelectFile._hasEnrollListener = true;
+    btnSelectFile.addEventListener('click', () => {
+      window.stopEnrollmentCamera();
+      const input = document.getElementById('enrollPhotoFileInput');
+      if (input) {
+        input.value = '';
+        input.click();
+      }
+    });
+  }
+
+  // Listener para input de archivo / galería
+  if (fileInput && !fileInput._hasEnrollListener) {
+    fileInput._hasEnrollListener = true;
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        processEnrollPhotoFile(e.target.files[0]);
+      }
+    });
+  }
+
+  // Listener para input fallback de cámara nativa
+  if (cameraFallbackInput && !cameraFallbackInput._hasEnrollListener) {
+    cameraFallbackInput._hasEnrollListener = true;
+    cameraFallbackInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        processEnrollPhotoFile(e.target.files[0]);
+      }
+    });
+  }
 
   // Envío del formulario de formalización
-  btnSubmit?.addEventListener('click', async () => {
-    if (!currentEnrollmentWorker) {
-      window.showToast('No se identificó el beneficiario a formalizar.', 'error');
-      return;
-    }
-
-    const pwdEl = document.getElementById('enrollPassword');
-    const pwdConfEl = document.getElementById('enrollPasswordConfirm');
-    const phoneEl = document.getElementById('enrollPhone');
-    const feedbackEl = document.getElementById('enrollPasswordFeedback');
-
-    const pwd = pwdEl ? pwdEl.value.trim() : '';
-    const pwdConf = pwdConfEl ? pwdConfEl.value.trim() : '';
-
-    if (!window._capturedEnrollPhoto) {
-      window.showToast('⚠️ La fotografía de rostro del beneficiario es OBLIGATORIA para la formalización.', 'warning');
-      return;
-    }
-
-    if (!pwd || pwd.length < 4) {
-      if (feedbackEl) {
-        feedbackEl.style.display = 'block';
-        feedbackEl.style.color = '#f87171';
-        feedbackEl.textContent = 'La contraseña debe contener al menos 4 caracteres.';
-      }
-      pwdEl?.focus();
-      return;
-    }
-
-    if (pwd !== pwdConf) {
-      if (feedbackEl) {
-        feedbackEl.style.display = 'block';
-        feedbackEl.style.color = '#f87171';
-        feedbackEl.textContent = 'Las contraseñas no coinciden. Verifique e intente nuevamente.';
-      }
-      pwdConfEl?.focus();
-      return;
-    }
-
-    btnSubmit.disabled = true;
-    const txtEl = document.getElementById('btnSubmitEnrollmentText');
-    if (txtEl) txtEl.textContent = '⏳ Formalizando en Servidor Seguro...';
-
-    try {
-      let deviceId = localStorage.getItem('sgbt_device_id');
-      if (!deviceId) {
-        deviceId = 'dev_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
-        localStorage.setItem('sgbt_device_id', deviceId);
+  if (btnSubmit && !btnSubmit._hasEnrollListener) {
+    btnSubmit._hasEnrollListener = true;
+    btnSubmit.addEventListener('click', async () => {
+      if (!currentEnrollmentWorker) {
+        window.showToast('No se identificó el beneficiario a formalizar.', 'error');
+        return;
       }
 
-      const res = await API.post('/api/v1/auth/enroll', {
-        document_id: currentEnrollmentWorker.document_id,
-        password: pwd,
-        photo_base64: window._capturedEnrollPhoto,
-        phone_number: phoneEl ? phoneEl.value.trim() : '',
-        device_id: deviceId
-      });
+      const pwdEl = document.getElementById('enrollPassword');
+      const pwdConfEl = document.getElementById('enrollPasswordConfirm');
+      const phoneEl = document.getElementById('enrollPhone');
+      const feedbackEl = document.getElementById('enrollPasswordFeedback');
 
-      if (!res.success) {
-        throw new Error(res.error || 'Error al formalizar');
+      const pwd = pwdEl ? pwdEl.value.trim() : '';
+      const pwdConf = pwdConfEl ? pwdConfEl.value.trim() : '';
+
+      if (!window._capturedEnrollPhoto) {
+        window.showToast('⚠️ La fotografía de rostro del beneficiario es OBLIGATORIA para la formalización.', 'warning');
+        return;
       }
 
-      stopCamera();
-      modal?.classList.remove('active');
-
-      if (res.session_token) {
-        sessionStorage.setItem('sgbt_session_token', res.session_token);
-        localStorage.setItem('sgbt_session_token', res.session_token);
+      if (!pwd || pwd.length < 4) {
+        if (feedbackEl) {
+          feedbackEl.style.display = 'block';
+          feedbackEl.style.color = '#f87171';
+          feedbackEl.textContent = 'La contraseña debe contener al menos 4 caracteres.';
+        }
+        pwdEl?.focus();
+        return;
       }
 
-      playAudioFeedback('success');
-      STATE.setCurrentUser(res.user);
-      sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
-      applyUserSession(res.user, 'beneficiary');
+      if (pwd !== pwdConf) {
+        if (feedbackEl) {
+          feedbackEl.style.display = 'block';
+          feedbackEl.style.color = '#f87171';
+          feedbackEl.textContent = 'Las contraseñas no coinciden. Verifique e intente nuevamente.';
+        }
+        pwdConfEl?.focus();
+        return;
+      }
 
-      window.showToast(res.message || '¡Formalización exitosa! Beneficio asignado para la jornada del 27/11/2026.', 'success');
+      btnSubmit.disabled = true;
+      const txtEl = document.getElementById('btnSubmitEnrollmentText');
+      if (txtEl) txtEl.textContent = '⏳ Formalizando en Servidor Seguro...';
 
-    } catch (err) {
-      console.error('Error formalizando beneficiario:', err);
-      window.showToast(err.message || 'Error al procesar la formalización', 'error');
-    } finally {
-      btnSubmit.disabled = false;
+      try {
+        let deviceId = localStorage.getItem('sgbt_device_id');
+        if (!deviceId) {
+          deviceId = 'dev_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
+          localStorage.setItem('sgbt_device_id', deviceId);
+        }
+
+        const res = await API.post('/api/v1/auth/enroll', {
+          document_id: currentEnrollmentWorker.document_id,
+          password: pwd,
+          photo_base64: window._capturedEnrollPhoto,
+          phone_number: phoneEl ? phoneEl.value.trim() : '',
+          device_id: deviceId
+        });
+
+        if (!res.success) {
+          throw new Error(res.error || 'Error al formalizar');
+        }
+
+        window.stopEnrollmentCamera();
+        modal.classList.remove('active');
+
+        if (res.session_token) {
+          sessionStorage.setItem('sgbt_session_token', res.session_token);
+          localStorage.setItem('sgbt_session_token', res.session_token);
+        }
+
+        playAudioFeedback('success');
+        STATE.setCurrentUser(res.user);
+        sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
+        applyUserSession(res.user, 'beneficiary');
+
+        window.showToast(res.message || '¡Formalización exitosa! Beneficio asignado para la jornada del 27/11/2026.', 'success');
+
+      } catch (err) {
+        console.error('Error formalizando beneficiario:', err);
+        window.showToast(err.message || 'Error al procesar la formalización', 'error');
+      } finally {
+        btnSubmit.disabled = false;
+        if (txtEl) txtEl.textContent = 'Confirmar y Formalizar Beneficio';
+      }
+    });
+  }
+};
       if (txtEl) txtEl.textContent = 'Formalizar Registro y Activar Beneficio';
     }
   });
@@ -1826,6 +1967,47 @@ document.addEventListener('click', async (e) => {
       btnRevokeOthers.disabled = false;
     }
     return;
+  }
+
+  // 11. Modal de Formalización de Beneficiarios: Botón de Galería / Archivo
+  const btnEnrollGal = e.target.closest('#btnEnrollSelectFile');
+  if (btnEnrollGal) {
+    e.preventDefault();
+    if (typeof window.stopEnrollmentCamera === 'function') window.stopEnrollmentCamera();
+    const input = document.getElementById('enrollPhotoFileInput');
+    if (input) {
+      input.value = '';
+      input.click();
+    }
+    return;
+  }
+
+  // 12. Modal de Formalización: Botón Cerrar
+  const btnEnrollClose = e.target.closest('#btnCloseEnrollmentModal');
+  if (btnEnrollClose) {
+    e.preventDefault();
+    if (typeof window.stopEnrollmentCamera === 'function') window.stopEnrollmentCamera();
+    const modal = document.getElementById('beneficiaryEnrollmentModalBackdrop');
+    if (modal) modal.classList.remove('active');
+    return;
+  }
+});
+
+// Delegación global para inputs de fotografía de formalización (Galería y Cámara fallback)
+document.addEventListener('change', (e) => {
+  if (e.target && (e.target.id === 'enrollPhotoFileInput' || e.target.id === 'enrollCameraFallbackInput')) {
+    if (e.target.files && e.target.files[0]) {
+      if (typeof processEnrollPhotoFile === 'function') {
+        processEnrollPhotoFile(e.target.files[0]);
+      }
+    }
+  }
+});
+
+// Listener cuando los templates de modales terminen de cargarse
+window.addEventListener('templates:loaded', () => {
+  if (typeof window.setupEnrollmentModalListeners === 'function') {
+    window.setupEnrollmentModalListeners();
   }
 });
 

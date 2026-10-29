@@ -1600,7 +1600,10 @@
 
           <!-- Botones de Acción de Fotografía -->
           <div style="flex: 1; display: flex; flex-direction: column; gap: 0.45rem;">
-            <input type="file" id="enrollPhotoFileInput" accept="image/*" capture="user" style="display: none;">
+            <!-- Input para Galería / Archivos (SIN capture para que el móvil abra la galería de fotos) -->
+            <input type="file" id="enrollPhotoFileInput" accept="image/jpeg,image/png,image/webp,image/*" style="display: none;">
+            <!-- Input para Cámara nativa frontal directa (fallback móvil cuando getUserMedia no está disponible) -->
+            <input type="file" id="enrollCameraFallbackInput" accept="image/*" capture="user" style="display: none;">
             
             <button type="button" id="btnEnrollStartCamera" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.45rem 0.65rem; justify-content: flex-start; gap: 0.4rem;">
               <span>📷</span>

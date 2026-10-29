@@ -72,6 +72,17 @@ window.setupWorkerSimulator = function() {
         headerIdEl.textContent = `${worker.full_name} (${worker.document_id})`;
       }
 
+      const headerAvatarEl = document.getElementById('workerHeaderAvatar');
+      if (headerAvatarEl) {
+        if (worker.avatar_url && String(worker.avatar_url).startsWith('data:image')) {
+          headerAvatarEl.innerHTML = `<img src="${worker.avatar_url}" alt="${worker.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
+        } else {
+          const parts = (worker.full_name || 'U').trim().split(/\s+/);
+          const ini = parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+          headerAvatarEl.textContent = ini;
+        }
+      }
+
       // Sincronizar selector si existe
       if (workerSelect && workerSelect.value !== worker.id) {
         workerSelect.value = worker.id;

@@ -1032,7 +1032,7 @@ async function syncFromSupabase() {
           has_smartphone = excluded.has_smartphone,
           contingency_reason = excluded.contingency_reason,
           phone_number = excluded.phone_number,
-          avatar_url = excluded.avatar_url,
+          avatar_url = CASE WHEN excluded.avatar_url IS NOT NULL AND excluded.avatar_url != '' THEN excluded.avatar_url ELSE workers.avatar_url END,
           updated_at = excluded.updated_at
       `);
       for (const w of remoteWorkers) {
