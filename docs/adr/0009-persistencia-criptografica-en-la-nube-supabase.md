@@ -65,3 +65,4 @@ El script [`backend/verify_cloud_persistence.js`](../../backend/verify_cloud_per
 
 ### Negativas / Mitigadas:
 - *Latencia adicional en operaciones de mutación en la nube:* La invocación `await` añade ~100-300ms a la petición de formalización o despacho. Esta latencia es completamente imperceptible para el usuario y se compensa con el blindaje absoluto contra pérdida de datos.
+

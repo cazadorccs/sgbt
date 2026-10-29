@@ -1,0 +1,50 @@
+{
+  "packageId": "gob.ve.mippci.sgbt",
+  "host": "sgbt-bice.vercel.app",
+  "name": "Sistema de Beneficios y Despacho MIPPCI",
+  "launcherName": "SGBT MIPPCI",
+  "display": "standalone",
+  "themeColor": "#0099cc",
+  "navigationColor": "#040d16",
+  "navigationColorDark": "#040d16",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#040d16",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://sgbt-bice.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://sgbt-bice.vercel.app/icons/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Mi Código de Retiro",
+      "shortName": "Mi QR",
+      "url": "https://sgbt-bice.vercel.app/#view-worker",
+      "icon": "https://sgbt-bice.vercel.app/icons/icon-192.png"
+    },
+    {
+      "name": "Mesa de Despacho",
+      "shortName": "Despacho",
+      "url": "https://sgbt-bice.vercel.app/#view-distributor",
+      "icon": "https://sgbt-bice.vercel.app/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://sgbt-bice.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "fullScopeUrl": "https://sgbt-bice.vercel.app/"
+}

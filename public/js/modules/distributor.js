@@ -664,6 +664,35 @@ function cleanAndParseQrPayload(rawInput) {
 }
 window.cleanAndParseQrPayload = cleanAndParseQrPayload;
 
+// ----------------------------------------------------------------------------
+// GESTIÓN DE PANTALLA ACTIVA (SCREEN WAKE LOCK API) EN ALMACÉN
+// ----------------------------------------------------------------------------
+let screenWakeLock = null;
+
+async function requestScreenWakeLock() {
+  try {
+    if ('wakeLock' in navigator && typeof navigator.wakeLock.request === 'function') {
+      screenWakeLock = await navigator.wakeLock.request('screen');
+      console.log('[WAKE LOCK] Pantalla activa permanente en estación de almacén activada');
+      screenWakeLock.addEventListener('release', () => {
+        console.log('[WAKE LOCK] Pantalla liberada');
+        screenWakeLock = null;
+      });
+    }
+  } catch (err) {
+    console.info('[WAKE LOCK INFO] No disponible o denegado por el navegador:', err.message);
+  }
+}
+
+async function releaseScreenWakeLock() {
+  if (screenWakeLock !== null) {
+    try {
+      await screenWakeLock.release();
+    } catch (e) {}
+    screenWakeLock = null;
+  }
+}
+
 async function startLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
@@ -843,6 +872,9 @@ async function startLiveCameraScanner() {
     // Refrescar lista de cámaras ahora con permisos otorgados
     refreshCameraDevicesList();
 
+    // Activar pantalla siempre encendida para el operador
+    await requestScreenWakeLock();
+
   } catch (err) {
     console.error('[CAMERA ERROR]', err);
     window.showToast('No se pudo acceder a la cámara: ' + (err.message || err), 'error');
@@ -854,6 +886,9 @@ async function stopLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
   const badge = document.getElementById('cameraStatusBadge');
+
+  // Liberar pantalla activa
+  await releaseScreenWakeLock();
 
   if (liveCameraScanner) {
     try {

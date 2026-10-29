@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "gob.ve.mippci.sgbt",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:7D:0F:52:AB:7B:85:49:05:3E:A3:37:73:60:0F:80:5A:20:A7:C1:E8:37:73:1B:42:BA:88:E4:F3:60"
+      ]
+    }
+  }
+]

@@ -265,25 +265,51 @@ function setupPwa() {
   }
 
   const btnInstall = document.getElementById('btnInstallPwa');
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if (isStandalone) {
+    if (btnInstall) btnInstall.style.display = 'none';
+    return;
+  }
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredInstallPrompt = e;
     if (btnInstall) {
+      btnInstall.innerHTML = '📲 Instalar App';
       btnInstall.style.display = 'inline-flex';
-      btnInstall.addEventListener('click', async () => {
+      btnInstall.onclick = async () => {
         if (!deferredInstallPrompt) return;
         deferredInstallPrompt.prompt();
         const choice = await deferredInstallPrompt.userChoice;
         console.log('[PWA] Elección de instalación:', choice.outcome);
+        if (choice.outcome === 'accepted') {
+          if (window.showToast) window.showToast('¡Instalando Bienestar MIPPCI en tu dispositivo!', 'success');
+        }
         deferredInstallPrompt = null;
         btnInstall.style.display = 'none';
-      });
+      };
     }
   });
+
+  // Soporte de guía para dispositivos iOS (Safari)
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIos && !isStandalone && btnInstall) {
+    btnInstall.innerHTML = '📲 Instalar App';
+    btnInstall.style.display = 'inline-flex';
+    btnInstall.onclick = () => {
+      if (window.showToast) {
+        window.showToast('Para instalar en iPhone: Pulsa el botón Compartir (cuadrado con flecha hacia arriba) y selecciona "Agregar a pantalla de inicio".', 'info', 7000);
+      } else {
+        alert('Para instalar en iPhone: Pulsa el botón Compartir y selecciona "Agregar a pantalla de inicio".');
+      }
+    };
+  }
 
   window.addEventListener('appinstalled', () => {
     console.log('[PWA] Aplicación instalada exitosamente.');
     if (btnInstall) btnInstall.style.display = 'none';
+    if (window.showToast) window.showToast('¡Bienestar MIPPCI instalado con éxito en tu dispositivo!', 'success');
   });
 }
 
