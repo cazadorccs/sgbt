@@ -828,7 +828,6 @@ window.initCombosManagement = function() {
     } catch (err) {
       console.error('[COMBO SAVE ERROR]', err);
       Toast.error(`Error al procesar combo: ${err.message}`);
-    }
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;

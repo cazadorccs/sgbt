@@ -1398,10 +1398,6 @@ window.setupEnrollmentModalListeners = function() {
       }
     });
   }
-};
-      if (txtEl) txtEl.textContent = 'Formalizar Registro y Activar Beneficio';
-    }
-  });
 
   // Inicializar modal de liberación de candado de dispositivo por supervisión
   initDeviceReleaseModal();
