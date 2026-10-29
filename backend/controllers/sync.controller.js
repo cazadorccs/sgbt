@@ -145,13 +145,36 @@ const getDailyPack = (req, res) => {
   });
 };
 
-const batchDeliveries = (req, res) => {
+const batchDeliveries = async (req, res) => {
   const { distribution_point_id, device_id, deliveries } = req.body;
   if (!deliveries || !Array.isArray(deliveries)) {
     return res.status(400).json({ error: 'Array de entregas requerido' });
   }
 
   const batchResult = processBatchDeliveries(deliveries, distribution_point_id);
+
+  // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
+  if (batchResult.results && batchResult.results.length > 0) {
+    try {
+      const { persistDeliveries } = require('../services/cloud_sync.service');
+      const successfulDeliveries = batchResult.results
+        .filter(r => r.status === 'success' || r.status === 'duplicate_ignored')
+        .map(r => ({
+          id: r.delivery_id,
+          entitlement_id: r.entitlement_id,
+          worker_id: r.worker_id,
+          distribution_point_id: distribution_point_id || '5b0f10e3-7eac-4872-bf96-74ecd359be7e',
+          verification_method: 'offline_sync',
+          is_offline_sync: true,
+          delivered_at: new Date().toISOString()
+        }));
+      if (successfulDeliveries.length > 0) {
+        await persistDeliveries(successfulDeliveries);
+      }
+    } catch (e) {
+      console.warn('[BATCH SYNC CLOUD PERSIST WARN]', e.message);
+    }
+  }
 
   res.json({
     status: 'completed',

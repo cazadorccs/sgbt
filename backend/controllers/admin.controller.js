@@ -374,7 +374,7 @@ const revokeCredential = (req, res) => {
   });
 };
 
-const assignNfc = (req, res) => {
+const assignNfc = async (req, res) => {
   const worker_id = req.params.id;
   const { card_uid, issued_by } = req.body;
   if (!card_uid) {
@@ -398,6 +398,21 @@ const assignNfc = (req, res) => {
   });
 
   const cardId = tx();
+
+  // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
+  try {
+    const { persistNfcCard } = require('../services/cloud_sync.service');
+    await persistNfcCard({
+      id: cardId,
+      workerId: worker_id,
+      cardUid: card_uid.toUpperCase().trim(),
+      status: 'active',
+      issuedBy: issued_by || null
+    });
+  } catch (nfcErr) {
+    console.warn('[ADMIN NFC CLOUD PERSIST WARN]', nfcErr.message);
+  }
+
   res.json({
     status: 'success',
     message: 'Tarjeta NFC vinculada al trabajador',

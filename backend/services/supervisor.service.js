@@ -234,6 +234,8 @@ function processContingencyOverride({ worker_document_id, supervisor_id, overrid
   return {
     success: true,
     delivery_id: deliveryId,
+    entitlement_id: ent.id,
+    combo_id: ent.combo_id,
     worker: {
       id: worker.id,
       full_name: worker.full_name,

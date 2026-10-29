@@ -1073,9 +1073,8 @@ async function syncFromSupabase() {
       const insertRemotePasskey = db.prepare(`
         INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
+        ON CONFLICT(credential_id) DO UPDATE SET
           worker_id = excluded.worker_id,
-          credential_id = excluded.credential_id,
           public_key = excluded.public_key,
           sign_count = excluded.sign_count,
           device_name = excluded.device_name,
@@ -1161,8 +1160,39 @@ async function syncFromSupabase() {
           d.delivered_at,
           d.campaign_id
         );
+
+        if (d.entitlement_id) {
+          try {
+            db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(d.entitlement_id);
+          } catch (e) {}
+        }
       }
       console.log(`[SUPABASE HYDRATION] ${remoteDeliveries.length} entregas sincronizadas desde Supabase Cloud.`);
+    }
+
+    // Hidratar tarjetas NFC vinculadas desde Supabase Cloud
+    const { data: remoteNfc, error: nfcErr } = await supabase.from('nfc_cards').select('*');
+    if (!nfcErr && Array.isArray(remoteNfc) && remoteNfc.length > 0) {
+      const insertRemoteNfc = db.prepare(`
+        INSERT INTO nfc_cards (id, worker_id, card_uid, status, issued_by, issued_at, revoked_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(card_uid) DO UPDATE SET
+          worker_id = excluded.worker_id,
+          status = excluded.status,
+          revoked_at = excluded.revoked_at
+      `);
+      for (const card of remoteNfc) {
+        insertRemoteNfc.run(
+          card.id,
+          card.worker_id,
+          card.card_uid,
+          card.status || 'active',
+          card.issued_by,
+          card.issued_at || new Date().toISOString(),
+          card.revoked_at
+        );
+      }
+      console.log(`[SUPABASE HYDRATION] ${remoteNfc.length} tarjetas NFC sincronizadas desde Supabase Cloud.`);
     }
   } catch (err) {
     console.warn('[SUPABASE HYDRATION WARNING] Error sincronizando con Supabase:', err.message);

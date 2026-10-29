@@ -81,7 +81,7 @@ const setDispatchMode = (req, res) => {
 /**
  * Ejecuta el retiro atómico totalizado o específico para un beneficiario
  */
-const atomicClaim = (req, res) => {
+const atomicClaim = async (req, res) => {
   let { qr_payload, distribution_point_id, delivered_by_user_id, station, mode, verification_method } = req.body;
 
   if (!qr_payload) {
@@ -344,6 +344,25 @@ const atomicClaim = (req, res) => {
 
       tx();
 
+      // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
+      try {
+        const { persistDeliveries } = require('../services/cloud_sync.service');
+        await persistDeliveries(deliveriesCreated.map(d => ({
+          id: d.id,
+          entitlement_id: d.entitlement_id,
+          worker_id: wid,
+          distribution_point_id: finalPointId,
+          delivered_by_user_id: finalOperatorId,
+          verification_method: methodUsed,
+          signature_proof: sig,
+          challenge_nonce: nonce,
+          combo_id: d.combo_id,
+          delivered_at: nowIso
+        })));
+      } catch (cloudErr) {
+        console.warn('[ATOMIC DISPATCH CLOUD PERSIST WARN]', cloudErr.message);
+      }
+
       console.log(`⚡ [ATOMIC DISPATCH SUCCESS] Retiro Totalizado completado para ${worker ? worker.full_name : wid} (${deliveredCombos.length} combos en 1 transacción SQL)`);
 
       const totalToastMsg = `🎉 ¡RETIRO ÚNICO TOTALIZADO APROBADO! Se despacharon con éxito todos sus combos asignados (${deliveredCombos.length} de ${deliveredCombos.length}).`;
@@ -430,6 +449,25 @@ const atomicClaim = (req, res) => {
     try {
       db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(targetEnt.id);
     } catch (e) {}
+
+    // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
+    try {
+      const { persistDeliveries } = require('../services/cloud_sync.service');
+      await persistDeliveries([{
+        id: singleDeliveryId,
+        entitlement_id: targetEnt.id,
+        worker_id: wid,
+        distribution_point_id: finalPointId,
+        delivered_by_user_id: finalOperatorId,
+        verification_method: methodUsed,
+        signature_proof: sig,
+        challenge_nonce: nonce,
+        combo_id: targetEnt.combo_id,
+        delivered_at: nowIso
+      }]);
+    } catch (cloudErr) {
+      console.warn('[STATION DISPATCH CLOUD PERSIST WARN]', cloudErr.message);
+    }
 
     const remainingCount = pendingEnts.length - 1;
     const isAllCompleted = remainingCount === 0;

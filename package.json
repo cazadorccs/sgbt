@@ -12,6 +12,7 @@
     "test:supabase": "node backend/test-supabase.js",
     "test:offline": "node tests/e2e_offline_flow.test.js",
     "test:security": "node tests/security_hardening_mfa.test.js",
+    "verify:cloud": "node backend/verify_cloud_persistence.js",
     "test": "node backend/test_e2e_suite.js && node tests/e2e_offline_flow.test.js && node tests/security_hardening_mfa.test.js"
   },
   "keywords": [],

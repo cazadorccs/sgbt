@@ -97,7 +97,7 @@ const searchWorkerByCedula = (req, res) => {
 };
 
 // 2. Despachar / Entregar combos manualmente y descontar
-const deliverManualCombos = (req, res) => {
+const deliverManualCombos = async (req, res) => {
   const { worker_id, entitlement_ids, quantity, note, supervisor_id } = req.body;
   const today = new Date().toISOString().split('T')[0];
 
@@ -211,22 +211,20 @@ const deliverManualCombos = (req, res) => {
     const allEnts = db.prepare("SELECT status FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").all(worker.id, today);
     const remainingPending = allEnts.filter(e => e.status === 'pending').length;
 
-    // Respaldo asíncrono en Supabase si está disponible
+    // Respaldo garantizado en Supabase Cloud con AWAIT (Vercel Serverless)
     try {
-      const { supabase, isSupabaseConfigured } = require('../supabase');
-      if (isSupabaseConfigured() && supabase) {
-        for (const item of deliveredItems) {
-          supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', item.entitlement_id).catch(() => {});
-          supabase.from('deliveries').insert([{
-            id: item.delivery_id,
-            entitlement_id: item.entitlement_id,
-            worker_id: worker.id,
-            verification_method: 'manual_rrhh',
-            delivered_at: new Date().toISOString()
-          }]).catch(() => {});
-        }
-      }
-    } catch (e) {}
+      const { persistDeliveries } = require('../services/cloud_sync.service');
+      await persistDeliveries(deliveredItems.map(item => ({
+        id: item.delivery_id,
+        entitlement_id: item.entitlement_id,
+        worker_id: worker.id,
+        combo_id: item.combo_id,
+        verification_method: 'manual_rrhh',
+        delivered_at: new Date().toISOString()
+      })));
+    } catch (e) {
+      console.warn('[MANUAL DISPATCH CLOUD PERSIST WARN]', e.message);
+    }
 
     return res.json({
       success: true,

@@ -114,31 +114,20 @@ async function registerPasskeyCredential({ worker_id, credential, device_name })
     } catch (e) {}
   }
 
-  // Respaldo asíncrono en Supabase Cloud
+  // Respaldo garantizado en Supabase Cloud con AWAIT (Vercel Serverless)
   try {
-    const { supabase, isSupabaseConfigured } = require('../supabase');
-    if (isSupabaseConfigured() && supabase) {
-      supabase.from('passkey_credentials').upsert([{
-        id: result.newId,
-        worker_id,
-        credential_id: result.credentialId,
-        public_key: result.publicKeyPem,
-        sign_count: 0,
-        device_name: device_name || 'Smartphone Corporativo',
-        status: 'active'
-      }], { onConflict: 'credential_id' }).catch(e => console.warn('[SUPABASE PASSKEY SYNC WARN]', e.message));
-
-      if (ent && ent.id) {
-        supabase.from('daily_entitlements').upsert([{
-          id: ent.id,
-          worker_id,
-          combo_id: 'c1a2b3c4-1111-2222-3333-444455556666',
-          valid_date: today,
-          status: 'pending'
-        }], { onConflict: 'worker_id,valid_date,shift,combo_id' }).catch(() => {});
-      }
-    }
-  } catch (e) {}
+    const { persistPasskey } = require('./cloud_sync.service');
+    await persistPasskey({
+      id: result.newId,
+      workerId: worker_id,
+      credentialId: result.credentialId,
+      publicKeyPem: result.publicKeyPem,
+      deviceName: device_name || 'Smartphone Corporativo',
+      status: 'active'
+    });
+  } catch (e) {
+    console.warn('[PASSKEY CLOUD SYNC EXCEPTION]', e.message);
+  }
 
   return {
     credentialId: result.credentialId,

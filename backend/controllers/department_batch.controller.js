@@ -439,7 +439,7 @@ const reviewBatchOrder = (req, res) => {
 /**
  * 7. Despacho masivo atómico en almacén (Stage 3: Aprobación y Despacho en Almacén)
  */
-const dispatchBatchOrder = (req, res) => {
+const dispatchBatchOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const { delegate_token, distribution_point_id, notes } = req.body;
@@ -681,6 +681,25 @@ const dispatchBatchOrder = (req, res) => {
     });
 
     tx();
+
+    // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
+    try {
+      const { persistDeliveries } = require('../services/cloud_sync.service');
+      const deliveriesToPersist = nominalBeneficiaries.map(nb => ({
+        id: nb.delivery_id,
+        entitlement_id: nb.entitlement_id,
+        worker_id: nb.worker_id,
+        distribution_point_id: finalPointId,
+        delivered_by_user_id: dispatchedBy,
+        verification_method: 'bulk_department_lot',
+        signature_proof: `SIG_BATCH_${order.order_number}`,
+        combo_id: nb.combo_id,
+        delivered_at: nowIso
+      }));
+      await persistDeliveries(deliveriesToPersist);
+    } catch (cloudErr) {
+      console.warn('[BATCH DISPATCH CLOUD PERSIST WARN]', cloudErr.message);
+    }
 
     console.log(`📦 [BATCH DISPATCH SUCCESS] Lote ${order.order_number} para ${order.department_name} entregado exitosamente (${eligibleDeliveries.length} combos a ${affectedWorkerIds.size} titulares)`);
 

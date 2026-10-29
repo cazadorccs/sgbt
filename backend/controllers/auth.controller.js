@@ -979,7 +979,7 @@ const getSupervisorDailyQr = (req, res) => {
   }
 };
 
-const verifyQr = (req, res) => {
+const verifyQr = async (req, res) => {
   let { qr_payload, distribution_point_id, delivered_by_user_id, station, verification_method } = req.body;
   if (!qr_payload) {
     logScan('REJECTED_EMPTY_PAYLOAD', null, { error: 'Payload QR incompleto' }, { req, ip: req.ip });
@@ -1384,28 +1384,24 @@ const verifyQr = (req, res) => {
 
       tx();
 
-      // Sincronización asíncrona hacia Supabase si está disponible
+      // Respaldo garantizado en Supabase Cloud con AWAIT (Vercel Serverless)
       try {
-        const { supabase, isSupabaseConfigured } = require('../supabase');
-        if (isSupabaseConfigured() && supabase) {
-          const sbInserts = deliveriesCreated.map(d => ({
-            id: d.id,
-            entitlement_id: d.entitlement_id,
-            worker_id: wid,
-            distribution_point_id: finalPointId,
-            delivered_by_user_id: finalOperatorId,
-            verification_method: methodUsed,
-            signature_proof: sig,
-            challenge_nonce: nonce,
-            is_offline_sync: false,
-            delivered_at: nowIso
-          }));
-          supabase.from('deliveries').insert(sbInserts).catch(e => console.warn('[DELIVERY SUPABASE SYNC ERROR]', e.message));
-          for (const d of deliveriesCreated) {
-            supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', d.entitlement_id).catch(() => {});
-          }
-        }
-      } catch (e) {}
+        const { persistDeliveries } = require('../services/cloud_sync.service');
+        await persistDeliveries(deliveriesCreated.map(d => ({
+          id: d.id,
+          entitlement_id: d.entitlement_id,
+          worker_id: wid,
+          distribution_point_id: finalPointId,
+          delivered_by_user_id: finalOperatorId,
+          verification_method: methodUsed,
+          signature_proof: sig,
+          challenge_nonce: nonce,
+          is_offline_sync: false,
+          delivered_at: nowIso
+        })));
+      } catch (cloudErr) {
+        console.warn('[VERIFY CLAIM CLOUD PERSIST WARN]', cloudErr.message);
+      }
 
       console.log(`⚡ [ATOMIC DISPATCH VERIFY] Retiro Totalizado completado para ${worker ? worker.full_name : wid} (${deliveredCombos.length} combos en 1 transacción SQL)`);
 
@@ -1494,26 +1490,25 @@ const verifyQr = (req, res) => {
       db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(targetEnt.id);
     } catch (e) {}
 
-    // Respaldo asíncrono del despacho en Supabase Cloud
+    // Respaldo garantizado del despacho en Supabase Cloud con AWAIT (Vercel Serverless)
     try {
-      const { supabase, isSupabaseConfigured } = require('../supabase');
-      if (isSupabaseConfigured() && supabase) {
-        supabase.from('deliveries').insert([{
-          id: deliveryId,
-          entitlement_id: targetEnt.id,
-          worker_id: wid,
-          distribution_point_id: finalPointId,
-          delivered_by_user_id: finalOperatorId,
-          verification_method: methodUsed,
-          signature_proof: sig,
-          challenge_nonce: nonce,
-          is_offline_sync: false,
-          delivered_at: nowIso
-        }]).catch(e => console.warn('[DELIVERY SUPABASE SYNC ERROR]', e.message));
-
-        supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', targetEnt.id).catch(() => {});
-      }
-    } catch (e) {}
+      const { persistDeliveries } = require('../services/cloud_sync.service');
+      await persistDeliveries([{
+        id: deliveryId,
+        entitlement_id: targetEnt.id,
+        worker_id: wid,
+        distribution_point_id: finalPointId,
+        delivered_by_user_id: finalOperatorId,
+        verification_method: methodUsed,
+        signature_proof: sig,
+        challenge_nonce: nonce,
+        combo_id: targetEnt.combo_id,
+        is_offline_sync: false,
+        delivered_at: nowIso
+      }]);
+    } catch (cloudErr) {
+      console.warn('[VERIFY SINGLE CLAIM CLOUD PERSIST WARN]', cloudErr.message);
+    }
 
     const remainingCount = pendingEnts.length - 1;
     const isAllCompleted = remainingCount === 0;
@@ -1660,7 +1655,7 @@ const createDelegation = (req, res) => {
  * Aprobación de Contingencia por Cédula + Huella del Supervisor en 1 Clic
  * Permite liberar el beneficio a trabajadores sin smartphone ni NFC previa validación.
  */
-const contingencyOverride = (req, res) => {
+const contingencyOverride = async (req, res) => {
   const { worker_document_id, supervisor_id, override_reason, distribution_point_id } = req.body;
   if (!worker_document_id || !worker_document_id.trim()) {
     return res.status(400).json({ error: 'La Cédula del beneficiario es requerida' });
@@ -1673,6 +1668,27 @@ const contingencyOverride = (req, res) => {
       override_reason,
       distribution_point_id
     });
+
+    // Respaldo garantizado en Supabase Cloud con AWAIT (Vercel Serverless)
+    if (result && result.delivery_id) {
+      try {
+        const { persistDeliveries } = require('../services/cloud_sync.service');
+        await persistDeliveries([{
+          id: result.delivery_id,
+          entitlement_id: result.entitlement_id,
+          worker_id: result.worker?.id,
+          distribution_point_id: distribution_point_id || '5b0f10e3-7eac-4872-bf96-74ecd359be7e',
+          delivered_by_user_id: supervisor_id || null,
+          verification_method: 'supervisor_override',
+          signature_proof: 'SUPERVISOR_OVERRIDE_' + Date.now(),
+          challenge_nonce: crypto.randomBytes(16).toString('hex'),
+          delivered_at: new Date().toISOString()
+        }]);
+      } catch (cErr) {
+        console.warn('[CONTINGENCY OVERRIDE CLOUD PERSIST WARN]', cErr.message);
+      }
+    }
+
     return res.json(result);
   } catch (err) {
     if (err.message && (err.message.includes('UNIQUE constraint failed') || err.message.includes('idx_unique_daily_claim'))) {
