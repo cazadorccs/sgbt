@@ -7,44 +7,11 @@
 
 El sistema implementa una arquitectura híbrida desacoplada, diseñada para operar en entornos con conectividad inestable o nula, garantizando a la vez consolidación centralizada en la nube.
 
-```mermaid
-graph TD
-    subgraph Clientes_PWA [Capa de Clientes PWA]
-        A[Dispositivo Móvil Beneficiario<br/>WebAuthn / Enclave]
-        B[Terminal de Almacén Operador<br/>Cámara + IndexedDB Offline]
-        C[Consola de Administración TI / RRHH<br/>Nómina, Jornadas y Auditoría]
-    end
-
-    subgraph Backend_Servicios [Capa de Backend Node.js / Express]
-        API[API REST Modular Express]
-        Crypto[Servicio Criptográfico ECDSA P-256]
-        CloudSync[Servicio de Persistencia Cloud Sync]
-        Idemp[Módulo de Idempotencia RFC 7807]
-        SSE[Servidor de Eventos en Vivo SSE]
-    end
-
-    subgraph Persistencia_Hibrida [Capa de Persistencia Híbrida]
-        SQLite[(SQLite Local - Modo WAL<br/>Sub-milisegundo en Almacén)]
-        Cloud[(Supabase Cloud PostgreSQL REST<br/>Consolidación Ministerial y Serverless)]
-    end
-
-    A -->|Firma Criptográfica / QR / Foto| API
-    B -->|Escaneo QR / Tap NFC / Despacho| API
-    C -->|Gestión, Nómina y Auditoría| API
-
-    API --> Crypto
-    API --> CloudSync
-    API --> Idemp
-    API --> SSE
-
-    API -->|Escritura Directa < 1ms| SQLite
-    CloudSync -->|Persistencia Garantizada AWAIT| Cloud
-    Cloud -->|Hidratación al Iniciar syncFromSupabase| SQLite
-```
-
-> **Diagrama Interactivo Autónomo:**  
-> Puede interactuar con el modelo de contenedores, explorar tarjetas técnicas de infraestructura y alternar vistas en:  
-> 👉 [c4-containers.html](file:///d:/Documents/Mippci/PROPUESTA%20DE%20PROYECTOS%20TI/Bolsa/docs/diagrams/c4-containers.html)
+> [!NOTE] **Diagrama de Arquitectura de Contenedores C4 (Archify v3.2):**
+> La vista estructural de actores, capas PWA, servicios backend y almacenamiento híbrido SQLite WAL + Supabase Cloud se encuentra modelada interactivamente:
+> - 🌐 **Visor Interactivo en Vivo:** [c4-containers.html](diagrams/c4-containers.html) | [Centro de Diagramas SGBT](diagrams/index.html)
+> - 📄 **Especificación Técnica Archify:** [c4-containers.json](diagrams/c4-containers.json)
+> - ⚡ **Flujo Secuencial de Retiro y User Journey:** [user-journey-sequence.html](diagrams/user-journey-sequence.html)
 
 ---
 

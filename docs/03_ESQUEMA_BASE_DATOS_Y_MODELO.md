@@ -7,22 +7,10 @@
 
 La persistencia del sistema está modelada bajo tercera forma normal (3FN) con integridad referencial estricta, índices anti-fraude y disparadores atómicos (`triggers`). Se organiza en tres dominios funcionales:
 
-```mermaid
-erDiagram
-    DEPARTMENTS ||--o{ WORKERS : "agrupa"
-    WORKERS ||--o{ PASSKEY_CREDENTIALS : "posee"
-    WORKERS ||--o{ DAILY_ENTITLEMENTS : "recibe"
-    COMBOS ||--o{ DAILY_ENTITLEMENTS : "asigna"
-    DELIVERY_CAMPAIGNS ||--o{ CAMPAIGN_COMBOS : "contiene"
-    COMBOS ||--o{ CAMPAIGN_COMBOS : "incluye"
-    DELIVERY_CAMPAIGNS ||--o{ DAILY_ENTITLEMENTS : "origina"
-    DAILY_ENTITLEMENTS ||--o| DELIVERIES : "liquida"
-    DISTRIBUTION_POINTS ||--o{ DELIVERIES : "despacha"
-```
-
-> **Diagrama ERD Interactivo Autónomo:**  
-> Visualice todas las entidades, columnas físicas, claves primarias y foráneas con soporte de zoom e inspección de tablas en:  
-> 👉 [modelo-datos-erd.html](file:///d:/Documents/Mippci/PROPUESTA%20DE%20PROYECTOS%20TI/Bolsa/docs/diagrams/modelo-datos-erd.html)
+> [!NOTE] **Diagrama de Modelo de Datos Relacional ERD (Archify v3.2):**
+> La arquitectura relacional de entidades, claves primarias, foráneas, índices de idempotencia y partición por dominios (`identity`, `benefits`, `audit`) está modelada interactivamente:
+> - 🌐 **Visor Interactivo en Vivo:** [modelo-datos-erd.html](diagrams/modelo-datos-erd.html) | [Centro de Diagramas SGBT](diagrams/index.html)
+> - 📄 **Especificación Técnica Archify:** [modelo-datos-erd.json](diagrams/modelo-datos-erd.json)
 
 ---
 

@@ -378,6 +378,15 @@
         <h3 class="tab-title">🗄️ Modelo de Datos (ERD Integral)</h3>
         <p class="tab-desc">Estructura relacional SQLite / Supabase: Identidad, Beneficios, Auditoría forense y clave única anti-duplicados <code>idx_unique_daily_claim</code>.</p>
       </div>
+
+      <div class="tab-card" id="tab-twa" onclick="switchDiagram('twa')">
+        <div class="tab-header">
+          <span class="tab-badge" style="color: #f59e0b; background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.3);">Móvil & TWA / PWA</span>
+          <span style="font-size: 0.75rem; color: #10b981; font-weight: 600;">Arquitectura</span>
+        </div>
+        <h3 class="tab-title">📱 Distribución Móvil & TWA Kiosco</h3>
+        <p class="tab-desc">Despliegue dual: PWA Edge-to-Edge para Beneficiarios y APK Nativo TWA / Bubblewrap con Modo Kiosco y Wake Lock para Operadores de Almacén.</p>
+      </div>
     </div>
 
     <!-- VIEWPORT CENTRALIZADO -->
@@ -444,6 +453,11 @@
         title: 'Modelo de Datos Entidad-Relación (ERD) · SGBT MIPPCI',
         html: 'modelo-datos-erd.html',
         json: 'modelo-datos-erd.json'
+      },
+      twa: {
+        title: 'Distribución Móvil Dual: PWA Beneficiarios vs APK TWA Almacén · SGBT MIPPCI',
+        html: 'distribucion-movil-twa.html',
+        json: 'distribucion-movil-twa.json'
       }
     };
 

@@ -7,14 +7,10 @@
 
 La distribución móvil de la plataforma SGBT opera bajo un **modelo híbrido optimizado**:
 
-```mermaid
-flowchart LR
-    A["Plataforma SGBT<br/>(sgbt-bice.vercel.app)"] --> B["Fase 1: Beneficiarios<br/>(Personal y Jubilados)"]
-    A --> C["Fase 2: Almacén y Operadores<br/>(Mesa de Despacho / Tabletas)"]
-    
-    B --> B1["PWA Instalable<br/>Edge-to-Edge<br/>Sin descargas APK"]
-    C --> C1["APK Nativo TWA / Bubblewrap<br/>Modo Kiosco / Pantalla Activa<br/>Instalación por Lote MDM"]
-```
+> [!NOTE] **Diagrama de Arquitectura y Distribución Móvil (Archify v3.2):**
+> La topología de distribución híbrida (PWA Edge-to-Edge para Beneficiarios y APK TWA Bubblewrap para Almacén) está disponible como diagrama interactivo con controles de zoom, pan, modo oscuro/claro e inspección técnica de componentes:
+> - 🌐 **Visor Interactivo en Vivo:** [distribucion-movil-twa.html](diagrams/distribucion-movil-twa.html) | [Centro de Diagramas SGBT](diagrams/index.html)
+> - 📄 **Especificación Técnica Archify:** [distribucion-movil-twa.json](diagrams/distribucion-movil-twa.json)
 
 1. **Beneficiarios (Trabajadores y Adultos Mayores):**
    - **Acceso Directo:** Ingresan desde el navegador móvil (Chrome, Safari, Firefox).
@@ -124,3 +120,4 @@ Para evitar que los operarios de almacén cierren la aplicación, desvíen el us
    - En el menú de aplicaciones recientes, pulse el icono de la app y seleccione **Fijar**. La tableta quedará bloqueada dentro de SGBT hasta que un supervisor introduzca el PIN de desbloqueo.
 2. **Lanzador Kiosco Dedicado (Opcional para Almacenes de Alto Tráfico):**
    - Se puede utilizar un lanzador de código abierto como **Fully Kiosk Browser** o configurar la app como *Device Owner* mediante Android Enterprise / MDM.
+

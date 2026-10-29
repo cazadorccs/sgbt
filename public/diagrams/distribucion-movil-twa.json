@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Estrategia de Distribución Móvil Híbrida (PWA y APK Nativo TWA) - SGBT",
+    "subtitle": "Arquitectura Borde a Borde para Beneficiarios y Empaquetado APK Kiosco para Terminales de Almacén (MIPPCI)",
+    "output": "public/diagrams/distribucion-movil-twa.html",
+    "quality_profile": "showcase",
+    "viewBox": [1180, 540]
+  },
+  "components": [
+    { "id": "cloud_host", "type": "cloud", "label": "Plataforma SGBT Web", "sublabel": "sgbt-bice.vercel.app", "pos": [40, 230], "size": [160, 65], "tag": "Producción Vercel" },
+    { "id": "assetlinks", "type": "security", "label": "Digital Asset Links", "sublabel": ".well-known/assetlinks.json", "pos": [40, 360], "size": [160, 60], "tag": "Acreditación SHA-256" },
+
+    { "id": "beneficiary_actor", "type": "external", "label": "Beneficiarios", "sublabel": "Trabajadores y Jubilados", "pos": [250, 90], "size": [160, 60] },
+    { "id": "warehouse_actor", "type": "external", "label": "Operadores de Almacén", "sublabel": "Mesa de Despacho", "pos": [250, 370], "size": [160, 60] },
+
+    { "id": "pwa_client", "type": "frontend", "label": "PWA Móvil Borde a Borde", "sublabel": "viewport-fit=cover & Insets", "pos": [470, 90], "size": [175, 65], "tag": "Fase 1: Beneficiarios" },
+    { "id": "passkey_auth", "type": "security", "label": "WebAuthn / Passkeys", "sublabel": "Firma Huella / FaceID", "pos": [710, 90], "size": [165, 60], "tag": "Hardware Enclave" },
+    { "id": "pwa_install", "type": "frontend", "label": "Instalación 1-Toque", "sublabel": "beforeinstallprompt PWA", "pos": [930, 90], "size": [160, 60], "tag": "Pantalla de Inicio" },
+
+    { "id": "bubblewrap_cli", "type": "backend", "label": "Bubblewrap CLI (Google)", "sublabel": "twa-manifest.json", "pos": [470, 230], "size": [175, 60], "tag": "Empaquetador TWA" },
+
+    { "id": "twa_apk", "type": "frontend", "label": "APK Nativo (Android)", "sublabel": "gob.ve.mippci.sgbt.apk", "pos": [470, 370], "size": [175, 65], "tag": "Fase 2: Almacén" },
+    { "id": "wake_lock", "type": "backend", "label": "Screen Wake Lock API", "sublabel": "Pantalla Activa Continua", "pos": [710, 370], "size": [165, 60], "tag": "Cero Suspensión" },
+    { "id": "kiosk_mode", "type": "security", "label": "Modo Kiosco / App Pinning", "sublabel": "Bloqueo de Navegación", "pos": [930, 370], "size": [160, 60], "tag": "Blindaje Operativo" }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Infraestructura y Dominio", "wraps": ["cloud_host", "assetlinks"] },
+    { "kind": "region", "label": "Fase 1: Canal Beneficiarios (PWA Ligera Borde a Borde)", "wraps": ["pwa_client", "passkey_auth", "pwa_install"] },
+    { "kind": "security-group", "label": "Fase 2: Canal Almacén Central (APK Dedicado para Tabletas)", "wraps": ["twa_apk", "wake_lock", "kiosk_mode"] }
+  ],
+  "connections": [
+    { "id": "c1", "from": "cloud_host", "to": "pwa_client", "label": "Carga Web HTTPS", "variant": "emphasis" },
+    { "id": "c2", "from": "assetlinks", "to": "bubblewrap_cli", "label": "Verificación SHA-256", "variant": "security" },
+    { "id": "c3", "from": "bubblewrap_cli", "to": "twa_apk", "label": "Compila APK Firmado", "variant": "emphasis" },
+
+    { "id": "c4", "from": "beneficiary_actor", "to": "pwa_client", "label": "Acceso por Navegador", "variant": "default" },
+    { "id": "c5", "from": "pwa_client", "to": "passkey_auth", "label": "Biometría FIDO2", "variant": "security" },
+    { "id": "c6", "from": "pwa_client", "to": "pwa_install", "label": "📲 Instalar App", "variant": "emphasis" },
+
+    { "id": "c7", "from": "warehouse_actor", "to": "twa_apk", "label": "Operación de Despacho", "variant": "default" },
+    { "id": "c8", "from": "twa_apk", "to": "wake_lock", "label": "Escáner Activo", "variant": "emphasis" },
+    { "id": "c9", "from": "twa_apk", "to": "kiosk_mode", "label": "Fijar Pantalla", "variant": "security" },
+    { "id": "c10", "from": "twa_apk", "to": "cloud_host", "label": "Sincronización Cloud", "variant": "dashed", "fromSide": "left", "toSide": "bottom" }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Fase 1: Beneficiarios (PWA Web)",
+      "items": [
+        "Acceso instantáneo sin descargas ni permisos de orígenes desconocidos",
+        "Soporte Edge-to-Edge nativo con viewport-fit=cover y safe-area insets",
+        "Biometría WebAuthn P-256 almacenada en Secure Enclave / Titan M2",
+        "Botón de instalación a la pantalla de inicio con 1 solo toque"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Fase 2: Almacén y Despacho (APK Nativo TWA)",
+      "items": [
+        "Paquete APK independiente (gob.ve.mippci.sgbt.apk) para tabletas oficiales",
+        "Verificación Digital Asset Links para supresión total de barra de URL",
+        "Screen Wake Lock activo durante el escaneo para evitar suspensión de pantalla",
+        "Soporte de Modo Kiosco (App Pinning) para blindaje de operarios"
+      ]
+    }
+  ]
+}

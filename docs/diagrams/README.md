@@ -17,6 +17,7 @@ Cada diagrama es un archivo HTML autónomo (`standalone`), con capacidades nativ
 | **Arquitectura General (C4 Nivel 2)** | `architecture` | [c4-containers.html](./c4-containers.html) | [c4-containers.json](./c4-containers.json) | Modelo de contenedores C4: actores institucionales, frontends PWA, servicios core backend (Cripto, Idempotencia, SSE) y persistencia híbrida SQLite WAL + Supabase Cloud. |
 | **Flujo de Retiro y User Journey** | `sequence` | [user-journey-sequence.html](./user-journey-sequence.html) | [user-journey-sequence.json](./user-journey-sequence.json) | Secuencia cronológica del despacho con Passkeys FIDO2: biometría local en Secure Enclave, escaneo de QR dinámico temporal (180s), verificación ECDSA P-256, deducción atómica y feedback háptico. |
 | **Modelo de Datos Relacional (ERD)** | `erd` | [modelo-datos-erd.html](./modelo-datos-erd.html) | [modelo-datos-erd.json](./modelo-datos-erd.json) | Modelo entidad-relación dividido en 3 dominios funcionales (Identidad, Beneficios y Auditoría), con integridad referencial estricta, índice de reclamo diario único e idempotencia. |
+| **Distribución Móvil Dual (PWA / TWA)** | `architecture` | [distribucion-movil-twa.html](./distribucion-movil-twa.html) | [distribucion-movil-twa.json](./distribucion-movil-twa.json) | Estrategia de despliegue móvil: PWA Edge-to-Edge para Beneficiarios y empaquetado APK Nativo TWA / Bubblewrap con Modo Kiosco y Screen Wake Lock para Operadores de Almacén. |
 
 ---
 
@@ -37,6 +38,11 @@ Cada diagrama es un archivo HTML autónomo (`standalone`), con capacidades nativ
 - **Dominio Identidad (`identity`):** `departments`, `workers` y `passkey_credentials`.
 - **Dominio Beneficios (`benefits`):** `combos`, `campaigns` y `daily_entitlements`.
 - **Dominio Auditoría (`audit`):** `deliveries` (con clave foránea compuesta, firma criptográfica y flag de sincronización), `idempotency_keys` (retención de claves y replay cacheado) y `audit_logs` (trazabilidad forense).
+
+### 4. [Diagrama de Distribución Móvil Dual (PWA / TWA)](./distribucion-movil-twa.html)
+- **Infraestructura Base:** Verificación criptográfica con Digital Asset Links SHA-256 (`/.well-known/assetlinks.json`) y configuración `twa-manifest.json`.
+- **Canal Beneficiarios (PWA):** Instalación web A2HS (Add to Home Screen), diseño inmersivo Edge-to-Edge (`viewport-fit=cover`) y autenticación biométrica Passkeys FIDO2 en Secure Enclave.
+- **Canal Almacén y Operadores (APK TWA):** Empaquetado Bubblewrap CLI, bloqueo de Modo Kiosco (App Pinning) y API de Screen Wake Lock para escaneo óptico ininterrumpido en turnos de despacho.
 
 ---
 
