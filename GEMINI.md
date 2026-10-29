@@ -19,3 +19,4 @@ Cada vez que se resuelva un problema, corrija un bug, aplique un ajuste o se agr
 
 4. **Confirmación al Usuario:**
    - Informar al usuario el hash del commit generado, los archivos sincronizados y el estado de la rama.
+

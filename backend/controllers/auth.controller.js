@@ -126,78 +126,132 @@ const login = async (req, res) => {
       }
     }
 
-    // Fallback de consulta en tiempo real a Supabase SOLO si la base de datos local no contiene la nómina o con timeout estricto
-    if (!worker && digitsOnly.length >= 5) {
-      const localWorkersCount = db.prepare('SELECT COUNT(*) as c FROM workers').get()?.c || 0;
-      if (localWorkersCount < 50) {
-        try {
-          const { supabase, isSupabaseConfigured } = require('../supabase');
-          if (isSupabaseConfigured() && supabase) {
-            const queryPromise = supabase
-              .from('workers')
-              .select('*')
-              .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.${digitsOnly}`);
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 1200));
-
-            const { data: remoteWorkers } = await Promise.race([queryPromise, timeoutPromise]);
-
-            if (remoteWorkers && remoteWorkers.length > 0) {
-              const rw = remoteWorkers[0];
-              db.prepare(`
-                INSERT OR REPLACE INTO workers (
-                  id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              `).run(
-                rw.id,
-                rw.document_id,
-                rw.full_name,
-                rw.email,
-                rw.department_id,
-                rw.shift || 'jornada_continua',
-                rw.status || 'active',
-                rw.worker_type || 'activo',
-                rw.role || 'worker',
-                rw.has_smartphone ? 1 : 0,
-                rw.contingency_reason,
-                rw.phone_number,
-                rw.avatar_url
-              );
-
-              worker = db.prepare(`
-                SELECT w.*, d.name as department_name, d.code as department_code
-                FROM workers w
-                LEFT JOIN departments d ON w.department_id = d.id
-                WHERE w.id = ?
-              `).get(rw.id);
-            }
-          }
-        } catch (sbErr) {
-          console.warn('[LOGIN SUPABASE FALLBACK WARNING]', sbErr.message);
-        }
-      }
-    }
-
-    // Sincronización proactiva de rol en tiempo real desde Supabase Cloud
-    // para garantizar que designaciones recientes (Mesa de Despacho / Supervisor) surtan efecto de inmediato
-    if (worker && worker.role === 'worker') {
+    // Fallback de consulta en tiempo real a Supabase si no se localizó en la base de datos local
+    if (!worker && digitsOnly.length >= 4) {
       try {
         const { supabase, isSupabaseConfigured } = require('../supabase');
         if (isSupabaseConfigured() && supabase) {
           const queryPromise = supabase
             .from('workers')
-            .select('role')
+            .select('*')
+            .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.E-${digitsOnly},document_id.eq.${digitsOnly}`);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 1500));
+
+          const { data: remoteWorkers } = await Promise.race([queryPromise, timeoutPromise]);
+
+          if (remoteWorkers && remoteWorkers.length > 0) {
+            const rw = remoteWorkers[0];
+            db.prepare(`
+              INSERT INTO workers (
+                id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                document_id = excluded.document_id,
+                full_name = excluded.full_name,
+                email = excluded.email,
+                department_id = excluded.department_id,
+                shift = excluded.shift,
+                status = excluded.status,
+                worker_type = excluded.worker_type,
+                role = excluded.role,
+                has_smartphone = excluded.has_smartphone,
+                contingency_reason = excluded.contingency_reason,
+                phone_number = excluded.phone_number,
+                avatar_url = CASE WHEN excluded.avatar_url IS NOT NULL AND excluded.avatar_url != '' THEN excluded.avatar_url ELSE workers.avatar_url END
+            `).run(
+              rw.id,
+              rw.document_id,
+              rw.full_name,
+              rw.email,
+              rw.department_id,
+              rw.shift || 'jornada_continua',
+              rw.status || 'active',
+              rw.worker_type || 'activo',
+              rw.role || 'worker',
+              rw.has_smartphone ? 1 : 0,
+              rw.contingency_reason,
+              rw.phone_number,
+              rw.avatar_url
+            );
+
+            worker = db.prepare(`
+              SELECT w.*, d.name as department_name, d.code as department_code
+              FROM workers w
+              LEFT JOIN departments d ON w.department_id = d.id
+              WHERE w.id = ?
+            `).get(rw.id);
+          }
+        }
+      } catch (sbErr) {
+        console.warn('[LOGIN SUPABASE FALLBACK WARNING]', sbErr.message);
+      }
+    }
+
+    // Sincronización proactiva en tiempo real desde Supabase Cloud para este trabajador
+    // (Rol, Fotografía/Avatar, Teléfono y Credenciales de Formalización / Contraseña)
+    if (worker) {
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const fetchWorkerPromise = supabase
+            .from('workers')
+            .select('role, avatar_url, phone_number, updated_at')
             .eq('id', worker.id)
             .single();
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase Role Sync')), 800));
-          const { data: remoteData } = await Promise.race([queryPromise, timeoutPromise]);
-          if (remoteData && remoteData.role && remoteData.role !== 'worker') {
-            worker.role = remoteData.role;
-            db.prepare('UPDATE workers SET role = ? WHERE id = ?').run(remoteData.role, worker.id);
-            console.log(`[AUTH ROLE SYNC] Rol de ${worker.document_id} actualizado en tiempo real desde Supabase a: ${remoteData.role}`);
+
+          const fetchCredsPromise = supabase
+            .from('passkey_credentials')
+            .select('*')
+            .eq('worker_id', worker.id)
+            .eq('status', 'active');
+
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase Sync')), 1500));
+
+          const [workerRes, credsRes] = await Promise.race([
+            Promise.all([fetchWorkerPromise, fetchCredsPromise]),
+            timeoutPromise
+          ]);
+
+          if (workerRes && workerRes.data) {
+            const rw = workerRes.data;
+            if (rw.role && rw.role !== worker.role) {
+              worker.role = rw.role;
+              db.prepare('UPDATE workers SET role = ? WHERE id = ?').run(rw.role, worker.id);
+            }
+            if (rw.avatar_url && rw.avatar_url !== worker.avatar_url) {
+              worker.avatar_url = rw.avatar_url;
+              db.prepare('UPDATE workers SET avatar_url = ? WHERE id = ?').run(rw.avatar_url, worker.id);
+            }
+            if (rw.phone_number && rw.phone_number !== worker.phone_number) {
+              worker.phone_number = rw.phone_number;
+              db.prepare('UPDATE workers SET phone_number = ? WHERE id = ?').run(rw.phone_number, worker.id);
+            }
+          }
+
+          if (credsRes && credsRes.data && credsRes.data.length > 0) {
+            for (const pk of credsRes.data) {
+              if (pk.credential_id && (pk.credential_id.startsWith('formalized_pwd_') || pk.aaguid === 'beneficiary_formalization')) {
+                worker.password_hash = pk.public_key;
+                worker.enrollment_status = 'registrado';
+                worker.enrolled_at = pk.enrolled_at;
+                worker.bound_device_id = pk.device_name;
+                db.prepare(`
+                  UPDATE workers
+                  SET enrollment_status = 'registrado',
+                      password_hash = ?,
+                      bound_device_id = ?,
+                      enrolled_at = ?
+                  WHERE id = ?
+                `).run(pk.public_key, pk.device_name, pk.enrolled_at, worker.id);
+              } else {
+                worker.enrollment_status = 'registrado';
+                db.prepare("UPDATE workers SET enrollment_status = 'registrado' WHERE id = ?").run(worker.id);
+              }
+            }
           }
         }
       } catch (e) {
-        // Fallback no bloqueante
+        // Fallback silencioso y seguro a SQLite local
       }
     }
 
@@ -528,7 +582,7 @@ const login = async (req, res) => {
 /**
  * Consulta pública/protegida de estado de formalización previa a la Jornada del 27/11/2026.
  */
-const checkEnrollmentStatus = (req, res) => {
+const checkEnrollmentStatus = async (req, res) => {
   const { document_id } = req.params;
   if (!document_id || !document_id.trim()) {
     return res.status(400).json({ error: 'Cédula de Identidad requerida' });
@@ -538,7 +592,7 @@ const checkEnrollmentStatus = (req, res) => {
   const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
 
   try {
-    const worker = db.prepare(`
+    let worker = db.prepare(`
       SELECT w.id, w.document_id, w.full_name, w.email, w.job_title, w.hire_date,
              w.phone_number, w.avatar_url, w.enrollment_status, w.enrolled_at,
              d.name as department_name
@@ -547,6 +601,42 @@ const checkEnrollmentStatus = (req, res) => {
       WHERE w.document_id IN (?, ?, ?, ?) OR w.id = ?
       LIMIT 1
     `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
+
+    // Consulta en Supabase si no está local o si aún figura precargado
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        if (!worker && digitsOnly.length >= 4) {
+          const { data: remoteW } = await supabase
+            .from('workers')
+            .select('*')
+            .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.${digitsOnly}`)
+            .limit(1);
+          if (remoteW && remoteW.length > 0) {
+            worker = remoteW[0];
+          }
+        }
+
+        if (worker && worker.enrollment_status !== 'registrado') {
+          const { data: creds } = await supabase
+            .from('passkey_credentials')
+            .select('*')
+            .eq('worker_id', worker.id)
+            .eq('status', 'active');
+
+          if (creds && creds.length > 0) {
+            worker.enrollment_status = 'registrado';
+            const fCred = creds.find(c => c.credential_id?.startsWith('formalized_pwd_') || c.aaguid === 'beneficiary_formalization');
+            if (fCred) {
+              worker.enrolled_at = fCred.enrolled_at;
+            }
+            try {
+              db.prepare("UPDATE workers SET enrollment_status = 'registrado' WHERE id = ?").run(worker.id);
+            } catch (e) {}
+          }
+        }
+      }
+    } catch (sbE) {}
 
     if (!worker) {
       return res.status(404).json({
@@ -585,7 +675,7 @@ const checkEnrollmentStatus = (req, res) => {
  * Formalización de Beneficiario: asignación obligatoria de contraseña y captura de fotografía.
  * Habilita el acceso del trabajador a las jornadas de entrega.
  */
-const enrollBeneficiary = (req, res) => {
+const enrollBeneficiary = async (req, res) => {
   const { document_id, password, photo_base64, phone_number, device_id } = req.body;
 
   if (!document_id || !document_id.trim()) {
@@ -620,7 +710,7 @@ const enrollBeneficiary = (req, res) => {
   }
 
   try {
-    const worker = db.prepare(`
+    let worker = db.prepare(`
       SELECT w.*, d.name as department_name
       FROM workers w
       LEFT JOIN departments d ON w.department_id = d.id
@@ -628,14 +718,55 @@ const enrollBeneficiary = (req, res) => {
       LIMIT 1
     `).get(cleanDoc, `V-${digitsOnly}`, `E-${digitsOnly}`, digitsOnly, cleanDoc);
 
+    // Fallback: si no está en SQLite, buscar en Supabase
+    if (!worker && digitsOnly.length >= 4) {
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const { data: remoteW } = await supabase
+            .from('workers')
+            .select('*')
+            .or(`document_id.eq.${cleanDoc},document_id.eq.V-${digitsOnly},document_id.eq.${digitsOnly}`)
+            .limit(1);
+
+          if (remoteW && remoteW.length > 0) {
+            const rw = remoteW[0];
+            db.prepare(`
+              INSERT INTO workers (
+                id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                document_id = excluded.document_id,
+                full_name = excluded.full_name,
+                email = excluded.email
+            `).run(
+              rw.id, rw.document_id, rw.full_name, rw.email, rw.department_id,
+              rw.shift || 'jornada_continua', rw.status || 'active', rw.worker_type || 'activo',
+              rw.role || 'worker', rw.has_smartphone ? 1 : 0, rw.contingency_reason, rw.phone_number, rw.avatar_url
+            );
+
+            worker = db.prepare(`
+              SELECT w.*, d.name as department_name
+              FROM workers w
+              LEFT JOIN departments d ON w.department_id = d.id
+              WHERE w.id = ?
+            `).get(rw.id);
+          }
+        }
+      } catch (sbLookErr) {
+        console.warn('[ENROLL SUPABASE LOOKUP WARNING]', sbLookErr.message);
+      }
+    }
+
     if (!worker) {
       return res.status(404).json({ error: 'La Cédula no figura en la nómina precargada oficial de beneficiarios.' });
     }
 
     const passwordHash = hashPassword(String(password).trim());
     const boundDeviceId = device_id || req.headers['user-agent'] || `dev_${crypto.randomUUID()}`;
+    const credId = `formalized_pwd_${worker.id}`;
 
-    // Actualizar registro en base de datos
+    // 1. Actualizar registro en base de datos local SQLite
     db.prepare(`
       UPDATE workers
       SET password_hash = ?,
@@ -654,7 +785,21 @@ const enrollBeneficiary = (req, res) => {
       worker.id
     );
 
-    // Persistencia y respaldo en tiempo real en Supabase Cloud
+    // 2. Registrar credencial de formalización en passkey_credentials (SQLite)
+    try {
+      db.prepare(`
+        INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status, aaguid)
+        VALUES (?, ?, ?, ?, 1, ?, 'active', 'beneficiary_formalization')
+        ON CONFLICT(credential_id) DO UPDATE SET
+          public_key = excluded.public_key,
+          device_name = excluded.device_name,
+          status = excluded.status
+      `).run(crypto.randomUUID(), worker.id, credId, passwordHash, boundDeviceId);
+    } catch (passSqliteErr) {
+      console.warn('[ENROLL PASSKEY SQLITE WARNING]', passSqliteErr.message);
+    }
+
+    // 3. Persistencia y respaldo en tiempo real en Supabase Cloud (con await para garantizar permanencia)
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
@@ -665,18 +810,30 @@ const enrollBeneficiary = (req, res) => {
         if (phone_number && String(phone_number).trim()) {
           updatePayload.phone_number = String(phone_number).trim();
         }
-        supabase
-          .from('workers')
-          .update(updatePayload)
-          .eq('id', worker.id)
-          .then(({ error }) => {
-            if (error) {
-              console.warn('[SUPABASE ENROLL SYNC ERROR]', error.message);
-            } else {
-              console.log(`[SUPABASE SYNC] Fotografía y datos de formalización persistidos en Supabase Cloud para ${worker.document_id}`);
-            }
-          })
-          .catch(sbErr => console.warn('[SUPABASE ENROLL SYNC PROMISE ERROR]', sbErr.message));
+
+        const credRecord = {
+          id: crypto.randomUUID(),
+          worker_id: worker.id,
+          credential_id: credId,
+          public_key: passwordHash,
+          sign_count: 1,
+          device_name: boundDeviceId,
+          status: 'active',
+          aaguid: 'beneficiary_formalization',
+          enrolled_at: new Date().toISOString()
+        };
+
+        const results = await Promise.allSettled([
+          supabase.from('workers').update(updatePayload).eq('id', worker.id),
+          supabase.from('passkey_credentials').upsert(credRecord, { onConflict: 'credential_id' })
+        ]);
+
+        results.forEach((resItem, idx) => {
+          if (resItem.status === 'fulfilled' && resItem.value?.error) {
+            console.warn(`[SUPABASE ENROLL SYNC WARNING ${idx}]`, resItem.value.error.message);
+          }
+        });
+        console.log(`[SUPABASE SYNC] ✅ Fotografía y credencial de formalización persistidos en Supabase Cloud para ${worker.document_id}`);
       }
     } catch (sbEx) {
       console.warn('[SUPABASE ENROLL SYNC EXCEPTION]', sbEx.message);

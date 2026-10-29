@@ -126,6 +126,32 @@ window.setupAuth = function() {
     executeLogin(`${docType}-${docNum}`);
   };
 
+  // Escucha de tecla Enter en el campo de contraseña de beneficiario
+  const loginPwdInput = document.getElementById('loginBeneficiaryPassword');
+  loginPwdInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doLogin();
+    }
+  });
+
+  // Si el usuario cambia el número de cédula, reiniciar contenedor de contraseña
+  document.getElementById('loginDocNumber')?.addEventListener('input', () => {
+    const pwdContainer = document.getElementById('beneficiaryPasswordContainer');
+    const pwdInp = document.getElementById('loginBeneficiaryPassword');
+    const btnSub = document.getElementById('btnLoginSubmit');
+    if (pwdContainer && pwdContainer.style.display !== 'none') {
+      pwdContainer.style.display = 'none';
+      if (pwdInp) pwdInp.value = '';
+      if (btnSub) {
+        btnSub.innerHTML = `
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          <span>Continuar con Cédula de Identidad</span>
+        `;
+      }
+    }
+  });
+
   // Submit manual administrador
   const doAdminLogin = () => {
     const identifier = document.getElementById('adminDocNumber')?.value.trim();
@@ -429,7 +455,19 @@ async function executeLogin(rawDocId) {
       device_id: getPersistentDeviceId()
     };
     const pwdInput = document.getElementById('loginBeneficiaryPassword');
-    if (pwdInput && pwdInput.value) {
+    const pwdContainer = document.getElementById('beneficiaryPasswordContainer');
+    if (pwdContainer && pwdContainer.style.display !== 'none') {
+      if (!pwdInput || !pwdInput.value.trim()) {
+        showLoginAlert('Por favor ingrese su contraseña asignada para acceder.');
+        if (pwdInput) pwdInput.focus();
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '🚀 Ingresar al Sistema';
+        }
+        return;
+      }
+      payload.password = pwdInput.value.trim();
+    } else if (pwdInput && pwdInput.value) {
       payload.password = pwdInput.value;
     } else if (window._pendingBeneficiaryPassword) {
       payload.password = window._pendingBeneficiaryPassword;
@@ -460,6 +498,7 @@ async function executeLogin(rawDocId) {
       const pwdInp = document.getElementById('loginBeneficiaryPassword');
       if (pwdContainer && pwdInp) {
         pwdContainer.style.display = 'block';
+        pwdInp.value = '';
         pwdInp.focus();
         showLoginAlert(`Hola ${data.worker.full_name}, por favor ingrese su contraseña para acceder.`);
       } else {
@@ -468,6 +507,10 @@ async function executeLogin(rawDocId) {
           window._pendingBeneficiaryPassword = entered.trim();
           return executeLogin(rawDocId);
         }
+      }
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = `<span>Ingresar con Contraseña</span>`;
       }
       return;
     }

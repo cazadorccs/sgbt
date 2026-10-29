@@ -1091,6 +1091,25 @@ async function syncFromSupabase() {
           pk.device_name || 'Dispositivo Móvil',
           pk.status || 'active'
         );
+
+        if (pk.status === 'active') {
+          if (pk.credential_id && (pk.credential_id.startsWith('formalized_pwd_') || pk.aaguid === 'beneficiary_formalization')) {
+            try {
+              db.prepare(`
+                UPDATE workers
+                SET enrollment_status = 'registrado',
+                    password_hash = ?,
+                    bound_device_id = ?,
+                    enrolled_at = COALESCE(?, enrolled_at, CURRENT_TIMESTAMP)
+                WHERE id = ?
+              `).run(pk.public_key, pk.device_name, pk.enrolled_at, pk.worker_id);
+            } catch (e) {}
+          } else {
+            try {
+              db.prepare("UPDATE workers SET enrollment_status = 'registrado' WHERE id = ?").run(pk.worker_id);
+            } catch (e) {}
+          }
+        }
       }
       console.log(`[SUPABASE HYDRATION] ${remotePasskeys.length} passkeys sincronizadas desde Supabase Cloud.`);
     }
