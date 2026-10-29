@@ -1,8 +1,8 @@
-# Documentación Integral de Cambios y Arquitectura v3.0 & v3.1
+# Documentación Integral de Cambios y Arquitectura v3.0, v3.1 & v3.2
 ### Sistema de Gestión de Bienestar y Transferencias (SGBT / MIPPCI)
-**Fecha:** 25 de Octubre de 2026  
-**Entorno:** Producción Institucional / Almacenes Offline-First  
-**Nivel de Cobertura de Pruebas:** 34/34 Pruebas Automatizadas Pasando (100% Éxito)
+**Fecha:** 29 de Octubre de 2026  
+**Entorno:** Producción Institucional / Almacenes Offline-First / Vercel Serverless  
+**Nivel de Cobertura de Pruebas:** 41/41 Pruebas Automatizadas Pasando (100% Éxito) | 6/6 Auditorías Cloud Superadas
 
 ---
 
@@ -18,6 +18,7 @@
    - [Opción F: Suite de Pruebas Automatizadas E2E y Flujo Offline](#opción-f-suite-de-pruebas-automatizadas-e2e-y-flujo-offline)
    - [Opción G: Doble Modalidad de Login y Blindaje RBAC Administrativo](#opción-g-doble-modalidad-de-login-y-blindaje-rbac-administrativo)
    - [Opción H: Diseño Responsivo, Contención de Modales y Ergonomía de Scroll](#opción-h-diseño-responsivo-contención-de-modales-y-ergonomía-de-scroll)
+   - [Opción I: Persistencia Criptográfica Garantizada en la Nube y Auditoría DevSecOps (v3.2)](#opción-i-persistencia-criptográfica-garantizada-en-la-nube-y-auditoría-devsecops-v32)
 3. [Matriz de Archivos Creados y Modificados](#3-matriz-de-archivos-creados-y-modificados)
 4. [Guía de Comandos y Operación](#4-guía-de-comandos-y-operación)
 
@@ -25,7 +26,7 @@
 
 ## 1. Resumen Ejecutivo
 
-El presente ciclo de modernización y aseguramiento arquitectónico ha elevado la madurez tecnológica de la plataforma **SGBT / MIPPCI** a la **versión 3.1**. Se subsanaron vulnerabilidades críticas de seguridad, se desacopló la lógica de negocio en servicios especializados, se transformó la experiencia de usuario de los operarios de campo con retroalimentación sensorial háptica, se blindó el sistema frente a redes inestables mediante idempotencia transaccional y migraciones de esquema declarativas, y se perfeccionó la interfaz con contención estricta de modales, doble modalidad de acceso administrativo con PIN y ergonomía contra el scroll excesivo.
+El presente ciclo de modernización y aseguramiento arquitectónico ha elevado la madurez tecnológica de la plataforma **SGBT / MIPPCI** a la **versión 3.2**. Se subsanaron vulnerabilidades críticas de seguridad, se desacopló la lógica de negocio en servicios especializados, se transformó la experiencia de usuario de los operarios de campo con retroalimentación sensorial háptica, se blindó el sistema frente a redes inestables mediante idempotencia transaccional y migraciones de esquema declarativas, se perfeccionó la interfaz con contención estricta de modales y doble modalidad de acceso administrativo con PIN, y se consolidó la persistencia criptográfica en la nube (Supabase Cloud) con tolerancia total a ambientes serverless efímeros (Vercel) y auditoría automatizada en tiempo real.
 
 ---
 
@@ -116,40 +117,51 @@ El presente ciclo de modernización y aseguramiento arquitectónico ha elevado l
 
 ---
 
+### Opción I: Persistencia Criptográfica Garantizada en la Nube y Auditoría DevSecOps (v3.2)
+- **Objetivo:** Garantizar que ninguna credencial, formalización de beneficiario, llave biométrica ni despacho físico se pierda en despliegues Serverless (Vercel) al congelarse los contenedores, auditando en tiempo real contra la base de datos viva de Supabase Cloud.
+- **Implementación:**
+  - **Servicio Centralizado [`backend/services/cloud_sync.service.js`](backend/services/cloud_sync.service.js):**
+    - `persistWorkerFormalization(workerId, passwordHash, boundDeviceId)`: Persiste contraseñas seguras y vinculación de dispositivo en `passkey_credentials` con `credential_id = formalized_pwd_{workerId}` y `aaguid = 'beneficiary_formalization'`.
+    - `persistPasskey(passkeyData)`: Respalda en Supabase la clave pública WebAuthn (ECDSA P-256) y el contador de firmas.
+    - `persistDeliveries(deliveriesArray)`: Asegura la existencia de `daily_entitlements` en la nube, asigna punto central de distribución (`ALM-MIPPCI`) y marca el beneficio como `claimed`.
+    - `persistNfcCard(nfcData)` y `revokeNfcCard(workerId)`: Sincroniza tarjetas físicas de proximidad.
+  - **Llamadas Asíncronas Respaldadas con `await`:** Incorporadas en [`auth.controller.js`](backend/controllers/auth.controller.js), [`dispatch.controller.js`](backend/controllers/dispatch.controller.js), [`manual_dispatch.controller.js`](backend/controllers/manual_dispatch.controller.js), [`department_batch.controller.js`](backend/controllers/department_batch.controller.js), [`admin.controller.js`](backend/controllers/admin.controller.js) y [`sync.controller.js`](backend/controllers/sync.controller.js).
+  - **Hidratación Bidireccional Resiliente en [`backend/db.js`](backend/db.js):** `syncFromSupabase()` con resolución `ON CONFLICT(credential_id)` y `ON CONFLICT(card_uid)` para recuperar instantáneamente beneficiarios formalizados y entregas previas al iniciar lambdas de Vercel.
+  - **Script de Verificación Automatizado [`backend/verify_cloud_persistence.js`](backend/verify_cloud_persistence.js):**
+    - Ejecutable vía `npm run verify:cloud`.
+    - Audita en vivo contra Supabase: esquema de tablas, formalización de contraseñas, passkeys biométricas, despachos criptográficos, tarjetas NFC e hidratación local en SQLite.
+  - **Formalización Multi-Dispositivo con Foto:** Soporte en cliente para captura desde cámara web (`capture="user"`) o selección de imagen desde la galería de fotos en múltiples modelos de teléfono, almacenando el avatar en `workers.photo_url`.
+
+---
+
 ## 3. Matriz de Archivos Creados y Modificados
 
 | Archivo | Tipo | Propósito |
 |:---|:---:|:---|
-| `backend/services/passkey.service.js` | Nuevo | Lógica criptográfica WebAuthn / FIDO2 / ECDSA P-256 |
+| `backend/services/cloud_sync.service.js` | Nuevo | Persistencia criptográfica asíncrona garantizada en Supabase Cloud |
+| `backend/verify_cloud_persistence.js` | Nuevo | Script de auditoría DevSecOps de persistencia en la nube (6/6 procesos) |
+| `backend/services/passkey.service.js` | Modificado | Persistencia obligatoria con `await` en `registerPasskeyCredential` |
+| `backend/services/supervisor.service.js` | Modificado | Inclusión de `entitlement_id` y `combo_id` en contingencia |
 | `backend/services/sse.service.js` | Nuevo | Gestión de clientes Server-Sent Events y difusión en vivo |
-| `backend/services/supervisor.service.js` | Nuevo | Desafíos y tokens QR diarios firmados con HMAC |
+| `backend/controllers/auth.controller.js` | Modificado | Formalización con foto/galería, persistencia cloud y login con PIN |
+| `backend/controllers/dispatch.controller.js` | Modificado | Persistencia cloud garantizada en despachos atómicos y por estación |
+| `backend/controllers/manual_dispatch.controller.js` | Modificado | Persistencia cloud garantizada en despachos manuales de RRHH |
+| `backend/controllers/department_batch.controller.js` | Modificado | Persistencia cloud garantizada en despachos de lotes departamentales |
+| `backend/controllers/admin.controller.js` | Modificado | Persistencia cloud de vinculación y revocación de tarjetas NFC |
+| `backend/controllers/sync.controller.js` | Modificado | Persistencia cloud garantizada en sincronización de despachos offline |
 | `backend/middleware/idempotency.middleware.js` | Nuevo | Caché de idempotencia y prevención de doble entrega |
 | `backend/middleware/error.middleware.js` | Modificado | Manejador RFC 7807 y función `res.problem(...)` |
 | `backend/migrator.js` | Nuevo | Motor declarativo de migraciones con sumas SHA-256 |
 | `migrations/001_initial_schema.sql` | Nuevo | Migración 001: Esquema base de 13 tablas relacionales |
 | `migrations/002_add_extended_combo_fields.sql` | Nuevo | Migración 002: Campos de combos, jornadas y mesas |
 | `migrations/003_add_idempotency_keys.sql` | Nuevo | Migración 003: Tabla e índices de idempotencia |
-| `docs/adr/0001-fido2-passkeys-como-factor-de-identidad.md` | Nuevo | ADR-0001: Autenticación FIDO2 / ECDSA P-256 |
-| `docs/adr/0002-arquitectura-dual-sqlite-wasm-supabase.md` | Nuevo | ADR-0002: Persistencia Híbrida SQLite / PostgreSQL |
-| `docs/adr/0003-estrategia-revocacion-jwt-cookies-httponly.md` | Nuevo | ADR-0003: JWT HttpOnly y Lista de Revocación |
-| `docs/adr/0004-feedback-haptico-y-ergonomia-de-almacen.md` | Nuevo | ADR-0004: Ergonomía Háptica y Accesibilidad WCAG |
-| `docs/adr/0005-modularizacion-servicios-backend.md` | Nuevo | ADR-0005: Desacoplamiento de Servicios |
-| `docs/adr/0006-idempotencia-http-y-estandar-rfc-7807.md` | Nuevo | ADR-0006: Idempotencia y Formato RFC 7807 |
-| `docs/adr/0007-sistema-declarativo-migraciones-versionadas.md` | Nuevo | ADR-0007: Migraciones Declarativas Versionadas |
-| `docs/adr/0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md` | Nuevo | ADR-0008: Responsividad, Contención Modal y Ergonomía de Scroll |
-| `docs/adr/README.md` | Modificado | Índice centralizado con 8 decisiones de arquitectura |
-| `docs/adr/template.md` | Nuevo | Plantilla estándar para registrar futuros ADRs |
-| `docs/openapi.yaml` | Modificado | Contrato OpenAPI 3.1 actualizado con login dual y RFC 7807 |
+| `docs/adr/0009-persistencia-criptografica-en-la-nube-supabase.md` | Nuevo | ADR-0009: Persistencia Criptográfica en la Nube para Serverless |
+| `docs/adr/README.md` | Modificado | Registro centralizado con 9 Decisiones de Arquitectura |
+| `tests/security_hardening_mfa.test.js` | Nuevo | Suite DevSecOps, OWASP, TOTP y Lockout (6/6) |
 | `tests/e2e_offline_flow.test.js` | Nuevo | Suite E2E de offline, idempotencia y migraciones (9/9) |
-| `backend/test_e2e_suite.js` | Modificado | Suite E2E de arquitectura y seguridad RBAC (25/25) |
-| `backend/controllers/auth.controller.js` | Modificado | Soporte de login administrativo con PIN y modo beneficiario |
-| `backend/routes/system.routes.js` | Modificado | Rutas para servir OpenAPI YAML y Swagger UI |
-| `backend/server.js` | Modificado | Montaje de middleware de idempotencia, RFC 7807 y Swagger UI |
-| `backend/db.js` | Modificado | Integración automática de `runMigrations(db)` al arrancar |
-| `public/index.html` | Modificado | Conmutador de login, contención `.table-scroll-container` y menú móvil |
-| `public/templates/modals.html` | Modificado | Botones `.modal-close-btn`, grid adaptativo y `overflow-x: auto;` |
-| `public/css/styles.css` | Modificado | Reglas de contención de modales, sticky headers, subtabs móviles y tabla con scroll acotado |
-| `package.json` | Modificado | Scripts `db:migrate`, `test:offline` y suite `test` (34 pruebas) |
+| `backend/test_e2e_suite.js` | Modificado | Suite E2E de arquitectura y seguridad RBAC (26/26) |
+| `backend/db.js` | Modificado | Hidratación resiliente `syncFromSupabase` y migraciones automáticas |
+| `package.json` | Modificado | Script `verify:cloud` y suites completas de pruebas `test` (41 pruebas) |
 
 ---
 
@@ -160,6 +172,12 @@ El presente ciclo de modernización y aseguramiento arquitectónico ha elevado l
 npm start
 ```
 Acceso a la plataforma web: `http://localhost:3000`
+
+### Auditoría DevSecOps de Persistencia Cloud
+```bash
+npm run verify:cloud
+```
+Inspecciona y valida en tiempo real los 6 procesos críticos contra la base de datos de Supabase Cloud.
 
 ### Explorador Interactivo de API (Swagger UI)
 Acceso directo desde el navegador: `http://localhost:3000/docs`  
@@ -173,14 +191,17 @@ Muestra el estado de cada migración, fecha de aplicación y suma de comprobaci�
 
 ### Ejecución de Pruebas Automatizadas
 ```bash
-# Ejecutar todas las pruebas (33/33 tests)
+# Ejecutar todas las pruebas (41/41 tests pasando en verde)
 npm test
 
-# Ejecutar únicamente la suite offline, idempotencia y migraciones
+# Ejecutar únicamente la suite de arquitectura y RBAC (26 pruebas)
+node backend/test_e2e_suite.js
+
+# Ejecutar únicamente la suite offline, idempotencia y migraciones (9 pruebas)
 npm run test:offline
 
-# Ejecutar la suite arquitectónica E2E
-node backend/test_e2e_suite.js
+# Ejecutar la suite de blindaje de seguridad y MFA (6 pruebas)
+node tests/security_hardening_mfa.test.js
 ```
 
 ---

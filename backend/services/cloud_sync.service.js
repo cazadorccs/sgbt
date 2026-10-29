@@ -208,3 +208,4 @@ module.exports = {
   persistNfcCard,
   revokeNfcCard
 };
+

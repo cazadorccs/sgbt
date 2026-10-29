@@ -3,8 +3,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
-[![Architecture](https://img.shields.io/badge/Architecture-Modular%20v3.0-brightgreen.svg)]()
-[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-34%2F34%20Passed-success.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Modular%20v3.2-brightgreen.svg)]()
+[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-41%2F41%20Passed-success.svg)]()
+[![Cloud Audit](https://img.shields.io/badge/Cloud%20Persistence-6%2F6%20Verified-blue.svg)]()
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-v3.1.0-orange.svg)](http://localhost:3000/docs)
 [![Security](https://img.shields.io/badge/Security-FIDO2%20%2F%20ECDSA%20P--256-blueviolet.svg)]()
 
@@ -57,9 +58,18 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
    - Contenedores con altura delimitada `.table-scroll-container` (`max-height: clamp(380px, 58vh, 620px)`) y encabezados fijos (`thead th` sticky) para tablas masivas de nómina (1,136 trabajadores) y auditoría, erradicando el scroll vertical global infinito.
    - Barra de subpestañas móviles con deslizamiento horizontal táctil nativo sin desborde ni amontonamiento de filas.
 
+9. **Persistencia Criptográfica Garantizada en la Nube y Auditoría DevSecOps (ADR-0009):**
+   - **Servicio Centralizado `cloud_sync.service.js`:** Desacopla la sincronización con Supabase Cloud REST API aplicando esperas asíncronas (`await`) que impiden la pérdida de datos cuando las lambdas de Vercel Serverless se congelan al responder al cliente.
+   - **Persistencia de 5 Procesos Críticos:** Formalización de beneficiario y credenciales (`passkey_credentials`), llaves públicas FIDO2 WebAuthn, entregas físicas y liquidaciones con resolución de llaves foráneas (`deliveries` / `daily_entitlements`), y vinculación / revocación de tarjetas NFC (`nfc_cards`).
+   - **Herramienta de Auditoría en Vivo:** Script automatizado (`npm run verify:cloud`) que ejecuta una inspección integral de los 6 procesos de integridad contra la nube en menos de 6 segundos.
+
+10. **Formalización Multi-Dispositivo de Beneficiarios:**
+    - Carga de fotografía del beneficiario con compatibilidad total en múltiples teléfonos: selección desde cámara web en vivo (`capture="user"`) o carga de archivo desde la galería de fotos del dispositivo.
+    - Asignación de contraseña institucional con hashing seguro y vinculación criptográfica del dispositivo (`bound_device_id`), garantizando que al reingresar al sistema el usuario mantenga su sesión formalizada sin volver a solicitar el proceso.
+
 ---
 
-## 🧱 Estructura del Proyecto (Arquitectura Modular v3.0)
+## 🧱 Estructura del Proyecto (Arquitectura Modular v3.2)
 
 ```text
 ├── backend/
@@ -72,17 +82,19 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   │   └── validator.middleware.js
 │   ├── routes/                 # Rutas RESTful bajo prefijo /api/v1/
 │   ├── services/               # Capa de Servicios Especializados
-│   │   ├── passkey.service.js
-│   │   ├── sse.service.js
-│   │   └── supervisor.service.js
+│   │   ├── cloud_sync.service.js # Sincronización criptográfica garantizada hacia Supabase Cloud
+│   │   ├── passkey.service.js    # Criptografía FIDO2 / WebAuthn ECDSA P-256
+│   │   ├── sse.service.js        # Server-Sent Events en tiempo real
+│   │   └── supervisor.service.js # Firmas HMAC-SHA256 y QR diario de fiscalización
 │   ├── crypto-utils.js         # Utilidades ECDSA P-256, Nonce y WebAuthn
-│   ├── db.js                   # Abstracción híbrida SQLite / Supabase
+│   ├── db.js                   # Abstracción híbrida SQLite / Supabase Cloud con hidratación
 │   ├── migrator.js             # Motor declarativo de migraciones versionadas
 │   ├── server.js               # Bootstrap modular del servidor Express
-│   └── test_e2e_suite.js       # Suite E2E de arquitectura (25/25 pruebas)
+│   ├── test_e2e_suite.js       # Suite E2E de arquitectura (26/26 pruebas)
+│   └── verify_cloud_persistence.js # Script de auditoría DevSecOps de persistencia en la nube
 │
 ├── docs/
-│   ├── adr/                    # Architecture Decision Records (0001 - 0008)
+│   ├── adr/                    # Architecture Decision Records (0001 - 0009)
 │   │   ├── 0001-fido2-passkeys-como-factor-de-identidad.md
 │   │   ├── 0002-arquitectura-dual-sqlite-wasm-supabase.md
 │   │   ├── 0003-estrategia-revocacion-jwt-cookies-httponly.md
@@ -91,6 +103,7 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   │   ├── 0006-idempotencia-http-y-estandar-rfc-7807.md
 │   │   ├── 0007-sistema-declarativo-migraciones-versionadas.md
 │   │   ├── 0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md
+│   │   ├── 0009-persistencia-criptografica-en-la-nube-supabase.md
 │   │   ├── README.md
 │   │   └── template.md
 │   └── openapi.yaml            # Contrato OpenAPI 3.1 oficial de la API REST
@@ -101,7 +114,8 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   └── 003_add_idempotency_keys.sql
 │
 ├── tests/
-│   └── e2e_offline_flow.test.js # Suite E2E Offline, Idempotencia y RFC 7807 (9/9)
+│   ├── e2e_offline_flow.test.js     # Suite E2E Offline, Idempotencia y RFC 7807 (9/9)
+│   └── security_hardening_mfa.test.js # Suite DevSecOps, OWASP, TOTP y Lockout (6/6)
 │
 ├── public/
 │   ├── css/styles.css          # Design System responsivo sin transition: all, contención modal y sticky tables
@@ -154,19 +168,25 @@ El proyecto incluye diagramas visuales e interactivos elaborados bajo el estánd
 
 ---
 
-## 🧪 Ejecución de Pruebas Automatizadas
+## 🧪 Ejecución de Pruebas Automatizadas y Auditoría Cloud
 
-El proyecto cuenta con dos suites de pruebas automatizadas que verifican el 100% de la funcionalidad del sistema:
+El proyecto cuenta con suites de pruebas automatizadas y auditoría de persistencia que verifican el 100% de la funcionalidad del sistema:
 
 ```bash
-# Ejecutar todas las suites de pruebas (34/34 pruebas en verde)
+# 1. Ejecutar todas las suites de pruebas (41/41 pruebas en verde - 100% éxito)
 npm test
 
-# Ejecutar únicamente la suite de arquitectura y RBAC (25 pruebas)
+# 2. Auditar en vivo la persistencia criptográfica en Supabase Cloud (6/6 procesos)
+npm run verify:cloud
+
+# 3. Ejecutar únicamente la suite de arquitectura y RBAC (26 pruebas)
 node backend/test_e2e_suite.js
 
-# Ejecutar únicamente la suite de flujo offline, idempotencia y migraciones (9 pruebas)
+# 4. Ejecutar la suite de flujo offline, idempotencia y migraciones (9 pruebas)
 npm run test:offline
+
+# 5. Ejecutar la suite de blindaje de seguridad, TOTP y mitigación OWASP (6 pruebas)
+node tests/security_hardening_mfa.test.js
 ```
 
 ---

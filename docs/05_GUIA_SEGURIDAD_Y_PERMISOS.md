@@ -9,19 +9,21 @@ El acceso a las rutas y operaciones del sistema está estrictamente segregado se
 
 | Rol | Alcance de Permisos | Vía de Autenticación | Rutas Permitidas |
 | :--- | :--- | :--- | :--- |
-| **`worker`** (Beneficiario) | Consulta de sus combos asignados, estatus de reclamo y generación de QR de retiro. No puede acceder a datos de terceros ni a la consola de almacén. | Passkey Biométrica (FIDO2 / WebAuthn) o Cédula asistida. | `/api/auth/me`, `/api/auth/generate-qr`, `/api/system/catalog` |
-| **`operator`** (Operador de Almacén) | Lectura óptica de comprobantes QR, verificación de cédulas en punto físico y registro de entregas. No puede modificar nóminas ni alterar jornadas. | Credencial institucional + Asignación a punto de distribución. | `/api/dispatch/*`, `/api/auth/verify-qr`, `/api/auth/verify-cedula` |
-| **`supervisor`** (Fiscal de Despacho) | Autorización de retiros en contingencia, anulación justificada de bloqueos y resolución de incidencias en almacén. | Credencial institucional con MFA (TOTP RFC 6238). | `/api/manual-dispatch/*`, `/api/dispatch/override` |
-| **`admin`** (Gestión Humana / TI) | Carga masiva de nómina Excel, planificación y cierre de jornadas, auditoría ministerial y sincronización con Supabase. | Credencial con MFA + Amarre de sesión por token seguro. | `/api/payroll/*`, `/api/campaigns/*`, `/api/ministerial-audit/*`, `/api/sync/*` |
+| **`worker`** (Beneficiario) | Consulta de sus combos asignados, estatus de reclamo y generación de QR de retiro. No puede acceder a datos de terceros ni a la consola de almacén. | Formalización / Passkey Biométrica (FIDO2 / WebAuthn) o Cédula asistida. | `/api/v1/auth/me`, `/api/v1/auth/generate-qr`, `/api/v1/system/catalog` |
+| **`operator`** (Operador de Almacén) | Lectura óptica de comprobantes QR, escaneo NFC y registro de entregas. No puede modificar nóminas ni alterar jornadas. | Credencial institucional + Asignación a punto de distribución. | `/api/v1/dispatch/*`, `/api/v1/auth/verify-qr`, `/api/v1/auth/verify-nfc` |
+| **`supervisor`** (Fiscal de Despacho) | Autorización de retiros en contingencia, anulación justificada de bloqueos y resolución de incidencias en almacén. | Credencial institucional con MFA (TOTP RFC 6238) y QR diario. | `/api/v1/manual-dispatch/*`, `/api/v1/dispatch/override` |
+| **`admin`** (Gestión Humana / TI) | Carga masiva de nómina Excel, planificación y cierre de jornadas, auditoría ministerial y sincronización con Supabase. | Acceso Administrativo secundario (Cédula/Email `Sfranco@mippci.gob.ve` + PIN `ADMIN_ACCESS_SECRET`). | `/api/v1/admin/*`, `/api/v1/payroll/*`, `/api/v1/campaigns/*`, `/api/v1/sync/*` |
 
 ---
 
-### 2. Gestión Criptográfica de Identidad (*Passwordless*)
+### 2. Gestión Criptográfica de Identidad y Formalización
 
-1. **Ausencia de Contraseñas:**  
-   El padrón de trabajadores no utiliza contraseñas compartidas ni preguntas de seguridad vulnerables a ingeniería social.
+1. **Formalización Multi-Dispositivo de Beneficiarios:**  
+   - Los beneficiarios no registrados formalizan su expediente cargando una fotografía nítida (capturada en vivo por cámara o seleccionada desde su galería) y asignando una contraseña institucional segura.
+   - El sistema vincula el identificador único del hardware (`bound_device_id`) y almacena el registro en `passkey_credentials` en Supabase Cloud (`formalized_pwd_{id}`).
+   - Una vez formalizado, el usuario no vuelve a ser requerido para formalización, accediendo directamente a su carnet de beneficios.
 2. **Arquitectura FIDO2 / WebAuthn:**  
-   - Durante el enrolamiento, el dispositivo del trabajador genera un par de claves asimétricas en su circuito de hardware seguro (*Apple Secure Enclave, Android Titan M2 / StrongBox o TPM 2.0 en Windows*).
+   - Durante el enrolamiento biométrico, el dispositivo del trabajador genera un par de claves asimétricas en su circuito de hardware seguro (*Apple Secure Enclave, Android Titan M2 / StrongBox o TPM 2.0 en Windows*).
    - El servidor almacena únicamente la clave pública en formato PEM (`passkey_credentials.public_key`).
    - La clave privada jamás se transmite por la red ni sale del microchip del usuario.
 3. **Firmas y Prevención Anti-Replay:**  
@@ -48,3 +50,18 @@ El acceso a las rutas y operaciones del sistema está estrictamente segregado se
    Garantiza que ante un corte abrupto de energía en las estaciones de almacén no ocurra corrupción de base de datos (`PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL`).
 2. **Candado de Dispositivo (`device_locks`):**  
    Mecanismo de hardware para impedir que un mismo dispositivo móvil sea utilizado sucesivamente para reclamar beneficios de múltiples cédulas no vinculadas, alertando sobre posible suplantación.
+
+---
+
+### 5. Auditoría DevSecOps y Verificación Continua de Persistencia
+
+El sistema incorpora un mecanismo de auditoría viva para validar la integridad de la base remota en Supabase Cloud frente a los 6 vectores de persistencia:
+```bash
+npm run verify:cloud
+```
+1. Verificación del esquema y tablas activas.
+2. Comprobación de persistencia de contraseña y formalización en `passkey_credentials`.
+3. Comprobación de enrolamiento de Passkeys FIDO2 / WebAuthn.
+4. Registro transaccional de entregas en `deliveries` con resolución de foreign keys a `daily_entitlements` y `distribution_points`.
+5. Vinculación y revocación de tarjetas NFC en `nfc_cards`.
+6. Hidratación bidireccional y resolución de conflictos `ON CONFLICT` en SQLite.

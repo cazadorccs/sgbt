@@ -139,6 +139,97 @@ paths:
                     type: string
                     example: Sesión cerrada exitosamente
 
+  /auth/enrollment-status/{document_id}:
+    get:
+      tags:
+        - Autenticación & Passkeys
+      summary: Consultar estado de formalización del beneficiario
+      description: Retorna si el funcionario ya completó la carga de fotografía, contraseña y vinculación de dispositivo.
+      parameters:
+        - name: document_id
+          in: path
+          required: true
+          description: Número de Cédula de Identidad con o sin prefijo
+          schema:
+            type: string
+            example: "V-18456123"
+      responses:
+        '200':
+          description: Estado del expediente digital
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  found:
+                    type: boolean
+                    example: true
+                  enrollment_status:
+                    type: string
+                    example: "registrado"
+                  has_photo:
+                    type: boolean
+                    example: true
+                  worker:
+                    $ref: '#/components/schemas/User'
+        '404':
+          description: Funcionario no encontrado en la nómina
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
+  /auth/enroll:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Formalizar beneficiario con fotografía y contraseña
+      description: Registra la fotografía (cámara o galería), contraseña y dispositivo móvil del beneficiario, persistiendo los datos de inmediato en Supabase Cloud.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_id
+                - password
+                - photo_base64
+              properties:
+                document_id:
+                  type: string
+                  example: "V-18456123"
+                password:
+                  type: string
+                  format: password
+                  example: "ClaveSegura2026*"
+                photo_base64:
+                  type: string
+                  description: Imagen codificada en formato Base64 (data:image/jpeg;base64,...)
+                device_id:
+                  type: string
+                  example: "dev_mobile_s22"
+      responses:
+        '200':
+          description: Formalización completada con éxito y persistida en Supabase Cloud
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Formalización completada y persistida en la nube con éxito"
+        '400':
+          description: Datos incompletos o formato inválido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /auth/passkey/register-challenge:
     post:
       tags:

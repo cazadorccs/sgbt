@@ -45,9 +45,39 @@ El sistema gestiona diecisiete (17) tablas relacionales estructuradas para garan
 | `role` | TEXT | No | Nivel de acceso: `worker`, `operator`, `supervisor`, `admin`. |
 | `has_smartphone` | INTEGER | No | `1` si posee teléfono propio con biometría; `0` para régimen de contingencia. |
 | `phone_number` | TEXT | Sí | Teléfono celular de contacto para alertas SMS o institucionales. |
+| `photo_url` | TEXT | Sí | Fotografía o avatar del funcionario (Base64 o URL). |
+| `enrollment_status` | TEXT | No | Estado de formalización: `pendiente`, `registrado`. Predeterminado: `pendiente`. |
+| `password_hash` | TEXT | Sí | Hash seguro de la contraseña asignada por el trabajador al formalizarse. |
+| `bound_device_id` | TEXT | Sí | Identificador de hardware del dispositivo móvil vinculado formalmente. |
+| `enrolled_at` | TEXT | Sí | Estampa de tiempo UTC en que se formalizó el trabajador. |
 | `contingency_reason`| TEXT | Sí | Justificación administrativa si opera bajo régimen asistido. |
 | `created_at` | TEXT | No | Estampa de tiempo UTC de creación en el sistema. |
 | `updated_at` | TEXT | No | Estampa de tiempo UTC de última actualización. |
+
+#### Tabla: `passkey_credentials`
+| Columna | Tipo SQL | Nulo | Descripción y Reglas de Negocio |
+| :--- | :--- | :---: | :--- |
+| `id` | TEXT | No | Identificador universal único (UUID v4). |
+| `worker_id` | TEXT | No | Clave foránea referenciando `workers.id` (ON DELETE CASCADE). |
+| `credential_id` | TEXT | No | Identificador único de credencial WebAuthn (Base64URL) o `formalized_pwd_{worker_id}`. |
+| `public_key` | TEXT | No | Clave pública ECDSA P-256 (PEM) o hash de contraseña para persistencia cloud. |
+| `sign_count` | INTEGER | No | Contador incremental anti-clonación. Predeterminado: `0`. |
+| `device_name` | TEXT | No | Modelo del dispositivo o navegador vinculado. |
+| `status` | TEXT | No | Condición: `active`, `revoked`. Predeterminado: `active`. |
+| `aaguid` | TEXT | Sí | Identificador de atestación (`beneficiary_formalization` para contraseñas). |
+| `enrolled_at` | TEXT | No | Estampa de tiempo de emisión de la credencial. |
+| `last_used_at` | TEXT | Sí | Estampa de tiempo de la última autenticación o firma. |
+
+#### Tabla: `nfc_cards`
+| Columna | Tipo SQL | Nulo | Descripción y Reglas de Negocio |
+| :--- | :--- | :---: | :--- |
+| `id` | TEXT | No | Identificador universal único (UUID v4). |
+| `worker_id` | TEXT | No | Clave foránea referenciando `workers.id` (ON DELETE CASCADE). |
+| `card_uid` | TEXT | No | UID único de fábrica del tag NFC (ej. `04A1B2C3D4E5F6`). Índice único. |
+| `status` | TEXT | No | Condición: `active`, `revoked`, `lost`. Predeterminado: `active`. |
+| `issued_by` | TEXT | Sí | Operador o supervisor institucional que asignó la tarjeta. |
+| `issued_at` | TEXT | No | Fecha de expedición del plástico. |
+| `revoked_at` | TEXT | Sí | Fecha de revocación o anulación en caso de extravío. |
 
 #### Tabla: `delivery_campaigns`
 | Columna | Tipo SQL | Nulo | Descripción y Reglas de Negocio |

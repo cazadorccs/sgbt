@@ -40,8 +40,10 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 - Emisión masiva de asignaciones diarias (`daily_entitlements`) vinculadas a la jornada.
 - Control de estados de la jornada: `programada`, `en_curso`, `finalizada`, `cancelada`.
 
-#### RF-03: Identificación y Retiro Criptográfico (Passkeys / FIDO2)
-- El beneficiario debe poder enrolar su biometría (FaceID, TouchID, huella dactilar de Android o Windows Hello) sin depender de contraseñas compartidas.
+#### RF-03: Identificación, Formalización y Retiro Criptográfico (Passkeys / FIDO2)
+- El beneficiario no registrado puede completar su formalización capturando su fotografía mediante cámara web frontal en vivo (`capture="user"`) o seleccionando un archivo de imagen desde la galería de fotos de su dispositivo móvil.
+- Asignación de contraseña institucional segura y vinculación física del dispositivo (`bound_device_id`), garantizando que al reiniciar sesión no se vuelva a exigir la formalización.
+- El beneficiario formalizado debe poder enrolar su biometría (FaceID, TouchID, huella dactilar de Android o Windows Hello) sin depender de contraseñas compartidas.
 - Generación de comprobante digital temporal mediante código QR dinámico firmado con expiración máxima de 180 segundos.
 - Mecanismo de validación criptográfica en servidor mediante clave pública ECDSA P-256.
 
@@ -50,6 +52,7 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
   1. Despacho por Cédula de Identidad con comprobación de huella o firma asistida.
   2. Aprobación y anulación por Supervisor con registro obligatorio de motivo (`override_reason`).
   3. Despacho masivo por lote institucional con asignación de delegado departamental autorizado.
+  4. Identificación y entrega de proximidad mediante tarjeta física NFC (`nfc_cards`).
 
 #### RF-05: Operación en Almacén Desconectado (Offline Resilient)
 - Las terminales de lectura deben validar y almacenar despachos localmente en IndexedDB si se interrumpe la conexión de red.
@@ -60,9 +63,13 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 - Detección automática de columnas: Cédula, Nombres, Correo, Departamento, Tipo de Personal y Estatus.
 - Validación de integridad con reporte de registros válidos y filas con error previo a la inserción definitiva.
 
-#### RF-07: Sincronización Híbrida con la Nube (Supabase Cloud)
-- Persistencia primaria de ultra-baja latencia en SQLite local (modo WAL).
-- Transmisión idempotente por bloques (*chunks*) hacia la base de datos central PostgreSQL en Supabase Cloud para consolidación ministerial.
+#### RF-07: Persistencia Criptográfica Garantizada en la Nube (Supabase Cloud REST API)
+- Capa de persistencia centralizada (`cloud_sync.service.js`) con ejecución asíncrona respaldada por `await` antes de responder al cliente HTTP, neutralizando el congelamiento de contenedores efímeros en Vercel Serverless.
+- Respaldo atómico de formalización de beneficiarios, llaves biométricas WebAuthn, despachos físicos con resolución foránea (`entitlement_id`, `distribution_point_id`) y tarjetas NFC.
+- Hidratación y reconciliación bidireccional en el arranque del servidor (`syncFromSupabase`) mediante manejo estricto de conflictos (`ON CONFLICT(credential_id)` y `ON CONFLICT(card_uid)`).
+
+#### RF-08: Auditoría y Verificación DevSecOps Continua
+- Disponibilidad del script de auditoría en vivo `npm run verify:cloud` que valida contra la base remota de Supabase Cloud los 6 procesos de integridad criptográfica y esquema relacional en < 6 segundos.
 
 ---
 
@@ -75,11 +82,14 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 #### RNF-02: Disponibilidad y Tolerancia a Fallos
 - Disponibilidad del 99.9% durante días de jornada activa mediante desacoplamiento SQLite local / Supabase Cloud.
 - Si la conexión externa a Internet falla, la terminal de entrega continúa operando sin interrupción de servicio.
+- Resiliencia absoluta en entornos serverless sin pérdida de credenciales ni despachos.
 
 #### RNF-03: Seguridad y Confidencialidad
-- Cero almacenamiento de contraseñas de beneficiarios en texto plano ni hashes descifrables (modelo *passwordless*).
+- Cero almacenamiento de contraseñas de beneficiarios en texto plano ni hashes reversibles.
 - Las claves privadas biométricas jamás salen del circuito seguro del teléfono del usuario (*Secure Enclave / TPM*).
 - Protección anti-repetición (*anti-replay attack*) mediante nonces de un solo uso vinculados a cada comprobante QR.
+- Mitigación activa contra vulnerabilidades OWASP, inyección XSS, cookies `HttpOnly` y protección de cabeceras de seguridad.
 
 #### RNF-04: Idempotencia y Prevención de Doble Despacho
 - Todo intento de retransmisión por fallo de red o doble escaneo físico debe ser neutralizado a nivel de base de datos mediante restricción estricta de clave compuesta única (`worker_id`, `entitlement_id`).
+- Cobertura de pruebas automatizadas del 100% (41/41 pruebas pasando sin fallos).

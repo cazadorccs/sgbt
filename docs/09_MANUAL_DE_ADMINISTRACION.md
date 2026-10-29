@@ -7,8 +7,12 @@
 
 El perfil de **Administrador** está reservado para el personal autorizado de la Dirección General de Gestión Humana y la Dirección General de Tecnologías de la Información y la Comunicación (DGTIC). 
 
-- **URL de Acceso:** `http://localhost:3000` (o dominio institucional asignado).
-- **Mecanismo de Ingreso:** Credenciales institucionales acompañadas de segundo factor de autenticación (TOTP).
+- **URL de Acceso:** `http://localhost:3000` (o `https://sgbt-bice.vercel.app/` en producción).
+- **Mecanismo de Ingreso:** 
+  1. En la pantalla inicial de bienvenida, presione el botón **Acceso Administrativo**.
+  2. Ingrese su **Cédula de Identidad** (ej. `13537582`) o su **Correo Electrónico Institucional** (ej. `Sfranco@mippci.gob.ve`).
+  3. Ingrese la **Clave / PIN de Acceso Administrativo** (`ADMIN_ACCESS_SECRET`).
+  4. El sistema valida los privilegios del rol `admin`, genera la cookie de sesión protegida `HttpOnly` y redirige a la consola de gobernanza. Si se ingresa una cédula de rol ordinario (`worker`), el sistema bloquea el acceso con código HTTP 403.
 
 ---
 
@@ -30,12 +34,12 @@ El perfil de **Administrador** está reservado para el personal autorizado de la
    - Detalle de filas rechazadas por inconsistencia o duplicidad.
 6. Presione **Confirmar e Importar Nómina**.
 
-#### 2.2 Sincronización con la Base Central de Supabase
-Tras completar la importación de nómina, transmita los datos a la nube ejecutando:
+#### 2.2 Sincronización y Auditoría en Supabase Cloud
+El sistema ahora persiste automáticamente cada cambio en la nube. Para auditar y verificar que todos los datos se encuentran íntegramente respaldados en Supabase Cloud, ejecute:
 ```powershell
-node backend/sync-to-supabase.js
+npm run verify:cloud
 ```
-O presionando el botón **Sincronizar con Supabase Cloud** en la consola de administración.
+El script evaluará las 7 tablas maestras, credenciales formalizadas, passkeys WebAuthn, entregas y tarjetas NFC, arrojando un reporte de conformidad en tiempo real.
 
 ---
 

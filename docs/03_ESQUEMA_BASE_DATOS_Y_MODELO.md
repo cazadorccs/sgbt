@@ -46,17 +46,32 @@ erDiagram
    - `worker_type` (TEXT): Clasificación (`activo`, `jubilado`, `pensionado`, `contratado`).
    - `role` (TEXT): Nivel de autorización (`worker`, `operator`, `supervisor`, `admin`).
    - `has_smartphone` (INTEGER): Bandera binaria (1 = teléfono inteligente propio, 0 = contingencia).
+   - `photo_url` (TEXT): Fotografía del funcionario (captura de cámara frontal o galería).
+   - `enrollment_status` (TEXT): Estado de formalización (`pendiente`, `registrado`).
+   - `password_hash` (TEXT): Hash criptográfico seguro de la contraseña institucional.
+   - `bound_device_id` (TEXT): Identificador único de hardware del dispositivo móvil vinculado.
+   - `enrolled_at` (TEXT): Estampa de tiempo de culminación de formalización.
 
-3. **`passkey_credentials` (Credenciales Criptográficas FIDO2 / WebAuthn):**
+3. **`passkey_credentials` (Credenciales Criptográficas y Formalización en la Nube):**
    - `id` (TEXT, PK): UUID interno.
    - `worker_id` (TEXT, FK): Vínculo al trabajador en `workers(id)`.
-   - `credential_id` (TEXT, UNIQUE): Identificador público de credencial WebAuthn en Base64URL.
-   - `public_key` (TEXT): Clave pública en formato PEM (Curva elíptica ECDSA P-256).
+   - `credential_id` (TEXT, UNIQUE): Identificador de la credencial. Para Passkeys WebAuthn es el ID en Base64URL; para formalizaciones es `formalized_pwd_{worker_id}`.
+   - `public_key` (TEXT): Clave pública ECDSA P-256 en formato PEM, o hash de contraseña para credenciales de formalización.
    - `sign_count` (INTEGER): Contador de firmas anti-clonación.
-   - `device_name` (TEXT): Modelo y sistema operativo del dispositivo registrado.
+   - `device_name` (TEXT): Modelo de hardware registrado o identificador de dispositivo.
+   - `aaguid` (TEXT): Identificador de atestación de autenticador (`beneficiary_formalization` para credenciales de contraseña).
+   - `status` (TEXT): Condición de la credencial (`active`, `revoked`).
+
+4. **`nfc_cards` (Tarjetas Físicas de Proximidad NFC / RFID):**
+   - `id` (TEXT, PK): UUID interno.
+   - `worker_id` (TEXT, FK): Beneficiario asignado.
+   - `card_uid` (TEXT, UNIQUE): Identificador único de fábrica del chip NFC (ej. `04A1B2C3D4E5F6`).
+   - `status` (TEXT): `active`, `revoked`, `lost`.
+   - `issued_by` (TEXT, FK): Operador o supervisor que emitió el plástico.
+   - `issued_at` (TEXT): Fecha y hora de vinculación.
 
 #### Dominio 2: Beneficios, Jornadas y Cuotas
-4. **`combos` (Catálogo de Beneficios):**
+5. **`combos` (Catálogo de Beneficios):**
    - `id` (TEXT, PK): Identificador UUID.
    - `name` (TEXT): Nombre descriptivo (ej. Víveres, Higiene, Limpieza, Charcutería).
    - `description` (TEXT): Contenido detallado del beneficio.
@@ -117,3 +132,18 @@ erDiagram
    END;
    ```
    Garantiza que la asignación pase a estado `claimed` en la misma transacción donde se asienta la entrega.
+
+---
+
+### 4. Estrategia de Persistencia y Reconciliación con Supabase Cloud
+
+Para armonizar la persistencia entre el motor SQLite local y la base de datos PostgreSQL en Supabase Cloud bajo entornos serverless (Vercel):
+
+1. **Gestión de Llaves Foráneas en `deliveries`:**  
+   Supabase Cloud exige `NOT NULL` en `entitlement_id` y `distribution_point_id`. El servicio [`cloud_sync.service.js`](../../backend/services/cloud_sync.service.js) efectúa un upsert preventivo de la cuota en `daily_entitlements` si no existiese y asigna la sede central (`ALM-MIPPCI`, UUID `5b0f10e3-7eac-4872-bf96-74ecd359be7e`) en entregas sin punto explícito.
+2. **Reconciliación Idempotente en SQLite (`syncFromSupabase`):**  
+   Al instanciarse un contenedor en Vercel, la hidratación aplica:
+   - `ON CONFLICT(credential_id) DO UPDATE SET...` en `passkey_credentials`.
+   - `ON CONFLICT(card_uid) DO UPDATE SET...` en `nfc_cards`.
+   - Marca atómica de cuotas consumidas en `daily_entitlements` si figuran en `deliveries`.
+   - Reincorporación del estado `enrollment_status = 'registrado'` y hash de contraseña para trabajadores formalizados.

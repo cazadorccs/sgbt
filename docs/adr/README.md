@@ -16,6 +16,7 @@ Todas las decisiones se gestionan bajo el estándar de Michael Nygard y las guí
 | [ADR-0006](0006-idempotencia-http-y-estandar-rfc-7807.md) | Garantía de Idempotencia HTTP y Formato Estándar de Error RFC 7807 | **accepted** | 2026-10-25 | Arquitectura de APIs & Seguridad |
 | [ADR-0007](0007-sistema-declarativo-migraciones-versionadas.md) | Sistema Declarativo de Migraciones de Base de Datos con Integridad Criptográfica SHA-256 | **accepted** | 2026-10-25 | DevOps & Arquitectura de Datos |
 | [ADR-0008](0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md) | Diseño Responsivo, Contención Estricta de Modales y Ergonomía de Scroll | **accepted** | 2026-10-25 | UI/UX & Frontend |
+| [ADR-0009](0009-persistencia-criptografica-en-la-nube-supabase.md) | Persistencia Criptográfica Garantizada en la Nube (Supabase Cloud REST) para Entornos Serverless | **accepted** | 2026-10-29 | Arquitectura TI, Seguridad & DevOps |
 
 ---
 
