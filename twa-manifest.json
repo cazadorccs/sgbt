@@ -12,7 +12,7 @@
   "navigationDividerColorDark": "#000000",
   "backgroundColor": "#040D16",
   "enableNotifications": true,
-  "startUrl": "https://sgbt-bice.vercel.app/",
+  "startUrl": "/",
   "iconUrl": "https://sgbt-bice.vercel.app/icons/icon-512.png",
   "maskableIconUrl": "https://sgbt-bice.vercel.app/icons/icon-512.png",
   "monochromeIconUrl": "https://sgbt-bice.vercel.app/icons/icon-512_BW.png",

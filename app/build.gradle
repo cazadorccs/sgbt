@@ -23,7 +23,7 @@ plugins {
 def twaManifest = [
     applicationId: 'app.vercel.sgbt_bice.twa',
     hostName: 'sgbt-bice.vercel.app', // The domain being opened in the TWA.
-    launchUrl: 'https://sgbt-bice.vercel.app/', // The start path for the TWA. Must be relative to the domain.
+    launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'Sistema de beneficios MIPPCI', // The application name.
     launcherName: 'Bienestar', // The name shown on the Android Launcher.
     themeColor: '#040D16', // The color used for the status bar.
