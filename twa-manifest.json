@@ -1,44 +1,51 @@
 {
-  "packageId": "gob.ve.mippci.sgbt",
+  "packageId": "app.vercel.sgbt_bice.twa",
   "host": "sgbt-bice.vercel.app",
-  "name": "Sistema de Beneficios y Despacho MIPPCI",
-  "launcherName": "SGBT MIPPCI",
-  "display": "standalone",
-  "themeColor": "#0099cc",
-  "navigationColor": "#040d16",
-  "navigationColorDark": "#040d16",
-  "navigationDividerColor": "#00000000",
-  "navigationDividerColorDark": "#00000000",
-  "backgroundColor": "#040d16",
+  "name": "Sistema de beneficios MIPPCI",
+  "launcherName": "Bienestar",
+  "display": "fullscreen",
+  "themeColor": "#040D16",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#040D16",
   "enableNotifications": true,
-  "startUrl": "/",
+  "startUrl": "https://sgbt-bice.vercel.app/",
   "iconUrl": "https://sgbt-bice.vercel.app/icons/icon-512.png",
   "maskableIconUrl": "https://sgbt-bice.vercel.app/icons/icon-512.png",
-  "appVersionName": "1.0.0",
+  "monochromeIconUrl": "https://sgbt-bice.vercel.app/icons/icon-512_BW.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\andorid.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
   "appVersionCode": 1,
   "shortcuts": [
     {
       "name": "Mi Código de Retiro",
       "shortName": "Mi QR",
       "url": "https://sgbt-bice.vercel.app/#view-worker",
-      "icon": "https://sgbt-bice.vercel.app/icons/icon-192.png"
+      "chosenIconUrl": "https://sgbt-bice.vercel.app/icons/icon-192.png"
     },
     {
       "name": "Mesa de Despacho",
       "shortName": "Despacho",
       "url": "https://sgbt-bice.vercel.app/#view-distributor",
-      "icon": "https://sgbt-bice.vercel.app/icons/icon-192.png"
+      "chosenIconUrl": "https://sgbt-bice.vercel.app/icons/icon-192.png"
     }
   ],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://sgbt-bice.vercel.app/manifest.json",
   "fallbackType": "customtabs",
   "features": {
-    "locationDelegation": {
-      "enabled": false
-    },
     "playBilling": {
-      "enabled": false
+      "enabled": true
+    },
+    "locationDelegation": {
+      "enabled": true
     }
   },
   "alphaDependencies": {
@@ -46,6 +53,16 @@
   },
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
-  "fullScopeUrl": "https://sgbt-bice.vercel.app/"
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://sgbt-bice.vercel.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait-primary",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
 }
-
