@@ -30,7 +30,17 @@ data/
 .DS_Store
 Thumbs.db
 
-# Antigravity y carpetas temporales
+# Android & Gradle Build Artifacts
+.gradle/
+build/
+app/build/
+*.keystore
+*.jks
+gob.ve.mippci.sgbt.apk
+manifest-checksum.txt
+store_icon.png
+
+
 .agents/
 .system_generated/
 .tempmediaStorage/

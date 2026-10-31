@@ -5,6 +5,7 @@
       "namespace": "android_app",
       "package_name": "app.vercel.sgbt_bice.twa",
       "sha256_cert_fingerprints": [
+        "2C:9F:C3:5B:58:A0:B5:74:DA:34:79:44:2A:0D:8F:CF:B3:5A:B9:1E:A8:0D:7C:7C:C3:7A:D3:2C:19:3B:51:D5",
         "14:6D:E9:7D:0F:52:AB:7B:85:49:05:3E:A3:37:73:60:0F:80:5A:20:A7:C1:E8:37:73:1B:42:BA:88:E4:F3:60"
       ]
     }
@@ -15,6 +16,7 @@
       "namespace": "android_app",
       "package_name": "gob.ve.mippci.sgbt",
       "sha256_cert_fingerprints": [
+        "2C:9F:C3:5B:58:A0:B5:74:DA:34:79:44:2A:0D:8F:CF:B3:5A:B9:1E:A8:0D:7C:7C:C3:7A:D3:2C:19:3B:51:D5",
         "14:6D:E9:7D:0F:52:AB:7B:85:49:05:3E:A3:37:73:60:0F:80:5A:20:A7:C1:E8:37:73:1B:42:BA:88:E4:F3:60"
       ]
     }

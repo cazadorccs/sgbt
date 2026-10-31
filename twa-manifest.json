@@ -18,11 +18,11 @@
   "monochromeIconUrl": "https://sgbt-bice.vercel.app/icons/icon-512_BW.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
-    "path": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\andorid.keystore",
+    "path": "D:\\Documents\\Mippci\\PROPUESTA DE PROYECTOS TI\\Bolsa\\android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "2",
+  "appVersionCode": 2,
   "shortcuts": [
     {
       "name": "Mi Código de Retiro",
@@ -64,5 +64,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1"
+  "appVersion": "2"
 }
