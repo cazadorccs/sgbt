@@ -1659,29 +1659,110 @@ body.dark-mode .sidebar-nav .nav-tab-btn.active {
 
 .device-screen {
   flex: 1;
-  background: #f8fafc;
+  background: var(--bg-surface-0);
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
 }
 
+/* ============================================================================
+   CARNET INSTITUCIONAL MÓVIL (APP BAR & DISPOSITIVO BENEFICIARIO)
+   ============================================================================ */
 .mobile-app-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 16px rgba(3, 105, 161, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-avatar-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  flex-shrink: 0;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .mobile-app-title {
   font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-main);
+  font-weight: 800;
+  color: #ffffff !important;
   display: flex;
   align-items: center;
   gap: 0.4rem;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.mobile-app-identity {
+  font-size: 0.74rem;
+  color: #e0f2fe !important;
+  font-weight: 600;
+  margin-top: 0.15rem;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-app-bar .badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-app-bar .badge.badge-activo {
+  background: rgba(16, 185, 129, 0.3) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(16, 185, 129, 0.8) !important;
+}
+
+.mobile-app-bar .badge.badge-jubilado {
+  background: rgba(245, 158, 11, 0.3) !important;
+  color: #fef08a !important;
+  border: 1px solid rgba(245, 158, 11, 0.8) !important;
+}
+
+.mobile-app-bar .badge.badge-contratado {
+  background: rgba(56, 189, 248, 0.3) !important;
+  color: #e0f2fe !important;
+  border: 1px solid rgba(56, 189, 248, 0.8) !important;
+}
+
+.mobile-app-bar .btn-mobile-logout {
+  padding: 0.25rem 0.55rem !important;
+  font-size: 0.68rem !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  background: rgba(239, 68, 68, 0.22) !important;
+  border: 1px solid rgba(239, 68, 68, 0.55) !important;
+  color: #fee2e2 !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mobile-app-bar .btn-mobile-logout:hover {
+  background: rgba(239, 68, 68, 0.4) !important;
+  color: #ffffff !important;
 }
 
 /* Tarjeta 'Mi Combo' / Bulto Asignado */
@@ -3196,7 +3277,7 @@ body.dark-mode {
   --accent-primary-glow: rgba(56, 189, 248, 0.18);
   --accent-secondary: #38bdf8;
   --accent-secondary-glow: rgba(56, 189, 248, 0.15);
-  --sea-onahau: #1e293b;
+  --sea-onahau: #38bdf8;
 
   /* Badges y Etiquetas en Modo Oscuro */
   --badge-blue-bg: rgba(14, 165, 233, 0.18);
@@ -3261,6 +3342,56 @@ body.dark-mode .dispatch-stats-card {
   border-color: var(--border-subtle);
   color: var(--text-main);
   box-shadow: var(--shadow-md);
+}
+
+/* Carnet de Beneficiario y Pantalla Móvil en Modo Oscuro */
+body.dark-mode .device-frame {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.15) !important;
+}
+
+body.dark-mode .device-screen {
+  background: #0a0f1d !important;
+  color: var(--text-main) !important;
+}
+
+body.dark-mode .device-notch {
+  background: #0f172a !important;
+}
+
+body.dark-mode .device-camera {
+  background: #020617 !important;
+  border-color: #1e293b !important;
+}
+
+body.dark-mode .mobile-app-bar {
+  background: linear-gradient(135deg, #0369a1 0%, #0c4a6e 100%) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+body.dark-mode .mobile-app-title {
+  color: #ffffff !important;
+}
+
+body.dark-mode .mobile-app-identity {
+  color: #bae6fd !important;
+}
+
+body.dark-mode .package-card {
+  background: #141e33 !important;
+  border-color: var(--border-subtle) !important;
+}
+
+body.dark-mode .package-rubro-item {
+  background: #0f172a !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .package-rubro-item .rubro-qty {
+  color: #38bdf8 !important;
 }
 
 body.dark-mode .kpi-title {

@@ -153,6 +153,41 @@ const modalComponents = [
     fgHex: '#cbd5e1',
     bgHex: '#0f172a',
     minRatio: 4.5
+  },
+  {
+    modal: 'view-worker (Carnet Oficial de Beneficiario)',
+    element: 'Avatar Iniciales "SV" (#workerHeaderAvatar)',
+    fgHex: '#ffffff',
+    bgHex: '#0369a1',
+    minRatio: 4.5
+  },
+  {
+    modal: 'view-worker (Carnet Oficial de Beneficiario)',
+    element: 'Título Institucional (.mobile-app-title: 🏛️ MIPPCI Beneficios)',
+    fgHex: '#ffffff',
+    bgHex: '#0369a1',
+    minRatio: 4.5
+  },
+  {
+    modal: 'view-worker (Carnet Oficial de Beneficiario)',
+    element: 'Nombre y Cédula (.mobile-app-identity: SAHIB ALEXANDER FRANCO VILLANUEVA)',
+    fgHex: '#e0f2fe',
+    bgHex: '#0369a1',
+    minRatio: 4.5
+  },
+  {
+    modal: 'view-worker (Carnet Oficial de Beneficiario)',
+    element: 'Insignia Condición Laboral (#workerConditionBadge: 🏛️ Personal Directivo)',
+    fgHex: '#ffffff',
+    bgHex: '#047857',
+    minRatio: 4.5
+  },
+  {
+    modal: 'view-distributor (Mesa de Despacho)',
+    element: 'Texto Standby del Escáner (#distributorStandbyText)',
+    fgHex: '#94a3b8',
+    bgHex: '#020617',
+    minRatio: 4.5
   }
 ];
 
@@ -161,9 +196,9 @@ for (const comp of modalComponents) {
   const passed = ratio >= comp.minRatio;
   const formattedRatio = ratio.toFixed(2) + ':1';
   if (passed) {
-    console.log(`   ✅ [MODAL OK] ${comp.modal} -> ${comp.element}: ${formattedRatio} (Min: ${comp.minRatio}:1)`);
+    console.log(`   ✅ [PANTALLA OK] ${comp.modal} -> ${comp.element}: ${formattedRatio} (Min: ${comp.minRatio}:1)`);
   } else {
-    console.error(`   ❌ [MODAL FALLA] ${comp.modal} -> ${comp.element}: ${formattedRatio} (Min: ${comp.minRatio}:1)`);
+    console.error(`   ❌ [PANTALLA FALLA] ${comp.modal} -> ${comp.element}: ${formattedRatio} (Min: ${comp.minRatio}:1)`);
     failed = true;
   }
 }
@@ -199,6 +234,23 @@ if (stylesCss.includes('body.dark-mode .modal-dialog table') &&
 } else {
   console.error('   ❌ [FALLA] styles.css no contiene regla de blindaje para modal-dialog en modo oscuro');
   failed = true;
+}
+
+// 3. Verificar que styles.css contenga la regla de blindaje para el carnet y dispositivo móvil
+if (stylesCss.includes('body.dark-mode .device-screen') && 
+    stylesCss.includes('body.dark-mode .mobile-app-bar')) {
+  console.log('   ✅ styles.css: Blindaje de contraste para .device-screen y .mobile-app-bar en modo oscuro');
+} else {
+  console.error('   ❌ [FALLA] styles.css no contiene regla de blindaje para .device-screen en modo oscuro');
+  failed = true;
+}
+
+// 4. Verificar ausencia de color rígido ilegible sea-onahau en index.html
+if (indexHtml.includes('color: var(--sea-onahau);')) {
+  console.error('   ❌ [FALLA] Se detectó color: var(--sea-onahau) en index.html');
+  failed = true;
+} else {
+  console.log('   ✅ index.html: Sin usos problemáticos de var(--sea-onahau) en textos');
 }
 
 console.log('\n================================================================');
