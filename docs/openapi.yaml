@@ -35,6 +35,60 @@ tags:
     description: Estado del motor criptográfico, catálogo de combos, backups y mantenimiento
 
 paths:
+  /dispatch/void:
+    post:
+      tags:
+        - Despacho & Verificación
+      summary: Anular despacho erróneo (Supervisor / Admin)
+      description: >
+        Permite a un supervisor o administrador anular una entrega registrada por equivocación
+        dentro de una ventana máxima de 15 minutos, restaurando la asignación diaria a pendiente.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - delivery_id
+                - reason
+              properties:
+                delivery_id:
+                  type: string
+                  format: uuid
+                  example: "4f7a26f3-bc44-48e2-9d32-dcfbf1f12629"
+                reason:
+                  type: string
+                  example: "Equivocación en cédula al despachar en mesa 2"
+      responses:
+        '200':
+          description: Despacho anulado y asignación revertida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Despacho anulado correctamente y beneficio reestablecido"
+                  data:
+                    type: object
+        '404':
+          description: El despacho no fue encontrado
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: Expiración de ventana de 15 minutos o error de validación
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /auth/login:
     post:
       tags:

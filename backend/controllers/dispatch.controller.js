@@ -7,6 +7,7 @@ const { db } = require('../db');
 const { verifyOfflineSignature, generateNonce } = require('../crypto-utils');
 const { notifyDeliveryStream } = require('../services/sse.service');
 const { enqueueEvent } = require('../services/outbox.service');
+const { voidDelivery } = require('../services/delivery.service');
 
 // Estado en memoria para configuración de modo de despacho en mesas de almacén
 let currentDispatchMode = 'total'; // 'total' (Retiro Único Totalizado) o 'station' (Estación Específica)
@@ -568,9 +569,54 @@ const getDispatchStats = (req, res) => {
   }
 };
 
+/**
+ * Anulación de despacho por parte de supervisor
+ */
+const voidDeliveryController = (req, res) => {
+  const { delivery_id, reason } = req.body;
+  const supervisorId = req.user ? req.user.id : (req.body.supervisor_id || 'supervisor_system');
+
+  if (!delivery_id || !reason) {
+    return res.status(400).json({
+      error: 'Parámetros incompletos: delivery_id y reason son obligatorios'
+    });
+  }
+
+  const result = voidDelivery({
+    deliveryId: delivery_id,
+    supervisorId,
+    reason
+  });
+
+  if (!result.success) {
+    const statusCode = result.status === 'not_found' ? 404 : 422;
+    return res.status(statusCode).json({
+      error: result.reason,
+      status: result.status
+    });
+  }
+
+  logDispatch('VOID_DELIVERY', req.body, result, { req });
+
+  // Notificar por SSE a monitores de despacho
+  notifyDeliveryStream({
+    type: 'DELIVERY_VOIDED',
+    delivery_id,
+    worker_id: result.workerId,
+    reason,
+    timestamp: new Date().toISOString()
+  });
+
+  return res.json({
+    message: 'Despacho anulado correctamente y beneficio reestablecido',
+    data: result
+  });
+};
+
 module.exports = {
   getDispatchMode,
   setDispatchMode,
   atomicClaim,
-  getDispatchStats
+  getDispatchStats,
+  voidDeliveryController
 };

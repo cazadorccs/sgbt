@@ -235,8 +235,36 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
   };
 }
 
+/**
+ * Invariante de negocio: Evalúa si un trabajador está formalizado y habilitado para reclamar beneficios.
+ * @param {string} workerId - UUID del trabajador
+ * @returns {object} { canClaim: boolean, worker: object, reason: string|null }
+ */
+function assertWorkerCanClaim(workerId) {
+  if (!workerId) {
+    return { canClaim: false, worker: null, reason: 'Identificador de trabajador no proporcionado' };
+  }
+
+  const worker = db.prepare(`
+    SELECT id, document_id, full_name, role, status, enrollment_status
+    FROM workers
+    WHERE id = ?
+  `).get(workerId);
+
+  if (!worker) {
+    return { canClaim: false, worker: null, reason: 'Trabajador no registrado en la nómina' };
+  }
+
+  if (worker.status && worker.status.toLowerCase() !== 'active' && worker.status.toLowerCase() !== 'activo') {
+    return { canClaim: false, worker, reason: `Trabajador en estado inactivo (${worker.status})` };
+  }
+
+  return { canClaim: true, worker, reason: null };
+}
+
 module.exports = {
   createRegisterChallenge,
   registerPasskeyCredential,
-  generateOfflinePasskeySignature
+  generateOfflinePasskeySignature,
+  assertWorkerCanClaim
 };

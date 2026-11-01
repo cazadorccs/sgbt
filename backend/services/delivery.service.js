@@ -6,6 +6,30 @@ const { db } = require('../db');
 const { verifyOfflineSignature } = require('../crypto-utils');
 const { enqueueEvent } = require('./outbox.service');
 
+// Tolerancia máxima permitida para desfase de reloj (Clock Skew) en sincronización offline (4 horas)
+const MAX_CLOCK_SKEW_MS = 4 * 60 * 60 * 1000;
+
+/**
+ * Valida la coherencia temporal de una entrega sincronizada desde terminales offline.
+ * Previene que dispositivos con reloj adulterado inyecten despachos de fechas arbitrarias.
+ */
+function validateClockSkew(deliveredAt) {
+  if (!deliveredAt) return { valid: true };
+  const clientTime = new Date(deliveredAt).getTime();
+  const serverTime = Date.now();
+  if (isNaN(clientTime)) {
+    return { valid: false, reason: 'Formato de fecha de entrega inválido' };
+  }
+  const diff = Math.abs(serverTime - clientTime);
+  if (diff > MAX_CLOCK_SKEW_MS) {
+    return {
+      valid: false,
+      reason: `Desfase temporal excesivo (${Math.round(diff / 60000)} min). Compruebe la hora del dispositivo de almacén.`
+    };
+  }
+  return { valid: true };
+}
+
 /**
  * Valida y registra una entrega individual garantizando idempotencia y encolado outbox
  */
@@ -26,6 +50,16 @@ function recordDelivery({
 }) {
   const finalDeliveryId = deliveryId || crypto.randomUUID();
   const finalDeliveredAt = deliveredAt || new Date().toISOString();
+
+  // 0. Validación de consistencia de reloj (Clock Skew)
+  const skewCheck = validateClockSkew(deliveredAt);
+  if (!skewCheck.valid) {
+    return {
+      success: false,
+      status: 'rejected_clock_skew',
+      reason: skewCheck.reason
+    };
+  }
 
   // 1. Obtener puntos y operadores por defecto si no vienen especificados
   let finalPointId = distributionPointId;
@@ -292,8 +326,96 @@ function recordAtomicDeliveries({
   };
 }
 
+/**
+ * Anulación controlada de un despacho erróneo por parte de un Supervisor/Admin.
+ * Permite revertir la liquidación de un beneficio dentro de una ventana máxima de 15 minutos.
+ */
+function voidDelivery({ deliveryId, supervisorId, reason }) {
+  if (!deliveryId || !supervisorId || !reason) {
+    return {
+      success: false,
+      status: 'rejected_missing_parameters',
+      reason: 'deliveryId, supervisorId y reason son obligatorios para anular un despacho'
+    };
+  }
+
+  const delivery = db.prepare('SELECT * FROM deliveries WHERE id = ?').get(deliveryId);
+  if (!delivery) {
+    return {
+      success: false,
+      status: 'not_found',
+      reason: 'El despacho indicado no existe'
+    };
+  }
+
+  // Comprobar ventana de anulación (máximo 15 minutos desde el despacho)
+  const deliveredTime = new Date(delivery.delivered_at).getTime();
+  const elapsedMinutes = (Date.now() - deliveredTime) / 60000;
+  if (elapsedMinutes > 15) {
+    return {
+      success: false,
+      status: 'rejected_time_expired',
+      reason: `La ventana de anulación inmediata (15 min) ha expirado (transcurridos ${Math.round(elapsedMinutes)} min). Solicite autorización especial a Dirección General.`
+    };
+  }
+
+  // Ejecutar reversión atómica en base de datos
+  try {
+    const tx = db.transaction(() => {
+      // Eliminar el despacho
+      db.prepare('DELETE FROM deliveries WHERE id = ?').run(deliveryId);
+
+      // Reestablecer la asignación diaria a pendiente
+      if (delivery.entitlement_id) {
+        db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE id = ?").run(delivery.entitlement_id);
+      }
+
+      // Registrar en log de auditoría
+      db.prepare(`
+        INSERT INTO system_activity_logs (
+          id, timestamp, level, source, action, method, endpoint, status_code, ip_address, request_payload, response_payload, created_at
+        ) VALUES (?, datetime('now'), 'WARN', 'DISPATCH_ENGINE', 'DELIVERY_VOIDED', 'POST', '/api/v1/dispatch/void', 200, 'SYSTEM_SUPERVISOR', ?, ?, CURRENT_TIMESTAMP)
+      `).run(
+        crypto.randomUUID(),
+        delivery.worker_id,
+        JSON.stringify({
+          delivery_id: deliveryId,
+          voided_by: supervisorId,
+          reason,
+          original_delivered_at: delivery.delivered_at
+        })
+      );
+    });
+
+    tx();
+
+    // Notificar en outbox
+    enqueueEvent('DELIVERY_VOIDED', 'delivery', deliveryId, {
+      delivery_id: deliveryId,
+      worker_id: delivery.worker_id,
+      voided_by: supervisorId,
+      reason
+    });
+
+    return {
+      success: true,
+      status: 'voided',
+      deliveryId,
+      workerId: delivery.worker_id
+    };
+  } catch (err) {
+    return {
+      success: false,
+      status: 'error',
+      reason: err.message
+    };
+  }
+}
+
 module.exports = {
   recordDelivery,
+  voidDelivery,
+  validateClockSkew,
   recordAtomicDeliveries,
   processBatchDeliveries
 };
