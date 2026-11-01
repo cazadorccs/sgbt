@@ -163,3 +163,4 @@ Contrasta el código contra los casos críticos habituales e indica si están cu
    npm run verify:cloud
    ```
 3. **Manejo Estricto de Errores RFC 7807:** Las respuestas erróneas deben emitir `application/problem+json` sin exponer volcados de memoria ni consultas SQL internas al cliente.
+

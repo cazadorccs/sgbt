@@ -478,6 +478,7 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN batch_order_id TEXT REFERENCES department_batch_orders(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN dispatch_mode TEXT DEFAULT 'total'"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_census_locked INTEGER DEFAULT 0"); } catch (e) {}

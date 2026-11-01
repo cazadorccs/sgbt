@@ -75,8 +75,31 @@ function validateWorkerRole() {
   };
 }
 
+/**
+ * Validador estricto de esquema para operaciones de despacho (Paso 3 de Consolidación)
+ */
+function validateDispatchSchema() {
+  return (req, res, next) => {
+    if (!req.body || typeof req.body !== 'object') {
+      return res.status(400).json({ error: 'Cuerpo de la petición inválido o ausente' });
+    }
+
+    const { qr_payload, mode } = req.body;
+    if (!qr_payload && req.path.includes('claim')) {
+      return res.status(400).json({ error: 'El campo "qr_payload" es obligatorio para despachar' });
+    }
+
+    if (mode && mode !== 'total' && mode !== 'station') {
+      return res.status(400).json({ error: 'El campo "mode" debe ser estrictamente "total" o "station"' });
+    }
+
+    next();
+  };
+}
+
 module.exports = {
   validateBody,
   validateDocumentId,
-  validateWorkerRole
+  validateWorkerRole,
+  validateDispatchSchema
 };

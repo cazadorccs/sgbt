@@ -5,9 +5,10 @@ const express = require('express');
 const router = express.Router();
 const dispatchController = require('../controllers/dispatch.controller');
 const { authenticate, requireRole } = require('../middleware/auth.middleware');
+const { validateDispatchSchema } = require('../middleware/validator.middleware');
 
 // Endpoint principal de Despacho Atómico Totalizado (1 solo escaneo para todos los combos)
-router.post('/dispatch/atomic-claim', dispatchController.atomicClaim);
+router.post('/dispatch/atomic-claim', validateDispatchSchema(), dispatchController.atomicClaim);
 
 // Consulta y configuración del Modo de Despacho en Mesa de Almacén (Totalizado vs Estación Específica)
 router.get('/dispatch/mode', dispatchController.getDispatchMode);

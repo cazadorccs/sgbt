@@ -8,9 +8,35 @@ const { verifyOfflineSignature, generateNonce } = require('../crypto-utils');
 const { notifyDeliveryStream } = require('../services/sse.service');
 const { enqueueEvent } = require('../services/outbox.service');
 const { voidDelivery } = require('../services/delivery.service');
+const { 
+  getDeliveriesSummaryByDate, 
+  getDeviceLockStatsByDate 
+} = require('../services/dispatch_repository.service');
 
-// Estado en memoria para configuración de modo de despacho en mesas de almacén
-let currentDispatchMode = 'total'; // 'total' (Retiro Único Totalizado) o 'station' (Estación Específica)
+// Obtiene el modo de despacho persistente desde tenant_settings con fallback a 'total'
+function getStoredDispatchMode() {
+  try {
+    const row = db.prepare("SELECT dispatch_mode FROM tenant_settings WHERE id = 'current_tenant' LIMIT 1").get();
+    return (row && row.dispatch_mode) ? row.dispatch_mode : 'total';
+  } catch (e) {
+    return 'total';
+  }
+}
+
+// Guarda el modo de despacho persistente en tenant_settings
+function setStoredDispatchMode(mode) {
+  try {
+    db.prepare(`
+      UPDATE tenant_settings 
+      SET dispatch_mode = ?, updated_at = CURRENT_TIMESTAMP 
+      WHERE id = 'current_tenant'
+    `).run(mode);
+    return true;
+  } catch (e) {
+    console.warn('[DISPATCH_MODE DB WARN] Fallo al persistir modo:', e.message);
+    return false;
+  }
+}
 
 /**
  * Registra logs de auditoría de escaneos y despachos
@@ -46,12 +72,13 @@ function logDispatch(action, payload, details = {}, meta = {}) {
  * Consulta el modo de despacho actualmente activo en el almacén
  */
 const getDispatchMode = (req, res) => {
+  const currentMode = getStoredDispatchMode();
   return res.json({
-    mode: currentDispatchMode,
-    label: currentDispatchMode === 'total' 
+    mode: currentMode,
+    label: currentMode === 'total' 
       ? '🌟 Modo Retiro Totalizado (Todos los Combos en 1 Escaneo)' 
       : '📦 Modo Estación Específica (Mesa Individual)',
-    all_combos_in_single_scan: currentDispatchMode === 'total',
+    all_combos_in_single_scan: currentMode === 'total',
     timestamp: new Date().toISOString()
   });
 };
@@ -67,13 +94,13 @@ const setDispatchMode = (req, res) => {
     });
   }
 
-  currentDispatchMode = mode;
-  console.log(`🔄 [DISPATCH MODE CHANGED] Nuevo modo de entrega en almacén: ${mode.toUpperCase()}`);
+  setStoredDispatchMode(mode);
+  console.log(`🔄 [DISPATCH MODE CHANGED] Nuevo modo de entrega en almacén: ${mode.toUpperCase()} (Persistido en BD)`);
 
   return res.json({
     success: true,
-    mode: currentDispatchMode,
-    message: currentDispatchMode === 'total'
+    mode: mode,
+    message: mode === 'total'
       ? 'Modo Retiro Único Totalizado activado. Todos los combos se despacharán en 1 solo escaneo.'
       : 'Modo Estación Específica activado. Se requiere un escaneo individual por mesa.'
   });
@@ -537,30 +564,12 @@ const getDispatchStats = (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const stats = db.prepare(`
-      SELECT 
-        COUNT(DISTINCT d.id) as total_deliveries,
-        COUNT(DISTINCT d.worker_id) as total_beneficiaries_served,
-        SUM(CASE WHEN d.verification_method = 'passkey_qr' THEN 1 ELSE 0 END) as passkey_qr_count,
-        SUM(CASE WHEN d.verification_method = 'passkey_nfc' THEN 1 ELSE 0 END) as passkey_nfc_count,
-        SUM(CASE WHEN d.verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as contingency_count,
-        SUM(CASE WHEN d.is_offline_sync = 1 THEN 1 ELSE 0 END) as offline_sync_count
-      FROM deliveries d
-      WHERE date(d.delivered_at) = date(?)
-    `).get(today);
-
-    const lockStats = db.prepare(`
-      SELECT 
-        COUNT(CASE WHEN status = 'active' THEN 1 END) as active_locks,
-        COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_locks,
-        COUNT(CASE WHEN status = 'released_by_supervisor' THEN 1 END) as supervisor_released_locks
-      FROM device_locks
-      WHERE valid_date = ?
-    `).get(today);
+    const stats = getDeliveriesSummaryByDate(today);
+    const lockStats = getDeviceLockStatsByDate(today);
 
     return res.json({
       date: today,
-      dispatch_mode: currentDispatchMode,
+      dispatch_mode: getStoredDispatchMode(),
       deliveries: stats || {},
       device_locks: lockStats || {}
     });
