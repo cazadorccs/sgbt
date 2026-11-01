@@ -1556,6 +1556,12 @@ body {
 .modal-dialog.modal-md { max-width: min(calc(100vw - 1rem), 600px) !important; }
 .modal-dialog.modal-lg { max-width: min(calc(100vw - 1rem), 760px) !important; }
 .modal-dialog.modal-xl { max-width: min(calc(100vw - 1rem), 980px) !important; }
+.modal-dialog.modal-2xl,
+.modal-dialog.modal-wide,
+#recentDeliveriesModalBackdrop .modal-dialog {
+  max-width: min(calc(100vw - 2rem), 1400px) !important;
+  width: 96% !important;
+}
 
 /* Contención para modales con tamaños predefinidos inline en templates */
 .modal-dialog[style*="440px"] { max-width: min(calc(100vw - 1rem), 440px) !important; }
@@ -1569,6 +1575,12 @@ body {
 .modal-dialog[style*="650px"] { max-width: min(calc(100vw - 1rem), 650px) !important; }
 .modal-dialog[style*="680px"] { max-width: min(calc(100vw - 1rem), 680px) !important; }
 .modal-dialog[style*="980px"] { max-width: min(calc(100vw - 1rem), 980px) !important; }
+.modal-dialog[style*="1200px"],
+.modal-dialog[style*="1380px"],
+.modal-dialog[style*="1400px"] {
+  max-width: min(calc(100vw - 2rem), 1400px) !important;
+  width: 96% !important;
+}
 
 /* Cabecera pegajosa (Sticky Header) para mantener título y botón de cerrar siempre a la vista */
 .modal-header-polished,
