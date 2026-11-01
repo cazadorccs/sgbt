@@ -446,11 +446,31 @@ window.ManualDispatch = (function() {
     const inputFilter = document.getElementById('inputFilterRecentDeliveries');
     if (inputFilter) {
       inputFilter.value = '';
-      setTimeout(() => inputFilter.focus(), 100);
     }
 
-    // Refrescar datos para mostrar siempre lo último
+    // Renderizar de inmediato lo que tengamos en caché para evitar parpadeos
+    if (cachedGroupedDeliveries && cachedGroupedDeliveries.length > 0) {
+      filterAndRenderModalDeliveries('');
+    } else {
+      const modalTbody = document.getElementById('modalRecentDeliveriesBody');
+      if (modalTbody && !modalTbody.innerHTML.trim()) {
+        modalTbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align: center; padding: 2.5rem; color: #0284c7;">
+              <div style="font-size: 2rem; margin-bottom: 0.5rem;">⏳</div>
+              <div style="font-weight: 700; font-size: 0.95rem;">Consultando registros de despacho en vivo...</div>
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    // Refrescar datos en segundo plano/proactivamente para mostrar siempre lo último
     await loadTodaySummary();
+
+    if (inputFilter) {
+      setTimeout(() => inputFilter.focus(), 100);
+    }
   }
 
   // Cerrar modal de entregas en vivo

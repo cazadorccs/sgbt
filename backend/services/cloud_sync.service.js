@@ -155,23 +155,46 @@ async function persistDeliveries(deliveries) {
       }
     }
 
-    // 2. Preparar e insertar las entregas
-    const deliveryRecords = deliveries.map(d => ({
-      id: d.id || crypto.randomUUID(),
-      entitlement_id: d.entitlement_id,
-      worker_id: d.worker_id,
-      distribution_point_id: d.distribution_point_id || DEFAULT_DISTRIBUTION_POINT_ID,
-      delivered_by_user_id: d.delivered_by_user_id || null,
-      verification_method: d.verification_method || 'passkey_qr',
-      signature_proof: d.signature_proof || 'FIDO2_ASSERTION',
-      challenge_nonce: d.challenge_nonce || crypto.randomBytes(16).toString('hex'),
-      is_offline_sync: Boolean(d.is_offline_sync),
-      delivered_at: d.delivered_at || new Date().toISOString()
-    }));
+    // 2. Preparar e insertar las entregas con validación estricta de esquema Supabase (UUID y ENUM)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const deliveryRecords = deliveries.map(d => {
+      // Normalizar ID a UUID válido
+      const deliveryId = (d.id && uuidRegex.test(d.id)) ? d.id : crypto.randomUUID();
+
+      // Mapear verification_method a valores permitidos en verification_method_enum de Supabase Postgres:
+      // ('passkey_qr', 'nfc_card', 'supervisor_override')
+      let mappedMethod = 'supervisor_override';
+      if (d.verification_method === 'passkey_qr') {
+        mappedMethod = 'passkey_qr';
+      } else if (d.verification_method === 'passkey_nfc' || d.verification_method === 'nfc_card') {
+        mappedMethod = 'nfc_card';
+      } else {
+        mappedMethod = 'supervisor_override';
+      }
+
+      // Asegurar punto de distribución válido existente en Supabase
+      const distId = (d.distribution_point_id && uuidRegex.test(d.distribution_point_id))
+        ? d.distribution_point_id
+        : DEFAULT_DISTRIBUTION_POINT_ID;
+
+      return {
+        id: deliveryId,
+        entitlement_id: d.entitlement_id,
+        worker_id: d.worker_id,
+        distribution_point_id: distId,
+        delivered_by_user_id: (d.delivered_by_user_id && uuidRegex.test(d.delivered_by_user_id)) ? d.delivered_by_user_id : null,
+        verification_method: mappedMethod,
+        signature_proof: d.signature_proof || 'FIDO2_ASSERTION',
+        challenge_nonce: d.challenge_nonce || crypto.randomBytes(16).toString('hex'),
+        override_reason: d.override_reason || d.verification_method || 'Despacho institucional verificado',
+        is_offline_sync: Boolean(d.is_offline_sync),
+        delivered_at: d.delivered_at || new Date().toISOString()
+      };
+    });
 
     const { error: delError } = await supabase.from('deliveries').upsert(deliveryRecords, { onConflict: 'id' });
     if (delError) {
-      console.warn('[CLOUD PERSIST] Advertencia al persistir entregas:', delError.message);
+      console.warn('[CLOUD PERSIST] Advertencia al persistir entregas en Supabase:', delError.message);
       return false;
     }
 
