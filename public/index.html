@@ -40,7 +40,7 @@
   <header class="master-header">
     <div class="brand-section">
       <!-- BOTÓN TOGGLE SIDEBAR (MENÚ HAMBURGUESA) -->
-      <button id="btnToggleSidebar" class="btn-icon-header btn-menu-hamburger" title="Abrir Menú de Navegación" aria-label="Abrir Menú de Navegación" aria-expanded="false" aria-controls="appSidebarDrawer" style="display: none;">
+      <button id="btnToggleSidebar" class="btn-icon-header btn-menu-hamburger" title="Abrir Menú de Navegación" aria-label="Abrir Menú de Navegación" aria-expanded="false" aria-controls="appSidebarDrawer">
         <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="12" x2="21" y2="12"></line>
           <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -282,33 +282,86 @@
     </div>
 
     <div class="sidebar-body">
-      <div class="sidebar-nav-label">Navegación Principal</div>
-      <!-- MAIN NAVIGATION TABS (Visible únicamente para roles de Administración / Supervisión) -->
-      <nav class="master-nav sidebar-nav" id="masterNav" style="display: none;">
-        <button class="nav-tab-btn" data-view="view-portal">
+      <div class="sidebar-nav-label">Navegación del Sistema</div>
+      <nav class="master-nav sidebar-nav" id="masterNav">
+        <button class="nav-tab-btn" data-view="view-portal" id="sidebarLinkPortal">
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
           <span>Administración</span>
         </button>
-        <button class="nav-tab-btn" data-view="view-worker">
+        <button class="nav-tab-btn" data-view="view-worker" id="sidebarLinkWorker">
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
-          <span>Beneficiario</span>
+          <span>Carnet de Beneficiario</span>
         </button>
-        <button class="nav-tab-btn" data-view="view-distributor">
+        <button class="nav-tab-btn" data-view="view-distributor" id="sidebarLinkDistributor">
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
           <span>Mesa de Despacho</span>
         </button>
-        <button class="nav-tab-btn" data-view="view-payroll">
+        <button class="nav-tab-btn" data-view="view-payroll" id="sidebarLinkPayroll">
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
           <span>Padrón de Personal</span>
         </button>
+        <button class="nav-tab-btn" data-view="view-login" id="sidebarLinkLogin">
+          <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+          <span>Identificación / Acceso</span>
+        </button>
       </nav>
+
+      <div class="sidebar-nav-label" style="margin-top: 1.25rem;">Herramientas Móviles</div>
+      <div class="sidebar-quick-tools">
+        <button type="button" class="sidebar-tool-btn" id="sidebarBtnWhatsApp" onclick="if (typeof openWhatsAppShareModal === 'function') { if (typeof window.closeSidebar === 'function') window.closeSidebar(); openWhatsAppShareModal('worker'); }">
+          <span class="sidebar-tool-icon" style="color: #16a34a; background: rgba(34, 197, 94, 0.12);">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          </span>
+          <div class="sidebar-tool-text">
+            <strong>Difusión WhatsApp</strong>
+            <small>Enlaces de consulta institucional</small>
+          </div>
+        </button>
+
+        <a href="/download/sgbt-v3.7.apk" download="sgbt-v3.7.apk" class="sidebar-tool-btn" id="sidebarBtnApk" onclick="if (typeof window.closeSidebar === 'function') window.closeSidebar();">
+          <span class="sidebar-tool-icon" style="color: #0284c7; background: rgba(2, 132, 199, 0.12);">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </span>
+          <div class="sidebar-tool-text">
+            <strong>APK Oficial Android</strong>
+            <small>Instalador v3.7 para Almacén</small>
+          </div>
+        </a>
+
+        <button type="button" class="sidebar-tool-btn" id="sidebarBtnSeniorMode" onclick="if (typeof window.toggleSeniorMode === 'function') window.toggleSeniorMode();">
+          <span class="sidebar-tool-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12);">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"></path>
+            </svg>
+          </span>
+          <div class="sidebar-tool-text">
+            <strong>Modo Senior / Accesible</strong>
+            <small>Texto grande y alto contraste</small>
+          </div>
+        </button>
+      </div>
     </div>
 
     <div class="sidebar-footer">
       <div class="sidebar-footer-info">
         <span class="sidebar-footer-version">SGBT v5.2</span>
-        <span class="sidebar-footer-badge">Producción</span>
+        <span class="sidebar-footer-badge">MIPPCI Producción</span>
       </div>
+      <button type="button" id="sidebarBtnLogout" class="sidebar-logout-btn" style="display: none;" onclick="if (typeof window.handleLogout === 'function') { if (typeof window.closeSidebar === 'function') window.closeSidebar(); window.handleLogout('Cierre de sesión desde menú lateral'); }">
+        <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Cerrar Sesión</span>
+      </button>
     </div>
   </aside>
 

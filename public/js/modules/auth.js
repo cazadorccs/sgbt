@@ -1042,9 +1042,20 @@ window.applyUserSession = function(user, targetMode) {
     window.closeUserMenu();
   }
 
+  const sidebarBtnLogout = document.getElementById('sidebarBtnLogout');
+  if (sidebarBtnLogout) sidebarBtnLogout.style.display = 'inline-flex';
+
+  const linkPortal = document.getElementById('sidebarLinkPortal');
+  const linkDistributor = document.getElementById('sidebarLinkDistributor');
+  const linkPayroll = document.getElementById('sidebarLinkPayroll');
+  const linkWorker = document.getElementById('sidebarLinkWorker');
+
   if (isBeneficiaryView) {
-    if (masterNav) masterNav.style.display = 'none';
-    if (btnToggleSidebar) btnToggleSidebar.style.display = 'none';
+    if (masterNav) masterNav.style.display = 'flex';
+    if (linkPortal) linkPortal.style.display = 'none';
+    if (linkDistributor) linkDistributor.style.display = 'none';
+    if (linkPayroll) linkPayroll.style.display = 'none';
+    if (linkWorker) linkWorker.style.display = 'flex';
     if (typeof window.closeSidebar === 'function') window.closeSidebar();
     if (simSelector) simSelector.style.display = 'none';
     if (techPanel) techPanel.style.display = 'none';
@@ -1057,8 +1068,11 @@ window.applyUserSession = function(user, targetMode) {
     navigateTo('view-worker');
 
   } else if (isOperator || mode === 'operator') {
-    if (masterNav) masterNav.style.display = 'none';
-    if (btnToggleSidebar) btnToggleSidebar.style.display = 'none';
+    if (masterNav) masterNav.style.display = 'flex';
+    if (linkPortal) linkPortal.style.display = 'none';
+    if (linkDistributor) linkDistributor.style.display = 'flex';
+    if (linkPayroll) linkPayroll.style.display = 'none';
+    if (linkWorker) linkWorker.style.display = 'flex';
     if (typeof window.closeSidebar === 'function') window.closeSidebar();
     STATE.operatorId = user.id;
 
@@ -1074,6 +1088,10 @@ window.applyUserSession = function(user, targetMode) {
 
   } else {
     if (masterNav) masterNav.style.display = 'flex';
+    if (linkPortal) linkPortal.style.display = 'flex';
+    if (linkDistributor) linkDistributor.style.display = 'flex';
+    if (linkPayroll) linkPayroll.style.display = 'flex';
+    if (linkWorker) linkWorker.style.display = 'flex';
     if (btnToggleSidebar) btnToggleSidebar.style.display = 'inline-flex';
     if (simSelector) simSelector.style.display = 'block';
     if (techPanel) techPanel.style.display = 'block';
@@ -1119,9 +1137,10 @@ window.handleLogout = function(reason) {
   const userPill = document.getElementById('userSessionPill');
   const masterNav = document.getElementById('masterNav');
   const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+  const sidebarBtnLogout = document.getElementById('sidebarBtnLogout');
   if (userPill) userPill.style.display = 'none';
-  if (masterNav) masterNav.style.display = 'none';
-  if (btnToggleSidebar) btnToggleSidebar.style.display = 'none';
+  if (sidebarBtnLogout) sidebarBtnLogout.style.display = 'none';
+  if (btnToggleSidebar) btnToggleSidebar.style.display = '';
   if (typeof window.closeSidebar === 'function') window.closeSidebar();
 
   const docInput = document.getElementById('loginDocNumber');

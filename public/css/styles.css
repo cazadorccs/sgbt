@@ -594,7 +594,9 @@ body.sidebar-open {
   top: 0;
   left: 0;
   bottom: 0;
-  width: 290px;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: min(300px, 86vw);
   max-width: 86vw;
   background: var(--bg-surface-card);
   border-right: 1px solid var(--border-subtle);
@@ -604,8 +606,9 @@ body.sidebar-open {
   z-index: 1050;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .sidebar-drawer.open {
@@ -780,6 +783,106 @@ body.dark-mode .sidebar-nav .nav-tab-btn.active {
   background: rgba(56, 189, 248, 0.12);
   border-color: rgba(56, 189, 248, 0.35);
   box-shadow: 0 2px 10px rgba(56, 189, 248, 0.15);
+}
+
+/* Herramientas Móviles y Acciones Rápidas del Sidebar (better-layout) */
+.sidebar-quick-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-0);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  min-height: 44px;
+}
+
+.sidebar-tool-btn:hover {
+  background: var(--bg-surface-card);
+  border-color: var(--border-focus);
+  transform: translateX(2px);
+}
+
+.sidebar-tool-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar-tool-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-tool-text strong {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.sidebar-tool-text small {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #ef4444;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-logout-btn:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+body.dark-mode .sidebar-tool-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.dark-mode .sidebar-tool-btn:hover {
+  background: #253349;
+  border-color: #38bdf8;
+}
+
+body.dark-mode .sidebar-tool-text strong {
+  color: #f8fafc;
+}
+
+body.dark-mode .sidebar-tool-text small {
+  color: #94a3b8;
 }
 
 /* Master Navigation Tabs (Gobernanza / Módulos - Fallback horizontal si se usa) */
@@ -1536,10 +1639,18 @@ body.dark-mode .sidebar-nav .nav-tab-btn.active {
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  /* Menú Hamburguesa visible en dispositivos móviles (better-layout) */
+  #btnToggleSidebar {
+    display: inline-flex !important;
+  }
+
   .app-container {
     padding: 0 0.75rem !important;
     margin: 0.75rem auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: calc(100dvh - 100px) !important;
   }
   .glass-panel {
     padding: 1rem !important;
@@ -1557,7 +1668,7 @@ body.dark-mode .sidebar-nav .nav-tab-btn.active {
   .device-frame {
     width: 100% !important;
     max-width: 100% !important;
-    min-height: calc(100vh - 120px) !important;
+    min-height: calc(100dvh - 90px) !important;
     border: none !important;
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -1570,26 +1681,35 @@ body.dark-mode .sidebar-nav .nav-tab-btn.active {
     padding-bottom: 0.5rem !important;
     padding-left: max(0.75rem, env(safe-area-inset-left, 0.75rem)) !important;
     padding-right: max(0.75rem, env(safe-area-inset-right, 0.75rem)) !important;
+    gap: 0.5rem !important;
+  }
+  .brand-section {
+    gap: 0.4rem !important;
+    min-width: 0 !important;
   }
   .brand-title {
     display: none !important;
   }
-  .brand-logo-img {
-    height: 30px !important;
+  .brand-logo {
+    height: 38px !important;
+    padding: 2px 6px !important;
   }
-  /* Mantener el menú de perfil de usuario activo y accesible en móvil */
+  .brand-logo-img {
+    height: 26px !important;
+  }
+  /* Header minimalista y sin saturación: ocultar elementos secundarios en móvil */
   .system-pills {
     display: flex !important;
     gap: 0.35rem !important;
     align-items: center !important;
+    flex-shrink: 0 !important;
   }
   .system-pills #dbStatusPill,
-  .system-pills #connectionPill {
-    display: none !important;
-  }
+  .system-pills #connectionPill,
+  .system-pills #btnHeaderWhatsAppShare,
+  .system-pills #btnHeaderApkDownload,
   .system-pills #btnInstallPwa {
-    font-size: 0.72rem !important;
-    padding: 0.25rem 0.55rem !important;
+    display: none !important;
   }
   .user-menu-text,
   .user-menu-chevron {
@@ -1614,7 +1734,7 @@ body.dark-mode .sidebar-nav .nav-tab-btn.active {
     min-height: 40px !important;
   }
   .user-menu-dropdown {
-    width: min(290px, calc(100vw - 1.5rem)) !important;
+    width: min(290px, calc(100% - 1.5rem)) !important;
     right: 0 !important;
   }
 }
@@ -3194,10 +3314,16 @@ body.senior-accessible-mode .feedback-subtitle {
   }
 }
 
-/* Evitar scroll horizontal global en cualquier pantalla */
+/* Evitar scroll horizontal global y configurar scroll-padding para sticky header (better-layout) */
+html {
+  scroll-padding-top: 72px;
+  scroll-padding-block-start: 72px;
+}
+
 html, body {
   overflow-x: hidden;
-  max-width: 100vw;
+  max-width: 100%;
+  width: 100%;
 }
 
 /* ============================================================================

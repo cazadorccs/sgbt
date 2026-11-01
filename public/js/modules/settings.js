@@ -125,10 +125,11 @@ window.setupGeneralSettings = function() {
     if (e.target === modalBackdrop) closeModal();
   });
 
-  btnMobileToggle?.addEventListener('click', () => {
-    const current = document.body.classList.contains('senior-accessible-mode');
-    applyHighContrast(!current, true);
-  });
+  window.toggleSeniorMode = function() {
+    const cur = document.body.classList.contains('senior-accessible-mode');
+    applyHighContrast(!cur, true);
+  };
+  btnMobileToggle?.addEventListener('click', window.toggleSeniorMode);
 
   // Zona de peligro: Backup y Factory Reset
   const btnDownloadBackupManual = document.getElementById('btnDownloadBackupManual');
