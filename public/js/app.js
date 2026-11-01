@@ -155,12 +155,82 @@ function navigateTo(viewId) {
 window.navigateTo = navigateTo;
 
 function setupNavigation() {
+  const sidebarDrawer = document.getElementById('appSidebarDrawer');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+  const btnCloseSidebar = document.getElementById('btnCloseSidebar');
+
+  function openSidebar() {
+    if (sidebarDrawer) {
+      sidebarDrawer.classList.add('open');
+      sidebarDrawer.setAttribute('aria-hidden', 'false');
+    }
+    if (sidebarBackdrop) {
+      sidebarBackdrop.classList.add('open');
+      sidebarBackdrop.setAttribute('aria-hidden', 'false');
+    }
+    if (btnToggleSidebar) {
+      btnToggleSidebar.setAttribute('aria-expanded', 'true');
+    }
+    document.body.classList.add('sidebar-open');
+  }
+
+  function closeSidebar() {
+    if (sidebarDrawer) {
+      sidebarDrawer.classList.remove('open');
+      sidebarDrawer.setAttribute('aria-hidden', 'true');
+    }
+    if (sidebarBackdrop) {
+      sidebarBackdrop.classList.remove('open');
+      sidebarBackdrop.setAttribute('aria-hidden', 'true');
+    }
+    if (btnToggleSidebar) {
+      btnToggleSidebar.setAttribute('aria-expanded', 'false');
+    }
+    document.body.classList.remove('sidebar-open');
+  }
+
+  window.openSidebar = openSidebar;
+  window.closeSidebar = closeSidebar;
+
+  if (btnToggleSidebar) {
+    btnToggleSidebar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = sidebarDrawer && sidebarDrawer.classList.contains('open');
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+  }
+
+  if (btnCloseSidebar) {
+    btnCloseSidebar.addEventListener('click', () => {
+      closeSidebar();
+    });
+  }
+
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', () => {
+      closeSidebar();
+    });
+  }
+
+  // Cerrar sidebar con la tecla Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && sidebarDrawer && sidebarDrawer.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
+
   const navBtns = document.querySelectorAll('.nav-tab-btn');
 
   navBtns.forEach(btn => {
     btn.addEventListener('click', () => {
       const viewId = btn.getAttribute('data-view');
       navigateTo(viewId);
+      closeSidebar();
     });
   });
 

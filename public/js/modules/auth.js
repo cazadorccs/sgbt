@@ -913,6 +913,7 @@ window.setupUserMenuDropdown = function() {
 
 window.applyUserSession = function(user, targetMode) {
   const masterNav = document.getElementById('masterNav');
+  const btnToggleSidebar = document.getElementById('btnToggleSidebar');
   const userPill = document.getElementById('userSessionPill');
   const userName = document.getElementById('userSessionName');
   const userRole = document.getElementById('userSessionRole');
@@ -1043,6 +1044,8 @@ window.applyUserSession = function(user, targetMode) {
 
   if (isBeneficiaryView) {
     if (masterNav) masterNav.style.display = 'none';
+    if (btnToggleSidebar) btnToggleSidebar.style.display = 'none';
+    if (typeof window.closeSidebar === 'function') window.closeSidebar();
     if (simSelector) simSelector.style.display = 'none';
     if (techPanel) techPanel.style.display = 'none';
     if (workerHeaderId) workerHeaderId.textContent = `${user.full_name} (${user.document_id})`;
@@ -1055,6 +1058,8 @@ window.applyUserSession = function(user, targetMode) {
 
   } else if (isOperator || mode === 'operator') {
     if (masterNav) masterNav.style.display = 'none';
+    if (btnToggleSidebar) btnToggleSidebar.style.display = 'none';
+    if (typeof window.closeSidebar === 'function') window.closeSidebar();
     STATE.operatorId = user.id;
 
     // Actualizar barra de identidad del Operador en el Despacho
@@ -1069,6 +1074,7 @@ window.applyUserSession = function(user, targetMode) {
 
   } else {
     if (masterNav) masterNav.style.display = 'flex';
+    if (btnToggleSidebar) btnToggleSidebar.style.display = 'inline-flex';
     if (simSelector) simSelector.style.display = 'block';
     if (techPanel) techPanel.style.display = 'block';
     STATE.supervisorId = user.document_id;
@@ -1112,8 +1118,11 @@ window.handleLogout = function(reason) {
   
   const userPill = document.getElementById('userSessionPill');
   const masterNav = document.getElementById('masterNav');
+  const btnToggleSidebar = document.getElementById('btnToggleSidebar');
   if (userPill) userPill.style.display = 'none';
   if (masterNav) masterNav.style.display = 'none';
+  if (btnToggleSidebar) btnToggleSidebar.style.display = 'none';
+  if (typeof window.closeSidebar === 'function') window.closeSidebar();
 
   const docInput = document.getElementById('loginDocNumber');
   if (docInput) docInput.value = '';
