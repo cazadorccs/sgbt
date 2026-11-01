@@ -314,6 +314,68 @@ function setupPwa() {
 }
 
 // ----------------------------------------------------------------------------
+// 4.5. SISTEMA DE TOOLTIPS FLOTANTES ACCESIBLES (WCAG 2.2)
+// ----------------------------------------------------------------------------
+function setupGlobalTooltips() {
+  let tooltipEl = null;
+
+  function ensureTooltip() {
+    if (!tooltipEl) {
+      tooltipEl = document.createElement('div');
+      tooltipEl.className = 'app-floating-tooltip';
+      tooltipEl.setAttribute('role', 'tooltip');
+      tooltipEl.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(tooltipEl);
+    }
+    return tooltipEl;
+  }
+
+  document.addEventListener('pointerover', (e) => {
+    const target = e.target.closest('[data-tooltip]');
+    if (!target) return;
+    const text = target.getAttribute('data-tooltip');
+    if (!text) return;
+
+    const tip = ensureTooltip();
+    tip.textContent = text;
+    tip.classList.add('visible');
+
+    const rect = target.getBoundingClientRect();
+    const tipRect = tip.getBoundingClientRect();
+
+    // Posición centrada sobre el elemento
+    let top = rect.top - tipRect.height - 8;
+    let left = rect.left + (rect.width / 2) - (tipRect.width / 2);
+
+    // Si se desborda por la parte superior, reposicionar abajo
+    if (top < 8) {
+      top = rect.bottom + 8;
+    }
+    // Evitar desbordes de los bordes laterales
+    if (left < 10) left = 10;
+    if (left + tipRect.width > window.innerWidth - 10) {
+      left = window.innerWidth - tipRect.width - 10;
+    }
+
+    tip.style.top = `${Math.round(top)}px`;
+    tip.style.left = `${Math.round(left)}px`;
+  });
+
+  document.addEventListener('pointerout', (e) => {
+    const target = e.target.closest('[data-tooltip]');
+    if (target && tooltipEl) {
+      tooltipEl.classList.remove('visible');
+    }
+  });
+
+  window.addEventListener('scroll', () => {
+    if (tooltipEl && tooltipEl.classList.contains('visible')) {
+      tooltipEl.classList.remove('visible');
+    }
+  }, { passive: true, capture: true });
+}
+
+// ----------------------------------------------------------------------------
 // 5. BOOTSTRAP PRINCIPAL EN DOMCONTENTLOADED
 // ----------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', async () => {
@@ -324,6 +386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 1. Núcleo UI, Navegación y Autenticación INMEDIATA (0 ms)
   setupNavigation();
+  setupGlobalTooltips();
   if (typeof setupAuth === 'function') setupAuth();
   if (typeof setupUserMenuDropdown === 'function') setupUserMenuDropdown();
   if (typeof setupGeneralSettings === 'function') setupGeneralSettings();

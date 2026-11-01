@@ -938,6 +938,100 @@ body {
   border: 1px solid #86efac;
 }
 
+/* Badges de Icono para Condición Laboral (Directorio y Tablas) */
+.badge-cond-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: help;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.badge-cond-icon:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Botones de Acción Compactos en Tablas (Directorio y Auditoría) */
+.btn-table-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: unset;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-0);
+  color: var(--text-main);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
+.btn-table-action:hover {
+  background: var(--bg-surface-2);
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.btn-table-action.btn-whatsapp {
+  color: #16a34a;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.btn-table-action.btn-whatsapp:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+}
+
+/* Celdas con Texto Truncado para Prevención de Desbordes */
+.dept-cell-truncate {
+  max-width: 155px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Tooltip Flotante Global (Inmune a recortes por overflow en tablas) */
+.app-floating-tooltip {
+  position: fixed;
+  z-index: 99999;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.12s cubic-bezier(0.4, 0, 0.2, 1), transform 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  max-width: 320px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.app-floating-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 /* Badges y Selectores de Rol Institucional (Supervisor, Mesa de Despacho, Admin, Beneficiario) */
 .badge-role-supervisor {
   background: #fdf4ff !important;
@@ -3278,6 +3372,40 @@ body.dark-mode [style*="background: #f0fdf4"] {
   background: var(--badge-green-bg) !important;
   color: var(--badge-green-text) !important;
   border-color: var(--badge-green-border) !important;
+}
+
+body.dark-mode .badge-jubilado {
+  background: rgba(168, 85, 247, 0.2) !important;
+  color: #d8b4fe !important;
+  border-color: rgba(168, 85, 247, 0.4) !important;
+}
+
+body.dark-mode .btn-table-action {
+  background: var(--bg-surface-card);
+  border-color: var(--border-subtle);
+  color: var(--text-main);
+}
+
+body.dark-mode .btn-table-action:hover {
+  background: var(--bg-surface-2);
+  border-color: var(--sea-onahau);
+}
+
+body.dark-mode .btn-table-action.btn-whatsapp {
+  background: rgba(34, 197, 94, 0.15) !important;
+  border-color: rgba(34, 197, 94, 0.35) !important;
+  color: #4ade80 !important;
+}
+
+body.dark-mode .btn-table-action.btn-whatsapp:hover {
+  background: rgba(34, 197, 94, 0.25) !important;
+}
+
+body.dark-mode .app-floating-tooltip {
+  background: #1e293b;
+  color: #f8fafc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
 
 body.dark-mode .badge-escolar,

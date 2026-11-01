@@ -123,26 +123,55 @@ function renderWorkersPage() {
 
       let badgeClass = 'badge-pending';
       let badgeIcon = '⏳';
+      let authShortLabel = 'Pendiente';
+      let authFullLabel = w.auth_label || 'Pendiente por formalizar credencial segura';
       if (w.auth_badge === 'passkey_active') {
         badgeClass = 'badge-passkey';
         badgeIcon = '🔐';
+        authShortLabel = 'Passkey';
+        authFullLabel = 'Passkey Criptográfica FIDO2 / WebAuthn';
       } else if (w.auth_badge === 'nfc_active') {
         badgeClass = 'badge-nfc';
         badgeIcon = '💳';
+        authShortLabel = 'NFC';
+        authFullLabel = 'Carnet Inteligente NFC / Tarjeta Mifare';
       } else if (w.auth_badge === 'revoked') {
         badgeClass = 'badge-revoked';
         badgeIcon = '🛑';
+        authShortLabel = 'Revocado';
+        authFullLabel = 'Credencial Revocada por Seguridad';
       } else if (w.auth_badge === 'exemption') {
         badgeClass = 'badge-override';
         badgeIcon = '⚠️';
+        authShortLabel = 'Manual';
+        authFullLabel = 'Excepción Manual de Despacho Autorizada';
       }
 
-      let condBadge = '<span class="badge badge-activo">🏢 Funcionario Activo</span>';
+      // Condición Laboral representada por iconos interactivos con tooltips (Accesibilidad WCAG + Diseño Compacto)
+      let condIcon = '🏢';
+      let condLabel = 'Funcionario Activo';
+      let condTooltip = 'Condición: Funcionario Activo (Nómina Regular)';
+      let condClass = 'badge-activo';
+
       if (w.worker_type === 'jubilado') {
-        condBadge = '<span class="badge badge-jubilado">👴 Personal Jubilado</span>';
+        condIcon = '👴';
+        condLabel = 'Personal Jubilado';
+        condTooltip = 'Condición: Personal Jubilado / Pensionado';
+        condClass = 'badge-jubilado';
       } else if (w.worker_type === 'contratado') {
-        condBadge = '<span class="badge badge-contratado">📋 Personal Contratado</span>';
+        condIcon = '📋';
+        condLabel = 'Personal Contratado';
+        condTooltip = 'Condición: Personal Contratado';
+        condClass = 'badge-contratado';
       }
+
+      const condBadge = `
+        <div style="display: flex; justify-content: center; align-items: center;">
+          <span class="badge-cond-icon ${condClass}" data-tooltip="${condTooltip}" title="${condTooltip}" aria-label="${condLabel}">
+            ${condIcon}
+          </span>
+        </div>
+      `;
 
       const currentRole = w.role || 'worker';
       let roleClass = 'badge-role-worker';
@@ -150,20 +179,21 @@ function renderWorkersPage() {
       else if (currentRole === 'operator') roleClass = 'badge-role-operator';
       else if (currentRole === 'admin') roleClass = 'badge-role-admin';
 
+      const safeWorkerName = (w.full_name || '').replace(/'/g, "\\'");
       const roleSelectHtml = `
-        <select class="form-select role-select-pill ${roleClass}" onchange="window.changeWorkerRole('${w.id}', this.value, '${w.full_name.replace(/'/g, "\\'")}')" title="Modificar rol y permisos operativos">
-          <option value="worker" ${currentRole === 'worker' ? 'selected' : ''}>👤 Beneficiario Titular</option>
-          <option value="operator" ${currentRole === 'operator' ? 'selected' : ''}>📦 Mesa de Despacho</option>
-          <option value="supervisor" ${currentRole === 'supervisor' ? 'selected' : ''}>🛡️ Supervisor de Jornada</option>
-          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>👑 Administrador</option>
+        <select class="form-select role-select-pill ${roleClass}" style="padding: 0.22rem 0.5rem; font-size: 0.74rem; font-weight: 700; width: 100%; max-width: 125px;" onchange="window.changeWorkerRole('${w.id}', this.value, '${safeWorkerName}')" data-tooltip="Modificar rol y permisos" title="Modificar rol operativo de ${safeWorkerName}">
+          <option value="worker" ${currentRole === 'worker' ? 'selected' : ''}>👤 Titular</option>
+          <option value="operator" ${currentRole === 'operator' ? 'selected' : ''}>📦 Despacho</option>
+          <option value="supervisor" ${currentRole === 'supervisor' ? 'selected' : ''}>🛡️ Supervisor</option>
+          <option value="admin" ${currentRole === 'admin' ? 'selected' : ''}>👑 Admin</option>
         </select>
       `;
 
       const entitlementBadge = w.today_entitlement_status === 'claimed'
-        ? '<span class="badge badge-passkey">Entregado</span>'
+        ? '<span class="badge badge-passkey" data-tooltip="Beneficio entregado en la jornada de hoy" title="Beneficio entregado hoy">Entregado</span>'
         : w.today_entitlement_status === 'pending'
-        ? '<span class="badge badge-override">Pendiente</span>'
-        : '<span class="badge" style="background: rgba(255,255,255,0.05); color: #94a3b8;">Sin Asignar</span>';
+        ? '<span class="badge badge-override" data-tooltip="Asignado hoy, pendiente por retirar" title="Pendiente por retirar">Pendiente</span>'
+        : '<span class="badge" data-tooltip="Sin asignación para hoy" title="Sin asignación para hoy" style="background: rgba(255,255,255,0.05); color: var(--text-dim); font-size: 0.72rem;">Sin Asignar</span>';
 
       // Generación de Foto / Avatar del Empleado
       let avatarHtml = '';
@@ -179,24 +209,25 @@ function renderWorkersPage() {
         hash |= 0;
       }
       const initialBg = bgColors[Math.abs(hash) % bgColors.length];
-      const safeWorkerName = (w.full_name || '').replace(/'/g, "\\'");
 
       if (w.avatar_url && w.avatar_url.trim().length > 0) {
         avatarHtml = `
           <div style="display: flex; justify-content: center; align-items: center;">
             <img src="${w.avatar_url}" alt="${w.full_name}" 
-                 style="width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid #0284c7; box-shadow: 0 2px 5px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.15s ease;"
+                 style="width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid #0284c7; box-shadow: 0 2px 5px rgba(0,0,0,0.15); cursor: pointer; transition: transform 0.15s ease;"
                  onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'"
                  onclick="window.previewWorkerPhoto('${w.avatar_url}', '${safeWorkerName}', '${w.document_id}', true)"
+                 data-tooltip="Ver foto de ${safeWorkerName}"
                  title="Ver foto de ${w.full_name}"
-                 onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width:38px;height:38px;border-radius:50%;background:${initialBg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;box-shadow:0 2px 4px rgba(0,0,0,0.1);\\' title=\\'${safeWorkerName}\\'>${initials}</div>';">
+                 onerror="this.onerror=null; this.parentElement.innerHTML='<div style=\\'width:34px;height:34px;border-radius:50%;background:${initialBg};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;box-shadow:0 2px 4px rgba(0,0,0,0.1);\\' title=\\'${safeWorkerName}\\'>${initials}</div>';">
           </div>
         `;
       } else {
         avatarHtml = `
           <div style="display: flex; justify-content: center; align-items: center;">
-            <div style="width: 38px; height: 38px; border-radius: 50%; background: ${initialBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3); cursor: pointer;"
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${initialBg}; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.3); cursor: pointer;"
                  onclick="window.previewWorkerPhoto('', '${safeWorkerName}', '${w.document_id}', false)"
+                 data-tooltip="Sin foto formalizada - ${safeWorkerName}"
                  title="Sin foto formalizada - ${w.full_name}">
               ${initials}
             </div>
@@ -206,25 +237,27 @@ function renderWorkersPage() {
 
       tr.innerHTML = `
         <td style="text-align: center; vertical-align: middle;">${avatarHtml}</td>
-        <td class="text-mono" style="font-weight: 600;">${w.document_id}</td>
+        <td class="text-mono" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">${w.document_id}</td>
         <td>
-          <div style="font-weight: 600;">${w.full_name}</div>
-          <div style="font-size: 0.75rem; color: var(--text-dim);">${w.email}</div>
+          <div style="font-weight: 600; font-size: 0.84rem; line-height: 1.25; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" data-tooltip="${safeWorkerName}" title="${safeWorkerName}">${w.full_name}</div>
+          <div style="font-size: 0.72rem; color: var(--text-dim); line-height: 1.2; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" data-tooltip="${w.email}" title="${w.email}">${w.email}</div>
         </td>
         <td>${roleSelectHtml}</td>
-        <td>${condBadge}</td>
-        <td>${w.department_name || 'Sin Asignar'}</td>
+        <td style="text-align: center;">${condBadge}</td>
         <td>
-          <span class="badge ${badgeClass}">${badgeIcon} ${w.auth_label}</span>
+          <div class="dept-cell-truncate" data-tooltip="${w.department_name || 'Sin Asignar'}" title="${w.department_name || 'Sin Asignar'}">${w.department_name || 'Sin Asignar'}</div>
         </td>
-        <td>${entitlementBadge}</td>
+        <td style="text-align: center;">
+          <span class="badge ${badgeClass}" data-tooltip="${authFullLabel}" title="${authFullLabel}">${badgeIcon} ${authShortLabel}</span>
+        </td>
+        <td style="text-align: center;">${entitlementBadge}</td>
         <td>
-          <div style="display: flex; gap: 0.35rem; align-items: center;">
-            <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem;" onclick="openSecurityDossier('${w.id}')" title="Ver Dispositivos y Tarjetas">
-              🛡️ Expediente
+          <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
+            <button class="btn-table-action" onclick="openSecurityDossier('${w.id}')" data-tooltip="Expediente de Seguridad" title="Ver Expediente de Seguridad y Dispositivos" aria-label="Expediente de Seguridad">
+              🛡️
             </button>
-            <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.72rem; color: #16a34a; border-color: #86efac; background: #f0fdf4;" onclick="sendWhatsAppInviteToWorker('${w.id}')" title="Enviar enlace de instalación personalizado por WhatsApp">
-              📲 WhatsApp
+            <button class="btn-table-action btn-whatsapp" onclick="sendWhatsAppInviteToWorker('${w.id}')" data-tooltip="Enviar Invitación WhatsApp" title="Enviar enlace de instalación por WhatsApp" aria-label="WhatsApp">
+              📲
             </button>
           </div>
         </td>
