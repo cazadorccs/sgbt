@@ -59,3 +59,11 @@ Al interactuar con la persistencia relacional:
 4. Si creas nuevas tablas en SQLite, redacta de forma inmediata el script DDL compatible con PostgreSQL para que pueda ejecutarse en el SQL Editor de Supabase.
 5. Toda consulta a la API REST de Supabase debe ejecutarse por bloques (chunks de 100-150 registros) con conciliación previa por número de cédula ('document_id') para evitar colisiones.
 ```
+
+---
+
+### 5. Directiva de Auditoría DevSecOps y Spec-Driven Development (SDD)
+
+Consulte la bitácora completa de ejecución, análisis forense de código, prompts de auditoría en 5 fases y matriz de remediación en:  
+👉 [`11_BITACORA_AUDITORIA_Y_PROMPTS_SDD.md`](./11_BITACORA_AUDITORIA_Y_PROMPTS_SDD.md)
+
