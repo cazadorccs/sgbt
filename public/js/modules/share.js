@@ -421,7 +421,8 @@ _Nota: Si es adulto mayor o jubilado, puede retirar directamente en mesa con su 
 Estimado operador de almacén / mesa de entrega:
 Utilice este enlace en la tablet o computadora de despacho para validar códigos QR con la cámara física, escanear tarjetas NFC y autorizar entregas institucionales en modo 100% Offline:
 
-👉 *Mesa de Despacho:* ${origin}/?view=distributor`
+👉 *Mesa de Despacho (Web):* ${origin}/?view=distributor
+📲 *Descarga APK Oficial Android v3.7:* ${origin}/download/sgbt-v3.7.apk`
     },
     supervisor: {
       title: 'Aprobación del Supervisor',

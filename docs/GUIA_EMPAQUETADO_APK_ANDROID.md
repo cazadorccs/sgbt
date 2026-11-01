@@ -110,7 +110,20 @@ Este comando generará:
 
 ---
 
-### 6. Configuración de Modo Kiosco para Operadores de Despacho
+### 7. Especificaciones Técnicas del APK Release v3.7
+
+| Parámetro | Valor de Producción |
+|:---|:---|
+| **Nombre del Paquete (Package ID)** | `app.vercel.sgbt_bice.twa` / `gob.ve.mippci.sgbt` |
+| **Versión de la App (VersionName)** | `3.7` |
+| **Código de Versión (VersionCode)** | `37` |
+| **Esquema de Firma Criptográfica** | APK Signature Scheme v2 (Verificado con `apksigner`) |
+| **Firma Digital (Certificate DN)** | `CN=SGBT-MIPPCI` |
+| **Huella Digital SHA-256 Certificado** | `2C:9F:C3:5B:58:A0:B5:74:DA:34:79:44:2A:0D:8F:CF:B3:5A:B9:1E:A8:0D:7C:7C:C3:7A:D3:2C:19:3B:51:D5` |
+| **Digital Asset Links** | 100% verificado contra `https://sgbt-bice.vercel.app/.well-known/assetlinks.json` |
+| **Peso del Archivo** | 1.86 MB (1,865,755 bytes) |
+| **Suma de Comprobación SHA-256 APK** | `5EC9A9E1A818A80698D7A9C01F1D3F4C8E5AF72BFE8C85AF7FE193DCE896F127` |
+| **Rutas de Descarga Oficial** | `https://sgbt-bice.vercel.app/download/sgbt-v3.7.apk`<br>`https://sgbt-bice.vercel.app/download/sgbt.apk` |
 
 Para evitar que los operarios de almacén cierren la aplicación, desvíen el uso de la tableta o alteren la configuración durante la jornada:
 
