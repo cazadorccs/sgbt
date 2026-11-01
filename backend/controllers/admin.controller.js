@@ -301,34 +301,127 @@ const deleteWorker = (req, res) => {
   }
 };
 
-const getWorkerDossier = (req, res) => {
+const getWorkerDossier = async (req, res) => {
   const worker_id = req.params.id;
-  const worker = db.prepare(`
+  let worker = db.prepare(`
     SELECT w.*, d.name as department_name
     FROM workers w
     LEFT JOIN departments d ON w.department_id = d.id
-    WHERE w.id = ?
-  `).get(worker_id);
+    WHERE w.id = ? OR w.document_id = ?
+  `).get(worker_id, worker_id);
+
+  // Fallback de resiliencia: Si no se encuentra en SQLite local, consultar directamente en Supabase Cloud
+  if (!worker) {
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const { data: sbWorker, error: sbErr } = await supabase
+          .from('workers')
+          .select('*, departments(name)')
+          .or(`id.eq.${worker_id},document_id.eq.${worker_id}`)
+          .maybeSingle();
+
+        if (sbWorker && !sbErr) {
+          worker = {
+            ...sbWorker,
+            department_name: sbWorker.departments?.name || null
+          };
+          // Persistir en SQLite local para acelerar próximas consultas
+          try {
+            db.prepare(`
+              INSERT INTO workers (
+                id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              ON CONFLICT(id) DO UPDATE SET
+                document_id = excluded.document_id,
+                full_name = excluded.full_name,
+                email = excluded.email,
+                department_id = excluded.department_id,
+                shift = excluded.shift,
+                status = excluded.status,
+                worker_type = excluded.worker_type,
+                role = excluded.role,
+                has_smartphone = excluded.has_smartphone,
+                contingency_reason = excluded.contingency_reason,
+                phone_number = excluded.phone_number,
+                avatar_url = excluded.avatar_url,
+                updated_at = excluded.updated_at
+            `).run(
+              worker.id,
+              worker.document_id,
+              worker.full_name,
+              worker.email,
+              worker.department_id,
+              worker.shift || 'jornada_continua',
+              worker.status || 'active',
+              worker.worker_type || 'activo',
+              worker.role || 'worker',
+              worker.has_smartphone ? 1 : 0,
+              worker.contingency_reason || null,
+              worker.phone_number || null,
+              worker.avatar_url || null,
+              worker.created_at || new Date().toISOString(),
+              worker.updated_at || new Date().toISOString()
+            );
+          } catch (insErr) {}
+        }
+      }
+    } catch (errCatch) {
+      console.warn('[DOSSIER] Error buscando trabajador en Supabase:', errCatch.message);
+    }
+  }
 
   if (!worker) {
     return res.status(404).json({ error: 'Trabajador no encontrado' });
   }
 
-  const passkeys = db.prepare(`
+  let passkeys = db.prepare(`
     SELECT id, credential_id, device_name, sign_count, status, enrolled_at, last_used_at
     FROM passkey_credentials
     WHERE worker_id = ?
     ORDER BY enrolled_at DESC
-  `).all(worker_id);
+  `).all(worker.id);
 
-  const nfcCards = db.prepare(`
+  if (!passkeys || passkeys.length === 0) {
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const { data: sbPasskeys } = await supabase
+          .from('passkey_credentials')
+          .select('id, credential_id, device_name, sign_count, status, enrolled_at, last_used_at')
+          .eq('worker_id', worker.id)
+          .order('enrolled_at', { ascending: false });
+        if (Array.isArray(sbPasskeys) && sbPasskeys.length > 0) {
+          passkeys = sbPasskeys;
+        }
+      }
+    } catch (e) {}
+  }
+
+  let nfcCards = db.prepare(`
     SELECT id, card_uid, status, issued_at, revoked_at
     FROM nfc_cards
     WHERE worker_id = ?
     ORDER BY issued_at DESC
-  `).all(worker_id);
+  `).all(worker.id);
 
-  const recentDeliveries = db.prepare(`
+  if (!nfcCards || nfcCards.length === 0) {
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const { data: sbNfc } = await supabase
+          .from('nfc_cards')
+          .select('id, card_uid, status, issued_at, revoked_at')
+          .eq('worker_id', worker.id)
+          .order('issued_at', { ascending: false });
+        if (Array.isArray(sbNfc) && sbNfc.length > 0) {
+          nfcCards = sbNfc;
+        }
+      }
+    } catch (e) {}
+  }
+
+  let recentDeliveries = db.prepare(`
     SELECT del.id, del.delivered_at, del.verification_method, del.is_offline_sync,
            c.name as combo_name, dp.name as point_name, del.override_reason,
            sup.full_name as supervisor_name
@@ -340,7 +433,33 @@ const getWorkerDossier = (req, res) => {
     WHERE del.worker_id = ?
     ORDER BY del.delivered_at DESC
     LIMIT 10
-  `).all(worker_id);
+  `).all(worker.id);
+
+  if (!recentDeliveries || recentDeliveries.length === 0) {
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const { data: sbDels } = await supabase
+          .from('deliveries')
+          .select('id, delivered_at, verification_method, is_offline_sync, override_reason, entitlement_id, distribution_point_id, supervisor_id')
+          .eq('worker_id', worker.id)
+          .order('delivered_at', { ascending: false })
+          .limit(10);
+        if (Array.isArray(sbDels) && sbDels.length > 0) {
+          recentDeliveries = sbDels.map(d => ({
+            id: d.id,
+            delivered_at: d.delivered_at,
+            verification_method: d.verification_method,
+            is_offline_sync: d.is_offline_sync,
+            override_reason: d.override_reason,
+            combo_name: 'Combo Asignado',
+            point_name: 'Mesa Central',
+            supervisor_name: 'Supervisor de Turno'
+          }));
+        }
+      }
+    } catch (e) {}
+  }
 
   res.json({
     worker,

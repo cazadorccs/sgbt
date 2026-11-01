@@ -1294,15 +1294,19 @@ if (!rawDb) {
       initializeDatabase();
       seedDatabase();
 
+      // Sincronizar catálogo y padrón desde Supabase Cloud
+      try {
+        await syncFromSupabase();
+      } catch (syncErr) {
+        console.warn('[DB] Advertencia en syncFromSupabase inicial:', syncErr.message);
+      }
+
       if (isVercel && rawDb) {
         try {
           const data = rawDb.export();
           fs.writeFileSync(DB_PATH, Buffer.from(data));
         } catch (e) {}
       }
-
-      // Sincronizar en segundo plano sin retrasar el arranque
-      syncFromSupabase().catch(() => {});
 
       readyResolve(true);
       console.log('[DB] Motor SQLite WebAssembly (sql-wasm-inline) listo y operativo para Vercel.');
