@@ -2961,10 +2961,40 @@ body.dark-mode .modal-backdrop {
 }
 
 body.dark-mode .modal-dialog {
-  background: #141e33;
+  background: var(--bg-surface-card);
   border: 1px solid var(--border-subtle);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
   color: var(--text-main);
+}
+
+body.dark-mode .modal-dialog table,
+body.dark-mode .modal-dialog .modern-table {
+  background: var(--bg-surface-card) !important;
+  color: var(--text-main) !important;
+}
+
+body.dark-mode .modal-dialog thead,
+body.dark-mode .modal-dialog th {
+  background: var(--bg-surface-0) !important;
+  color: var(--text-dim) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+body.dark-mode .modal-dialog td {
+  background: transparent !important;
+  color: var(--text-main) !important;
+  border-color: var(--border-subtle) !important;
+}
+
+body.dark-mode .modal-dialog [style*="background: #ffffff"],
+body.dark-mode .modal-dialog [style*="background: #fff"],
+body.dark-mode .modal-dialog [style*="background: white"],
+body.dark-mode .modal-dialog [style*="background-color: #ffffff"],
+body.dark-mode .modal-dialog [style*="background-color: #fff"],
+body.dark-mode .modal-dialog [style*="background-color: white"] {
+  background: var(--bg-surface-0) !important;
+  border-color: var(--border-subtle) !important;
+  color: var(--text-main) !important;
 }
 
 body.dark-mode .modal-header,

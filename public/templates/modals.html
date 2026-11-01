@@ -621,23 +621,23 @@
       </div>
 
       <div
-        style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
+        style="background: var(--bg-surface-0); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.15rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.85rem;">
         <label
-          style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.82rem; color: #0f172a;">
+          style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; font-size: 0.82rem; color: var(--text-main);">
           <input type="checkbox" id="checkKeepTemplatesReset" checked
             style="width: 17px; height: 17px; accent-color: var(--sea-pacific); margin-top: 0.15rem;" />
           <span>
             <strong>Conservar combos y sedes como plantillas editables (Opción A.1 Recomendada)</strong><br />
-            <span style="color: #64748b; font-size: 0.76rem;">Mantiene el catálogo base de bolsas/víveres para que no
+            <span style="color: var(--text-dim); font-size: 0.76rem;">Mantiene el catálogo base de bolsas/víveres para que no
               tenga que crearlos desde cero en la nueva configuración.</span>
           </span>
         </label>
 
         <div
-          style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+          style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
           <div>
-            <span style="font-size: 0.78rem; font-weight: 700; color: #334155;">Descargar Respaldo Preventivo:</span>
-            <div style="font-size: 0.72rem; color: #64748b;">Descarga manual de la base de datos actual en formato JSON
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted);">Descargar Respaldo Preventivo:</span>
+            <div style="font-size: 0.72rem; color: var(--text-dim);">Descarga manual de la base de datos actual en formato JSON
             </div>
           </div>
           <button type="button" id="btnDownloadBackupManual" class="btn btn-outline"
@@ -870,7 +870,7 @@
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
       <button type="button" id="btnDownloadCsvSample" class="btn btn-outline"
-        style="font-size: 0.75rem; background: #fff;">
+        style="font-size: 0.75rem;">
         📄 Descargar Plantilla CSV de Ejemplo
       </button>
       <span id="csvFileStatusText" style="font-size: 0.75rem; color: #64748b; font-weight: 600;">Ningún archivo
@@ -1225,18 +1225,18 @@
 
     <!-- DETALLES DEL SUPERVISOR Y VENCIMIENTO -->
     <div
-      style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.75rem 1rem; text-align: left; font-size: 0.78rem; color: #334155; margin-bottom: 1.25rem;">
+      style="background: var(--bg-surface-0); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.75rem 1rem; text-align: left; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1.25rem;">
       <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
-        <span style="color: #64748b;">Supervisor Responsable:</span>
-        <strong id="supervisorNameDisplay" style="color: #0f172a;">Ing. Carlos Mendoza (TI MIPPCI)</strong>
+        <span style="color: var(--text-dim);">Supervisor Responsable:</span>
+        <strong id="supervisorNameDisplay" style="color: var(--text-main);">Ing. Carlos Mendoza (TI MIPPCI)</strong>
       </div>
       <div style="display: flex; justify-content: space-between; margin-bottom: 0.35rem;">
-        <span style="color: #64748b;">Cédula de Identidad:</span>
-        <span id="supervisorDocDisplay" class="text-mono" style="font-weight: 600;">V-18452109</span>
+        <span style="color: var(--text-dim);">Cédula de Identidad:</span>
+        <span id="supervisorDocDisplay" class="text-mono" style="font-weight: 600; color: var(--text-accent);">V-18452109</span>
       </div>
       <div style="display: flex; justify-content: space-between;">
-        <span style="color: #64748b;">Vigencia:</span>
-        <span id="supervisorExpiryDisplay" style="color: #b45309; font-weight: 600;">Solo hoy hasta las 23:59 VET</span>
+        <span style="color: var(--text-dim);">Vigencia:</span>
+        <span id="supervisorExpiryDisplay" style="color: var(--badge-amber-text); font-weight: 600;">Solo hoy hasta las 23:59 VET</span>
       </div>
     </div>
 

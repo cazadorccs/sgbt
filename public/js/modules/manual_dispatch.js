@@ -312,27 +312,27 @@ window.ManualDispatch = (function() {
       const count = d.combos_count || combosList.length;
 
       return `
-        <tr style="border-bottom: 1px solid rgba(226, 232, 240, 0.7); transition: background 0.15s ease;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-          <td style="padding: 0.75rem 0.85rem; font-family: monospace; font-weight: 700; color: #0284c7; white-space: nowrap; vertical-align: middle;">
+        <tr style="border-bottom: 1px solid var(--border-subtle); transition: background 0.15s ease;" onmouseover="this.style.background='var(--bg-surface-0)'" onmouseout="this.style.background='transparent'">
+          <td style="padding: 0.75rem 0.85rem; font-family: monospace; font-weight: 700; color: var(--text-accent); white-space: nowrap; vertical-align: middle;">
             ${timeStr}
           </td>
           <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
-            <div style="font-weight: 700; color: #0f172a; font-size: 0.9rem;">${escapeHtml(d.full_name || 'Funcionario')}</div>
-            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace; margin-top: 0.1rem;">
+            <div style="font-weight: 700; color: var(--text-main); font-size: 0.9rem;">${escapeHtml(d.full_name || 'Funcionario')}</div>
+            <div style="font-size: 0.75rem; color: var(--text-dim); font-family: monospace; margin-top: 0.1rem;">
               ${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; font-weight: 600;">${escapeHtml(d.worker_type || 'activo')}</span>
             </div>
           </td>
-          <td style="padding: 0.75rem 0.85rem; font-size: 0.82rem; color: #334155; vertical-align: middle; max-width: 360px;">
+          <td style="padding: 0.75rem 0.85rem; font-size: 0.82rem; color: var(--text-muted); vertical-align: middle; max-width: 360px;">
             ${escapeHtml(d.department_name || 'Nómina Central')}
           </td>
           <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
             <div style="display: flex; flex-direction: column; gap: 0.35rem;">
               <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 800; font-size: 0.75rem; background: #0284c7; color: white; padding: 0.2rem 0.55rem; border-radius: 9999px;">
+                <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 800; font-size: 0.75rem; background: var(--badge-blue-bg); color: var(--badge-blue-text); border: 1px solid var(--badge-blue-border); padding: 0.2rem 0.55rem; border-radius: 9999px;">
                   📦 ${count} ${count === 1 ? 'combo' : 'combos'}
                 </span>
                 ${combosList.map(c => `
-                  <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 600;">
+                  <span style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; background: var(--badge-green-bg); color: var(--badge-green-text); border: 1px solid var(--badge-green-border); padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 600;">
                     <span>${c.icon}</span>
                     <span>${escapeHtml(c.name)}</span>
                   </span>
@@ -389,28 +389,28 @@ window.ManualDispatch = (function() {
       }
 
       return `
-        <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 0.85rem; border-left: 4px solid #10b981; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 0.15rem;">
+        <div style="background: var(--bg-surface-card); border: 1.5px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem 0.85rem; border-left: 4px solid var(--accent-emerald); box-shadow: var(--shadow-xs); margin-bottom: 0.15rem;">
           <div class="flex-between" style="margin-bottom: 0.25rem;">
-            <div style="font-weight: 800; color: #0f172a; font-size: 0.88rem; line-height: 1.2;">
+            <div style="font-weight: 800; color: var(--text-main); font-size: 0.88rem; line-height: 1.2;">
               ${escapeHtml(d.full_name || 'Funcionario')}
             </div>
-            <span style="font-family: monospace; font-size: 0.72rem; color: #0284c7; font-weight: 700;">
+            <span style="font-family: monospace; font-size: 0.72rem; color: var(--text-accent); font-weight: 700;">
               ${timeStr}
             </span>
           </div>
 
-          <div class="flex-between" style="margin-bottom: 0.35rem; font-size: 0.74rem; color: #64748b;">
-            <span style="font-family: monospace; font-weight: 600;">${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; color: #475569;">${escapeHtml(d.worker_type || 'activo')}</span></span>
+          <div class="flex-between" style="margin-bottom: 0.35rem; font-size: 0.74rem; color: var(--text-dim);">
+            <span style="font-family: monospace; font-weight: 600;">${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; color: var(--text-muted);">${escapeHtml(d.worker_type || 'activo')}</span></span>
             ${badgeMethod}
           </div>
 
-          <div style="font-size: 0.72rem; color: #475569; margin-bottom: 0.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             🏢 ${escapeHtml(d.department_name || 'Nómina Central')}
           </div>
 
-          <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; padding-top: 0.35rem; border-top: 1px dashed #e2e8f0;">
+          <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; padding-top: 0.35rem; border-top: 1px dashed var(--border-subtle);">
             ${combosList.map(c => `
-              <span style="font-size: 0.72rem; background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; padding: 0.15rem 0.45rem; border-radius: 5px; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600;">
+              <span style="font-size: 0.72rem; background: var(--badge-green-bg); color: var(--badge-green-text); border: 1px solid var(--badge-green-border); padding: 0.15rem 0.45rem; border-radius: 5px; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600;">
                 <span>${c.icon || '🍱'}</span>
                 <span>${escapeHtml(c.name)}</span>
               </span>
