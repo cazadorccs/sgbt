@@ -33,21 +33,31 @@ El sistema implementa una arquitectura híbrida desacoplada, diseñada para oper
    - Al pulsar "Generar Comprobante de Retiro", el sistema firma un reto criptográfico (`nonce`) mediante la Passkey.
    - Se despliega un código QR temporal dinámico con una cuenta regresiva de 180 segundos para evitar clonaciones.
 
-#### 2.2 Flujo del Operador de Almacén (Punto de Despacho)
-1. **Apertura de Estación:** El operador ingresa con su rol autorizado y selecciona el punto de distribución físico o mesa asignada.
-2. **Lectura Óptica o Proximidad NFC:**
-   - Apunta la cámara de la terminal al código QR del beneficiario.
-   - En beneficiarios jubilados o sin teléfono móvil, aproxima la tarjeta física NFC del beneficiario para lectura por contacto (Tap-to-Claim P2P).
-   - En caso de contingencia mayor, ingresa manualmente la Cédula de Identidad con comprobación visual.
-3. **Verificación Automática:**
-   - El sistema valida la firma criptográfica y comprueba la cuota pendiente en la jornada.
-   - Si el beneficiario ya retiró, la pantalla emite un bloqueo en color rojo y alerta sonora disuasiva.
-4. **Confirmación y Entrega:**
-   - Si la asignación es válida, la pantalla se ilumina en verde, se emite una señal háptica de vibración corta y se registra la entrega de forma atómica.
-   - La entrega se respalda de inmediato en Supabase Cloud con `await` y se descuenta el derecho en `daily_entitlements`.
-   - Si se cae el enlace de red, el retiro se resguarda en IndexedDB para su sincronización diferida.
+#### 2.2 Flujo del Operador de Almacén (Mesa de Despacho)
+1. **Apertura de Estación:** El operador ingresa con credencial autorizada (`role: operator`) a la pantalla limpia y ergonómica de la Mesa de Despacho.
+2. **Identificación de Cuota (Solo Lectura):**
+   - El sistema muestra el combo programado para entrega física en esa estación (ej. Víveres Secos o Retiro Totalizado).
+   - Los combos asignados son de solo-lectura; el despachador no tiene controles para mutar o desmarcar la asignación oficial.
+3. **Lectura Óptica de Alta Velocidad:**
+   - Pulsa el botón principal `📹 Iniciar Escáner de Cámara` y apunta a la pantalla del beneficiario.
+   - En caso de retiros con terceros autorizados, pulsa el acceso rápido de Retiro Delegado.
+4. **Validación Automática y Entrega Inmediata:**
+   - El motor local valida la firma criptográfica del QR y emite un HUD visual y sonoro ("✅ DESPACHADO").
+   - La entrega se respalda inmediatamente en la cola offline y en Supabase Cloud.
+   - La pantalla del operador permanece limpia, sin logs ni generadores de contingencia que interrumpan el flujo.
 
-#### 2.3 Flujo del Administrador de Recursos Humanos y TI
+#### 2.3 Flujo del Supervisor de Jornada (Contingencias y Excepciones)
+1. **Acceso de Supervisión:** El supervisor ingresa con rol `supervisor` o `admin`.
+2. **Atención de Casos Especiales:**
+   - Beneficiarios adultos mayores sin smartphone compatible, pantallas rotas o huellas dactilares deterioradas.
+3. **Módulo Exclusivo de Contingencia:**
+   - Abre el modal de contingencia desde su menú o panel (`supervisorModalBackdrop`).
+   - Ingresa la Cédula de Identidad del funcionario y consulta su cuota en tiempo real.
+   - Selecciona el motivo justificado de contingencia (ej. `adulto_mayor_sin_smartphone`, `battery_dead_screen_broken`).
+   - Autoriza con firma biométrica o Clave de Supervisor en 1 solo clic.
+   - Puede igualmente generar el Código QR Diario de Supervisor para liberar retiros excepcionales en mesa.
+
+#### 2.4 Flujo del Administrador de Recursos Humanos y TI
 1. **Acceso Administrativo Seguro:**
    - En la pantalla de login, presiona el botón **Acceso Administrativo**.
    - Ingresa su Cédula de Identidad o Correo Institucional (`Sfranco@mippci.gob.ve`) junto con la Clave / PIN de Seguridad de Gobernanza (`ADMIN_ACCESS_SECRET`).

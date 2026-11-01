@@ -8,12 +8,12 @@ let availableCameraDevices = [];
 let selectedCameraDeviceId = null;
 let pendingContingencyWorker = null;
 
-window.toggleChecklistItem = function(cardEl) {
+window.toggleChecklistItem = function (cardEl) {
   // Los combos asignados son determinados por la nómina institucional y no son editables por el operador
   return;
 };
 
-window.setupDistributorSimulator = function() {
+window.setupDistributorSimulator = function () {
   document.getElementById('btnDownloadDailyPack')?.addEventListener('click', downloadDailyPack);
   document.getElementById('btnScanWorkerGeneratedQr')?.addEventListener('click', scanWorkerQr);
   document.getElementById('btnReceiveNfcMobile')?.addEventListener('click', receiveNfcMobile);
@@ -36,7 +36,7 @@ window.setupDistributorSimulator = function() {
           }
         }
       };
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Soporte para Web NFC NDEF Reader nativo de hardware
@@ -54,11 +54,11 @@ window.setupDistributorSimulator = function() {
                 parsed.transport = 'nfc';
                 processQrPayload(parsed, false);
               }
-            } catch (e) {}
+            } catch (e) { }
           }
         };
       }).catch(err => console.info('[NFC Hardware Scanner]', err.message));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // Restaurar entregas offline acumuladas desde IndexedDB al iniciar
@@ -94,7 +94,7 @@ window.setupDistributorSimulator = function() {
       }
     });
   }
-  
+
   // Selector de Estaciones de Despacho (Estación 1: Víveres, Estación 2: Proteína, Unificado)
   setupStationTabs();
 
@@ -162,8 +162,8 @@ window.setupDistributorSimulator = function() {
     const cleanDoc = doc.toUpperCase();
     const digits = doc.replace(/[^0-9]/g, '');
 
-    let worker = STATE.localCache.workers.find(w => 
-      w.document_id === cleanDoc || 
+    let worker = STATE.localCache.workers.find(w =>
+      w.document_id === cleanDoc ||
       (digits && w.document_id.replace(/[^0-9]/g, '') === digits)
     );
 
@@ -173,7 +173,7 @@ window.setupDistributorSimulator = function() {
         if (data && data.workers && data.workers.length > 0) {
           worker = data.workers[0];
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!worker) {
@@ -241,7 +241,7 @@ async function loadDistributorCombos() {
     try {
       const stored = localStorage.getItem('sgbt_cached_combos');
       if (stored) combos = JSON.parse(stored);
-    } catch (e) {}
+    } catch (e) { }
   }
   // 4. Fallback estándar a catálogo oficial asegurando Combo de Útiles Escolares
   if (!combos || !Array.isArray(combos) || combos.length === 0) {
@@ -257,7 +257,7 @@ async function loadDistributorCombos() {
   STATE.distributorCombos = combos;
   if (!STATE.localCache) STATE.localCache = {};
   STATE.localCache.combos = combos;
-  try { localStorage.setItem('sgbt_cached_combos', JSON.stringify(combos)); } catch (e) {}
+  try { localStorage.setItem('sgbt_cached_combos', JSON.stringify(combos)); } catch (e) { }
 
   renderDistributorCombos(combos);
   return combos;
@@ -311,7 +311,7 @@ function renderDistributorCombos(combos) {
   STATE.dispatchMode = STATE.dispatchMode || 'total';
 
   // Filtrar combos activos del catálogo
-  const activeList = Array.isArray(combos) 
+  const activeList = Array.isArray(combos)
     ? combos.filter(c => c.is_active === undefined || c.is_active === 1 || c.is_active === true || c.is_active === '1')
     : [];
 
@@ -494,8 +494,8 @@ function setupRealtimeQrSyncListener() {
       const targetStation = station || (payload && payload.station) || '1';
       STATE.activeStation = targetStation;
       const isS2 = String(targetStation) === '2';
-      const stationBadge = isS2 
-        ? '<span class="badge badge-proteina" style="background:#059669; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">🍗 Estación 2: Combo Proteico (Cadena de Frío)</span>' 
+      const stationBadge = isS2
+        ? '<span class="badge badge-proteina" style="background:#059669; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">🍗 Estación 2: Combo Proteico (Cadena de Frío)</span>'
         : '<span class="badge badge-viveres" style="background:#0284c7; color:#fff; font-size:0.75rem; padding: 0.2rem 0.5rem;">📦 Estación 1: Bulto Víveres Secos</span>';
 
       info.innerHTML = `<strong>${workerName || 'Beneficiario'}</strong> &middot; Cédula: <strong>${docId || 'V-18456123'}</strong><br>${stationBadge} &middot; <small style="color: #6ee7b7;">Código QR válido listo para entregar.</small>`;
@@ -530,7 +530,7 @@ function setupRealtimeQrSyncListener() {
         const doc = localStorage.getItem('sgbt_active_qr_doc') || 'V-18456123';
         const st = localStorage.getItem('sgbt_active_station') || (payload && payload.station) || '1';
         showBanner(name, doc, payload, st);
-      } catch (err) {}
+      } catch (err) { }
     }
   });
 
@@ -547,7 +547,7 @@ function setupRealtimeQrSyncListener() {
         showBanner(name, doc, payload, st);
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 function broadcastDeliveryApproval(deliveryResult, payload = {}) {
@@ -674,12 +674,12 @@ function cleanAndParseQrPayload(rawInput) {
 
   // 1. JSON directo
   if (clean.startsWith('{') && clean.endsWith('}')) {
-    try { return JSON.parse(clean); } catch (e) {}
+    try { return JSON.parse(clean); } catch (e) { }
   }
 
   // 2. URL-encoded (%7B...%7D)
   if (clean.startsWith('%7B') || clean.startsWith('%7b')) {
-    try { return JSON.parse(decodeURIComponent(clean)); } catch (e) {}
+    try { return JSON.parse(decodeURIComponent(clean)); } catch (e) { }
   }
 
   // 3. URL completa con parámetros (?qr= o ?payload=)
@@ -691,7 +691,7 @@ function cleanAndParseQrPayload(rawInput) {
         const decodedParam = decodeURIComponent(param);
         return cleanAndParseQrPayload(decodedParam);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   // 4. Base64
@@ -700,7 +700,7 @@ function cleanAndParseQrPayload(rawInput) {
     if (decodedB64 && decodedB64.startsWith('{') && decodedB64.endsWith('}')) {
       return JSON.parse(decodedB64);
     }
-  } catch (e) {}
+  } catch (e) { }
 
   // 5. Cédula directa escaneada (código de barras en carnet físico)
   const cleanDoc = clean.replace(/\s+/g, '').toUpperCase();
@@ -741,7 +741,7 @@ async function releaseScreenWakeLock() {
   if (screenWakeLock !== null) {
     try {
       await screenWakeLock.release();
-    } catch (e) {}
+    } catch (e) { }
     screenWakeLock = null;
   }
 }
@@ -793,10 +793,10 @@ async function startLiveCameraScanner() {
 
           // Si no hay cámara forzada por el usuario y se busca cámara trasera, identificarla
           if (!selectedCameraDeviceId && currentFacingMode === 'environment') {
-            const backCam = devices.find(d => 
-              (d.label || '').toLowerCase().includes('back') || 
-              (d.label || '').toLowerCase().includes('trasera') || 
-              (d.label || '').toLowerCase().includes('rear') || 
+            const backCam = devices.find(d =>
+              (d.label || '').toLowerCase().includes('back') ||
+              (d.label || '').toLowerCase().includes('trasera') ||
+              (d.label || '').toLowerCase().includes('rear') ||
               (d.label || '').toLowerCase().includes('environment')
             );
             if (backCam) {
@@ -898,7 +898,7 @@ async function startLiveCameraScanner() {
       }
     };
 
-    const onScanFailure = () => {};
+    const onScanFailure = () => { };
 
     try {
       await liveCameraScanner.start(cameraParam, config, onScanSuccess, onScanFailure);
@@ -1032,7 +1032,7 @@ async function scanWorkerQr() {
       if (testWorker) {
         const activeSt = STATE.activeStation || '1';
         const isS2 = activeSt === '2';
-        const ent = testWorker.entitlements && testWorker.entitlements.find(e => isS2 
+        const ent = testWorker.entitlements && testWorker.entitlements.find(e => isS2
           ? (e.shift === 'estacion_2' || (e.combo_name && e.combo_name.toLowerCase().includes('prote')))
           : (e.shift === 'estacion_1' || (e.combo_name && e.combo_name.toLowerCase().includes('víveres')))
         );
@@ -1174,17 +1174,17 @@ async function processQrPayload(payload, isLiveCamera = false) {
     return;
   }
 
-  const isTotalMode = STATE.dispatchMode === 'total' || 
-                      (payload && payload.mode === 'total') || 
-                      (payload && payload.station === 'all') || 
-                      (STATE.activeStation === 'all');
+  const isTotalMode = STATE.dispatchMode === 'total' ||
+    (payload && payload.mode === 'total') ||
+    (payload && payload.station === 'all') ||
+    (STATE.activeStation === 'all');
 
   const qrStation = (payload && payload.station) ? String(payload.station) : (STATE.activeStation || '1');
   const stationCacheKey = payload.wid + '_station_' + (isTotalMode ? 'all' : qrStation);
 
-  if (STATE.localCache.deliveredEntitlements.has(payload.ent) || 
-      STATE.localCache.deliveredEntitlements.has(stationCacheKey) ||
-      STATE.localCache.deliveredEntitlements.has(payload.wid + '_station_all')) {
+  if (STATE.localCache.deliveredEntitlements.has(payload.ent) ||
+    STATE.localCache.deliveredEntitlements.has(stationCacheKey) ||
+    STATE.localCache.deliveredEntitlements.has(payload.wid + '_station_all')) {
     const isStation2 = qrStation === '2';
     const comboLabel = isTotalMode ? 'Retiro Totalizado de Combos' : (isStation2 ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto de Víveres Secos');
     if (window.AppLogger) {
@@ -1254,7 +1254,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
       updateSyncQueueUI();
 
       const offlineHeader = isNfcMobile ? 'DESPACHO TOTALIZADO NFC (OFFLINE)' : 'DESPACHO TOTALIZADO (OFFLINE)';
-      const offlineDesc = isNfcMobile 
+      const offlineDesc = isNfcMobile
         ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada. Todos los combos encolados para sincronización.'
         : 'Entrega totalizada validada correctamente en Almacén Sótano 1 sin conexión.';
 
@@ -1321,7 +1321,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const offlineComboTitle = isStation2Offline ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto Víveres Secos';
 
     const offlineHeader = isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO (OFFLINE)' : 'DESPACHO AUTORIZADO';
-    const offlineDesc = isNfcMobile 
+    const offlineDesc = isNfcMobile
       ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada offline.'
       : 'Entrega validada correctamente en Almacén Sótano 1.';
 
@@ -1380,7 +1380,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
         // Notificación Toast
         const toastMsg = result.toast_message || (result.delivery_type === 'atomic_total_claim'
           ? '🎉 ¡RETIRO ÚNICO TOTALIZADO APROBADO! Todos los combos despachados.'
-          : (result.station === 2 
+          : (result.station === 2
             ? '🎉 ¡RETIRO APROBADO! Ya puede retirar su 🍗 Combo Proteico Fresco (Cadena de Frío) en la Estación 2.'
             : '🎉 ¡RETIRO APROBADO! Ya puede retirar su Bulto Viveres Secos en la Estación 1.'));
 
@@ -1389,7 +1389,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
         if (navigator.vibrate) navigator.vibrate([120, 80, 200]);
 
         const isAtomic = result.delivery_type === 'atomic_total_claim';
-        const onlineHeader = isAtomic 
+        const onlineHeader = isAtomic
           ? (isNfcMobile ? 'RETIRO TOTALIZADO NFC APROBADO' : 'RETIRO TOTALIZADO APROBADO')
           : (isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO' : 'DESPACHO ONLINE AUTORIZADO');
 
@@ -1416,7 +1416,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
           showCameraScanHUD(
             true,
             onlineHeader,
-            isAtomic 
+            isAtomic
               ? `${result.worker_name} &middot; ${result.total_combos || result.combos_delivered?.length || 2} combos despachados`
               : `${result.worker_name} (${result.document_id}) &middot; ${result.combo_name}`
           );
@@ -1466,7 +1466,7 @@ async function downloadDailyPack() {
     if (pack.combos && Array.isArray(pack.combos) && pack.combos.length > 0) {
       STATE.localCache.combos = pack.combos;
       STATE.distributorCombos = pack.combos;
-      try { localStorage.setItem('sgbt_cached_combos', JSON.stringify(pack.combos)); } catch (e) {}
+      try { localStorage.setItem('sgbt_cached_combos', JSON.stringify(pack.combos)); } catch (e) { }
       if (typeof renderDistributorCombos === 'function') {
         renderDistributorCombos(pack.combos);
       }
@@ -1577,7 +1577,7 @@ async function receiveNfcMobile() {
   try {
     const raw = localStorage.getItem('sgbt_active_nfc_payload') || localStorage.getItem('sgbt_active_qr_payload');
     if (raw) nfcPayload = JSON.parse(raw);
-  } catch (e) {}
+  } catch (e) { }
 
   if (!nfcPayload) {
     try {
@@ -1646,7 +1646,7 @@ async function handleSupervisorDailyQrScan(payload) {
     const selWorker = STATE.localCache.workers.find(w => w.worker_id === STATE.selectedWorkerId);
     if (selWorker) workerId = selWorker.worker_id;
   }
-  
+
   if (!workerId) {
     const hilda = STATE.localCache.workers.find(w => w.document_id === 'V-06894321' || w.worker_type === 'jubilado');
     workerId = hilda ? hilda.worker_id : '550e8400-e29b-41d4-a716-446655440003';
@@ -1727,8 +1727,8 @@ async function searchContingencyWorker() {
   const cleanDoc = doc.toUpperCase();
   const digits = doc.replace(/[^0-9]/g, '');
 
-  let worker = STATE.localCache.workers.find(w => 
-    w.document_id === cleanDoc || 
+  let worker = STATE.localCache.workers.find(w =>
+    w.document_id === cleanDoc ||
     (digits && w.document_id.replace(/[^0-9]/g, '') === digits)
   );
 
@@ -1738,7 +1738,7 @@ async function searchContingencyWorker() {
       if (data && data.workers && data.workers.length > 0) {
         worker = data.workers[0];
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   if (!worker) {
@@ -1757,13 +1757,13 @@ async function searchContingencyWorker() {
   pendingContingencyWorker = worker;
   const workerId = worker.worker_id || worker.id;
   const isJubilado = worker.worker_type === 'jubilado' || worker.contingency_reason === 'adulto_mayor_sin_smartphone';
-  const typeBadge = isJubilado 
+  const typeBadge = isJubilado
     ? '<span class="badge badge-jubilado" style="font-size: 0.68rem;">👴 Adulto Mayor / Sin Celular</span>'
     : '<span class="badge badge-activo" style="font-size: 0.68rem;">🏢 Beneficiario sin Smartphone</span>';
 
-  const isDelivered = STATE.localCache.deliveredEntitlements.has(workerId) || 
-                      STATE.localCache.deliveredEntitlements.has(workerId + '_station_1') || 
-                      worker.today_claimed;
+  const isDelivered = STATE.localCache.deliveredEntitlements.has(workerId) ||
+    STATE.localCache.deliveredEntitlements.has(workerId + '_station_1') ||
+    worker.today_claimed;
 
   const utilesCombo = STATE.assignedCombo || {
     id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113',
@@ -2117,8 +2117,8 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
 
   if (isSuccess && d) {
     const isJubilado = extraData && (extraData.worker_type === 'jubilado' || extraData.contingency_reason === 'adulto_mayor_sin_smartphone');
-    const badgeHtml = isJubilado 
-      ? '<span class="badge badge-jubilado" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">👴 Personal Jubilado / Adulto Mayor</span>' 
+    const badgeHtml = isJubilado
+      ? '<span class="badge badge-jubilado" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">👴 Personal Jubilado / Adulto Mayor</span>'
       : '<span class="badge badge-activo" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">🏢 Funcionario Activo</span>';
 
     d.innerHTML = `
@@ -2132,9 +2132,9 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
         </div>
         <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.8rem; color: #f8fafc; background: rgba(0,0,0,0.35); padding: 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
           ${(() => {
-            const list = (extraData && extraData.delivered_combos) || STATE.distributorCombos || [];
-            if (list.length > 0) {
-              return list.map(c => `
+        const list = (extraData && extraData.delivered_combos) || STATE.distributorCombos || [];
+        if (list.length > 0) {
+          return list.map(c => `
                 <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
                   <span style="font-size: 1rem;">${c.icon || '✅'}</span>
                   <div>
@@ -2143,14 +2143,14 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
                   </div>
                 </div>
               `).join('');
-            }
-            return `
+        }
+        return `
               <div>✅ <strong>Bolsa de Víveres Secos</strong> (Canasta Básica MIPPCI)</div>
               <div>✅ <strong>Combo Charcutería / Proteína</strong> (Cadena de Frío)</div>
               <div>✅ <strong>Combo de Higiene Personal</strong> (4 artículos de aseo)</div>
               <div>✅ <strong>Combo de Limpieza</strong> (Artículos de limpieza)</div>
             `;
-          })()}
+      })()}
         </div>
         <div class="text-mono" style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem;">
           ID Transacción: ${crypto.randomUUID()} &middot; Punto: Almacén Sótano 1

@@ -164,3 +164,20 @@ Contrasta el código contra los casos críticos habituales e indica si están cu
    ```
 3. **Manejo Estricto de Errores RFC 7807:** Las respuestas erróneas deben emitir `application/problem+json` sin exponer volcados de memoria ni consultas SQL internas al cliente.
 
+---
+
+## 6. Auditoría de Usabilidad y Segregación de Roles UI (Anti-Slop / Ergonomía Móvil)
+**Fecha:** 1 de Noviembre de 2026  
+**Documento Detallado:** [`docs/12_SEPARACION_ROLES_Y_SIMPLIFICACION_UI.md`](file:///d:/Documents/Mippci/PROPUESTA%20DE%20PROYECTOS%20TI/Bolsa/docs/12_SEPARACION_ROLES_Y_SIMPLIFICACION_UI.md)
+
+### Problema Identificado:
+- La vista de Mesa de Despacho operaba con sobrecarga de elementos de prueba (`⚡ Simular Escaneo QR`, `📁 Cargar Foto / Archivo QR`, `📋 Pegar Código Manual`, `💳 Tarjeta NFC Física`), botón de logs expuesto al operador, casillas de verificación editables que permitían alterar cuotas asignadas y generador de contingencia mezclado en la terminal del operario.
+- La vista móvil del beneficiario contenía selectores de identidad de prueba y bloques extensos de texto técnico.
+
+### Remediación Aplicada:
+1. **Segregación en 4 Experiencias Puras:** Beneficiario (Carnet QR limpio), Mesa de Despacho (Cámara y escaneo rápido sin controles de desarrollo ni edición de combos), Supervisor (Modal exclusivo de contingencias y excepciones con búsqueda por cédula) y Administrador (Gobierno institucional).
+2. **Inalterabilidad de Cuotas en Almacén:** `toggleChecklistItem` neutralizado; las listas de despacho se renderizan como resúmenes estáticos de solo lectura.
+3. **Caché Service Worker Actualizado:** Versión `mippci-bienestar-v3.6-streamlined`.
+4. **Verificación:** 23/23 pruebas pasaron al 100% (`npm test`). Commits: `2f66d04`, `981e530`.
+
+
