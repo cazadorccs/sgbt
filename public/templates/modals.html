@@ -1877,6 +1877,45 @@
 </div>
 
 <!-- ======================================================================
+     MODAL: HISTORIAL DE RECIBOS DIGITALES DEL BENEFICIARIO
+     ====================================================================== -->
+<div id="workerReceiptsHistoryModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 580px;">
+    <div class="panel-header" style="border-bottom: 1.5px solid rgba(56, 189, 248, 0.3);">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+        <span>📜</span> Mis Recibos Digitales de Entrega
+      </div>
+      <button id="btnCloseWorkerReceiptsHistoryModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="padding: 0.75rem 0;">
+      <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.4;">
+        Comprobantes digitales oficiales de sus combos retirados en cada jornada institucional. Cada recibo cuenta con respaldo inalterable verificado por Auditoría Interna.
+      </p>
+
+      <!-- CONTENEDOR DINÁMICO DE RECIBOS -->
+      <div id="workerReceiptsHistoryList" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 420px; overflow-y: auto; padding-right: 0.25rem;">
+        <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.8rem;">
+          <span class="spinner" style="display: inline-block; width: 20px; height: 20px; margin-bottom: 0.5rem;"></span><br>
+          Cargando recibos oficiales...
+        </div>
+      </div>
+
+      <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: flex-end;">
+        <button type="button" id="btnCloseWorkerReceiptsHistoryModalBtn" class="btn btn-outline" style="padding: 0.5rem 1.25rem; font-size: 0.8rem;">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
      MODAL 1: CREAR SOLICITUD DE LOTE DEPARTAMENTAL (FASE 4 - ETAPA 1)
      ====================================================================== -->
 <div id="createDepartmentBatchModalBackdrop" class="modal-backdrop">

@@ -60,13 +60,20 @@ El presente documento define el **Plan de Evolución y Recomendaciones Estratég
   - Canal alternativo mediante Bot Institucional de Telegram o webhook ministerial.
 
 #### 2.2 Acta Ministerial Digital de Cierre de Jornada con Sello SHA-256
-- **Justificación Operacional:** Formalización legal de la jornada para el cierre de cuentas de bienes nacionales y auditoría pública.
+- **Justificación Operacional:** Formalización legal de la jornada para el cierre de cuentas de bienes nacionales y auditoría pública, sustituyendo la necesidad de imprimir tickets de papel térmico.
 - **Arquitectura de Implementación:**
   - Botón de cierre definitivo de jornada por el Director / Super Administrador.
   - Consolidación matemática irreversible:
     $$\text{Combos Totales} = \text{Entregados} + \text{Pendientes No Retirados} + \text{Mermas/Averiados}$$
   - Cálculo del hash criptográfico SHA-256 del lote completo de transacciones.
   - Generación de documento PDF oficial con marca de agua, firmas de los testigos de jornada y código QR para validación pública de autenticidad en el portal.
+
+#### 2.3 Auto-Consulta de Recibos Digitales e Historial por Jornada (Beneficiario)
+- **Justificación Operacional:** Permite a cada funcionario verificar y descargar en su teléfono el comprobante oficial de cada entrega histórica, con valor probatorio individual.
+- **Arquitectura de Implementación:**
+  - Endpoint seguro `GET /api/v1/auth/my-receipts` que agrupa las entregas por jornada.
+  - Modal interactivo de historial (`workerReceiptsHistoryModalBackdrop`) accesible desde el carnet móvil.
+  - Despliegue del recibo digital detallado con sello SHA-256, desglose de rubros, peso bruto estimado y botón de impresión / guardado como PDF.
 
 ---
 
@@ -117,3 +124,4 @@ El presente documento define el **Plan de Evolución y Recomendaciones Estratég
 ## 4. Conclusión
 
 La implementación escalonada de estas recomendaciones consolidará al **SGBT (MIPPCI)** como una referencia de modernización tecnológica en la gestión pública nacional, combinando velocidad logística, soberanía digital, trazabilidad inalterable y transparencia administrativa.
+

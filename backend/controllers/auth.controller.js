@@ -2179,6 +2179,90 @@ const releaseDeviceLock = (req, res) => {
   }
 };
 
+const getMyReceipts = (req, res) => {
+  const workerId = req.user?.id;
+  const documentId = req.user?.document_id;
+  if (!workerId && !documentId) {
+    return res.status(401).json({ error: 'No autenticado' });
+  }
+
+  try {
+    const rows = db.prepare(`
+      SELECT 
+        d.id as delivery_id,
+        d.delivered_at,
+        d.verification_method,
+        d.signature_proof,
+        d.challenge_nonce,
+        d.override_reason,
+        w.id as worker_id,
+        w.full_name as worker_name,
+        w.document_id,
+        w.department_name,
+        c.id as combo_id,
+        c.name as combo_name,
+        c.category as combo_category,
+        c.icon as combo_icon,
+        c.weight_kg as combo_weight,
+        c.items_detail as combo_items,
+        dp.name as point_name,
+        dp.location_code as point_code,
+        op.full_name as operator_name,
+        date(d.delivered_at) as delivery_date
+      FROM deliveries d
+      JOIN workers w ON d.worker_id = w.id
+      LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
+      LEFT JOIN combos c ON e.combo_id = c.id
+      LEFT JOIN distribution_points dp ON d.distribution_point_id = dp.id
+      LEFT JOIN workers op ON d.delivered_by_user_id = op.id
+      WHERE d.worker_id = ? OR w.document_id = ?
+      ORDER BY d.delivered_at DESC
+    `).all(workerId || '', documentId || '');
+
+    const jornadasMap = new Map();
+    for (const r of rows) {
+      const dateKey = r.delivery_date || (r.delivered_at ? r.delivered_at.split('T')[0] : 'Hoy');
+      if (!jornadasMap.has(dateKey)) {
+        jornadasMap.set(dateKey, {
+          date: dateKey,
+          formatted_date: new Date(r.delivered_at).toLocaleDateString('es-VE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+          delivered_at: r.delivered_at,
+          worker_name: r.worker_name,
+          worker_doc: r.document_id,
+          department_name: r.department_name,
+          point_name: r.point_name || 'Almacén Central - Sótano 1',
+          operator_name: r.operator_name || 'Mesa de Despacho',
+          verification_method: r.verification_method,
+          challenge_nonce: r.challenge_nonce,
+          combos: [],
+          total_weight: 0,
+          tx_id: '#TX-' + (r.delivery_id ? r.delivery_id.slice(0, 8).toUpperCase() : 'OK')
+        });
+      }
+
+      const j = jornadasMap.get(dateKey);
+      const wKg = parseFloat(r.combo_weight) || 0;
+      j.total_weight = Math.round((j.total_weight + wKg) * 10) / 10;
+      j.combos.push({
+        delivery_id: r.delivery_id,
+        combo_id: r.combo_id,
+        name: r.combo_name || 'Bulto de Alimentos',
+        category: r.combo_category,
+        icon: r.combo_icon || '📦',
+        weight: wKg,
+        items: r.combo_items || 'Rubros oficiales asignados',
+        delivered_at: r.delivered_at
+      });
+    }
+
+    const receipts = Array.from(jornadasMap.values());
+    return res.json({ success: true, receipts });
+  } catch (err) {
+    console.error('[GET MY RECEIPTS ERROR]', err);
+    return res.status(500).json({ error: 'Error al consultar recibos: ' + err.message });
+  }
+};
+
 module.exports = {
   login,
   magicLogin,
@@ -2202,5 +2286,6 @@ module.exports = {
   contingencyOverride,
   releaseDeviceLock,
   getDeliveryStatus,
-  deliveryStream
+  deliveryStream,
+  getMyReceipts
 };

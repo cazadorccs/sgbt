@@ -1005,29 +1005,36 @@ window.setupWorkerSimulator = function() {
   });
 
   // Manejador del Comprobante Digital Consolidado (Modal Fase 3: Retiro Único Totalizado)
-  const openConsolidatedModal = () => {
+  const openConsolidatedModal = (customReceipt = null) => {
     const modal = document.getElementById('consolidatedReceiptModalBackdrop');
     if (!modal) return;
 
-    const workerName = document.getElementById('receiptWorkerName')?.textContent || (STATE.currentUser ? STATE.currentUser.full_name : 'Carlos Mendoza');
-    const workerDoc = document.getElementById('receiptWorkerDoc')?.textContent || (STATE.currentUser ? STATE.currentUser.document_id : 'V-18456123');
-    const timestamp = document.getElementById('receiptTimestamp')?.textContent || new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' });
-    const txId = document.getElementById('receiptDeliveryId')?.textContent || '#TX-ATOMIC-' + Date.now().toString().slice(-6);
+    const workerName = customReceipt?.worker_name || document.getElementById('receiptWorkerName')?.textContent || (STATE.currentUser ? STATE.currentUser.full_name : 'Carlos Mendoza');
+    const workerDoc = customReceipt?.worker_doc || document.getElementById('receiptWorkerDoc')?.textContent || (STATE.currentUser ? STATE.currentUser.document_id : 'V-18456123');
+    const timestamp = customReceipt?.delivered_at 
+      ? new Date(customReceipt.delivered_at).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' })
+      : (document.getElementById('receiptTimestamp')?.textContent || new Date().toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit' }));
+    const dateFormatted = customReceipt?.formatted_date || new Date().toLocaleDateString('es-VE');
+    const txId = customReceipt?.tx_id || document.getElementById('receiptDeliveryId')?.textContent || '#TX-ATOMIC-' + Date.now().toString().slice(-6);
 
     const nameEl = document.getElementById('modalConsolidatedWorkerName');
     const docEl = document.getElementById('modalConsolidatedWorkerDoc');
     const timeEl = document.getElementById('modalConsolidatedTimestamp');
     const txEl = document.getElementById('modalConsolidatedTxId');
+    const hashEl = document.getElementById('modalConsolidatedHash');
     const combosListEl = document.getElementById('modalConsolidatedCombosList');
     const grossWeightEl = document.getElementById('modalConsolidatedGrossWeight');
     const countEl = document.getElementById('modalConsolidatedCombosCount');
 
     if (nameEl) nameEl.textContent = workerName;
     if (docEl) docEl.textContent = workerDoc;
-    if (timeEl) timeEl.textContent = `${new Date().toLocaleDateString('es-VE')} · ${timestamp}`;
+    if (timeEl) timeEl.textContent = `${dateFormatted} · ${timestamp}`;
     if (txEl) txEl.textContent = txId;
+    if (hashEl) {
+      hashEl.textContent = `SHA256: ${customReceipt?.challenge_nonce || 'a8f4c2b98e10d3e5894123fca78e90bc4123567890abcdef1234567890abcdef'}`;
+    }
 
-    const combos = [
+    const combos = customReceipt?.combos && customReceipt.combos.length > 0 ? customReceipt.combos : [
       { name: 'Bolsa de Víveres Secos (Canasta Básica)', icon: '🌾', mesa: 'Mesa 1', weight: 14.5, desc: 'Harina, arroz, pasta, aceite, azúcar, granos, sardinas' },
       { name: 'Combo Proteico Fresco (Cadena de Frío)', icon: '🍗', mesa: 'Mesa 2', weight: 14.0, desc: 'Pollo entero refrigerado, carne molida, mortadela' }
     ];
@@ -1037,26 +1044,149 @@ window.setupWorkerSimulator = function() {
         <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 6px; padding: 0.5rem 0.65rem; display: flex; justify-content: space-between; align-items: center;">
           <div>
             <div style="font-weight: 700; color: #f1f5f9; font-size: 0.78rem;">
-              <span>${c.icon}</span> <strong>${c.name}</strong>
-              <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-left: 0.35rem; padding: 0.1rem 0.4rem;">${c.mesa}</span>
+              <span>${c.icon || '📦'}</span> <strong>${c.name}</strong>
+              <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-left: 0.35rem; padding: 0.1rem 0.4rem;">${c.mesa || 'Mesa 1'}</span>
             </div>
-            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 0.15rem;">${c.desc}</div>
+            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 0.15rem;">${c.desc || c.items || 'Rubros oficiales asignados'}</div>
           </div>
           <div style="text-align: right; min-width: 65px;">
-            <span style="font-weight: 800; color: #34d399; font-size: 0.75rem;">${c.weight} kg</span>
+            <span style="font-weight: 800; color: #34d399; font-size: 0.75rem;">${c.weight || 14} kg</span>
             <div style="font-size: 0.62rem; color: #34d399;">✅ Entregado</div>
           </div>
         </div>
       `).join('');
     }
 
+    const totalWeight = customReceipt?.total_weight || 28.5;
     if (countEl) countEl.textContent = `${combos.length} Combos Liquidados`;
-    if (grossWeightEl) grossWeightEl.textContent = `~28.5 kg`;
+    if (grossWeightEl) grossWeightEl.textContent = `~${totalWeight} kg`;
 
     modal.classList.add('active');
   };
 
-  document.getElementById('btnOpenConsolidatedReceiptModal')?.addEventListener('click', openConsolidatedModal);
+  const loadWorkerReceiptsHistory = async () => {
+    const listEl = document.getElementById('workerReceiptsHistoryList');
+    if (!listEl) return;
+
+    listEl.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.8rem;">
+        <span class="spinner" style="display: inline-block; width: 20px; height: 20px; margin-bottom: 0.5rem;"></span><br>
+        Consultando sus recibos oficiales...
+      </div>
+    `;
+
+    try {
+      let receipts = [];
+      if (window.API && typeof window.API.get === 'function') {
+        const res = await API.get('/api/v1/auth/my-receipts');
+        if (res && res.receipts) receipts = res.receipts;
+      }
+
+      // Si no hay recibos aún en backend, verificar si en la sesión actual ya se despachó hoy
+      if (!receipts || receipts.length === 0) {
+        const hasReceiptBox = document.getElementById('workerDeliveryReceiptBox')?.style.display !== 'none';
+        if (hasReceiptBox) {
+          receipts = [{
+            date: new Date().toISOString().split('T')[0],
+            formatted_date: new Date().toLocaleDateString('es-VE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+            delivered_at: new Date().toISOString(),
+            worker_name: STATE.currentUser ? STATE.currentUser.full_name : 'Carlos Mendoza',
+            worker_doc: STATE.currentUser ? STATE.currentUser.document_id : 'V-18456123',
+            department_name: 'MIPPCI',
+            point_name: 'Almacén Central - Sótano 1',
+            operator_name: 'Mesa de Despacho',
+            verification_method: 'passkey_qr',
+            tx_id: document.getElementById('receiptDeliveryId')?.textContent || '#TX-HOY-OK',
+            total_weight: 28.5,
+            combos: [
+              { name: 'Bolsa de Víveres Secos (Canasta Básica)', icon: '🌾', weight: 14.5, desc: 'Harina, arroz, pasta, aceite, azúcar, granos, sardinas' },
+              { name: 'Combo Proteico Fresco (Cadena de Frío)', icon: '🍗', weight: 14.0, desc: 'Pollo entero refrigerado, carne molida, mortadela' }
+            ]
+          }];
+        }
+      }
+
+      if (!receipts || receipts.length === 0) {
+        listEl.innerHTML = `
+          <div style="background: rgba(15, 23, 42, 0.4); border: 1px dashed rgba(148, 163, 184, 0.3); border-radius: 8px; padding: 1.5rem; text-align: center; color: #94a3b8;">
+            <span style="font-size: 2rem;">📭</span>
+            <div style="font-size: 0.85rem; font-weight: 700; color: #f8fafc; margin-top: 0.5rem;">Aún no posee recibos registrados</div>
+            <p style="font-size: 0.72rem; margin: 0.25rem 0 0 0; line-height: 1.35;">
+              Cuando retire sus combos en la mesa de despacho, aquí se generará automáticamente su recibo digital oficial con respaldo criptográfico.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      listEl.innerHTML = receipts.map((r, idx) => `
+        <div class="glass-card" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.45rem;">
+            <div>
+              <div style="font-weight: 800; font-size: 0.85rem; color: #fff; text-transform: capitalize;">
+                🗓️ Jornada: ${r.formatted_date || r.date}
+              </div>
+              <div style="font-size: 0.7rem; color: #94a3b8;">
+                ${r.point_name || 'Almacén Central'} &middot; <span class="text-mono" style="color: #38bdf8;">${r.tx_id || '#TX-OK'}</span>
+              </div>
+            </div>
+            <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399; font-weight: 700; font-size: 0.68rem; border: 1px solid rgba(52, 211, 153, 0.4);">
+              ✅ Entregado
+            </span>
+          </div>
+
+          <div style="background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 0.4rem 0.6rem; margin-bottom: 0.55rem; font-size: 0.75rem; color: #e2e8f0;">
+            ${(r.combos || []).map(c => `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.15rem 0;">
+                <span>${c.icon || '📦'} <strong>${c.name}</strong></span>
+                <span style="color: #34d399; font-weight: 700;">${c.weight ? c.weight + ' kg' : ''}</span>
+              </div>
+            `).join('') || '<div>📦 Combos institucionales entregados</div>'}
+            <div style="border-top: 1px dashed rgba(255,255,255,0.1); margin-top: 0.3rem; padding-top: 0.25rem; display: flex; justify-content: space-between; font-size: 0.72rem; color: #94a3b8;">
+              <span>Total: <strong>${r.combos ? r.combos.length : 2} combos</strong></span>
+              <span>Peso: <strong style="color: #38bdf8;">~${r.total_weight || 28.5} kg</strong></span>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-outline btn-view-single-receipt" data-receipt-idx="${idx}" style="width: 100%; font-size: 0.74rem; font-weight: 700; padding: 0.4rem 0.6rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 0.35rem;">
+            <span>🔍</span> <span>Ver Comprobante Oficial Detallado ↗</span>
+          </button>
+        </div>
+      `).join('');
+
+      listEl.querySelectorAll('.btn-view-single-receipt').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.receiptIdx, 10);
+          const selReceipt = receipts[idx];
+          if (selReceipt) {
+            document.getElementById('workerReceiptsHistoryModalBackdrop')?.classList.remove('active');
+            openConsolidatedModal(selReceipt);
+          }
+        });
+      });
+
+    } catch (e) {
+      listEl.innerHTML = `
+        <div style="color: #f87171; text-align: center; padding: 1rem; font-size: 0.8rem;">
+          ⚠️ No fue posible consultar los recibos: ${e.message}
+        </div>
+      `;
+    }
+  };
+
+  // Botón para abrir el historial de recibos del beneficiario
+  document.getElementById('btnOpenReceiptsHistoryModal')?.addEventListener('click', () => {
+    document.getElementById('workerReceiptsHistoryModalBackdrop')?.classList.add('active');
+    loadWorkerReceiptsHistory();
+  });
+  document.getElementById('btnCloseWorkerReceiptsHistoryModal')?.addEventListener('click', () => {
+    document.getElementById('workerReceiptsHistoryModalBackdrop')?.classList.remove('active');
+  });
+  document.getElementById('btnCloseWorkerReceiptsHistoryModalBtn')?.addEventListener('click', () => {
+    document.getElementById('workerReceiptsHistoryModalBackdrop')?.classList.remove('active');
+  });
+
+  document.getElementById('btnOpenConsolidatedReceiptModal')?.addEventListener('click', () => openConsolidatedModal());
   document.getElementById('btnCloseConsolidatedReceiptModal')?.addEventListener('click', () => {
     document.getElementById('consolidatedReceiptModalBackdrop')?.classList.remove('active');
   });

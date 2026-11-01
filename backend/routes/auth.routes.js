@@ -41,5 +41,6 @@ router.post('/auth/device/release', requireRole('supervisor', 'admin', 'director
 router.post('/verify/qr', authController.verifyQr);
 router.get('/auth/delivery-status', authenticate, authController.getDeliveryStatus);
 router.get('/auth/delivery-stream', authenticate, authController.deliveryStream);
+router.get('/auth/my-receipts', authenticate, authController.getMyReceipts);
 
 module.exports = router;
