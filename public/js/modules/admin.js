@@ -795,6 +795,12 @@ document.addEventListener('DOMContentLoaded', () => {
     window.location.href = `/api/v1/admin/export?format=csv&campaign_id=${encodeURIComponent(campaignId)}&session_token=${encodeURIComponent(token)}`;
   });
 
+  document.getElementById('btnExportAuditExcel')?.addEventListener('click', () => {
+    const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
+    const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
+    window.location.href = `/api/v1/admin/export?format=xlsx&campaign_id=${encodeURIComponent(campaignId)}&session_token=${encodeURIComponent(token)}`;
+  });
+
   document.getElementById('btnExportAuditActa')?.addEventListener('click', () => {
     const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
     const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';

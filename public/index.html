@@ -427,7 +427,7 @@
                   id="adminDocNumber" 
                   type="text" 
                   class="form-input" 
-                  placeholder="Ej: 13537582 o sfranco@mippci.gob.ve" 
+                  placeholder="Cédula o correo institucional" 
                   style="width: 100%; box-sizing: border-box; font-size: 0.95rem; font-weight: 600; padding: 0.65rem 0.85rem;"
                   autocomplete="username"
                 >
@@ -1510,6 +1510,10 @@
                   <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                   <span>Exportar CSV</span>
                 </button>
+                <button id="btnExportAuditExcel" class="btn btn-outline" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.85rem; height: 38px; color: #16a34a; border-color: #86efac; background: #f0fdf4;" title="Exportar reporte multi-pestaña en Excel (.xlsx) con nómina por dependencias">
+                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  <span>📊 Excel (.xlsx)</span>
+                </button>
                 <button id="btnExportAuditActa" class="btn btn-primary" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.5rem 0.85rem; height: 38px; background: #0284c7; border-color: #0284c7;">
                   <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                   <span>📜 Acta Oficial (PDF)</span>
@@ -2297,10 +2301,22 @@
             </div>
 
             <!-- ACCESO DIRECTO AL HISTORIAL DE RECIBOS DIGITALES -->
-            <button type="button" id="btnOpenReceiptsHistoryModal" class="btn btn-outline" style="width: 100%; margin-bottom: 0.85rem; font-size: 0.78rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.45rem 0.75rem; border-radius: 8px;" title="Ver comprobantes oficiales de entregas en cada jornada">
+            <button type="button" id="btnOpenReceiptsHistoryModal" class="btn btn-outline" style="width: 100%; margin-bottom: 0.65rem; font-size: 0.78rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.45rem 0.75rem; border-radius: 8px;" title="Ver comprobantes oficiales de entregas en cada jornada">
               <span>📜</span>
               <span>Mis Recibos Digitales de Entrega</span>
             </button>
+
+            <!-- SEMÁFORO DE AFLUENCIA DE COLAS EN TIEMPO REAL -->
+            <div id="queueTrafficContainer" style="margin-bottom: 0.85rem; padding: 0.55rem 0.85rem; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.55rem;">
+                <span id="queueTrafficDot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.7); flex-shrink: 0;"></span>
+                <div>
+                  <div id="queueTrafficTitle" style="font-weight: 700; font-size: 0.76rem; color: #34d399;">🟢 Cola en Comedor: Despejada (&lt; 3 min)</div>
+                  <div id="queueTrafficDesc" style="font-size: 0.67rem; color: #94a3b8;">Tránsito fluido en mesas de entrega</div>
+                </div>
+              </div>
+              <button type="button" id="btnRefreshQueueTraffic" style="background: none; border: none; cursor: pointer; color: #38bdf8; font-size: 0.85rem; padding: 2px;" title="Actualizar afluencia en tiempo real">🔄</button>
+            </div>
 
             <!-- Selector de Trabajador para Simulación (Oculto por defecto para beneficiarios reales) -->
             <div id="workerSimulatorSelectorContainer" style="display: none; margin-bottom: 0.85rem;">

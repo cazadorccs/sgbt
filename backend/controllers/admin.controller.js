@@ -1071,6 +1071,119 @@ const exportDeliveries = (req, res) => {
     return res.send('\uFEFF' + csvRows.join('\r\n'));
   }
 
+  if (exportFormat === 'xlsx' || exportFormat === 'excel') {
+    const XLSX = require('xlsx');
+    const wb = XLSX.utils.book_new();
+
+    // 1. Pestaña de Resumen General y Auditoría
+    const totalDeliveries = deliveries.length;
+    const uniqueWorkers = new Set(deliveries.map(d => d.document_id)).size;
+    const totalKg = deliveries.reduce((acc, d) => acc + (Number(d.weight_kg) || 0), 0);
+    const totalTons = Math.round((totalKg / 1000) * 1000) / 1000;
+    const { generateSha256IntegritySeal } = require('../services/audit.service');
+    const integrityHash = generateSha256IntegritySeal(deliveries);
+
+    const summaryData = [
+      ['REPÚBLICA BOLIVARIANA DE VENEZUELA'],
+      ['MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN (MIPPCI)'],
+      ['SISTEMA DE GESTIÓN DE BENEFICIOS A TRABAJADORES (SGBT)'],
+      ['INFORME DE RENDICIÓN PÚBLICA, AUDITORÍA Y LIQUIDACIÓN LOGÍSTICA'],
+      [''],
+      ['PARÁMETRO AUDITADO', 'VALOR CONSOLIDADO', 'DETALLES / ESPECIFICACIONES'],
+      ['Jornada de Despacho', campaign_id && campaign_id !== 'all' ? campaign_id : 'Histórico Consolidado Completo', 'Filtro aplicado en sistema'],
+      ['Fecha de Emisión', new Date().toLocaleString('es-VE'), 'Hora legal de Venezuela (VET)'],
+      ['Total Despachos Registrados', totalDeliveries, 'Transacciones procesadas en base de datos'],
+      ['Beneficiarios Atendidos', uniqueWorkers, 'Cédulas únicas registradas'],
+      ['Peso Bruto Despachado (Kg)', Math.round(totalKg * 10) / 10, 'Kilogramos netos'],
+      ['Tonelaje Total Despachado (t)', totalTons, 'Toneladas métricas oficiales'],
+      ['Despachos con Passkey FIDO2', deliveries.filter(d => d.verification_method === 'passkey_qr').length, 'Validación criptográfica asimétrica P-256'],
+      ['Despachos con Tarjeta Física NFC', deliveries.filter(d => d.verification_method === 'nfc_card').length, 'Identificador físico por proximidad'],
+      ['Despachos con QR Diario Supervisor', deliveries.filter(d => d.verification_method === 'supervisor_daily_qr').length, 'Rotación diaria en mesa'],
+      ['Liberaciones por Contingencia Supervisor', deliveries.filter(d => d.verification_method === 'supervisor_override').length, 'Excepciones asistidas justificadas'],
+      ['Despachos Sincronizados Offline', deliveries.filter(d => d.is_offline_sync).length, 'Operatividad en contingencia local'],
+      [''],
+      ['SELLO CRIPTOGRÁFICO DE INTEGRIDAD (SHA-256):', integrityHash, 'Inmutable - Garantía de No Repudio']
+    ];
+
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    wsSummary['!cols'] = [{ wch: 38 }, { wch: 32 }, { wch: 45 }];
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen Auditoría');
+
+    // 2. Pestaña de Nómina Maestra General
+    const masterRows = deliveries.map(d => ({
+      'ID Despacho': d.delivery_id,
+      'Fecha y Hora': d.delivered_at,
+      'Jornada': d.campaign_name,
+      'Cédula': d.document_id,
+      'Funcionario': d.worker_name,
+      'Dirección / Dependencia': d.department_name,
+      'Combo Entregado': d.combo_name,
+      'Peso (kg)': d.weight_kg,
+      'Método Verificación': d.verification_method === 'passkey_qr' ? 'Passkey QR Celular' : (d.verification_method === 'nfc_card' ? 'Tarjeta NFC' : (d.verification_method === 'supervisor_daily_qr' ? 'QR Diario Supervisor' : 'Contingencia Supervisor')),
+      'Offline Sync': d.is_offline_sync ? 'SÍ' : 'NO',
+      'Punto Entrega': d.distribution_point,
+      'Operador / Supervisor': d.supervisor_authorized || 'Despachador Autorizado',
+      'Motivo Contingencia': d.override_reason || 'N/A',
+      'Firma / Hash': d.signature_proof ? d.signature_proof.substring(0, 32) + '...' : 'N/A'
+    }));
+
+    const wsMaster = XLSX.utils.json_to_sheet(masterRows);
+    wsMaster['!cols'] = [{ wch: 18 }, { wch: 20 }, { wch: 25 }, { wch: 14 }, { wch: 30 }, { wch: 35 }, { wch: 22 }, { wch: 10 }, { wch: 24 }, { wch: 12 }, { wch: 18 }, { wch: 25 }, { wch: 28 }, { wch: 25 }];
+    XLSX.utils.book_append_sheet(wb, wsMaster, 'Listado General');
+
+    // 3. Pestañas individuales por Dependencia / Dirección General (Multi-Pestaña)
+    const depts = {};
+    deliveries.forEach(d => {
+      const depName = (d.department_name || 'Sede Central').trim();
+      if (!depts[depName]) depts[depName] = [];
+      depts[depName].push({
+        'Cédula': d.document_id,
+        'Funcionario': d.worker_name,
+        'Combo': d.combo_name,
+        'Peso (kg)': d.weight_kg,
+        'Fecha y Hora': d.delivered_at,
+        'Método': d.verification_method,
+        'Punto': d.distribution_point,
+        'ID Transacción': d.delivery_id
+      });
+    });
+
+    const usedSheetNames = new Set(['Resumen Auditoría', 'Listado General', 'Contingencias']);
+    Object.keys(depts).slice(0, 20).forEach(deptKey => {
+      let sheetName = deptKey.replace(/[:\\/?*\[\]]/g, '_').substring(0, 28).trim();
+      if (!sheetName) sheetName = 'Dependencia';
+      if (usedSheetNames.has(sheetName)) sheetName = `${sheetName}_${Math.floor(Math.random() * 100)}`;
+      usedSheetNames.add(sheetName);
+
+      const wsDept = XLSX.utils.json_to_sheet(depts[deptKey]);
+      wsDept['!cols'] = [{ wch: 14 }, { wch: 30 }, { wch: 22 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 18 }];
+      XLSX.utils.book_append_sheet(wb, wsDept, sheetName);
+    });
+
+    // 4. Pestaña de Excepciones y Contingencias (para auditoría específica)
+    const overrides = deliveries.filter(d => d.verification_method === 'supervisor_override');
+    if (overrides.length > 0) {
+      const overrideRows = overrides.map(d => ({
+        'ID Despacho': d.delivery_id,
+        'Fecha y Hora': d.delivered_at,
+        'Cédula Beneficiario': d.document_id,
+        'Nombre Beneficiario': d.worker_name,
+        'Dirección General': d.department_name,
+        'Combo Despachado': d.combo_name,
+        'Supervisor Autorizante': d.supervisor_authorized || 'Supervisor',
+        'Justificación / Causa': d.override_reason || 'Contingencia Asistida'
+      }));
+      const wsOverrides = XLSX.utils.json_to_sheet(overrideRows);
+      wsOverrides['!cols'] = [{ wch: 18 }, { wch: 20 }, { wch: 14 }, { wch: 30 }, { wch: 32 }, { wch: 22 }, { wch: 28 }, { wch: 35 }];
+      XLSX.utils.book_append_sheet(wb, wsOverrides, 'Contingencias');
+    }
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="auditoria_jornada_${campaign_id || 'todas'}.xlsx"`);
+    return res.send(buffer);
+  }
+
   if (exportFormat === 'acta' || exportFormat === 'html') {
     const tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get() || {};
     const html = generateOfficialActaHtml({ deliveries, tenantInfo: tenant });

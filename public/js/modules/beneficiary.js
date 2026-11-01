@@ -1197,6 +1197,59 @@ window.setupWorkerSimulator = function() {
     window.print();
   });
 
+  // Semáforo de Afluencia de Colas en Tiempo Real
+  async function loadQueueTraffic() {
+    try {
+      const res = await fetch('/api/v1/dispatch/queue-flow');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success) return;
+
+      const dot = document.getElementById('queueTrafficDot');
+      const title = document.getElementById('queueTrafficTitle');
+      const desc = document.getElementById('queueTrafficDesc');
+      const container = document.getElementById('queueTrafficContainer');
+
+      if (title) title.textContent = data.badge || '🟢 Cola Despejada (< 3 min)';
+      if (desc) desc.textContent = data.message || 'Tránsito fluido en mesas de entrega';
+
+      if (dot && data.color) {
+        dot.style.background = data.color;
+        dot.style.boxShadow = `0 0 8px ${data.color}`;
+      }
+
+      if (container) {
+        if (data.status === 'despejada') {
+          container.style.background = 'rgba(16, 185, 129, 0.08)';
+          container.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+          if (title) title.style.color = '#34d399';
+        } else if (data.status === 'moderada') {
+          container.style.background = 'rgba(245, 158, 11, 0.08)';
+          container.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+          if (title) title.style.color = '#fbbf24';
+        } else {
+          container.style.background = 'rgba(239, 68, 68, 0.08)';
+          container.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+          if (title) title.style.color = '#f87171';
+        }
+      }
+    } catch (e) {
+      console.warn('[QUEUE TRAFFIC WARN]', e.message);
+    }
+  }
+
+  window.loadQueueTraffic = loadQueueTraffic;
+  document.getElementById('btnRefreshQueueTraffic')?.addEventListener('click', loadQueueTraffic);
+
+  // Polling automático cada 45 segundos para el semáforo si la vista de beneficiario está activa
+  setInterval(() => {
+    const isWorkerActive = document.getElementById('view-worker')?.classList.contains('active-view');
+    if (isWorkerActive && document.visibilityState === 'visible') {
+      loadQueueTraffic();
+    }
+  }, 45000);
+
   // Carga inicial
   loadWorkerSelect();
+  loadQueueTraffic();
 };

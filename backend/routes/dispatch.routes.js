@@ -17,6 +17,9 @@ router.post('/dispatch/mode', authenticate, requireRole('operator', 'supervisor'
 // Estadísticas de entregas y candados del día
 router.get('/dispatch/stats', authenticate, dispatchController.getDispatchStats);
 
+// Semáforo de Afluencia de Colas en Tiempo Real (Heatmap de Despacho)
+router.get('/dispatch/queue-flow', dispatchController.getQueueFlow);
+
 // Anulación de despacho por parte de supervisor
 router.post('/dispatch/void', authenticate, requireRole('supervisor', 'admin', 'director'), dispatchController.voidDeliveryController);
 

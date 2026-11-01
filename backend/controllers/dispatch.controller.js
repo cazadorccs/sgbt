@@ -622,10 +622,70 @@ const voidDeliveryController = (req, res) => {
   });
 };
 
+/**
+ * Consulta del Semáforo de Afluencia de Colas en Tiempo Real (Heatmap de Despacho)
+ * Mide la tasa de entregas en los últimos 15 minutos y estima el tiempo de espera en comedor/almacén.
+ */
+const getQueueFlow = (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Conteo en los últimos 15 minutos
+    const recent = db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM deliveries 
+      WHERE delivered_at >= datetime('now', '-15 minutes')
+    `).get()?.count || 0;
+
+    // Conteo total del día
+    const todayTotal = db.prepare(`
+      SELECT COUNT(*) as count 
+      FROM deliveries 
+      WHERE date(delivered_at) = ?
+    `).get(today)?.count || 0;
+
+    let status = 'despejada';
+    let color = '#16a34a';
+    let waitTime = '< 3 min';
+    let badge = '🟢 Cola Despejada (< 3 min)';
+    let message = 'Mesa de despacho con tránsito libre. Buen momento para retirar.';
+
+    if (recent >= 10 && recent <= 25) {
+      status = 'moderada';
+      color = '#ca8a04';
+      waitTime = '5 - 10 min';
+      badge = '🟡 Tránsito Moderado (5-10 min)';
+      message = 'Flujo continuo en mesas de entrega. Tiempo de espera breve.';
+    } else if (recent > 25) {
+      status = 'concurrida';
+      color = '#dc2626';
+      waitTime = '> 15 min';
+      badge = '🔴 Alta Afluencia (> 15 min)';
+      message = 'Comedor con alta afluencia en este momento. Se sugiere aguardar unos minutos.';
+    }
+
+    return res.json({
+      success: true,
+      deliveries_last_15m: recent,
+      deliveries_today: todayTotal,
+      status,
+      color,
+      wait_time: waitTime,
+      badge,
+      message,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[QUEUE FLOW ERROR]', err);
+    return res.status(500).json({ error: 'Error calculando afluencia de colas: ' + err.message });
+  }
+};
+
 module.exports = {
   getDispatchMode,
   setDispatchMode,
   atomicClaim,
   getDispatchStats,
-  voidDeliveryController
+  voidDeliveryController,
+  getQueueFlow
 };
