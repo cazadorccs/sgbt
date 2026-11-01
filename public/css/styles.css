@@ -2828,5 +2828,287 @@ table, .modern-table, .text-mono, .badge-count, .kpi-value {
   font-variant-numeric: tabular-nums;
 }
 
+/* ============================================================================
+   MODO OSCURO INSTITUCIONAL (SGBT DARK THEME)
+   Tokens semánticos de alto contraste, ergonomía visual y compatibilidad WCAG 2.2 AA
+   ============================================================================ */
+
+[data-theme="dark"],
+body.dark-mode {
+  /* Fondos de Capas (Dark Surface Layers) */
+  --bg-primary: #0a0f1d;
+  --bg-surface-0: #0f172a;
+  --bg-surface-1: #141e33;
+  --bg-surface-2: #1e293b;
+  --bg-surface-card: #141e33;
+  --border-subtle: #25334d;
+  --border-focus: #38bdf8;
+
+  /* Textos de Alta Fidelidad */
+  --text-main: #f8fafc;
+  --text-muted: #cbd5e1;
+  --text-dim: #94a3b8;
+  --text-subtle: #64748b;
+
+  /* Acentos y Elevaciones */
+  --accent-primary: #0284c7;
+  --accent-primary-hover: #38bdf8;
+  --accent-primary-glow: rgba(56, 189, 248, 0.18);
+  --accent-secondary: #38bdf8;
+  --accent-secondary-glow: rgba(56, 189, 248, 0.15);
+  --sea-onahau: #1e293b;
+
+  /* Estados y Subtles */
+  --accent-emerald-subtle: rgba(16, 185, 129, 0.18);
+  --accent-amber-subtle: rgba(245, 158, 11, 0.18);
+  --accent-rose-subtle: rgba(239, 68, 68, 0.18);
+
+  /* Sombras Profundas */
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 4px 0 rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 16px -2px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 12px 28px -4px rgba(0, 0, 0, 0.7);
+  --shadow-floating: 0 20px 40px -5px rgba(0, 0, 0, 0.85);
+}
+
+body.dark-mode {
+  background-color: var(--bg-primary);
+  background-image: radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.08) 0px, transparent 50%),
+                    radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.06) 0px, transparent 50%);
+  color: var(--text-main);
+}
+
+/* Cabecera Principal */
+body.dark-mode .master-header {
+  background: rgba(15, 23, 42, 0.88);
+  border-bottom: 1px solid var(--border-subtle);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+}
+
+body.dark-mode .brand-text h1 {
+  color: var(--text-main);
+}
+
+body.dark-mode .brand-text p {
+  color: var(--text-dim);
+}
+
+/* Paneles, Tarjetas y Elevaciones */
+body.dark-mode .glass-panel,
+body.dark-mode .kpi-card,
+body.dark-mode .package-card,
+body.dark-mode .combo-card,
+body.dark-mode .device-frame,
+body.dark-mode .ministerial-hero-card,
+body.dark-mode .stat-summary-card,
+body.dark-mode .department-card,
+body.dark-mode .dispatch-stats-card {
+  background: var(--bg-surface-card);
+  border-color: var(--border-subtle);
+  color: var(--text-main);
+  box-shadow: var(--shadow-md);
+}
+
+body.dark-mode .kpi-title {
+  color: var(--text-dim);
+}
+
+body.dark-mode .kpi-value {
+  color: var(--text-main);
+}
+
+body.dark-mode .kpi-subtext {
+  color: var(--text-subtle);
+}
+
+/* Modales e Interfaces Emergentes */
+body.dark-mode .modal-backdrop {
+  background: rgba(3, 7, 18, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+body.dark-mode .modal-dialog {
+  background: #141e33;
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+  color: var(--text-main);
+}
+
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer,
+body.dark-mode .panel-header {
+  border-color: var(--border-subtle) !important;
+}
+
+body.dark-mode .modal-title,
+body.dark-mode .panel-title {
+  color: #f8fafc !important;
+}
+
+body.dark-mode .modal-close-btn {
+  color: var(--text-dim);
+  border-color: var(--border-subtle);
+  background: var(--bg-surface-0);
+}
+
+body.dark-mode .modal-close-btn:hover {
+  color: #ffffff;
+  background: #1e293b;
+}
+
+/* Tablas Modernas */
+body.dark-mode .modern-table {
+  border-color: var(--border-subtle);
+}
+
+body.dark-mode .modern-table th {
+  background: #0f172a;
+  color: #94a3b8;
+  border-bottom: 2px solid var(--border-subtle);
+}
+
+body.dark-mode .modern-table td {
+  background: transparent;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+body.dark-mode .modern-table tbody tr:hover td {
+  background: rgba(56, 189, 248, 0.05);
+}
+
+/* Formularios e Inputs */
+body.dark-mode .form-input,
+body.dark-mode .form-select,
+body.dark-mode input[type="text"],
+body.dark-mode input[type="search"],
+body.dark-mode input[type="number"],
+body.dark-mode input[type="password"],
+body.dark-mode input[type="date"],
+body.dark-mode textarea {
+  background: #0f172a;
+  border-color: var(--border-subtle);
+  color: #f8fafc;
+}
+
+body.dark-mode .form-input:focus,
+body.dark-mode .form-select:focus,
+body.dark-mode input:focus,
+body.dark-mode textarea:focus {
+  border-color: #38bdf8;
+  background: #0b1324;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+body.dark-mode .form-input::placeholder,
+body.dark-mode input::placeholder,
+body.dark-mode textarea::placeholder {
+  color: #64748b;
+}
+
+body.dark-mode .form-label {
+  color: #cbd5e1;
+}
+
+/* Menús Desplegables y Notificaciones */
+body.dark-mode .user-menu-dropdown,
+body.dark-mode .notifications-dropdown-menu,
+body.dark-mode .dropdown-menu {
+  background: #141e33;
+  border-color: var(--border-subtle);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .dropdown-item {
+  color: #cbd5e1;
+}
+
+body.dark-mode .dropdown-item:hover {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+body.dark-mode .dropdown-divider {
+  background: var(--border-subtle);
+}
+
+/* Botones Secundarios y Outline */
+body.dark-mode .btn-outline {
+  border-color: var(--border-subtle);
+  color: #e2e8f0;
+  background: transparent;
+}
+
+body.dark-mode .btn-outline:hover {
+  background: #1e293b;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+body.dark-mode .btn-icon-header {
+  background: var(--bg-surface-0);
+  border-color: var(--border-subtle);
+  color: var(--text-main);
+}
+
+body.dark-mode .btn-icon-header:hover {
+  background: #1e293b;
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+/* Píldoras de Estado en Cabecera */
+body.dark-mode .status-pill {
+  background: #0f172a;
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+}
+
+/* Tarjetas de Configuración */
+body.dark-mode .setting-item-card {
+  background: #0f172a;
+  border: 1px solid var(--border-subtle);
+}
+
+body.dark-mode .setting-item-card:hover {
+  border-color: #38bdf8;
+}
+
+body.dark-mode .setting-card-title {
+  color: #f8fafc !important;
+}
+
+body.dark-mode .setting-card-desc {
+  color: #94a3b8 !important;
+}
+
+/* Tabs & Segmented Controls */
+body.dark-mode .tab-btn,
+body.dark-mode .segmented-item {
+  color: #94a3b8;
+  border-color: var(--border-subtle);
+}
+
+body.dark-mode .tab-btn.active,
+body.dark-mode .segmented-item.active {
+  background: #1e293b;
+  color: #38bdf8;
+  border-color: #38bdf8;
+}
+
+/* Scrollbars ergonómicas en modo oscuro */
+body.dark-mode ::-webkit-scrollbar-track {
+  background: #0a0f1d;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #25334d;
+  border-radius: 4px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
+}
+
 
 

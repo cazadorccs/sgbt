@@ -20,6 +20,19 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css?v=2.3">
+
+  <!-- SGBT Dark/Light Theme Pre-render Script (Evita parpadeos FOUC) -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('sgbt_theme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (t === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.add('dark-mode');
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body>
 
@@ -40,6 +53,26 @@
         <span class="pulse-dot"></span>
         <span id="connectionText">Online</span>
       </div>
+
+      <!-- Selector de Modo Oscuro / Claro -->
+      <button type="button" id="btnThemeToggle" class="btn-icon-header" title="Cambiar a Modo Oscuro" aria-label="Cambiar Tema" style="cursor: pointer;">
+        <!-- Icono Sol (visible en modo oscuro) -->
+        <svg id="themeIconSun" class="icon-svg icon-sm" style="display: none; color: #f59e0b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Icono Luna (visible en modo claro) -->
+        <svg id="themeIconMoon" class="icon-svg icon-sm" style="display: inline-block; color: #64748b;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
 
       <!-- 2. NOTIFICACIONES (Botón de icono minimalista) -->
       <button id="btnNotificationsBell" class="btn-icon-header" title="Avisos y Notificaciones de Jornadas" aria-label="Notificaciones">
@@ -132,6 +165,14 @@
                 <line x1="12" y1="19" x2="20" y2="19"></line>
               </svg>
               <span>📋 Logs & Diagnóstico en Vivo</span>
+            </button>
+
+            <!-- Modo Oscuro / Claro -->
+            <button id="btnDropdownToggleTheme" class="dropdown-item" title="Alternar entre modo oscuro y modo claro">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+              <span id="dropdownThemeText">🌙 Modo Oscuro</span>
             </button>
 
             <!-- Simular Red / Offline -->
@@ -3300,6 +3341,7 @@ Listo para recibir transacciones de nómina institucional...
   <script src="/js/html5-qrcode.min.js?v=3.2"></script>
 
   <!-- Core Modules -->
+  <script src="/js/core/theme_manager.js?v=4.0"></script>
   <script src="/js/core/xss_protection.js?v=4.0"></script>
   <script src="/js/core/templates.js?v=3.2"></script>
   <script src="/js/core/modal_controller.js?v=4.0"></script>
