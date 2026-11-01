@@ -38,6 +38,15 @@ window.ThemeManager = (function() {
 
     updateUIElements(isDark);
 
+    // 4. Actualizar meta theme-color para navegadores móviles
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isDark ? '#0a0f1d' : '#0284c7');
+    }
+
+    // 5. Notificar a componentes gráficos y suscriptores del cambio de tema
+    window.dispatchEvent(new CustomEvent('themeChanged', { detail: { theme, isDark } }));
+
     if (save) {
       try {
         localStorage.setItem(STORAGE_KEY, theme);
