@@ -489,7 +489,7 @@ const login = async (req, res) => {
       const mfaToken = generateMfaChallengeToken({
         workerId: worker.id,
         documentId: worker.document_id,
-        role: isExplicitAdminLogin ? (worker.role || 'admin') : 'worker',
+        role: isExplicitAdminLogin ? (worker.role || 'admin') : (worker.role || 'worker'),
         deviceId: activeDevId
       }, 5);
 
@@ -525,7 +525,7 @@ const login = async (req, res) => {
     // Generar sesión institucional por dispositivo (Device-Bound)
     const { sessionToken, jti } = createDeviceSession({
       workerId: worker.id,
-      role: isExplicitAdminLogin ? (worker.role || 'admin') : 'worker',
+      role: isExplicitAdminLogin ? (worker.role || 'admin') : (worker.role || 'worker'),
       documentId: worker.document_id,
       deviceId: activeDeviceId,
       ipAddress: clientIp,

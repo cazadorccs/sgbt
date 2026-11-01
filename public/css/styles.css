@@ -3096,6 +3096,21 @@ body.dark-mode .segmented-item.active {
   border-color: #38bdf8;
 }
 
+/* Conmutador de Pestañas de Acceso / Login */
+body.dark-mode .login-mode-tabs {
+  background: #0f172a !important;
+  border-color: #25334d !important;
+}
+
+body.dark-mode .login-tab-btn {
+  color: #94a3b8 !important;
+}
+
+body.dark-mode .login-tab-btn.active {
+  background: #1e293b !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+}
+
 /* Scrollbars ergonómicas en modo oscuro */
 body.dark-mode ::-webkit-scrollbar-track {
   background: #0a0f1d;

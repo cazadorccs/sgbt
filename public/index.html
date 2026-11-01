@@ -268,15 +268,19 @@
           </p>
         </div>
 
-        <!-- CONMUTADOR DE TIPO DE ACCESO (BENEFICIARIO VS ADMINISTRACIÓN) -->
+        <!-- CONMUTADOR DE TIPO DE ACCESO (BENEFICIARIO VS MESA DE DESPACHO VS ADMINISTRACIÓN) -->
         <div class="login-mode-tabs" style="display: flex; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 1.25rem; gap: 4px; border: 1px solid #e2e8f0;">
-          <button type="button" id="tabModeBeneficiary" onclick="window.setLoginMode && window.setLoginMode('beneficiary');" class="login-tab-btn active" style="flex: 1; padding: 0.65rem 0.5rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.45rem; background: #ffffff; color: #0284c7; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+          <button type="button" id="tabModeBeneficiary" onclick="window.setLoginMode && window.setLoginMode('beneficiary');" class="login-tab-btn active" style="flex: 1; padding: 0.65rem 0.35rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.35rem; background: #ffffff; color: #0284c7; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-            <span>Beneficiario / Almacén</span>
+            <span>Beneficiario</span>
           </button>
-          <button type="button" id="tabModeAdmin" onclick="window.setLoginMode && window.setLoginMode('admin');" class="login-tab-btn" style="flex: 1; padding: 0.65rem 0.5rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.45rem; background: transparent; color: #64748b;">
+          <button type="button" id="tabModeOperator" onclick="window.setLoginMode && window.setLoginMode('operator');" class="login-tab-btn" style="flex: 1.15; padding: 0.65rem 0.35rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.35rem; background: transparent; color: #64748b;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <span>Mesa de Despacho</span>
+          </button>
+          <button type="button" id="tabModeAdmin" onclick="window.setLoginMode && window.setLoginMode('admin');" class="login-tab-btn" style="flex: 1; padding: 0.65rem 0.35rem; border: none; border-radius: 9px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; justify-content: center; gap: 0.35rem; background: transparent; color: #64748b;">
             <svg class="icon-svg icon-xs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <span>Acceso Administrativo</span>
+            <span>Administración</span>
           </button>
         </div>
 
@@ -316,23 +320,23 @@
           <!-- Honeypot anti-bot invisible para humanos (DevSecOps) -->
           <input type="text" name="website" id="loginHoneypot" style="display:none !important; position:absolute; left:-9999px;" tabindex="-1" autocomplete="off">
 
-          <!-- CONTENEDOR 1: ACCESO BENEFICIARIO / ALMACÉN -->
+          <!-- CONTENEDOR 1: ACCESO BENEFICIARIO / MESA DE DESPACHO -->
           <div id="beneficiaryFieldsContainer">
-            <!-- VALIDACIÓN DE DATOS DEL BENEFICIARIO -->
-            <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 0.95rem; font-size: 0.78rem; color: #065f46; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);">
-              <span style="font-size: 1.25rem; line-height: 1;">📋</span>
+            <!-- BANNER INFORMATIVO SEGÚN MODO -->
+            <div id="loginBannerContainer" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #a7f3d0; border-radius: 10px; padding: 0.75rem 0.85rem; margin-bottom: 0.95rem; font-size: 0.78rem; color: #065f46; display: flex; align-items: flex-start; gap: 0.6rem; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);">
+              <span id="loginBannerIcon" style="font-size: 1.25rem; line-height: 1;">📋</span>
               <div style="flex: 1;">
-                <div style="font-weight: 800; color: #065f46; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-                  <span>Validación de Datos del Beneficiario</span>
-                  <span style="background: #059669; color: #ffffff; font-size: 0.62rem; padding: 1px 6px; border-radius: 9999px; font-weight: 700;">Jornada 27/Nov</span>
+                <div style="font-weight: 800; font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                  <span id="loginBeneficiaryHeaderTitle">Validación de Datos del Beneficiario</span>
+                  <span id="loginBeneficiaryHeaderBadge" style="background: #059669; color: #ffffff; font-size: 0.62rem; padding: 1px 6px; border-radius: 9999px; font-weight: 700;">Jornada 27/Nov</span>
                 </div>
-                <div style="font-size: 0.71rem; color: #047857; margin-top: 0.2rem; line-height: 1.35;">
+                <div id="loginBeneficiaryHeaderDesc" style="font-size: 0.71rem; color: #047857; margin-top: 0.2rem; line-height: 1.35;">
                   Ingrese su número de documento de identidad para verificar su asignación e iniciar la entrega.
                 </div>
               </div>
             </div>
 
-            <label style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
+            <label id="loginDocLabel" style="display: block; font-size: 0.72rem; text-transform: uppercase; color: #475569; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 0.4rem;">
               Cédula de Identidad del Trabajador
             </label>
             <div style="display: flex; gap: 0.5rem;">

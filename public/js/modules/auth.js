@@ -15,11 +15,30 @@ window.setLoginMode = function(mode) {
   if (alertBox) alertBox.style.display = 'none';
 
   const tabBeneficiary = document.getElementById('tabModeBeneficiary');
+  const tabOperator = document.getElementById('tabModeOperator');
   const tabAdmin = document.getElementById('tabModeAdmin');
   const beneficiaryFields = document.getElementById('beneficiaryFieldsContainer');
   const adminFields = document.getElementById('adminFieldsContainer');
   const iconWrapper = document.getElementById('loginCardIconWrapper');
   const badgeStatus = document.getElementById('loginBadgeStatus');
+
+  const bannerContainer = document.getElementById('loginBannerContainer');
+  const bannerIcon = document.getElementById('loginBannerIcon');
+  const headerTitle = document.getElementById('loginBeneficiaryHeaderTitle');
+  const headerBadge = document.getElementById('loginBeneficiaryHeaderBadge');
+  const headerDesc = document.getElementById('loginBeneficiaryHeaderDesc');
+  const docLabel = document.getElementById('loginDocLabel');
+  const btnSubmit = document.getElementById('btnLoginSubmit');
+
+  // Reset tab active states
+  [tabBeneficiary, tabOperator, tabAdmin].forEach(t => {
+    if (t) {
+      t.classList.remove('active');
+      t.style.background = 'transparent';
+      t.style.color = '#64748b';
+      t.style.boxShadow = 'none';
+    }
+  });
 
   if (mode === 'admin') {
     if (tabAdmin) {
@@ -27,12 +46,6 @@ window.setLoginMode = function(mode) {
       tabAdmin.style.background = '#ffffff';
       tabAdmin.style.color = '#0284c7';
       tabAdmin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-    }
-    if (tabBeneficiary) {
-      tabBeneficiary.classList.remove('active');
-      tabBeneficiary.style.background = 'transparent';
-      tabBeneficiary.style.color = '#64748b';
-      tabBeneficiary.style.boxShadow = 'none';
     }
     if (beneficiaryFields) beneficiaryFields.style.display = 'none';
     if (adminFields) adminFields.style.display = 'block';
@@ -47,18 +60,65 @@ window.setLoginMode = function(mode) {
     }
     const adminDoc = document.getElementById('adminDocNumber');
     if (adminDoc) adminDoc.focus();
+
+  } else if (mode === 'operator') {
+    if (tabOperator) {
+      tabOperator.classList.add('active');
+      tabOperator.style.background = '#ffffff';
+      tabOperator.style.color = '#d97706';
+      tabOperator.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
+    }
+    if (beneficiaryFields) beneficiaryFields.style.display = 'block';
+    if (adminFields) adminFields.style.display = 'none';
+
+    if (iconWrapper) {
+      iconWrapper.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
+    }
+    if (badgeStatus) {
+      badgeStatus.textContent = '📦 Mesa de Despacho · Operador de Almacén';
+      badgeStatus.style.background = '#fef3c7';
+      badgeStatus.style.color = '#b45309';
+    }
+    if (bannerContainer) {
+      bannerContainer.style.background = 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)';
+      bannerContainer.style.borderColor = '#fde68a';
+    }
+    if (bannerIcon) bannerIcon.textContent = '📦';
+    if (headerTitle) {
+      headerTitle.textContent = 'Consola de Despacho en Almacén';
+      headerTitle.style.color = '#92400e';
+    }
+    if (headerBadge) {
+      headerBadge.textContent = 'Mesa Activa';
+      headerBadge.style.background = '#d97706';
+      headerBadge.style.color = '#ffffff';
+    }
+    if (headerDesc) {
+      headerDesc.textContent = 'Ingrese su Cédula de Identidad de operador para activar el escáner de cámara, lector de barras y registro de entregas.';
+      headerDesc.style.color = '#b45309';
+    }
+    if (docLabel) docLabel.textContent = 'Cédula de Identidad del Operador de Despacho';
+    if (btnSubmit) {
+      btnSubmit.innerHTML = `
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
+        <span>📦 Iniciar Consola de Mesa de Despacho</span>
+      `;
+      btnSubmit.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
+    }
+    const loginDoc = document.getElementById('loginDocNumber');
+    if (loginDoc) loginDoc.focus();
+
   } else {
+    // Mode 'beneficiary'
     if (tabBeneficiary) {
       tabBeneficiary.classList.add('active');
       tabBeneficiary.style.background = '#ffffff';
       tabBeneficiary.style.color = '#0284c7';
       tabBeneficiary.style.boxShadow = '0 2px 8px rgba(0,0,0,0.06)';
-    }
-    if (tabAdmin) {
-      tabAdmin.classList.remove('active');
-      tabAdmin.style.background = 'transparent';
-      tabAdmin.style.color = '#64748b';
-      tabAdmin.style.boxShadow = 'none';
     }
     if (beneficiaryFields) beneficiaryFields.style.display = 'block';
     if (adminFields) adminFields.style.display = 'none';
@@ -71,6 +131,32 @@ window.setLoginMode = function(mode) {
       badgeStatus.style.background = '#e0f2fe';
       badgeStatus.style.color = '#0284c7';
     }
+    if (bannerContainer) {
+      bannerContainer.style.background = 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)';
+      bannerContainer.style.borderColor = '#a7f3d0';
+    }
+    if (bannerIcon) bannerIcon.textContent = '📋';
+    if (headerTitle) {
+      headerTitle.textContent = 'Validación de Datos del Beneficiario';
+      headerTitle.style.color = '#065f46';
+    }
+    if (headerBadge) {
+      headerBadge.textContent = 'Jornada 27/Nov';
+      headerBadge.style.background = '#059669';
+      headerBadge.style.color = '#ffffff';
+    }
+    if (headerDesc) {
+      headerDesc.textContent = 'Ingrese su número de documento de identidad para verificar su asignación e iniciar la entrega.';
+      headerDesc.style.color = '#047857';
+    }
+    if (docLabel) docLabel.textContent = 'Cédula de Identidad del Trabajador';
+    if (btnSubmit) {
+      btnSubmit.innerHTML = `
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+        <span>Continuar con Cédula de Identidad</span>
+      `;
+      btnSubmit.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+    }
     const loginDoc = document.getElementById('loginDocNumber');
     if (loginDoc) loginDoc.focus();
   }
@@ -78,16 +164,26 @@ window.setLoginMode = function(mode) {
 
 window.setupAuth = function() {
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('view') === 'worker') {
+  const targetViewParam = urlParams.get('view');
+  if (targetViewParam === 'worker') {
     window.setLoginMode('beneficiary');
     sessionStorage.setItem('sgbt_intended_view', 'worker');
     sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
+  } else if (targetViewParam === 'distributor' || targetViewParam === 'operator') {
+    window.setLoginMode('operator');
+    sessionStorage.setItem('sgbt_intended_view', 'distributor');
+    sessionStorage.setItem('sgbt_session_view_mode', 'operator');
+  } else if (targetViewParam === 'admin' || targetViewParam === 'portal') {
+    window.setLoginMode('admin');
+    sessionStorage.setItem('sgbt_intended_view', 'admin');
+    sessionStorage.setItem('sgbt_session_view_mode', 'admin');
   }
 
   const loginForm = document.getElementById('loginForm');
   const btnSubmit = document.getElementById('btnLoginSubmit');
   const btnAdminSubmit = document.getElementById('btnAdminLoginSubmit');
   const tabBeneficiary = document.getElementById('tabModeBeneficiary');
+  const tabOperator = document.getElementById('tabModeOperator');
   const tabAdmin = document.getElementById('tabModeAdmin');
   const btnSwitchToAdmin = document.getElementById('btnSwitchToAdminLogin');
   const btnSwitchToBeneficiary = document.getElementById('btnSwitchToBeneficiaryLogin');
@@ -98,6 +194,7 @@ window.setupAuth = function() {
 
   // Conmutadores de Modo
   tabBeneficiary?.addEventListener('click', () => setLoginMode('beneficiary'));
+  tabOperator?.addEventListener('click', () => setLoginMode('operator'));
   tabAdmin?.addEventListener('click', () => setLoginMode('admin'));
   btnSwitchToAdmin?.addEventListener('click', () => setLoginMode('admin'));
   btnSwitchToBeneficiary?.addEventListener('click', () => setLoginMode('beneficiary'));
@@ -546,12 +643,17 @@ async function executeLogin(rawDocId) {
     const urlView = new URLSearchParams(window.location.search).get('view');
 
     let targetMode = 'beneficiary';
-    if (urlView === 'worker' || intendedView === 'worker' || window.currentLoginMode === 'beneficiary') {
+    if (window.currentLoginMode === 'operator' || intendedView === 'distributor' || urlView === 'distributor') {
+      targetMode = 'operator';
+    } else if (urlView === 'worker' || intendedView === 'worker') {
       targetMode = 'beneficiary';
-    } else if (isOperator || intendedView === 'distributor') {
+    } else if (isOperator) {
+      // Si el funcionario es operador de almacén, abrir directamente la Mesa de Despacho
       targetMode = 'operator';
     } else if (isAdmin && window.currentLoginMode === 'admin') {
       targetMode = 'admin';
+    } else {
+      targetMode = 'beneficiary';
     }
 
     sessionStorage.removeItem('sgbt_intended_view');
