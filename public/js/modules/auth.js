@@ -857,6 +857,7 @@ function triggerOneClickPasskeyOnboarding(user, onboardingToken) {
 window.switchSessionView = function(mode) {
   if (!STATE.currentUser) return;
   sessionStorage.setItem('sgbt_session_view_mode', mode);
+
   if (typeof window.closeUserMenu === 'function') {
     window.closeUserMenu();
   }
@@ -1025,6 +1026,15 @@ window.applyUserSession = function(user, targetMode) {
   }
   if (btnSwitchToWorker) {
     btnSwitchToWorker.style.display = (isAdmin || isOperator) && mode !== 'beneficiary' ? 'flex' : 'none';
+  }
+
+  const btnSupervisorContingency = document.getElementById('btnOpenSupervisorContingencyModal');
+  if (btnSupervisorContingency) {
+    btnSupervisorContingency.style.display = (isAdmin && !isBeneficiaryView) ? 'flex' : 'none';
+  }
+  const btnLogs = document.getElementById('btnOpenSystemLogs');
+  if (btnLogs) {
+    btnLogs.style.display = (isAdmin && !isBeneficiaryView) ? 'flex' : 'none';
   }
 
   if (typeof window.closeUserMenu === 'function') {

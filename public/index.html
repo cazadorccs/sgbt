@@ -149,6 +149,14 @@
               <span>📱 Mi Carnet de Beneficiario</span>
             </button>
 
+            <!-- Aprobación de Contingencia (Solo Supervisores y Administradores) -->
+            <button id="btnOpenSupervisorContingencyModal" class="dropdown-item" style="display: none; color: #f59e0b;" title="Aprobar despacho por contingencia (Adultos mayores sin celular o huella)">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>🛡️ Aprobación de Contingencia</span>
+            </button>
+
             <!-- Configuración & Marca (Solo Administradores) -->
             <button id="btnOpenGeneralSettings" class="dropdown-item" style="display: none;" title="Configuración del Sistema y Marca Institucional (Solo Administradores)">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
@@ -2256,8 +2264,8 @@
               </div>
             </div>
 
-            <!-- Selector de Trabajador para Simulación (Oculto cuando es usuario final logueado) -->
-            <div id="workerSimulatorSelectorContainer" style="margin-bottom: 0.85rem;">
+            <!-- Selector de Trabajador para Simulación (Oculto por defecto para beneficiarios reales) -->
+            <div id="workerSimulatorSelectorContainer" style="display: none; margin-bottom: 0.85rem;">
               <div class="flex-between" style="margin-bottom: 0.25rem;">
                 <label style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase;">Simular Beneficiario:</label>
                 <button id="btnDeviceAccessibilityToggle" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.65rem;" title="Aumentar tamaño de letra para adultos mayores">
@@ -2508,7 +2516,7 @@
               <button id="btnEnrollPasskey" class="btn btn-cyan" style="width: 100%;">
                 🔐 Activar Validación en este Teléfono
               </button>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.25rem;">
+              <div style="display: none; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.25rem;">
                 <button id="btnWorkerMfaSetup" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.4rem 0.5rem;" title="Proteger cuenta con autenticación de dos factores">
                   🛡️ 2FA / MFA
                 </button>
@@ -2520,8 +2528,8 @@
           </div>
         </div>
 
-        <!-- EXPLICACIÓN SENCILLA LATERAL -->
-        <div id="workerSecurityExplanationPanel" class="glass-panel" style="max-width: 480px; align-self: center;">
+        <!-- EXPLICACIÓN SENCILLA LATERAL (Oculta por defecto para no saturar móviles) -->
+        <div id="workerSecurityExplanationPanel" class="glass-panel" style="max-width: 480px; align-self: center; display: none;">
           <div class="panel-header">
             <div class="panel-title">🛡️ Cómo Protegemos su Entrega</div>
           </div>
@@ -2600,9 +2608,6 @@
                 <button type="button" id="btnDistributorOpenDeliveries" onclick="window.openRecentDeliveriesModal && window.openRecentDeliveriesModal()" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #10b981; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1);" title="Ver funcionarios que ya retiraron combos hoy">
                   📦 Despachos (<span id="distributorDeliveriesHeaderCount">0</span>)
                 </button>
-                <button type="button" id="btnDistributorOpenLogs" onclick="window.openSystemLogsModal()" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(14, 165, 233, 0.1);" title="Ver logs y diagnóstico de escaneo en tiempo real">
-                  📋 Logs
-                </button>
                 <button type="button" id="btnDistributorLogout" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.55rem; color: #f87171; border-color: rgba(248, 113, 113, 0.3); background: rgba(239, 68, 68, 0.08);" title="Cerrar Sesión del Operador">
                   Salir 🚪
                 </button>
@@ -2627,83 +2632,65 @@
               </div>
             </div>
 
-            <!-- SELECTOR DE MODALIDAD Y ESTACIÓN ACTIVA DE DESPACHO (FASE 3: RETIRO ÚNICO TOTALIZADO) -->
-            <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.75rem; margin-bottom: 0.85rem;">
-              
-              <!-- SELECTOR DE MODALIDAD DUAL DE DESPACHO -->
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <!-- SELECTOR DE MODALIDAD Y ESTACIÓN ACTIVA DE DESPACHO -->
+            <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; margin-bottom: 0.75rem;">
+              <div class="flex-between" style="margin-bottom: 0.35rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
-                  Modalidad de Despacho en Almacén:
-                </span>
-                <span style="font-size: 0.65rem; color: #34d399; font-weight: 600;">⚡ Retiro Totalizado Activo</span>
-              </div>
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; margin-bottom: 0.75rem;">
-                <button type="button" id="btnDispatchModeTotal" class="btn btn-primary active-mode-tab" style="padding: 0.45rem 0.65rem; font-size: 0.76rem; font-weight: 700; text-align: center; border-radius: 8px; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff; cursor: pointer;">
-                  🌟 Retiro Totalizado<br><span style="font-size: 0.62rem; font-weight: 500; opacity: 0.9;">1 Solo Escaneo (Todos los Combos)</span>
-                </button>
-                <button type="button" id="btnDispatchModeStation" class="btn btn-outline" style="padding: 0.45rem 0.65rem; font-size: 0.76rem; font-weight: 700; text-align: center; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.3); color: #94a3b8; cursor: pointer;">
-                  📦 Estación Específica<br><span style="font-size: 0.62rem; font-weight: 500; opacity: 0.9;">Mesa Individual (Líneas Separadas)</span>
-                </button>
-              </div>
-
-              <div class="flex-between" style="margin-bottom: 0.45rem;">
-                <span style="font-size: 0.7rem; font-weight: 700; color: var(--sea-onahau); text-transform: uppercase;">
-                  Estación / Combo de Despacho Activo:
+                  Punto de Despacho Activo:
                 </span>
                 <span id="activeStationBadge" class="badge badge-proteina" style="font-size: 0.68rem; background: #059669; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
-                  🌟 Modo Retiro Totalizado: Todos los Combos en 1 Solo Escaneo QR
+                  🌟 Retiro Totalizado (Todos los Combos)
                 </span>
               </div>
               <div id="distributorStationTabs" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.4rem;">
                 <!-- Dinámico: Totalizado o Mesas individuales -->
-                <button type="button" class="btn btn-outline active-station-tab" data-station="0f74d741-6310-4d6c-b8e5-8cd6e76f9113" style="padding: 0.5rem 0.85rem; font-size: 0.82rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; background: rgba(14, 165, 233, 0.2); border-color: #0284c7; color: #38bdf8; cursor: default;">
-                  🎒 Mesa 1<br><span style="font-size: 0.68rem; font-weight: 600; opacity: 0.95;">Combo de Útiles Escolares</span>
-                </button>
+              </div>
+              <!-- Controles secundarios ocultos para compatibilidad -->
+              <div style="display: none;">
+                <button type="button" id="btnDispatchModeTotal"></button>
+                <button type="button" id="btnDispatchModeStation"></button>
               </div>
             </div>
 
-            <!-- CHECKLIST FÍSICO DE COMBOS A ENTREGAR (ALMACÉN SÓTANO - MESA 1) -->
+            <!-- COMBOS A ENTREGAR (SOLO LECTURA, VERIFICACIÓN FÍSICA EN MESA) -->
             <div style="margin-bottom: 0.85rem;">
               <div class="flex-between" style="margin-bottom: 0.35rem;">
                 <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-                  Combos Asignados (Verificación Física en Mesa):
+                  Combos a Entregar (Verificación Física en Mesa):
                 </span>
-                <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">1 Combo Asignado (Mesa 1)</span>
+                <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">Combos Asignados</span>
               </div>
 
               <div class="dispatch-checklist" id="dispatchChecklist">
-                <!-- Solo muestra el combo asignado a dicha mesa: Combo de Útiles Escolares -->
-                <div class="checklist-card checked" data-combo-id="0f74d741-6310-4d6c-b8e5-8cd6e76f9113" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
-                  <div class="checklist-checkbox">✓</div>
+                <!-- Se inyecta dinámicamente como tarjeta informativa de solo-lectura -->
+                <div class="checklist-card checked" style="cursor: default;">
+                  <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981;">✓</div>
                   <div class="checklist-info">
                     <div class="checklist-title">
-                      <span style="font-size: 1.2rem; margin-right: 0.3rem;">🎒</span>
-                      <strong>Combo de Útiles Escolares</strong>
-                      <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Mesa 1</span>
+                      <strong>Combo Programado</strong>
+                      <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Mesa de Despacho</span>
                     </div>
                     <div class="checklist-subtitle" style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem;">
-                      6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca &middot; Peso aprox: ~3.5 kg &middot; Despacho institucional
+                      Verificación automática al escanear la credencial QR del beneficiario.
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- VISOR DE ESCANEO / LECTOR DE CÁMARA REAL Y NFC -->
+            <!-- VISOR DE ESCANEO / LECTOR DE CÁMARA REAL -->
             <div style="margin-bottom: 1rem;">
               <div class="flex-between">
                 <label style="font-size: 0.7rem; color: var(--sea-anakiwa); text-transform: uppercase; font-weight: 700;">
-                  Lector de Código QR (Funciona sin internet):
+                  Lector de Código QR:
                 </label>
                 <div style="display: flex; gap: 0.4rem; align-items: center;">
-                  <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; font-size: 0.6rem; border: 1px solid rgba(16, 185, 129, 0.4);">⚡ Modo Ráfaga</span>
                   <span id="cameraStatusBadge" class="badge badge-viveres" style="font-size: 0.6rem;">Cámara Lista</span>
                 </div>
               </div>
               
               <!-- Visor de Cámara Real en Vivo con HUD Sub-segundo -->
               <div id="liveCameraContainer" style="display: none; background: #000; border-radius: var(--radius-md); overflow: hidden; margin-top: 0.5rem; position: relative; border: 2px solid var(--sea-malibu); box-shadow: 0 0 25px var(--accent-primary-glow);">
-                <!-- Floating HUD Sub-segundo (Aparece y auto-desaparece tras cada lectura) -->
                 <div id="cameraScanHUD" style="display: none; position: absolute; top: 10px; left: 10px; right: 10px; z-index: 100; border-radius: 8px; padding: 0.65rem 0.85rem; color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.5); backdrop-filter: blur(6px); transition: all 0.2s ease;">
                   <div style="display: flex; align-items: center; gap: 0.6rem;">
                     <span id="cameraScanHUDIcon" style="font-size: 1.5rem;">✅</span>
@@ -2728,19 +2715,16 @@
               <!-- Contenedor estático cuando la cámara está apagada -->
               <div id="cameraStandbyBox" style="background: #020617; border: 2px dashed rgba(102, 204, 255, 0.3); border-radius: var(--radius-md); padding: 1.25rem; text-align: center; margin-top: 0.4rem; position: relative;">
                 <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
-                  <span style="font-size: 2rem;">📹</span>
-                  <span id="distributorValidationModeBadge" class="badge" style="font-size: 0.68rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);">
-                    💳 Modo: Tarjetas NFC
-                  </span>
+                  <span style="font-size: 2.2rem;">📹</span>
                 </div>
-                <p id="distributorStandbyText" style="font-size: 0.75rem; color: var(--sea-onahau); margin-bottom: 0.75rem;">
-                  Enfoque el código QR dinámico del trabajador o acerque la tarjeta NFC física
+                <p id="distributorStandbyText" style="font-size: 0.8rem; color: var(--sea-onahau); margin-bottom: 0.85rem;">
+                  Enfoque el código QR dinámico del trabajador para validar y despachar el combo
                 </p>
 
                 <!-- Banner de QR Detectado en Tiempo Real (Cross-Tab o Remoto) -->
                 <div id="liveQrDetectedBanner" style="display: none; background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; border-radius: var(--radius-sm); padding: 0.6rem; margin-bottom: 0.5rem; text-align: left; animation: pulse 2s infinite;">
                   <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 0.75rem; color: #6ee7b7; font-weight: 700;">⚡ QR Activo Recibido en Tiempo Real</span>
+                    <span style="font-size: 0.75rem; color: #6ee7b7; font-weight: 700;">⚡ QR Activo Recibido</span>
                     <button type="button" id="btnQuickScanDetectedQr" class="btn btn-primary" style="font-size: 0.68rem; padding: 0.25rem 0.6rem; background: #059669; border-color: #10b981;">
                       Validar QR Ahora
                     </button>
@@ -2750,86 +2734,46 @@
                   </div>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                  <!-- Selector de Cámara (si hay más de una) y Alternador Rápido -->
+                <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                  <!-- Selector de Cámara (si hay más de una) -->
                   <div id="cameraSelectWrapper" style="display: none; align-items: center; gap: 0.4rem;">
                     <select id="cameraDeviceSelect" class="form-input" style="flex: 1; font-size: 0.75rem; padding: 0.35rem; background: #040d16; color: #e2e8f0; border-color: rgba(56, 189, 248, 0.3);">
                     </select>
-                    <button type="button" id="btnFlipCameraStandby" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.6rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); display: flex; align-items: center; gap: 0.25rem;" title="Alternar entre cámara trasera y frontal">
-                      🔄 Cambiar
-                    </button>
                   </div>
 
                   <div style="display: flex; gap: 0.4rem;">
-                    <button type="button" id="btnStartCameraScanner" class="btn btn-primary" style="flex: 1; font-size: 0.82rem; font-weight: 700;">
-                      📹 Iniciar Escáner (Cámara Trasera)
+                    <button type="button" id="btnStartCameraScanner" class="btn btn-primary" style="flex: 1; font-size: 0.88rem; font-weight: 800; padding: 0.75rem 1rem; border-radius: 8px;">
+                      📹 Iniciar Escáner de Cámara
                     </button>
-                    <button type="button" id="btnFlipCameraGlobal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.65rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" title="Alternar entre cámara trasera y frontal">
+                    <button type="button" id="btnFlipCameraGlobal" class="btn btn-outline" style="font-size: 0.85rem; padding: 0.5rem 0.75rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4);" title="Alternar entre cámara trasera y frontal">
                       🔄
                     </button>
                   </div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <button type="button" id="btnScanWorkerGeneratedQr" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.4rem;" title="Lee el QR generado en la sesión activa o compartido entre pestañas">
-                      ⚡ Simular Escaneo QR
-                    </button>
-                    <!-- BOTÓN NFC MÓVIL CRIPTOGRÁFICO (DEVICE-TO-DEVICE) -->
-                    <button type="button" id="btnReceiveNfcMobile" class="btn btn-primary" style="font-size: 0.72rem; padding: 0.4rem; background: linear-gradient(135deg, #0284c7, #0369a1); border-color: #38bdf8;" title="Recibe la llave criptográfica transmitida por el teléfono del beneficiario vía NFC">
-                      📡 Recibir NFC Móvil
-                    </button>
-                  </div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <!-- BOTÓN TARJETA FÍSICA O QR DIARIO SUPERVISOR -->
-                    <button type="button" id="btnSimulateNfcTap" class="btn btn-cyan" style="font-size: 0.72rem; padding: 0.4rem;">
-                      💳 Tarjeta NFC Física
-                    </button>
-                    <button type="button" id="btnSimulateSupervisorDailyQr" class="btn btn-primary" style="font-size: 0.72rem; padding: 0.4rem; display: none; background: #0284c7; border-color: #0284c7; color: #fff; font-weight: 700;">
-                      🔑 Validar QR Supervisor
-                    </button>
-                  </div>
 
-                  <!-- Métodos de Captura Alternativa Directos -->
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    <input type="file" id="inputUploadQrImage" accept="image/*" style="display: none;">
-                    <button type="button" id="btnUploadQrImage" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(148, 163, 184, 0.3);">
-                      📁 Cargar Foto / Archivo QR
-                    </button>
-                    <button type="button" id="btnPasteQrManual" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.35rem; border-color: rgba(148, 163, 184, 0.3);">
-                      📋 Pegar Código Manual
-                    </button>
-                  </div>
-
-                  <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" id="btnOpenDelegationModalTrigger" class="btn btn-outline" style="flex: 1; font-size: 0.7rem; padding: 0.35rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; background: rgba(2, 132, 199, 0.08);">
-                      🤝 Emitir Retiro Delegado (Terceros)
-                    </button>
-                    <button type="button" id="btnDistributorShowSupervisorQr" class="btn btn-outline" style="flex: 1; font-size: 0.7rem; padding: 0.35rem; border-color: rgba(56, 189, 248, 0.4); color: #38bdf8; display: none; background: rgba(2, 132, 199, 0.1);">
-                      📲 QR Diario de Mesa
+                  <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                    <button type="button" id="btnOpenDelegationModalTrigger" class="btn btn-outline" style="flex: 1; font-size: 0.74rem; padding: 0.45rem; border-color: rgba(56, 189, 248, 0.3); color: #38bdf8; background: rgba(2, 132, 199, 0.08);">
+                      🤝 Consultar Retiro Delegado (Terceros)
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <!-- MÓDULO DE CONTINGENCIA Y APROBACIÓN 1-CLIC SUPERVISOR -->
-            <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 0.85rem; margin-top: auto;">
-              <div class="flex-between" style="margin-bottom: 0.5rem;">
-                <span style="font-size: 0.75rem; font-weight: 700; color: #f59e0b; display: flex; align-items: center; gap: 0.3rem;">
-                  <span>🛡️</span> Aprobación de Contingencia en 1 Clic
-                </span>
-                <span id="operatorOverridesCount" style="font-size: 0.65rem; color: #fbbf24; font-weight: 600;">
-                  Generador QR Supervisor (Mesa 1)
-                </span>
-              </div>
-
-              <div class="input-group">
-                <input id="contingencyDocInput" type="text" class="form-input" placeholder="Cédula de beneficiario sin celular (ej. V-18456123)..." style="font-size: 0.8rem;">
-                <button id="btnSearchContingencyWorker" class="btn btn-outline" style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.15); border-color: #f59e0b; color: #fbbf24; font-weight: 700;">
-                  Generar QR
-                </button>
-              </div>
-
-              <!-- TARJETA REACTIVA DE LIBERACIÓN EN 1 CLIC CON HUELLA -->
-              <div id="contingencyWorkerResultBox" style="display: none; margin-top: 0.65rem; background: rgba(15, 23, 42, 0.85); border: 1.5px solid #f59e0b; border-radius: 8px; padding: 0.75rem; animation: fadeIn 0.2s ease-out;">
+                <!-- Elementos de compatibilidad en segundo plano (Ocultos de la interfaz operativa) -->
+                <div style="display: none;" aria-hidden="true">
+                  <span id="distributorValidationModeBadge"></span>
+                  <button type="button" id="btnFlipCameraStandby"></button>
+                  <button type="button" id="btnScanWorkerGeneratedQr"></button>
+                  <button type="button" id="btnReceiveNfcMobile"></button>
+                  <button type="button" id="btnSimulateNfcTap"></button>
+                  <button type="button" id="btnSimulateSupervisorDailyQr"></button>
+                  <input type="file" id="inputUploadQrImage" accept="image/*">
+                  <button type="button" id="btnUploadQrImage"></button>
+                  <button type="button" id="btnPasteQrManual"></button>
+                  <button type="button" id="btnDistributorShowSupervisorQr"></button>
+                  <input id="contingencyDocInput" type="text">
+                  <button id="btnSearchContingencyWorker"></button>
+                  <div id="contingencyWorkerResultBox"></div>
+                  <span id="operatorOverridesCount"></span>
+                </div>
               </div>
             </div>
 

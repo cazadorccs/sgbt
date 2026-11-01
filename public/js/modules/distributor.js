@@ -9,8 +9,8 @@ let selectedCameraDeviceId = null;
 let pendingContingencyWorker = null;
 
 window.toggleChecklistItem = function(cardEl) {
-  if (!cardEl) return;
-  cardEl.classList.toggle('checked');
+  // Los combos asignados son determinados por la nómina institucional y no son editables por el operador
+  return;
 };
 
 window.setupDistributorSimulator = function() {
@@ -143,6 +143,59 @@ window.setupDistributorSimulator = function() {
 
   document.getElementById('btnCloseFeedbackOverlay')?.addEventListener('click', () => {
     document.getElementById('distributorFeedbackOverlay').classList.remove('active');
+  });
+
+  // Modal de Contingencia exclusivo para Supervisor
+  document.getElementById('btnOpenSupervisorContingencyModal')?.addEventListener('click', () => {
+    document.getElementById('supervisorModalBackdrop')?.classList.add('active');
+    if (typeof window.closeUserMenu === 'function') window.closeUserMenu();
+  });
+  document.getElementById('btnCloseSupervisorModal')?.addEventListener('click', () => {
+    document.getElementById('supervisorModalBackdrop')?.classList.remove('active');
+  });
+
+  const btnSearchSupervisorContingency = document.getElementById('btnSupervisorSearchContingency');
+  const inputSupervisorContingency = document.getElementById('supervisorContingencyDocInput');
+  const doSupervisorSearch = async () => {
+    const doc = inputSupervisorContingency?.value.trim();
+    if (!doc) return window.showToast('Ingrese una Cédula de Identidad', 'warning');
+    const cleanDoc = doc.toUpperCase();
+    const digits = doc.replace(/[^0-9]/g, '');
+
+    let worker = STATE.localCache.workers.find(w => 
+      w.document_id === cleanDoc || 
+      (digits && w.document_id.replace(/[^0-9]/g, '') === digits)
+    );
+
+    if (!worker) {
+      try {
+        const data = await API.get(`/api/v1/admin/workers?search=${encodeURIComponent(digits || cleanDoc)}`);
+        if (data && data.workers && data.workers.length > 0) {
+          worker = data.workers[0];
+        }
+      } catch (e) {}
+    }
+
+    if (!worker) {
+      return window.showToast(`Cédula ${doc} no encontrada en el padrón`, 'error');
+    }
+
+    pendingContingencyWorker = worker;
+    const nameEl = document.getElementById('modalBeneficiaryName');
+    const docEl = document.getElementById('modalBeneficiaryDoc');
+    const comboEl = document.getElementById('modalBeneficiaryCombo');
+    if (nameEl) nameEl.textContent = worker.full_name;
+    if (docEl) docEl.textContent = `${worker.document_id} (${worker.department_name || 'MIPPCI'})`;
+    if (comboEl) comboEl.textContent = 'Combos Asignados Jornada Hoy';
+    window.showToast(`Beneficiario cargado: ${worker.full_name}`, 'success');
+  };
+
+  btnSearchSupervisorContingency?.addEventListener('click', doSupervisorSearch);
+  inputSupervisorContingency?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      doSupervisorSearch();
+    }
   });
 
   // Módulo de Contingencia y Delegación
@@ -291,8 +344,8 @@ function renderDistributorCombos(combos) {
 
     if (checklistContainer) {
       checklistContainer.innerHTML = activeList.map(c => `
-        <div class="checklist-card checked" data-combo-id="${c.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)" style="margin-bottom: 0.4rem;">
-          <div class="checklist-checkbox">✓</div>
+        <div class="checklist-card checked" data-combo-id="${c.id}" style="margin-bottom: 0.4rem; cursor: default;">
+          <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981; pointer-events: none;">✓</div>
           <div class="checklist-info">
             <div class="checklist-title">
               <span style="font-size: 1.15rem; margin-right: 0.3rem;">${c.icon || '📦'}</span>
@@ -362,8 +415,8 @@ function renderDistributorCombos(combos) {
 
   if (checklistContainer) {
     checklistContainer.innerHTML = `
-      <div class="checklist-card checked" data-combo-id="${activeStationCombo.id}" onclick="window.toggleChecklistItem && window.toggleChecklistItem(this)">
-        <div class="checklist-checkbox">✓</div>
+      <div class="checklist-card checked" data-combo-id="${activeStationCombo.id}" style="cursor: default;">
+        <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981; pointer-events: none;">✓</div>
         <div class="checklist-info">
           <div class="checklist-title">
             <span style="font-size: 1.2rem; margin-right: 0.3rem;">${activeStationCombo.icon || '📦'}</span>

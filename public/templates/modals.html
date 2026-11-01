@@ -15,8 +15,21 @@
         </svg></button>
     </div>
 
-    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-      Se requiere la firma biométrica de un Supervisor registrado para liberar la contingencia:
+    <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.85rem;">
+      Se requiere la firma biométrica o clave de un Supervisor registrado para autorizar la contingencia (ej. beneficiario sin smartphone o sensor averiado):
+    </div>
+
+    <!-- BÚSQUEDA DE BENEFICIARIO POR CÉDULA PARA SUPERVISOR -->
+    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: var(--radius-sm); padding: 0.75rem; margin-bottom: 1rem;">
+      <label style="font-size: 0.72rem; color: #fbbf24; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.35rem;">
+        Buscar Beneficiario por Cédula:
+      </label>
+      <div style="display: flex; gap: 0.4rem;">
+        <input id="supervisorContingencyDocInput" type="text" class="form-input" placeholder="Ej: V-18456123..." style="font-size: 0.82rem; flex: 1;">
+        <button id="btnSupervisorSearchContingency" type="button" class="btn btn-outline" style="font-size: 0.8rem; background: rgba(245, 158, 11, 0.2); border-color: #f59e0b; color: #fbbf24; font-weight: 700;">
+          Buscar 🔍
+        </button>
+      </div>
     </div>
 
     <div
