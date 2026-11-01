@@ -80,3 +80,4 @@ El sistema ahora garantiza que cada usuario interactúe únicamente con las herr
    - Commit semántico: `981e530` (`refactor(ui): segregar roles y simplificar vistas de despacho, beneficiario y supervisor`).
    - Sincronización automática con `origin main`.
    - Despliegue en producción verificado en Vercel.
+
