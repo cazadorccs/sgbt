@@ -8,30 +8,19 @@ const { generateOfficialActaHtml } = require('../services/audit.service');
 const getKpis = (req, res) => {
   const today = new Date().toISOString().split('T')[0];
 
-  const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active'").get().count;
+  const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().count;
   const workersWithPasskey = db.prepare(`
     SELECT COUNT(DISTINCT worker_id) as count
     FROM passkey_credentials
     WHERE status = 'active'
   `).get().count;
 
-  const totalEntitlementsToday = db.prepare(`
-    SELECT COUNT(*) as count
-    FROM daily_entitlements e
-    JOIN combos c ON e.combo_id = c.id
-    WHERE (e.valid_date = ? OR date(e.valid_date) = date(?))
-      AND c.is_active = 1
-      AND e.status != 'cancelled'
-  `).get(today, today).count;
+  const todayUtc = new Date().toISOString().split('T')[0];
+  const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
+  const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
 
-  const claimedEntitlementsToday = db.prepare(`
-    SELECT COUNT(*) as count
-    FROM daily_entitlements e
-    JOIN combos c ON e.combo_id = c.id
-    WHERE (e.valid_date = ? OR date(e.valid_date) = date(?))
-      AND e.status = 'claimed'
-      AND c.is_active = 1
-  `).get(today, today).count;
+  // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
+  const totalEntitlementsToday = totalWorkers * activeCombosCount;
 
   const methodStats = db.prepare(`
     SELECT 
@@ -42,9 +31,18 @@ const getKpis = (req, res) => {
       SUM(CASE WHEN verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as supervisor_override,
       SUM(CASE WHEN is_offline_sync = 1 THEN 1 ELSE 0 END) as offline_deliveries,
       COUNT(*) as total_deliveries
-    FROM deliveries
-    WHERE date(delivered_at) = ? OR date('now') = ?
-  `).get(today, today);
+    FROM deliveries d
+    JOIN workers w ON d.worker_id = w.id
+    WHERE (
+      date(d.delivered_at) IN (?, ?)
+      OR date(d.delivered_at, '-4 hours') IN (?, ?)
+      OR substr(d.delivered_at, 1, 10) IN (?, ?)
+      OR d.delivered_at >= datetime('now', '-24 hours')
+    )
+    AND w.document_id NOT IN ('V-00000000', '00000000', '')
+  `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
+
+  const claimedEntitlementsToday = methodStats.total_deliveries || 0;
 
   const totalDelivered = methodStats.total_deliveries || 0;
   const offlinePct = totalDelivered > 0 ? Math.round(((methodStats.offline_deliveries || 0) / totalDelivered) * 100) : 0;
@@ -759,15 +757,9 @@ function reconcileComboEntitlements(comboId, isActive) {
 }
 
 function getActiveAssignedCountToday() {
-  const today = new Date().toISOString().split('T')[0];
-  return db.prepare(`
-    SELECT COUNT(*) as count
-    FROM daily_entitlements e
-    JOIN combos c ON e.combo_id = c.id
-    WHERE (e.valid_date = ? OR date(e.valid_date) = date(?))
-      AND c.is_active = 1
-      AND e.status != 'cancelled'
-  `).get(today, today).count;
+  const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get()?.count || 0;
+  const activeCombos = db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1").get()?.count || 1;
+  return totalWorkers * activeCombos;
 }
 
 const toggleComboStatus = async (req, res) => {

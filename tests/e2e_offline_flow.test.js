@@ -239,6 +239,8 @@ async function runTestSuite() {
 
   if (passed !== total) {
     process.exit(1);
+  } else {
+    process.exit(0);
   }
 }
 

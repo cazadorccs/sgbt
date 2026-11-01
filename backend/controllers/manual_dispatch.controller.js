@@ -490,54 +490,44 @@ const getTodayStatsAndRecent = async (req, res) => {
       console.warn('[DELIVERY AUTO-HEAL WARN]', healErr.message);
     }
 
-    const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active'").get().c;
-    const totalAssigned = db.prepare(`
-      SELECT COUNT(*) as c 
-      FROM daily_entitlements e
-      JOIN combos c ON e.combo_id = c.id
-      WHERE e.valid_date IN (?, ?) AND c.is_active = 1 AND e.status != 'cancelled'
-    `).get(todayUtc, todayVzla).c;
-    const totalClaimed = db.prepare(`
-      SELECT COUNT(*) as c 
-      FROM daily_entitlements e
-      JOIN combos c ON e.combo_id = c.id
-      WHERE e.valid_date IN (?, ?) AND e.status = 'claimed'
-    `).get(todayUtc, todayVzla).c;
-    const totalPending = db.prepare(`
-      SELECT COUNT(*) as c 
-      FROM daily_entitlements e
-      JOIN combos c ON e.combo_id = c.id
-      WHERE e.valid_date IN (?, ?) AND e.status = 'pending' AND c.is_active = 1
-    `).get(todayUtc, todayVzla).c;
+    const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().c;
+    const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
+    // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
+    const totalAssigned = totalWorkers * activeCombosCount;
+
     // Fuente de verdad unificada para entregas de la jornada:
-    // Consultamos los derechos con status = 'claimed' para la fecha de hoy, enriquecidos con la tabla deliveries.
-    // Esto garantiza 100% de coherencia matemática entre el número KPI y el listado del modal.
+    // Captura tanto entregas de Despacho Manual como de Mesas de Despacho por la App (NFC/QR/Supervisor)
     const rawDeliveries = db.prepare(`
       SELECT 
-        COALESCE(d.id, 'claim_' || e.id) as delivery_id,
-        COALESCE(d.delivered_at, e.created_at, CURRENT_TIMESTAMP) as delivered_at,
-        COALESCE(d.verification_method, 'passkey_nfc') as verification_method,
+        d.id as delivery_id,
+        d.delivered_at,
+        COALESCE(d.verification_method, 'passkey_qr') as verification_method,
         d.override_reason,
         w.document_id,
         COALESCE(NULLIF(TRIM(w.full_name), ''), 'Funcionario C.I. ' || w.document_id) as full_name,
         COALESCE(w.worker_type, 'activo') as worker_type,
         COALESCE(dep.name, 'Nómina Central') as department_name,
-        COALESCE(c.name, 'Combo Institucional') as combo_name, 
+        COALESCE(c.name, 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)') as combo_name, 
         COALESCE(c.icon, '📦') as combo_icon,
         sup.full_name as supervisor_name
-      FROM daily_entitlements e
-      JOIN combos c ON e.combo_id = c.id
-      JOIN workers w ON e.worker_id = w.id
-      LEFT JOIN deliveries d ON d.entitlement_id = e.id
+      FROM deliveries d
+      JOIN workers w ON d.worker_id = w.id
+      LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
+      LEFT JOIN combos c ON COALESCE(e.combo_id, (SELECT id FROM combos WHERE is_active = 1 LIMIT 1)) = c.id
       LEFT JOIN departments dep ON w.department_id = dep.id
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
-      WHERE e.status = 'claimed'
-        AND e.valid_date IN (?, ?)
-        AND w.document_id IS NOT NULL 
-        AND w.document_id NOT IN ('V-00000000', '00000000', '')
-      ORDER BY COALESCE(d.delivered_at, e.created_at) DESC
+      WHERE (
+        date(d.delivered_at) IN (?, ?)
+        OR date(d.delivered_at, '-4 hours') IN (?, ?)
+        OR substr(d.delivered_at, 1, 10) IN (?, ?)
+        OR d.delivered_at >= datetime('now', '-24 hours')
+        OR (e.id IS NOT NULL AND e.status = 'claimed' AND e.valid_date IN (?, ?))
+      )
+      AND w.document_id IS NOT NULL 
+      AND w.document_id NOT IN ('V-00000000', '00000000', '')
+      ORDER BY d.delivered_at DESC
       LIMIT 500
-    `).all(todayUtc, todayVzla);
+    `).all(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
 
     // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
     const groupedMap = new Map();
@@ -573,6 +563,8 @@ const getTodayStatsAndRecent = async (req, res) => {
 
     // Contar combos entregados directamente de rawDeliveries para consistencia 100% con la lista
     const totalCombosDelivered = rawDeliveries.length;
+    // REGLA OFICIAL: Combos Pendientes = Combos Programados Hoy - Combos Entregados
+    const totalPending = Math.max(0, totalAssigned - totalCombosDelivered);
 
     res.json({
       success: true,

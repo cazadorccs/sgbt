@@ -209,8 +209,10 @@ async function runSecurityTests() {
   }
 }
 
-runSecurityTests().catch(err => {
-  console.error('\n❌ ERROR EN PRUEBAS DE SEGURIDAD:', err);
-  if (server) server.close();
-  process.exit(1);
-});
+runSecurityTests()
+  .then(() => process.exit(0))
+  .catch(err => {
+    console.error('\n❌ ERROR EN PRUEBAS DE SEGURIDAD:', err);
+    if (server) server.close();
+    process.exit(1);
+  });
