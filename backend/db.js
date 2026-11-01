@@ -1015,8 +1015,20 @@ async function syncFromSupabase() {
       }
     } catch (e) {}
 
-    const { data: remoteWorkers, error: wErr } = await supabase.from('workers').select('*');
-    if (!wErr && Array.isArray(remoteWorkers) && remoteWorkers.length > 0) {
+    let remoteWorkers = [];
+    try {
+      let page = 0;
+      const pageSize = 1000;
+      while (page < 5) {
+        const { data, error } = await supabase.from('workers').select('*').range(page * pageSize, (page + 1) * pageSize - 1);
+        if (error || !Array.isArray(data) || data.length === 0) break;
+        remoteWorkers = remoteWorkers.concat(data);
+        if (data.length < pageSize) break;
+        page++;
+      }
+    } catch (wCatch) {}
+
+    if (Array.isArray(remoteWorkers) && remoteWorkers.length > 0) {
       const insertWorker = db.prepare(`
         INSERT INTO workers (
           id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, created_at, updated_at
@@ -1180,8 +1192,13 @@ async function syncFromSupabase() {
       const orphanedClaimed = db.prepare(`
         SELECT e.id as entitlement_id, e.worker_id, e.created_at
         FROM daily_entitlements e
+        JOIN workers w ON e.worker_id = w.id
         LEFT JOIN deliveries d ON d.entitlement_id = e.id
-        WHERE e.status = 'claimed' AND e.valid_date IN (?, ?) AND d.id IS NULL
+        WHERE e.status = 'claimed' 
+          AND e.valid_date IN (?, ?) 
+          AND w.document_id NOT IN ('V-00000000', '00000000', '')
+          AND w.document_id IS NOT NULL
+          AND d.id IS NULL
       `).all(todayUtc, todayVzla);
 
       if (orphanedClaimed.length > 0) {

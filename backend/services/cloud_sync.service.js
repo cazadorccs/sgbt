@@ -136,21 +136,26 @@ async function persistDeliveries(deliveries) {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    // 1. Asegurar que los entitlements asociados existan y se marquen 'claimed' en Supabase
+    // 1. Asegurar que los entitlements asociados se marquen 'claimed' en Supabase sin sobreescribir su fecha válida
     for (const d of deliveries) {
       const entId = d.entitlement_id;
       if (entId) {
         try {
-          await supabase.from('daily_entitlements').upsert([{
-            id: entId,
-            worker_id: d.worker_id,
-            combo_id: d.combo_id || DEFAULT_COMBO_ID,
-            valid_date: today,
-            shift: 'jornada_continua',
-            status: 'claimed'
-          }], { onConflict: 'id' });
+          const { data: existingEnt } = await supabase.from('daily_entitlements').select('id, valid_date').eq('id', entId).maybeSingle();
+          if (existingEnt) {
+            await supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', entId);
+          } else {
+            await supabase.from('daily_entitlements').insert([{
+              id: entId,
+              worker_id: d.worker_id,
+              combo_id: d.combo_id || DEFAULT_COMBO_ID,
+              valid_date: d.valid_date || today,
+              shift: 'jornada_continua',
+              status: 'claimed'
+            }]);
+          }
         } catch (entErr) {
-          console.warn('[CLOUD PERSIST] Advertencia al upsert de entitlement:', entErr.message);
+          console.warn('[CLOUD PERSIST] Advertencia al actualizar entitlement:', entErr.message);
         }
       }
     }

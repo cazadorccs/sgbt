@@ -455,7 +455,7 @@ const getTodayStatsAndRecent = async (req, res) => {
 
     // Auto-reconciliación de integridad garantizada:
     // Si existen entitlements reclamados para la jornada de hoy (UTC o VET) sin fila en deliveries,
-    // se crea la fila correspondiente para garantizar coherencia 100% entre el contador KPI y el modal de despachos.
+    // se crea la fila correspondiente únicamente para trabajadores reales con cédula válida.
     try {
       const distPoint = db.prepare("SELECT id FROM distribution_points WHERE id = '5b0f10e3-7eac-4872-bf96-74ecd359be7e' OR is_active = 1 LIMIT 1").get();
       const defaultDistId = distPoint ? distPoint.id : '5b0f10e3-7eac-4872-bf96-74ecd359be7e';
@@ -463,9 +463,12 @@ const getTodayStatsAndRecent = async (req, res) => {
       const missingDeliveries = db.prepare(`
         SELECT e.id as entitlement_id, e.worker_id, e.combo_id, e.valid_date, e.created_at
         FROM daily_entitlements e
+        JOIN workers w ON e.worker_id = w.id
         LEFT JOIN deliveries d ON d.entitlement_id = e.id
         WHERE e.status = 'claimed' 
-          AND (e.valid_date IN (?, ?) OR e.created_at >= datetime('now', '-24 hours'))
+          AND e.valid_date IN (?, ?)
+          AND w.document_id IS NOT NULL 
+          AND w.document_id NOT IN ('V-00000000', '00000000', '')
           AND d.id IS NULL
       `).all(todayUtc, todayVzla);
 
@@ -507,33 +510,38 @@ const getTodayStatsAndRecent = async (req, res) => {
       WHERE e.valid_date IN (?, ?) AND e.status = 'pending' AND c.is_active = 1
     `).get(todayUtc, todayVzla).c;
     const totalDeliveries = db.prepare(`
-      SELECT COUNT(*) as c FROM deliveries 
-      WHERE date(delivered_at) IN (?, ?) 
-         OR date(delivered_at, '-4 hours') IN (?, ?)
-         OR substr(delivered_at, 1, 10) IN (?, ?)
-         OR delivered_at >= datetime('now', '-24 hours')
+      SELECT COUNT(*) as c FROM deliveries d
+      JOIN workers w ON d.worker_id = w.id
+      WHERE (date(d.delivered_at) IN (?, ?) 
+         OR date(d.delivered_at, '-4 hours') IN (?, ?)
+         OR substr(d.delivered_at, 1, 10) IN (?, ?)
+         OR d.delivered_at >= datetime('now', '-24 hours'))
+        AND w.document_id IS NOT NULL 
+        AND w.document_id NOT IN ('V-00000000', '00000000', '')
     `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla).c;
 
     const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id, d.delivered_at, d.verification_method, d.override_reason,
-        COALESCE(w.document_id, 'V-00000000') as document_id,
-        COALESCE(NULLIF(w.full_name, ''), 'Funcionario C.I. ' || COALESCE(w.document_id, 'N/D')) as full_name,
+        w.document_id,
+        COALESCE(NULLIF(TRIM(w.full_name), ''), 'Funcionario C.I. ' || w.document_id) as full_name,
         COALESCE(w.worker_type, 'activo') as worker_type,
         COALESCE(dep.name, 'Nómina Central') as department_name,
         COALESCE(c.name, 'Combo Institucional') as combo_name, 
         COALESCE(c.icon, '📦') as combo_icon,
         sup.full_name as supervisor_name
       FROM deliveries d
-      LEFT JOIN workers w ON d.worker_id = w.id
+      JOIN workers w ON d.worker_id = w.id
       LEFT JOIN daily_entitlements e ON d.entitlement_id = e.id
       LEFT JOIN combos c ON e.combo_id = c.id
       LEFT JOIN departments dep ON w.department_id = dep.id
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
-      WHERE date(d.delivered_at) IN (?, ?)
+      WHERE (date(d.delivered_at) IN (?, ?)
          OR date(d.delivered_at, '-4 hours') IN (?, ?)
          OR substr(d.delivered_at, 1, 10) IN (?, ?)
-         OR d.delivered_at >= datetime('now', '-24 hours')
+         OR d.delivered_at >= datetime('now', '-24 hours'))
+        AND w.document_id IS NOT NULL 
+        AND w.document_id NOT IN ('V-00000000', '00000000', '')
       ORDER BY d.delivered_at DESC
       LIMIT 500
     `).all(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
