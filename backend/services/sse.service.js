@@ -35,26 +35,59 @@ function notifyDeliveryStream(worker_id, data) {
 
 /**
  * Controlador de conexión para el canal HTTP Server-Sent Events.
+ * Blindado contra fugas de información, ataques IDOR y suscripciones no autorizadas.
  */
 function deliveryStream(req, res) {
-  const worker_id = req.query.worker_id || '*';
+  const origin = req.headers.origin || '';
+  const currentUser = req.user;
+  const requestedWorkerId = (req.query.worker_id || '').trim();
+
+  const isSupervisorOrAdmin = currentUser && ['supervisor', 'admin', 'director', 'operator', 'distributor'].includes(currentUser.role);
+
+  // 1. CONTROL DE ACCESO ESTRICTO:
+  // El canal global '*' expone todas las entregas institucionales en tiempo real.
+  // SOLO usuarios autenticados con rol operativo o directivo pueden suscribirse a '*'.
+  if (!requestedWorkerId || requestedWorkerId === '*') {
+    if (!isSupervisorOrAdmin) {
+      return res.status(403).json({
+        error: 'Acceso restringido: Se requieren privilegios de supervisor o administrador para monitorear el canal global de despachos.',
+        code: 'FORBIDDEN_BROADCAST_STREAM'
+      });
+    }
+  } else if (currentUser && !isSupervisorOrAdmin) {
+    // 2. BLINDAJE ANTI-IDOR:
+    // Un beneficiario regular solo puede suscribirse a su propio canal de notificaciones.
+    const isOwnChannel = requestedWorkerId === currentUser.id || requestedWorkerId === currentUser.document_id;
+    if (!isOwnChannel) {
+      return res.status(403).json({
+        error: 'Acceso no autorizado: No tiene permisos para suscribirse al flujo de entrega de otro beneficiario.',
+        code: 'IDOR_STREAM_FORBIDDEN'
+      });
+    }
+  }
+
+  const targetChannel = requestedWorkerId || '*';
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+
   res.flushHeaders?.();
 
   const clientId = crypto.randomUUID();
-  const clientObj = { res, id: clientId };
+  const clientObj = { res, id: clientId, userId: currentUser ? currentUser.id : null };
 
-  if (!sseClients.has(worker_id)) {
-    sseClients.set(worker_id, new Set());
+  if (!sseClients.has(targetChannel)) {
+    sseClients.set(targetChannel, new Set());
   }
-  sseClients.get(worker_id).add(clientObj);
+  sseClients.get(targetChannel).add(clientObj);
 
-  res.write(`event: connected\ndata: ${JSON.stringify({ worker_id, status: 'streaming', timestamp: Date.now() })}\n\n`);
+  res.write(`event: connected\ndata: ${JSON.stringify({ worker_id: targetChannel, status: 'streaming', timestamp: Date.now() })}\n\n`);
 
   const heartbeat = setInterval(() => {
     try {
@@ -66,10 +99,10 @@ function deliveryStream(req, res) {
 
   req.on('close', () => {
     clearInterval(heartbeat);
-    const set = sseClients.get(worker_id);
+    const set = sseClients.get(targetChannel);
     if (set) {
       set.delete(clientObj);
-      if (set.size === 0) sseClients.delete(worker_id);
+      if (set.size === 0) sseClients.delete(targetChannel);
     }
   });
 }

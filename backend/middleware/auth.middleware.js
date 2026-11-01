@@ -42,8 +42,13 @@ function extractToken(req) {
   if (req.headers['x-worker-session']) {
     return String(req.headers['x-worker-session']).trim();
   }
+  // 4. Parámetro de consulta restringido ÚNICAMENTE a descargas directas del navegador (ej. exportaciones)
+  // Blindaje CWE-598: Prohíbe tokens en query string en el resto de la API para prevenir fugas en logs
   if (req.query && req.query.session_token) {
-    return String(req.query.session_token).trim();
+    const isExportPath = req.path && (req.path.includes('/export') || req.path.includes('/download'));
+    if (isExportPath) {
+      return String(req.query.session_token).trim();
+    }
   }
   return null;
 }

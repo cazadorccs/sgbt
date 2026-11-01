@@ -145,12 +145,16 @@ window.ManualDispatch = (function() {
       }
     });
 
-    // Filtro en vivo dentro del modal
+    // Filtro en vivo dentro del modal con debounce de 180ms para suavidad en dispositivos táctiles
     const inputFilter = document.getElementById('inputFilterRecentDeliveries');
     if (inputFilter) {
+      let filterDebounceTimer = null;
       inputFilter.addEventListener('input', () => {
-        const query = inputFilter.value.toLowerCase().trim();
-        filterAndRenderModalDeliveries(query);
+        clearTimeout(filterDebounceTimer);
+        filterDebounceTimer = setTimeout(() => {
+          const query = inputFilter.value.toLowerCase().trim();
+          filterAndRenderModalDeliveries(query);
+        }, 180);
       });
     }
 

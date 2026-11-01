@@ -40,6 +40,6 @@ router.post('/auth/device/release', requireRole('supervisor', 'admin', 'director
 // Validación de QR y estado en tiempo real (Blindado contra IDOR con authenticate)
 router.post('/verify/qr', authController.verifyQr);
 router.get('/auth/delivery-status', authenticate, authController.getDeliveryStatus);
-router.get('/auth/delivery-stream', authController.deliveryStream);
+router.get('/auth/delivery-stream', authenticate, authController.deliveryStream);
 
 module.exports = router;

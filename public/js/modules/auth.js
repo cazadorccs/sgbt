@@ -526,7 +526,7 @@ async function executeLogin(rawDocId) {
     const user = data.user;
     if (data.session_token) {
       sessionStorage.setItem('sgbt_session_token', data.session_token);
-      localStorage.setItem('sgbt_session_token', data.session_token);
+      localStorage.removeItem('sgbt_session_token');
     }
     
     // Guardar candado de dispositivo activo
@@ -629,7 +629,7 @@ async function executeAdminLogin(identifier, secret) {
     const user = data.user;
     if (data.session_token) {
       sessionStorage.setItem('sgbt_session_token', data.session_token);
-      localStorage.setItem('sgbt_session_token', data.session_token);
+      localStorage.removeItem('sgbt_session_token');
     }
 
     console.log(`[CLIENT AUTH] ✅ Sesión de Administración Iniciada: ${user.full_name} | Rol: ${user.role}`);
@@ -1422,7 +1422,7 @@ window.setupEnrollmentModalListeners = function() {
 
         if (res.session_token) {
           sessionStorage.setItem('sgbt_session_token', res.session_token);
-          localStorage.setItem('sgbt_session_token', res.session_token);
+          localStorage.removeItem('sgbt_session_token');
         }
 
         playAudioFeedback('success');
@@ -1633,7 +1633,7 @@ async function handleMfaVerificationSubmit() {
     const user = res.user;
     if (res.session_token) {
       sessionStorage.setItem('sgbt_session_token', res.session_token);
-      localStorage.setItem('sgbt_session_token', res.session_token);
+      localStorage.removeItem('sgbt_session_token');
     }
 
     console.log(`[CLIENT AUTH] ✅ MFA Verificado. Sesión iniciada: ${user.full_name}`);
