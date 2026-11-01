@@ -26,8 +26,10 @@ router.post('/audit/ministerial/census-lock', authenticate, requireRole('admin',
 // 6. Generador Oficial de Acta Ministerial Definitiva (Jornada 27/Nov con Sello SHA-256)
 router.post('/audit/ministerial/acta', authenticate, requireRole('admin', 'director'), controller.generateMinisterialActa);
 
-// 7. Consulta de Acta Ministerial Definitiva (por ID o 'latest')
+// 7. Consulta e Impresión de Acta Ministerial Definitiva (por ID o 'latest')
+router.get('/audit/ministerial/acta/latest/print', authenticate, controller.printMinisterialActaHtml);
 router.get('/audit/ministerial/acta/latest', authenticate, controller.getMinisterialActa);
+router.get('/audit/ministerial/acta/:id/print', authenticate, controller.printMinisterialActaHtml);
 router.get('/audit/ministerial/acta/:id', authenticate, controller.getMinisterialActa);
 
 module.exports = router;

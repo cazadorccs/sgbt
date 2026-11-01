@@ -508,6 +508,7 @@
         }
 
         const acta = data.acta;
+        this.currentActaId = acta.id || actaId;
         const m = acta.metrics || {};
 
         // Inyectar en modal
@@ -614,15 +615,27 @@
               </div>
             </div>
           </div>
-          <button class="btn btn-outline" onclick="window.MinisterialAudit.viewActa('${latestActa.id}')" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.78rem; padding: 0.45rem 0.85rem;">
-            👁️ Inspeccionar Acta
-          </button>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn btn-outline" onclick="window.MinisterialAudit.viewActa('${latestActa.id}')" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.78rem; padding: 0.45rem 0.85rem;">
+              👁️ Inspeccionar Acta
+            </button>
+            <button class="btn btn-primary" onclick="window.MinisterialAudit.printActaDirect('${latestActa.id}')" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; font-size: 0.78rem; padding: 0.45rem 0.85rem; color: #fff;">
+              🖨️ Imprimir / PDF
+            </button>
+          </div>
         </div>
       `;
     },
 
     printActa() {
-      window.print();
+      const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
+      const actaId = this.currentActaId || 'latest';
+      window.open(`/api/v1/audit/ministerial/acta/${encodeURIComponent(actaId)}/print?session_token=${encodeURIComponent(token)}`, '_blank');
+    },
+
+    printActaDirect(actaId) {
+      const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
+      window.open(`/api/v1/audit/ministerial/acta/${encodeURIComponent(actaId || 'latest')}/print?session_token=${encodeURIComponent(token)}`, '_blank');
     }
   };
 

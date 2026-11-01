@@ -45,7 +45,7 @@ function extractToken(req) {
   // 4. Parámetro de consulta restringido ÚNICAMENTE a descargas directas del navegador (ej. exportaciones)
   // Blindaje CWE-598: Prohíbe tokens en query string en el resto de la API para prevenir fugas en logs
   if (req.query && req.query.session_token) {
-    const isExportPath = req.path && (req.path.includes('/export') || req.path.includes('/download'));
+    const isExportPath = req.path && (req.path.includes('/export') || req.path.includes('/download') || req.path.includes('/print'));
     if (isExportPath) {
       return String(req.query.session_token).trim();
     }

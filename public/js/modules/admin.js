@@ -361,6 +361,18 @@ window.loadAuditStats = async function() {
       elSecurityBreakdown.textContent = `Celular: ${passkeyPct}% · Tarjeta: ${nfcPct}% · Mesa: ${supPct}% · 0% duplicados`;
     }
 
+    const overridesCount = data.methods_breakdown?.supervisor_override || 0;
+    const overridesPct = Math.round((overridesCount / totalMethods) * 100);
+
+    const elContBadge = document.getElementById('statContingenciesBadge');
+    if (elContBadge) elContBadge.textContent = overridesCount.toLocaleString();
+
+    const elExceptCount = document.getElementById('statAuditExceptionsCount');
+    if (elExceptCount) elExceptCount.textContent = overridesCount.toLocaleString();
+
+    const elExceptPct = document.getElementById('statAuditExceptionsPct');
+    if (elExceptPct) elExceptPct.textContent = `${overridesPct}%`;
+
     const selectCampaign = document.getElementById('auditCampaignFilter');
     if (selectCampaign && selectCampaign.options.length <= 1 && data.campaigns_list) {
       data.campaigns_list.forEach(c => {
@@ -758,6 +770,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('auditMethodFilter')?.addEventListener('change', loadAuditDeliveries);
+
+  document.getElementById('btnQuickFilterContingencies')?.addEventListener('click', () => {
+    const methodFilter = document.getElementById('auditMethodFilter');
+    if (methodFilter) {
+      if (methodFilter.value === 'supervisor_override') {
+        methodFilter.value = '';
+      } else {
+        methodFilter.value = 'supervisor_override';
+      }
+      loadAuditDeliveries();
+    }
+  });
 
   let auditSearchTimeout;
   document.getElementById('auditSearchInput')?.addEventListener('input', () => {

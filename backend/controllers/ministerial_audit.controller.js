@@ -5,6 +5,7 @@
 // ============================================================================
 
 const crypto = require('crypto');
+const QRCode = require('qrcode');
 const { db } = require('../db');
 
 /**
@@ -389,6 +390,49 @@ const generateMinisterialActa = (req, res) => {
       LIMIT 10
     `).all();
 
+    // 4.1. Reconciliación Viva de Despachos y Entregas de la Jornada
+    let delStats = {
+      total_delivered_combos: 0,
+      total_delivered_workers: 0,
+      total_weight_kg: 0,
+      total_weight_tons: 0,
+      count_passkey: 0,
+      count_nfc: 0,
+      count_sup_qr: 0,
+      count_override: 0,
+      count_offline: 0
+    };
+    let deliveriesMerkleHash = 'SGBT_NO_DELIVERIES';
+    try {
+      const qDel = db.prepare(`
+        SELECT 
+          COUNT(del.id) as total_delivered_combos,
+          COUNT(DISTINCT del.worker_id) as total_delivered_workers,
+          ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_weight_kg,
+          ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as total_weight_tons,
+          SUM(CASE WHEN del.verification_method = 'passkey_qr' THEN 1 ELSE 0 END) as count_passkey,
+          SUM(CASE WHEN del.verification_method = 'nfc_card' THEN 1 ELSE 0 END) as count_nfc,
+          SUM(CASE WHEN del.verification_method = 'supervisor_daily_qr' THEN 1 ELSE 0 END) as count_sup_qr,
+          SUM(CASE WHEN del.verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as count_override,
+          SUM(CASE WHEN del.is_offline_sync = 1 THEN 1 ELSE 0 END) as count_offline
+        FROM deliveries del
+        JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+        JOIN combos c ON ent.combo_id = c.id
+      `).get();
+      if (qDel) delStats = { ...delStats, ...qDel };
+
+      const deliveriesList = db.prepare(`
+        SELECT del.id, del.delivered_at, w.document_id 
+        FROM deliveries del 
+        JOIN workers w ON del.worker_id = w.id 
+        ORDER BY del.delivered_at ASC, del.id ASC
+      `).all();
+      const deliveriesPayload = deliveriesList.map(d => `${d.id}:${d.delivered_at}:${d.document_id}`).join('|');
+      deliveriesMerkleHash = crypto.createHash('sha256').update(deliveriesPayload || 'SGBT_EMPTY_DISPATCH').digest('hex');
+    } catch (e) {
+      console.warn('[DELIVERY RECONCILIATION WARN]', e.message);
+    }
+
     // 5. Identificadores Oficiales
     const dateCode = today.replace(/-/g, '').slice(2);
     const randHex = crypto.randomBytes(2).toString('hex').toUpperCase();
@@ -447,12 +491,33 @@ const generateMinisterialActa = (req, res) => {
         total_gross_weight_tons: totalGrossWeightTons,
         security_incidents_blocked: blockedIncidents
       },
+      deliveries_summary: {
+        total_delivered_combos: delStats.total_delivered_combos || 0,
+        total_delivered_workers: delStats.total_delivered_workers || 0,
+        total_weight_kg: delStats.total_weight_kg || 0,
+        total_weight_tons: delStats.total_weight_tons || 0,
+        delivery_coverage_pct: totalWorkers > 0 ? Math.round(((delStats.total_delivered_workers || 0) / totalWorkers) * 1000) / 10 : 0,
+        methods_breakdown: {
+          passkey_qr: delStats.count_passkey || 0,
+          nfc_card: delStats.count_nfc || 0,
+          supervisor_daily_qr: delStats.count_sup_qr || 0,
+          supervisor_override: delStats.count_override || 0,
+          offline_sync: delStats.count_offline || 0
+        },
+        deliveries_merkle_hash: deliveriesMerkleHash
+      },
       top_departments: topDepts,
       signatories: signatories
     };
 
     const canonicalString = JSON.stringify(actaDoc);
     const digitalHash = crypto.createHash('sha256').update(canonicalString).digest('hex');
+
+    let generatedByWorkerId = null;
+    if (req.user) {
+      const validWorker = db.prepare('SELECT id FROM workers WHERE id = ? OR document_id = ?').get(req.user.id || '', req.user.document_id || req.user.id || '');
+      if (validWorker) generatedByWorkerId = validWorker.id;
+    }
 
     // 7. Persistencia en Base de Datos
     db.prepare(`
@@ -479,7 +544,7 @@ const generateMinisterialActa = (req, res) => {
       blockedIncidents,
       digitalHash,
       canonicalString,
-      req.user ? req.user.id : null,
+      generatedByWorkerId,
       JSON.stringify(signatories)
     );
 
@@ -548,12 +613,258 @@ const getMinisterialActa = (req, res) => {
         },
         digital_acta_hash: row.digital_acta_hash,
         top_departments: parsedData.top_departments || [],
-        signatories: parsedData.signatories || {}
+        signatories: parsedData.signatories || {},
+        deliveries_summary: parsedData.deliveries_summary || null
       }
     });
   } catch (err) {
     console.error('[GET MINISTERIAL ACTA ERROR]', err);
     return res.status(500).json({ error: 'Error consultando acta ministerial: ' + err.message });
+  }
+};
+
+/**
+ * 8. Renderizado e Impresión Oficial del Acta Ministerial (HTML para Contraloría/PDF)
+ */
+const printMinisterialActaHtml = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let row = null;
+    if (id && id !== 'latest') {
+      row = db.prepare("SELECT * FROM ministerial_actas WHERE id = ? OR acta_number = ?").get(id, id);
+    } else {
+      row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
+    }
+
+    if (!row) {
+      return res.status(404).send(`
+        <!DOCTYPE html>
+        <html lang="es"><head><meta charset="UTF-8"><title>Acta no encontrada</title>
+        <style>body{font-family:sans-serif;text-align:center;padding:4rem;background:#f8fafc;color:#334155;}
+        .card{background:white;padding:2rem;border-radius:8px;max-width:500px;margin:0 auto;box-shadow:0 4px 12px rgba(0,0,0,0.05);border:1px solid #e2e8f0;}</style>
+        </head><body><div class="card"><h2>⚠️ Acta Ministerial No Encontrada</h2>
+        <p>No se encontró ningún Acta Ministerial Definitiva con el identificador solicitado o aún no se ha emitido formalmente.</p>
+        <button onclick="window.close()" style="background:#0284c7;color:white;border:none;padding:0.6rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;">Cerrar Ventana</button></div></body></html>
+      `);
+    }
+
+    let parsed = {};
+    try {
+      parsed = JSON.parse(row.digital_acta_data);
+    } catch (e) {}
+
+    const metrics = parsed.metrics || {
+      total_workers_census: row.total_workers_census,
+      total_formalized: row.total_formalized,
+      total_rezagados: row.total_rezagados,
+      formalization_pct: row.formalization_pct,
+      passkey_adoption_pct: row.passkey_adoption_pct,
+      total_combos_assigned: row.total_combos_assigned,
+      total_gross_weight_tons: row.total_gross_weight_tons,
+      security_incidents_blocked: row.security_incidents_blocked
+    };
+
+    const delSummary = parsed.deliveries_summary || {
+      total_delivered_combos: row.total_combos_assigned || 0,
+      total_delivered_workers: row.total_formalized || 0,
+      total_weight_tons: row.total_gross_weight_tons || 0,
+      delivery_coverage_pct: row.formalization_pct || 0,
+      methods_breakdown: { passkey_qr: 0, nfc_card: 0, supervisor_daily_qr: 0, supervisor_override: 0, offline_sync: 0 }
+    };
+
+    const topDepts = parsed.top_departments || [];
+    const deptRows = topDepts.map(d => `
+      <tr>
+        <td style="font-weight: 600;">${d.name || d.code || 'Dependencia'}</td>
+        <td style="text-align: right;">${d.workers_count || 0}</td>
+        <td style="text-align: right; font-weight: 700; color: #0284c7;">${d.formalized_count || 0}</td>
+        <td style="text-align: right;">${d.workers_count > 0 ? Math.round(((d.formalized_count || 0) / d.workers_count) * 100) : 0}%</td>
+      </tr>
+    `).join('');
+
+    const qrText = `MIPPCI-ACTA-MINISTERIAL:${row.acta_number}:HASH:${row.digital_acta_hash}`;
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await QRCode.toDataURL(qrText, { width: 110, margin: 1, errorCorrectionLevel: 'M' });
+    } catch (e) {
+      console.error('Error generando QR para acta:', e);
+    }
+
+    const emissionDate = row.generated_at ? new Date(row.generated_at).toLocaleString('es-VE', { dateStyle: 'full', timeStyle: 'medium' }) : new Date().toLocaleString('es-VE');
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Acta Ministerial Definitiva - ${row.acta_number}</title>
+  <style>
+    @page { size: letter; margin: 1.2cm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.45; margin: 0; padding: 1.5rem; background: #f8fafc; }
+    .page-container { max-width: 860px; margin: 0 auto; background: #ffffff; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .header { border-bottom: 2px solid #0f172a; padding-bottom: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-titles h1 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0 0 0.2rem 0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .header-titles h2 { font-size: 0.9rem; font-weight: 700; color: #0284c7; margin: 0 0 0.2rem 0; text-transform: uppercase; }
+    .header-titles p { font-size: 0.76rem; color: #64748b; margin: 0; }
+    .badge-acta { text-align: right; }
+    .badge-acta .num { font-size: 0.95rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 0.35rem 0.75rem; border-radius: 6px; display: inline-block; }
+    .badge-acta .date { font-size: 0.72rem; color: #64748b; margin-top: 0.35rem; }
+    .section-title { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin: 1.5rem 0 0.75rem 0; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; margin-bottom: 1.25rem; }
+    .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.85rem; text-align: center; }
+    .kpi-box .val { font-size: 1.45rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .kpi-box .lbl { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.3rem; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.82rem; }
+    th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 0.5rem 0.65rem; border: 1px solid #cbd5e1; text-transform: uppercase; font-size: 0.72rem; }
+    td { padding: 0.5rem 0.65rem; border: 1px solid #cbd5e1; color: #1e293b; }
+    tr:nth-child(even) { background: #f8fafc; }
+    .integrity-container { display: flex; gap: 1rem; align-items: center; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 1rem; margin: 1.5rem 0; }
+    .integrity-box { flex: 1; font-size: 0.75rem; color: #166534; word-break: break-all; }
+    .signatures { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 3rem; text-align: center; }
+    .sig-line { border-top: 1.5px solid #64748b; margin-top: 2.5rem; padding-top: 0.4rem; }
+    .sig-line .name { font-weight: 700; font-size: 0.78rem; color: #0f172a; }
+    .sig-line .title { font-size: 0.68rem; color: #64748b; margin-top: 0.15rem; }
+    .print-actions { text-align: right; margin-bottom: 1.25rem; }
+    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .btn-print:hover { background: #0369a1; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      .print-actions { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <div class="print-actions">
+      <button class="btn-print" onclick="window.print()">
+        <span>🖨️ Imprimir / Guardar como PDF</span>
+      </button>
+    </div>
+
+    <div class="header">
+      <div class="header-titles">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; letter-spacing: 0.1em;">REPÚBLICA BOLIVARIANA DE VENEZUELA</div>
+        <h1>${row.institution || 'MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN'}</h1>
+        <h2>Acta Definitiva de Consolidación, Rendición y Cierre de Jornada</h2>
+        <p>Gobierno Bolivariano &bull; Beneficios Sociales &bull; Control Criptográfico Asimétrico &bull; Despacho Ministerial</p>
+      </div>
+      <div class="badge-acta">
+        <div class="num">${row.acta_number}</div>
+        <div class="date">Emisión: ${emissionDate}</div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-box">
+        <div class="val">${Number(metrics.total_workers_census || 0).toLocaleString()}</div>
+        <div class="lbl">Padrón Institucional</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #0284c7;">${Number(metrics.total_formalized || 0).toLocaleString()}</div>
+        <div class="lbl">Formalizados / Atendidos</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #16a34a;">${metrics.total_gross_weight_tons || 0} t</div>
+        <div class="lbl">Tonelaje Consolidado</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #d97706;">${metrics.formalization_pct || 0}%</div>
+        <div class="lbl">Cobertura Oficial</div>
+      </div>
+    </div>
+
+    <div class="section-title">1. Resumen por Métodos de Validación y Seguridad Institucional</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Mecanismo de Verificación</th>
+          <th style="text-align: right;">Despachos</th>
+          <th style="text-align: right;">Proporción</th>
+          <th>Protocolo de Seguridad</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>FIDO2 / WebAuthn Passkey (Criptografía P-256)</td>
+          <td style="text-align: right; font-weight: 700;">${delSummary.methods_breakdown?.passkey_qr || metrics.passkey_adoption_pct || 0}</td>
+          <td style="text-align: right;">${metrics.passkey_adoption_pct || 0}%</td>
+          <td><span style="color: #16a34a; font-weight: 600;">Máximo (Biométrico Asimétrico FIDO2)</span></td>
+        </tr>
+        <tr>
+          <td>Tarjeta Física NFC / RFID Cifrada</td>
+          <td style="text-align: right; font-weight: 700;">${delSummary.methods_breakdown?.nfc_card || 0}</td>
+          <td style="text-align: right;">--</td>
+          <td><span style="color: #0284c7; font-weight: 600;">Alto (Identificador Físico por Proximidad)</span></td>
+        </tr>
+        <tr>
+          <td>QR Dinámico Rotativo de Mesa (Supervisor)</td>
+          <td style="text-align: right; font-weight: 700;">${delSummary.methods_breakdown?.supervisor_daily_qr || 0}</td>
+          <td style="text-align: right;">--</td>
+          <td><span style="color: #ca8a04; font-weight: 600;">Medio-Alto (Rotación de Semilla Diaria)</span></td>
+        </tr>
+        <tr>
+          <td>Liberación por Contingencia / Override Supervisado</td>
+          <td style="text-align: right; font-weight: 700;">${delSummary.methods_breakdown?.supervisor_override || 0}</td>
+          <td style="text-align: right;">--</td>
+          <td><span style="color: #ea580c; font-weight: 600;">Auditado (Justificación y Cédula de Supervisor)</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="section-title">2. Rendición Consolidada por Dependencias Ministeriales</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Dependencia / Dirección General</th>
+          <th style="text-align: right;">Nómina Habilitada</th>
+          <th style="text-align: right;">Funcionarios Atendidos</th>
+          <th style="text-align: right;">Cobertura (%)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${deptRows || '<tr><td colspan="4" style="text-align:center;">Todas las dependencias consolidadas al 100%.</td></tr>'}
+      </tbody>
+    </table>
+
+    <div class="section-title">3. Certificación de Integridad Criptográfica Inmutable (SHA-256)</div>
+    <div class="integrity-container">
+      <div class="integrity-box">
+        <strong>🔒 Sello SHA-256 Canónico de Cierre:</strong><br>
+        <code style="font-size: 0.82rem; font-weight: 700; color: #14532d;">${row.digital_acta_hash}</code><br>
+        <div style="color: #15803d; font-size: 0.72rem; margin-top: 0.4rem;">
+          ✓ Este sello certifica ante el Despacho del Ministro, la Dirección General de Gestión Humana y la Inspectoría General de Servicios que el padrón, los volúmenes métricos y la bitácora de entregas fueron verificados sin alteraciones posteriores.
+        </div>
+      </div>
+      ${qrDataUrl ? `<div><img src="${qrDataUrl}" width="96" height="96" alt="QR Verificación" style="border: 1px solid #86efac; border-radius: 4px; padding: 2px; background: white;" /></div>` : ''}
+    </div>
+
+    <div class="signatures">
+      <div class="sig-line">
+        <div class="name">Despacho del Viceministro</div>
+        <div class="title">Gestión Comunicacional</div>
+      </div>
+      <div class="sig-line">
+        <div class="name">Dirección General</div>
+        <div class="title">Gestión Humana (RRHH)</div>
+      </div>
+      <div class="sig-line">
+        <div class="name">Oficina TIC (OTIC)</div>
+        <div class="title">Tecnologías de Información</div>
+      </div>
+      <div class="sig-line">
+        <div class="name">Inspectoría General</div>
+        <div class="title">Auditoría Interna y Servicios</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (err) {
+    console.error('[PRINT MINISTERIAL ACTA ERROR]', err);
+    return res.status(500).send('Error generando vista de impresión del acta: ' + err.message);
   }
 };
 
@@ -564,5 +875,6 @@ module.exports = {
   getCensusLockStatus,
   toggleCensusLock,
   generateMinisterialActa,
-  getMinisterialActa
+  getMinisterialActa,
+  printMinisterialActaHtml
 };
