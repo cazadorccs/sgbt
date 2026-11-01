@@ -86,6 +86,16 @@ app.use('/api', idempotencyMiddleware);
 // Montaje de rutas de la API REST v1
 app.use('/api/v1', apiRoutes);
 
+// Captura de 404 para rutas de API en formato RFC 7807 (Problem Details)
+app.use('/api', (req, res) => {
+  res.status(404).problem({
+    type: 'https://tools.ietf.org/html/rfc7807',
+    title: 'Endpoint No Encontrado',
+    status: 404,
+    detail: `La ruta solicitada [${req.method}] ${req.originalUrl} no existe en este servidor.`
+  });
+});
+
 // Manejador centralizado de errores
 app.use(errorHandler);
 

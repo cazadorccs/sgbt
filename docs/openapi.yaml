@@ -35,6 +35,44 @@ tags:
     description: Estado del motor criptográfico, catálogo de combos, backups y mantenimiento
 
 paths:
+  /dispatch/atomic-claim:
+    post:
+      tags:
+        - Despacho & Verificación
+      summary: Despacho Atómico Totalizado (Fase 3)
+      description: >
+        Liquida en un solo escaneo QR o lectura de proximidad todos los combos asignados al trabajador
+        para la jornada activa (víveres, proteína, especiales), previniendo dobles retiros.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - qr_payload
+              properties:
+                qr_payload:
+                  type: string
+                  description: Payload firmado o string QR escaneado
+                mode:
+                  type: string
+                  enum: [total, station]
+                  default: total
+      responses:
+        '200':
+          description: Beneficios liquidados exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Parámetros inválidos
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+
   /dispatch/void:
     post:
       tags:

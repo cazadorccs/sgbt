@@ -1,10 +1,45 @@
 // ============================================================================
 // SERVICIO DE PERSISTENCIA CRIPTOGRÁFICA EN LA NUBE (SUPABASE CLOUD)
 // Asegura la persistencia garantizada en Vercel Serverless y entornos multi-dispositivo
+// Incluye patrón Circuit Breaker para aislar fallos de red hacia la nube
 // ============================================================================
 
 const crypto = require('crypto');
 const { supabase, isSupabaseConfigured } = require('../supabase');
+
+// Estado interno del Circuit Breaker para Supabase
+const circuitBreaker = {
+  failures: 0,
+  maxFailures: 3,
+  state: 'CLOSED', // 'CLOSED' (normal), 'OPEN' (aislado tras fallos), 'HALF-OPEN' (probando)
+  cooldownPeriodMs: 60000, // 60 segundos antes de reintentar
+  lastFailureTime: 0,
+
+  canAttempt() {
+    if (this.state === 'CLOSED') return true;
+    const now = Date.now();
+    if (this.state === 'OPEN' && (now - this.lastFailureTime > this.cooldownPeriodMs)) {
+      this.state = 'HALF-OPEN';
+      console.log('🔄 [CIRCUIT BREAKER] Supabase en modo HALF-OPEN. Probando conectividad...');
+      return true;
+    }
+    return false;
+  },
+
+  recordSuccess() {
+    this.failures = 0;
+    this.state = 'CLOSED';
+  },
+
+  recordFailure(errMsg) {
+    this.failures++;
+    this.lastFailureTime = Date.now();
+    if (this.failures >= this.maxFailures) {
+      this.state = 'OPEN';
+      console.warn(`⚡ [CIRCUIT BREAKER OPEN] Supabase aislado temporalmente por 60s tras ${this.failures} fallos: ${errMsg}`);
+    }
+  }
+};
 
 const DEFAULT_DISTRIBUTION_POINT_ID = '5b0f10e3-7eac-4872-bf96-74ecd359be7e'; // Almacén Central - Sótano 1
 const DEFAULT_COMBO_ID = 'c1a2b3c4-1111-2222-3333-444455556666'; // Canasta Básica MIPPCI
@@ -14,6 +49,7 @@ const DEFAULT_COMBO_ID = 'c1a2b3c4-1111-2222-3333-444455556666'; // Canasta Bás
  */
 async function persistWorkerFormalization({ workerId, documentId, photoBase64, phoneNumber, passwordHash, boundDeviceId }) {
   if (!isSupabaseConfigured() || !supabase) return false;
+  if (!circuitBreaker.canAttempt()) return false;
 
   try {
     const credId = `formalized_pwd_${workerId}`;
@@ -49,8 +85,10 @@ async function persistWorkerFormalization({ workerId, documentId, photoBase64, p
     });
 
     console.log(`[CLOUD PERSIST] ✅ Formalización persistida en Supabase Cloud para ${documentId}`);
+    circuitBreaker.recordSuccess();
     return true;
   } catch (err) {
+    circuitBreaker.recordFailure(err.message);
     console.warn('[CLOUD PERSIST ERROR] Fallo al persistir formalización:', err.message);
     return false;
   }
