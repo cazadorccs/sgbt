@@ -318,7 +318,7 @@ window.ManualDispatch = (function() {
               ${escapeHtml(d.document_id)} &middot; <span style="text-transform: capitalize; font-weight: 600;">${escapeHtml(d.worker_type || 'activo')}</span>
             </div>
           </td>
-          <td style="padding: 0.75rem 0.85rem; font-size: 0.8rem; color: #334155; vertical-align: middle; max-width: 250px;">
+          <td style="padding: 0.75rem 0.85rem; font-size: 0.82rem; color: #334155; vertical-align: middle; max-width: 360px;">
             ${escapeHtml(d.department_name || 'Nómina Central')}
           </td>
           <td style="padding: 0.75rem 0.85rem; vertical-align: middle;">
