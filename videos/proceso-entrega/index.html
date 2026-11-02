@@ -9,7 +9,7 @@
       :root {
         --ground-dark: #090d16;
         --ground-slate: #0f172a;
-        --surface-glass: rgba(20, 30, 51, 0.85);
+        --surface-glass: rgba(20, 30, 51, 0.88);
         --ink-main: #f8fafc;
         --ink-dim: #94a3b8;
         --accent-blue: #0284c7;
@@ -44,7 +44,7 @@
         background: radial-gradient(circle at 50% 15%, #1e293b 0%, #090d16 80%);
       }
 
-      /* Barra de Cabecera Institucional Global */
+      /* Barra de Cabecera Institucional Global Permanente */
       .brand-top-bar {
         position: absolute;
         top: 36px;
@@ -134,7 +134,7 @@
       id="root"
       data-composition-id="main"
       data-start="0"
-      data-duration="24"
+      data-duration="36"
       data-width="1920"
       data-height="1080"
     >
@@ -153,66 +153,79 @@
         </div>
       </div>
 
-      <!-- Escena 1: Presentación del Carnet y Código QR Dinámico (0s - 5s) -->
+      <!-- Escena 1: Carnet Digital Oficial y Visor de Retiro Móvil (0s - 6s) -->
       <div
         id="scene1"
         class="scene-host"
         data-composition-id="scene1"
         data-composition-src="compositions/scene1.html"
         data-start="0"
-        data-duration="5"
-        data-track-index="1"
-        data-width="1920"
-        data-height="1080"
-      ></div>
-
-      <!-- Escena 2: Escaneo Criptográfico en Punto de Despacho (5s - 10s) -->
-      <div
-        id="scene2"
-        class="scene-host"
-        data-composition-id="scene2"
-        data-composition-src="compositions/scene2.html"
-        data-start="5"
-        data-duration="5"
-        data-track-index="1"
-        data-width="1920"
-        data-height="1080"
-      ></div>
-
-      <!-- Escena 3: Mesa de Despacho y Regla de Idempotencia (10s - 16s) -->
-      <div
-        id="scene3"
-        class="scene-host"
-        data-composition-id="scene3"
-        data-composition-src="compositions/scene3.html"
-        data-start="10"
         data-duration="6"
         data-track-index="1"
         data-width="1920"
         data-height="1080"
       ></div>
 
-      <!-- Escena 4: Sello Criptográfico Inmutable Ministerial (16s - 20s) -->
+      <!-- Escena 2: Mesa de Despacho y Arquitectura Offline-First (6s - 12s) -->
       <div
-        id="scene4"
+        id="scene2"
         class="scene-host"
-        data-composition-id="scene4"
-        data-composition-src="compositions/scene4.html"
-        data-start="16"
-        data-duration="4"
+        data-composition-id="scene2"
+        data-composition-src="compositions/scene2.html"
+        data-start="6"
+        data-duration="6"
         data-track-index="1"
         data-width="1920"
         data-height="1080"
       ></div>
 
-      <!-- Escena 5: Pantalla Dividida y Tablero en Tiempo Real (20s - 24s) -->
+      <!-- Escena 3: Verificación Criptográfica y Validación Óptica (12s - 18s) -->
+      <div
+        id="scene3"
+        class="scene-host"
+        data-composition-id="scene3"
+        data-composition-src="compositions/scene3.html"
+        data-start="12"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 4: Regla de Idempotencia y Despacho Multiestación (18s - 24s) -->
+      <div
+        id="scene4"
+        class="scene-host"
+        data-composition-id="scene4"
+        data-composition-src="compositions/scene4.html"
+        data-start="18"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 5: Contingencia Asistida y Sello Criptográfico (24s - 30s) -->
       <div
         id="scene5"
         class="scene-host"
         data-composition-id="scene5"
         data-composition-src="compositions/scene5.html"
-        data-start="20"
-        data-duration="4"
+        data-start="24"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 6: Auditoría Ministerial y Conciliación Logística (30s - 36s) -->
+      <div
+        id="scene6"
+        class="scene-host"
+        data-composition-id="scene6"
+        data-composition-src="compositions/scene6.html"
+        data-start="30"
+        data-duration="6"
         data-track-index="1"
         data-width="1920"
         data-height="1080"

@@ -13,130 +13,235 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #f8fafc;
     }
-    .receipt-container {
+    .idempotency-dual-stage {
       position: absolute;
-      top: 160px;
-      left: 160px;
+      top: 145px;
+      left: 120px;
       width: 760px;
-      background: #0f172a;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      border-radius: 28px;
-      padding: 40px;
-      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), 0 0 50px rgba(16, 185, 129, 0.15);
-      position: relative;
+      height: 820px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
-    .receipt-header {
-      border-bottom: 2px dashed rgba(255, 255, 255, 0.15);
-      padding-bottom: 24px;
-      margin-bottom: 24px;
+
+    /* Tarjeta A: Aprobado (Verde) */
+    .idempotency-card-green {
+      background: #0f172a;
+      border: 1.5px solid rgba(16, 185, 129, 0.4);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(16, 185, 129, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card-header-status {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .receipt-title {
-      font-size: 22px;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: 0.04em;
+    .status-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
-    .receipt-stamp-badge {
-      background: #059669;
-      color: #ffffff;
-      padding: 6px 16px;
-      border-radius: 8px;
-      font-weight: 700;
+    .status-pill-green {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
       font-size: 13px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 9999px;
     }
-    .receipt-details-list {
+    .card-body-text {
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+    .btn-dispatch-authorized {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(16, 185, 129, 0.35);
+    }
+
+    /* Tarjeta B: Bloqueo de Duplicidad (Rojo Alerta) */
+    .idempotency-card-red {
+      background: #17111a;
+      border: 1.5px solid rgba(239, 68, 68, 0.5);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(239, 68, 68, 0.2);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
-    .receipt-row {
+    .status-pill-red {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 6px 14px;
+      border-radius: 9999px;
+    }
+    .alert-details-box {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+      color: #fca5a5;
       display: flex;
-      justify-content: space-between;
-      font-size: 16px;
-      color: #cbd5e1;
+      flex-direction: column;
+      gap: 6px;
     }
-    .receipt-row strong {
+    .alert-details-box span strong {
       color: #ffffff;
       font-family: 'JetBrains Mono', monospace;
     }
-    .receipt-footer-hash {
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+
+    /* Tarjeta Multiestación (Transición) */
+    .station-transition-box {
+      background: linear-gradient(135deg, rgba(6, 78, 59, 0.4), rgba(4, 120, 87, 0.25));
+      border: 1.5px solid #34d399;
+      border-radius: 20px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .trans-info h5 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #34d399;
+      margin-bottom: 4px;
+    }
+    .trans-info p {
+      font-size: 12px;
+      color: #d1fae5;
+    }
+    .btn-step2-pill {
+      background: #059669;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 10px 18px;
+      border-radius: 10px;
+    }
+
+    /* Panel explicativo lateral */
+    .callout-card {
+      position: absolute;
+      top: 145px;
+      right: 120px;
+      width: 820px;
+      background: rgba(20, 30, 51, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 32px;
+      padding: 36px 44px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+    }
+    .callout-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 18px;
+    }
+    .callout-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 16px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+    }
+    .callout-header h3 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .callout-header p {
+      font-size: 14px;
+      color: #38bdf8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .callout-body-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .feature-card {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 22px;
       display: flex;
       flex-direction: column;
       gap: 8px;
     }
-    .hash-label {
-      font-size: 12px;
-      color: #94a3b8;
+    .feature-tag {
+      font-size: 11px;
       text-transform: uppercase;
-    }
-    .hash-code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       color: #38bdf8;
-      word-break: break-all;
+    }
+    .feature-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .feature-desc {
+      font-size: 14px;
+      color: #cbd5e1;
+      line-height: 1.5;
     }
 
-    /* Gran Sello Ministerial */
-    .ministerial-seal-wrapper {
-      position: absolute;
-      top: 220px;
-      right: 180px;
-      width: 440px;
-      height: 440px;
-      border: 8px double #10b981;
-      border-radius: 50%;
+    .constraint-banner {
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 16px;
+      padding: 16px 20px;
       display: flex;
-      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 30px;
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.18), rgba(2, 6, 23, 0.8));
-      box-shadow: 0 0 60px rgba(16, 185, 129, 0.35), inset 0 0 40px rgba(16, 185, 129, 0.2);
+      gap: 14px;
     }
-    .seal-ribbon {
+    .constraint-banner code {
+      font-family: 'JetBrains Mono', monospace;
       font-size: 14px;
-      font-weight: 800;
-      color: #6ee7b7;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .seal-main-word {
-      font-size: 44px;
-      font-weight: 900;
-      color: #ffffff;
-      letter-spacing: 0.08em;
-      text-shadow: 0 0 25px rgba(16, 185, 129, 0.8);
-      margin: 8px 0;
-    }
-    .seal-subtext {
-      font-size: 14px;
-      color: #a7f3d0;
-      line-height: 1.4;
-      max-width: 300px;
-    }
-    .seal-checkmark {
-      font-size: 54px;
-      color: #10b981;
-      margin-top: 10px;
+      color: #f87171;
+      font-weight: 700;
     }
 
     .phase-banner {
       position: absolute;
-      bottom: 40px;
-      left: 160px;
-      right: 160px;
+      bottom: 35px;
+      left: 120px;
+      right: 120px;
       background: linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 20px;
-      padding: 20px 32px;
+      padding: 18px 32px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -144,81 +249,122 @@
     }
     .phase-info h2 {
       font-size: 20px;
-      font-weight: 700;
+      font-weight: 800;
       color: #ffffff;
-      margin-bottom: 4px;
+      letter-spacing: -0.01em;
     }
     .phase-info p {
       font-size: 14px;
       color: #94a3b8;
+      margin-top: 3px;
     }
     .phase-step-tag {
-      background: #059669;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
       color: #ffffff;
-      padding: 8px 18px;
-      border-radius: 9999px;
-      font-size: 13px;
-      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
       letter-spacing: 0.05em;
     }
   </style>
 
   <div id="root" data-composition-id="scene4" data-width="1920" data-height="1080">
-    <div class="receipt-container" id="s4Receipt">
-      <div class="receipt-header">
+    <!-- Etapa de Idempotencia y Multiestación -->
+    <div class="idempotency-dual-stage">
+      <!-- Tarjeta 1: Aprobado -->
+      <div class="idempotency-card-green" id="s4CardGreen">
+        <div class="card-header-status">
+          <div class="status-title-group">
+            <span style="font-size: 20px;">🟢</span>
+            <strong style="color: #ffffff; font-size: 16px;">Caso 1: Primera Entrega de la Jornada</strong>
+          </div>
+          <span class="status-pill-green">HABILITADO</span>
+        </div>
+        <p class="card-body-text">El motor relacional verifica cero reclamos en la fecha activa. Los 4 combos quedan desbloqueados para entrega inmediata.</p>
+        <div class="btn-dispatch-authorized">
+          <span>📦 Confirmar y Despachar Combos</span>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Bloqueo Automático por Duplicidad -->
+      <div class="idempotency-card-red" id="s4CardRed">
+        <div class="card-header-status">
+          <div class="status-title-group">
+            <span style="font-size: 20px;">🛑</span>
+            <strong style="color: #f87171; font-size: 16px;">Caso 2: Detección y Bloqueo de Duplicidad</strong>
+          </div>
+          <span class="status-pill-red">DENEGADO</span>
+        </div>
+        <div class="alert-details-box">
+          <div>¡ATENCIÓN! Su beneficio alimentario ya fue retirado previamente.</div>
+          <span>Hora de Entrega Previa: <strong>10:14:22 a. m. (Hoy)</strong></span>
+          <span>Operador Responsable: <strong>MESA-02 (Almacén Sótano)</strong></span>
+        </div>
+      </div>
+
+      <!-- Tarjeta 3: Transición Multiestación -->
+      <div class="station-transition-box" id="s4Transition">
+        <div class="trans-info">
+          <h5>📦 Estación 1 Aprobada: Víveres Secos</h5>
+          <p>Presione para autorizar y desplegar el 2do QR para el Combo Proteico.</p>
+        </div>
+        <div class="btn-step2-pill">
+          🍗 Pasar a Estación 2 ➔
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Explicativo Lateral -->
+    <div class="callout-card" id="s4Callout">
+      <div class="callout-header">
+        <div class="callout-icon">🛡️</div>
         <div>
-          <div class="receipt-title">COMPROBANTE ELECTRÓNICO OFICIAL</div>
-          <div style="font-size: 13px; color: #94a3b8; margin-top: 4px;">Ministerio del Poder Popular para la Comunicación y la Información</div>
-        </div>
-        <div class="receipt-stamp-badge">ENTREGA CONFIRMADA</div>
-      </div>
-
-      <div class="receipt-details-list">
-        <div class="receipt-row">
-          <span>Beneficiario:</span>
-          <strong>SAHIB ALEXANDER FRANCO VILLANUEVA</strong>
-        </div>
-        <div class="receipt-row">
-          <span>Cédula de Identidad:</span>
-          <strong>V-13.537.582</strong>
-        </div>
-        <div class="receipt-row">
-          <span>Asignación Despachada:</span>
-          <strong>4 Combos (3 Secos + 1 Proteína)</strong>
-        </div>
-        <div class="receipt-row">
-          <span>Punto de Entrega:</span>
-          <strong>Mesa Central #01 (Sede Principal)</strong>
-        </div>
-        <div class="receipt-row">
-          <span>Operador Responsable:</span>
-          <strong>OPERADOR-MIPPCI-04</strong>
-        </div>
-        <div class="receipt-row">
-          <span>Estampa Cronológica:</span>
-          <strong>2026-11-02 11:42:15 VET</strong>
+          <h3>Garantía de Idempotencia y Multiestación</h3>
+          <p>Restricción a Nivel de Base de Datos · Prevención de Desvíos · Flujo por Cavas</p>
         </div>
       </div>
 
-      <div class="receipt-footer-hash">
-        <span class="hash-label">Firma Criptográfica Inmutable (SHA-256):</span>
-        <span class="hash-code">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+      <div class="callout-body-grid">
+        <div class="feature-card">
+          <span class="feature-tag">Blindaje 01</span>
+          <h4 class="feature-title">Idempotencia Matemática</h4>
+          <p class="feature-desc">Cada registro de entrega está vinculado a una clave única inmutable. Una cédula no puede recibir dos despachos en una misma jornada bajo ninguna circunstancia.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-tag">Blindaje 02</span>
+          <h4 class="feature-title">Auditoría con Nombre y Hora</h4>
+          <p class="feature-desc">Ante un reclamo duplicado, la consola indica con precisión de milisegundos qué operador y en qué punto físico se efectuó el retiro anterior.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-tag">Blindaje 03</span>
+          <h4 class="feature-title">Despacho en Dos Estaciones</h4>
+          <p class="feature-desc">Diseñado para almacenes con cadena de frío separada. El sistema asegura que el trabajador retire primero los víveres secos y luego la proteína en la cava.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-tag">Blindaje 04</span>
+          <h4 class="feature-title">Reconciliación Atómica</h4>
+          <p class="feature-desc">Si se presenta una falla eléctrica a mitad de un despacho, la transacción hace rollback automático protegiendo el inventario institucional.</p>
+        </div>
+      </div>
+
+      <div class="constraint-banner">
+        <span style="font-size: 22px;">🔒</span>
+        <div>
+          <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Constraint SQL Activo:</div>
+          <code>CREATE UNIQUE INDEX idx_unique_daily_claim ON deliveries(worker_id, delivery_date);</code>
+        </div>
       </div>
     </div>
 
-    <div class="ministerial-seal-wrapper" id="s4Seal">
-      <div class="seal-ribbon">AUDITORÍA MINISTERIAL</div>
-      <div class="seal-main-word">DESPACHADO</div>
-      <div class="seal-subtext">República Bolivariana de Venezuela • MIPPCI</div>
-      <div class="seal-checkmark">✓</div>
-    </div>
-
+    <!-- Banner Inferior de Fase -->
     <div class="phase-banner" id="s4Banner">
       <div class="phase-info">
-        <h2>Fase 4: Sello Criptográfico Inmutable</h2>
-        <p>Confirmación atómica y registro de auditoría ministerial en tiempo real.</p>
+        <h2>Fase 4: Regla de Idempotencia y Despacho Multiestación</h2>
+        <p>Garantía matemática de entrega única por día y coordinación entre cavas de frío.</p>
       </div>
-      <div class="phase-step-tag">Paso 04 / 04</div>
+      <div class="phase-step-tag">Paso 04 / 06</div>
     </div>
   </div>
 
@@ -226,25 +372,38 @@
     const tl = gsap.timeline({ paused: true });
 
     tl.fromTo(
-      "#s4Receipt",
-      { x: -50, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.9, ease: "power3.out" },
+      "#s4CardGreen",
+      { y: -30, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
       0.1
+    );
+
+    tl.fromTo(
+      "#s4CardRed",
+      { scale: 0.95, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.8, ease: "power3.out" },
+      0.6
+    );
+
+    tl.fromTo(
+      "#s4Transition",
+      { y: 30, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+      1.1
+    );
+
+    tl.fromTo(
+      "#s4Callout",
+      { x: 50, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.9, ease: "power3.out" },
+      0.3
     );
 
     tl.fromTo(
       "#s4Banner",
       { y: 40, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.8, ease: "power2.out" },
-      0.3
-    );
-
-    // Efecto de estampado con rebote e impacto (scale + rotation)
-    tl.fromTo(
-      "#s4Seal",
-      { scale: 2.2, opacity: 0, rotation: -25 },
-      { scale: 1, opacity: 1, rotation: -6, duration: 0.8, ease: "back.out(2)" },
-      0.8
+      0.2
     );
 
     window.__timelines = window.__timelines || {};

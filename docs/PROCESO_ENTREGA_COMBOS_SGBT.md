@@ -1,67 +1,173 @@
-# Proceso de Entrega y Despacho de Combos Alimenticios — SGBT (MIPPCI)
+# Proceso Operativo y Tecnológico de Entrega de Combos Alimenticios — SGBT (MIPPCI)
 
-El Sistema de Gestión de Beneficios a Trabajadores (**SGBT**) del Ministerio del Poder Popular para la Comunicación y la Información (**MIPPCI**) opera bajo una arquitectura de grado bancario **Offline-First**, segura y transparente, garantizando que cada trabajador reciba su beneficio de forma ágil sin posibilidad de duplicidad en la entrega ni demoras operativas.
+El **Sistema de Gestión de Beneficios a Trabajadores (SGBT)** del **Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)** es una plataforma de grado bancario diseñada bajo la filosofía **Offline-First**, gobernanza de datos estricta e **idempotencia matemática**. Su objetivo primordial es garantizar que cada funcionaria y funcionario de la institución reciba su cuota mensual de beneficios alimenticios de manera digna, rápida, transparente y sin posibilidad de duplicidades, desvíos ni trabas burocráticas.
 
----
-
-## 🏛️ Fase 1: Preparación de la Jornada (Apertura de Almacén)
-
-1. **Activación de la Mesa de Despacho:**
-   - El operador o despachador en el almacén accede a la plataforma en su tablet, smartphone o estación de trabajo mediante credenciales institucionales o Passkeys criptográficas (FIDO2 / WebAuthn).
-2. **Carga del Paquete Diario (*Daily Pack*):**
-   - El sistema descarga y precarga en el navegador (o en la APK móvil Android oficial) el padrón actualizado de trabajadores y asignaciones del día en su motor de base de datos local SQLite/IndexedDB.
-   - **Garantía Offline:** Si se interrumpe la conectividad a Internet o la red local en el almacén o sótano, la jornada continúa operando al 100% de manera autónoma.
+Este documento desglosa en profundidad cada una de las fases del proceso de despacho, especificando el flujo funcional, las pantallas de usuario involucradas, sus componentes interactivos y los mecanismos de seguridad criptográfica subyacentes.
 
 ---
 
-## 📲 Fase 2: Identificación del Beneficiario
+## 🗺️ Mapa de Pantallas del Ecosistema SGBT
 
-El funcionario se presenta en el punto de entrega y cuenta con dos vías de atención:
-
-1. **Vía Digital (Carnet Móvil Institucional):**
-   - El beneficiario ingresa su cédula de identidad en la aplicación móvil.
-   - Se despliega su **Carnet Digital Oficial** con su fotografía institucional, departamento, condición laboral y un **Código QR Criptográfico dinámico** protegido contra capturas estáticas o falsificaciones.
-2. **Vía Cédula Física / Asistida:**
-   - En caso de que el beneficiario no disponga de su dispositivo móvil, el operador puede localizarlo al instante en el padrón local por número de cédula o nombre.
-
----
-
-## 🔍 Fase 3: Escaneo y Validación Antifraude
-
-1. **Escaneo Óptico en Vivo:**
-   - El operador enfoca el lector óptico o la cámara del dispositivo al código QR del carnet del trabajador.
-2. **Verificación Instantánea en Pantalla:**
-   - La interfaz de la Mesa de Despacho proyecta de forma inmediata:
-     - 📸 Fotografía oficial del funcionario.
-     - 👤 Nombre completo, cédula y cargo institucional.
-     - 🏢 Dirección o dependencia administrativa de adscripción.
-     - 📦 Cantidad y tipo de combos asignados para la jornada (ej. Combo Proteico, Combo Seco).
-3. **Escudo de Idempotencia (`idx_unique_daily_claim`):**
-   - El motor relacional valida en milisegundos si el funcionario ya retiró su combo durante la fecha activa:
-     - 🟢 **Habilitado:** Si la asignación está disponible, el control de confirmación se activa en color verde.
-     - 🔴 **Bloqueo Inmediato:** Si el beneficio ya fue entregado previamente en el día, el sistema emite una alerta visual y sonora indicando la hora exacta y el operador que procesó la entrega previa, imposibilitando entregas duplicadas.
+| Código de Pantalla | Nombre Operativo | Rol Principal | Contexto de Uso |
+| :--- | :--- | :--- | :--- |
+| **`view-login`** | Portal de Acceso Universal | Todos | Login con Cédula, Passkeys biométricas o PIN de Auditoría |
+| **`view-worker`** | Carnet Digital del Beneficiario | Beneficiario | Consulta de cuota, QR dinámico de 60s, NFC y semáforo de colas |
+| **`view-distributor`** | Consola de Mesa de Despacho | Operador / Almacén | Escaneo óptico, validación de foto, control de bultos y despacho |
+| **`modal-supervisor`** | Módulo de Contingencia Asistida | Supervisor de Almacén | Despacho asistido a trabajadores sin móvil o con avería |
+| **`modal-receipts`** | Historial de Recibos Digitales | Beneficiario / Auditor | Trazabilidad histórica, comprobantes con hash SHA-256 y WhatsApp |
+| **`view-admin`** | Tablero Central de Auditoría Ministerial | Dirección General / RRHH | Métricas en tiempo real, velocidad de entrega y emisión de Actas |
+| **`offline-engine`** | Motor Local PWA / Background Sync | Sistema / Navegador | Operación en sótanos sin señal con sincronización automática a Cloud |
 
 ---
 
-## 📦 Fase 4: Entrega Física y Confirmación
+## 🏛️ Fase 1: Apertura de Jornada y Preparación del Almacén
 
-1. **Despacho Físico:**
-   - El personal de almacén hace entrega física de los combos correspondientes al funcionario.
-2. **Firma y Registro del Despacho:**
-   - El operador pulsa **"Confirmar Entrega"**.
-   - El sistema sella la transacción con un registro de auditoría ministerial (identificador único UUIDv4, operador responsable, combos entregados, marca de tiempo al milisegundo e IP/dispositivo).
-3. **Comprobante Digital:**
-   - En el dispositivo del trabajador, el carnet actualiza su estado en tiempo real a **"Despachado / Recibido con Éxito"**, con opción a consultar y compartir su comprobante digital vía WhatsApp.
+Antes del inicio de la atención al personal, el equipo de almacén y logística habilita los puntos de despacho físicos (Almacén Central Sótano 1, Comedor Ministerial o Sedes Adscritas).
+
+### 🖥️ Pantallas Involucradas:
+1. **Pantalla de Acceso Institucional (`#view-login`):**
+   - **Campos e Interacción:** El operador ingresa su Cédula de Identidad o Correo Oficial (`document_id`).
+   - **Mecanismos de Autenticación:** 
+     - *Passkeys FIDO2 / WebAuthn:* Inicio de sesión instantáneo con biometría (huella dactilar o reconocimiento facial) en tablet o teléfono oficial.
+     - *PIN Administrativo:* Para estaciones de escritorio fijas, se solicita el PIN de seguridad de operador (`admin_secret`).
+   - **Selector de Sede Física:** Selección del punto logístico activo (`#pickupPointSelect`), asignando la mesa al inventario correspondiente.
+   - **Blindaje de Seguridad:** Protección contra ataques de fuerza bruta (`checkAccountLockout`) y campo trampa anti-bots (*Honeypot*).
+
+2. **Consola del Distribuidor (`#view-distributor` - Cabecera Operativa):**
+   - **Identidad del Operador (`#distributorOperatorIdentityBar`):** Muestra el nombre, avatar y rol del despachador responsable.
+   - **Badge de Almacenamiento Local (`#distributorModeBadge`):** Confirma que el motor de base de datos local SQLite / SQLCipher está inicializado y cifrado.
+   - **Descarga del Paquete Diario Criptográfico (*Daily Pack* - `#btnDownloadDailyPack`):**
+     - Al presionar este botón al iniciar la mañana, el sistema descarga el padrón completo de trabajadores activos y las cuotas de combos asignadas para la fecha.
+     - El paquete queda sellado localmente en IndexedDB. Si el almacén pierde conectividad eléctrica o de Internet, **la jornada no se detiene y opera al 100% de manera autónoma**.
 
 ---
 
-## 🔄 Fase 5: Auditoría Ministerial y Sincronización en la Nube
+## 📲 Fase 2: Presentación del Beneficiario y Carnet Móvil
 
-1. **Sincronización Transparente:**
-   - Al restablecerse la conectividad a Internet, todas las entregas efectuadas en modo fuera de línea se transmiten silenciosamente hacia **Supabase Cloud**.
-2. **Tablero de Control para Dirección General:**
-   - En la Dirección General y la Dirección de Gestión Humana, la consola de Auditoría Ministerial monitorea en vivo:
-     - Total de combos despachados vs. remanentes por departamento.
-     - Velocidad y volumen de atención por operador y hora.
-     - Trazabilidad inmutable para fines de contraloría interna y rendición de cuentas.
+El funcionario acude al punto de entrega y visualiza en su dispositivo móvil su credencial digital institucional.
 
+### 🖥️ Pantallas Involucradas:
+1. **Carnet Oficial del Trabajador (`#view-worker`):**
+   - **App Bar Ministerial (`.mobile-app-bar`):**
+     - Fotografía o avatar con iniciales (`#workerHeaderAvatar`).
+     - Nombre completo, número de Cédula y adscripción departamental (`#workerHeaderIdentity`).
+     - Insignia de Condición Laboral (`#workerConditionBadge`): *Personal Directivo, Empleado Fijo, Contratado, Jubilado o Comisión de Servicio*.
+   - **Semáforo de Afluencia de Colas en Tiempo Real (`#queueTrafficContainer`):**
+     - Informa al trabajador el estado del flujo en el comedor o sótano:
+       - 🟢 *Verde:* Cola despejada (tiempo de espera estimado < 3 minutos).
+       - 🟡 *Ámbar:* Flujo moderado (5 a 10 minutos).
+       - 🔴 *Rojo:* Afluencia alta (se sugiere aguardar el aviso por departamento).
+   - **Desglose de Combos Asignados (`#workerPackagesSection`):**
+     - **Bulto 1 (Víveres Secos - Canasta Básica MIPPCI):** 12 rubros esenciales (Harina de maíz precocida, arroz blanco, pasta alimenticia, caraotas negras, aceite vegetal, azúcar refinada y leche en polvo).
+     - **Bulto 2 (Combo Proteico Fresco):** Cadena de frío garantizada (Pollo entero beneficiado ~2.2 kg, carne de res molida 1 kg, mortadela especial 1 kg).
+   - **Candado de Dispositivo Activo (`#deviceLockBadgeContainer`):**
+     - Genera una clave de hardware (`KEY-XXXX`) vinculada al teléfono del trabajador, impidiendo que capturas de pantalla sean enviadas a terceros para retirar combos fraudulentamente.
+   - **Código QR Criptográfico Dinámico (`#workerQrContainer`):**
+     - **Rotación Criptográfica:** El código QR incorpora un *Nonce* de un solo uso y firma HMAC SHA-256 que se renueva cada 60 segundos.
+     - **Barra de Cuenta Regresiva (`#qrCountdownFill`):** Indicador visual que muestra el tiempo restante antes de la regeneración del token.
+     - **Botón Brillo 100% (`#btnToggleBrightness`):** Eleva al máximo el brillo de la pantalla del smartphone para facilitar la lectura óptica bajo iluminación de sótano.
+   - **Validación por Proximidad NFC Móvil (`#workerNfcTouchPanel`):**
+     - Para teléfonos con chip NFC, el beneficiario puede presionar *Tocar con NFC* y acercar su dispositivo a la tablet del operador (validación *Tap-to-Claim P2P* sin encender cámara).
+
+---
+
+## 🔍 Fase 3: Escaneo, Verificación Óptica e Idempotencia
+
+En la taquilla de entrega, el operador captura la credencial del beneficiario.
+
+### 🖥️ Pantallas Involucradas:
+1. **Mesa de Despacho (`#view-distributor` - Módulo de Escáner):**
+   - **Lector de Código QR en Vivo (`#liveCameraContainer`):**
+     - El operador inicia el escáner (`#btnStartCameraScanner`) que activa la cámara con selección de lente frontal/trasera (`#btnFlipCameraLive`).
+     - Compatible con pistolas lectoras láser USB / Bluetooth que ingresan el token en milisegundos sin latencia.
+   - **HUD de Detección Sub-segundo (`#cameraScanHUD`):**
+     - En menos de 120 ms, la interfaz proyecta una superposición de confirmación con el nombre y combo detectado.
+   - **Ficha de Verificación de Identidad:**
+     - Proyecta la fotografía oficial de la ficha de personal, cédula y departamento para verificación visual del operador contra la persona en ventanilla.
+   - **Modalidad de Despacho (Totalizado vs. Estaciones):**
+     - *Modalidad Totalizada:* Retiro de víveres secos y combo proteico en una sola mesa.
+     - *Modalidad Multiestación:* La Estación 1 entrega víveres secos y sella el primer paso; el carnet del trabajador conmuta automáticamente a la tarjeta de transición (`#stationTransitionCard`): `🍗 APROBAR Y PASAR A ESTACIÓN 2 (COMBO PROTEICO)`, habilitando el QR específico para la cava refrigerada.
+
+2. **El Escudo Matemático de Idempotencia (`idx_unique_daily_claim`):**
+   - Antes de habilitar cualquier entrega, el motor relacional ejecuta una consulta con bloqueo exclusivo:
+     ```sql
+     SELECT id FROM deliveries 
+     WHERE worker_id = ? AND delivery_date = CURRENT_DATE 
+     LIMIT 1;
+     ```
+   - **Resultado A (Habilitado):** El botón de despacho se activa en verde esmeralda brillante.
+   - **Resultado B (Intento de Duplicidad):**
+     - Si el trabajador intenta retirar dos veces el mismo día (por ejemplo, en mesas distintas), la pantalla del operador despliega un **Overlay Rojo de Alerta Crítica (`#distributorFeedbackOverlay`)**:
+       - `❌ ENTREGA DENEGADA: BENEFICIO YA RETIRADO HOY`
+       - Muestra fecha, hora exacta (ej. `10:14:22 a. m.`) y nombre del operador que procesó la entrega previa.
+       - La base de datos rechaza la transacción a nivel de restricción `UNIQUE`, haciendo matemáticamente imposible la duplicidad.
+
+---
+
+## 🤝 Fase 4: Despacho Asistido y Contingencias Especiales
+
+El SGBT contempla casos excepcionales para garantizar que ningún trabajador quede desatendido por fallas tecnológicas personales.
+
+### 🖥️ Pantallas Involucradas:
+1. **Modal de Contingencia Asistida (`#supervisorModalBackdrop`):**
+   - **Activación:** Se invoca cuando un trabajador no posee smartphone, presenta la pantalla dañada o agotó su batería.
+   - **Búsqueda por Cédula:** El supervisor ingresa el documento (`#supervisorContingencyDocInput`) y el sistema extrae su registro del padrón local.
+   - **Justificación Obligatoria Auditada (`#modalOverrideReasonSelect`):**
+     - El supervisor debe tipificar el motivo: *Sin teléfono inteligente, teléfono descargado/averiado, adulto mayor con asistencia o caso médico*.
+   - **Autorización de Supervisor:** La entrega requiere el PIN o escaneo del código QR diario del supervisor (`SUP-YYMMDD-XXXXXX`), quedando registrada la firma del supervisor en el acta de auditoría.
+
+2. **Modal de Retiro Delegado a Terceros (`#delegationModalBackdrop`):**
+   - Permite autorizar a un compañero de trabajo para retirar el beneficio de un funcionario de reposo médico o comisión de servicio, validando la constancia oficial pre-cargada.
+
+---
+
+## 📦 Fase 5: Confirmación, Sello Ministerial y Comprobante Digital
+
+Una vez verificados los rubros físicos en mesa, se sella formalmente el despacho.
+
+### 🖥️ Pantallas Involucradas:
+1. **Overlay de Confirmación en Mesa (`#distributorFeedbackOverlay`):**
+   - Emite un tono sonoro armónico y un mensaje en verde de pantalla completa: `✅ ENTREGA AUTORIZADA - Combo Despachado con Éxito`.
+   - El contador de la mesa (`#distributorDeliveriesHeaderCount`) se incrementa automáticamente.
+
+2. **Actualización del Carnet Móvil del Trabajador:**
+   - Mediante canal de eventos en tiempo real (Server-Sent Events / BroadcastChannel local), la pantalla del beneficiario actualiza su carnet de inmediato:
+     - El visor de QR desaparece y se proyecta el **Sello Oficial de Entrega:**
+       - `🏛️ DESPACHADO • BENEFICIO ENTREGADO CON ÉXITO`.
+   - **Acceso a Recibos Digitales (`#btnOpenReceiptsHistoryModal`):**
+     - Despliega el comprobante digital con:
+       - Número de comprobante único (UUIDv4).
+       - Hash SHA-256 inmutable de la transacción.
+       - Cantidad exacta de bultos y kilos entregados.
+       - Marca temporal con precisión de milisegundos.
+     - **Botón Compartir por WhatsApp:** Envía el comprobante formal con formato institucional para respaldo personal del trabajador.
+
+---
+
+## 📊 Fase 6: Auditoría Ministerial en Tiempo Real y Cierre Contable
+
+Desde la Dirección General y la Dirección de Gestión Humana se supervisa el desarrollo de la jornada sin intermediarios.
+
+### 🖥️ Pantallas Involucradas:
+1. **Tablero Central de Gestión y Auditoría (`#view-admin`):**
+   - **Panel de KPIs en Vivo:**
+     - *Total Funcionarios Atendidos:* Contador dinámico con porcentaje de avance de nómina.
+     - *Tonelaje Total Distribuido:* Sumatoria exacta en kilogramos de alimentos secos y proteínas entregadas.
+     - *Mermas o Faltantes:* Indicador en 0.0%, garantizando cuadre exacto de inventario.
+     - *Tiempo Promedio de Atención:* Monitoreo de eficiencia operativa (promedio: 14 segundos por beneficiario).
+   - **Desglose en Vivo por Dependencias Administrativas:**
+     - Barra de progreso por cada viceministerio y dirección general (Gestión Comunicacional, Redes Sociales, Prensa, Administración, Servicios Generales, etc.).
+   - **Sincronización PWA Cloud (`#syncQueueCounter`):**
+     - Los despachos efectuados en mesas sin internet se acumulan en la cola local segura. Al restablecerse la señal WiFi o 4G, el botón `#btnSyncDeferredQueue` o el proceso en segundo plano *Background Sync* sincroniza automáticamente todos los registros hacia **Supabase Cloud**.
+   - **Emisión del Acta Oficial Ministerial (`#ministerialActaModalBackdrop`):**
+     - Genera en formato PDF/Impresión oficial el **Acta de Cierre de Despacho Institucional**, firmada digitalmente con hash criptográfico, lista para ser archivada por la Contraloría Interna y la Dirección General.
+
+---
+
+## 🛡️ Síntesis de Garantías de Calidad y Cumplimiento
+
+- **Cero Filas:** Despacho ágil en menos de 15 segundos por funcionario gracias al lector QR de alta velocidad y pre-carga en memoria.
+- **Cero Fraude:** Imposibilidad de alterar identidades o usar carnets prestados mediante rotación de token, watermark dinámico y candado de dispositivo.
+- **Cero Duplicidades:** Control estricto por base de datos relacional (`idx_unique_daily_claim`).
+- **100% Disponibilidad:** Continuidad operativa absoluta en sótanos y almacenes sin acceso a Internet gracias a la arquitectura PWA Offline-First y SQLite local.
+- **Transparencia Total:** Cada kilogramo de alimento cuenta con trazabilidad completa desde la recepción en almacén hasta las manos de la trabajadora o trabajador de la Patria.
