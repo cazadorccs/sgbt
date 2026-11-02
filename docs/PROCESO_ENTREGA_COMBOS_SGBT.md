@@ -2,21 +2,21 @@
 
 El **Sistema de Gestión de Beneficios a Trabajadores (SGBT)** del **Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)** es una plataforma de grado bancario diseñada bajo la filosofía **Offline-First**, gobernanza de datos estricta e **idempotencia matemática**. Su objetivo primordial es garantizar que cada funcionaria y funcionario de la institución reciba su cuota mensual de beneficios alimenticios de manera digna, rápida, transparente y sin posibilidad de duplicidades, desvíos ni trabas burocráticas.
 
-Este documento desglosa en profundidad cada una de las fases del proceso de despacho, especificando el flujo funcional, las pantallas de usuario involucradas, sus componentes interactivos y los mecanismos de seguridad criptográfica subyacentes.
+Este documento desglosa en profundidad cada una de las fases del proceso de despacho, especificando el flujo funcional, las pantallas de usuario reales involucradas, sus componentes interactivos y los mecanismos de seguridad criptográfica subyacentes.
 
 ---
 
 ## 🗺️ Mapa de Pantallas del Ecosistema SGBT
 
-| Código de Pantalla | Nombre Operativo | Rol Principal | Contexto de Uso |
+| Código de Pantalla | Nombre Operativo | Rol Principal | Captura del Sistema |
 | :--- | :--- | :--- | :--- |
-| **`view-login`** | Portal de Acceso Universal | Todos | Login con Cédula, Passkeys biométricas o PIN de Auditoría |
-| **`view-worker`** | Carnet Digital del Beneficiario | Beneficiario | Consulta de cuota, QR dinámico de 60s, NFC y semáforo de colas |
-| **`view-distributor`** | Consola de Mesa de Despacho | Operador / Almacén | Escaneo óptico, validación de foto, control de bultos y despacho |
-| **`modal-supervisor`** | Módulo de Contingencia Asistida | Supervisor de Almacén | Despacho asistido a trabajadores sin móvil o con avería |
-| **`modal-receipts`** | Historial de Recibos Digitales | Beneficiario / Auditor | Trazabilidad histórica, comprobantes con hash SHA-256 y WhatsApp |
-| **`view-admin`** | Tablero Central de Auditoría Ministerial | Dirección General / RRHH | Métricas en tiempo real, velocidad de entrega y emisión de Actas |
-| **`offline-engine`** | Motor Local PWA / Background Sync | Sistema / Navegador | Operación en sótanos sin señal con sincronización automática a Cloud |
+| **`view-login`** | Portal de Acceso Universal | Todos | ![Portal de Acceso](images/01_portal_acceso_login.png) |
+| **`view-worker`** | Carnet Digital del Beneficiario | Beneficiario | ![Carnet del Beneficiario](images/02_carnet_beneficiario_movil.png) |
+| **`view-distributor`** | Consola de Mesa de Despacho | Operador / Almacén | ![Mesa de Despacho](images/03_mesa_despacho_almacen.png) |
+| **`modal-scanner`** | Lector Óptico y HUD Sub-segundo | Operador / Almacén | ![Lector Óptico con HUD](images/04_lector_escaner_hud.png) |
+| **`modal-supervisor`** | Módulo de Contingencia Asistida | Supervisor de Almacén | ![Modal de Contingencia](images/05_contingencia_supervisor_modal.png) |
+| **`modal-receipts`** | Historial de Recibos Digitales | Beneficiario / Auditor | ![Historial de Recibos](images/06_recibos_digitales_modal.png) |
+| **`view-admin`** | Tablero Central de Auditoría Ministerial | Dirección General / RRHH | ![Tablero de Auditoría](images/07_tablero_auditoria_ministerial.png) |
 
 ---
 
@@ -33,6 +33,9 @@ Antes del inicio de la atención al personal, el equipo de almacén y logística
    - **Selector de Sede Física:** Selección del punto logístico activo (`#pickupPointSelect`), asignando la mesa al inventario correspondiente.
    - **Blindaje de Seguridad:** Protección contra ataques de fuerza bruta (`checkAccountLockout`) y campo trampa anti-bots (*Honeypot*).
 
+![Pantalla de Login Institucional](images/01_portal_acceso_login.png)
+*Figura 1: Portal de Acceso Universal con selección de roles (Beneficiario, Operador de Almacén y Control de Administración).*
+
 2. **Consola del Distribuidor (`#view-distributor` - Cabecera Operativa):**
    - **Identidad del Operador (`#distributorOperatorIdentityBar`):** Muestra el nombre, avatar y rol del despachador responsable.
    - **Badge de Almacenamiento Local (`#distributorModeBadge`):** Confirma que el motor de base de datos local SQLite / SQLCipher está inicializado y cifrado.
@@ -40,34 +43,39 @@ Antes del inicio de la atención al personal, el equipo de almacén y logística
      - Al presionar este botón al iniciar la mañana, el sistema descarga el padrón completo de trabajadores activos y las cuotas de combos asignadas para la fecha.
      - El paquete queda sellado localmente en IndexedDB. Si el almacén pierde conectividad eléctrica o de Internet, **la jornada no se detiene y opera al 100% de manera autónoma**.
 
+![Consola de Mesa de Despacho en Almacén](images/03_mesa_despacho_almacen.png)
+*Figura 2: Consola de Mesa de Despacho con estado de base de datos local SQLCipher, control de cola diferida y standby de cámara.*
+
 ---
 
 ## 📲 Fase 2: Presentación del Beneficiario y Carnet Móvil
 
 El funcionario acude al punto de entrega y visualiza en su dispositivo móvil su credencial digital institucional.
 
-### 🖥️ Pantallas Involucradas:
-1. **Carnet Oficial del Trabajador (`#view-worker`):**
-   - **App Bar Ministerial (`.mobile-app-bar`):**
-     - Fotografía o avatar con iniciales (`#workerHeaderAvatar`).
-     - Nombre completo, número de Cédula y adscripción departamental (`#workerHeaderIdentity`).
-     - Insignia de Condición Laboral (`#workerConditionBadge`): *Personal Directivo, Empleado Fijo, Contratado, Jubilado o Comisión de Servicio*.
-   - **Semáforo de Afluencia de Colas en Tiempo Real (`#queueTrafficContainer`):**
-     - Informa al trabajador el estado del flujo en el comedor o sótano:
-       - 🟢 *Verde:* Cola despejada (tiempo de espera estimado < 3 minutos).
-       - 🟡 *Ámbar:* Flujo moderado (5 a 10 minutos).
-       - 🔴 *Rojo:* Afluencia alta (se sugiere aguardar el aviso por departamento).
-   - **Desglose de Combos Asignados (`#workerPackagesSection`):**
-     - **Bulto 1 (Víveres Secos - Canasta Básica MIPPCI):** 12 rubros esenciales (Harina de maíz precocida, arroz blanco, pasta alimenticia, caraotas negras, aceite vegetal, azúcar refinada y leche en polvo).
-     - **Bulto 2 (Combo Proteico Fresco):** Cadena de frío garantizada (Pollo entero beneficiado ~2.2 kg, carne de res molida 1 kg, mortadela especial 1 kg).
-   - **Candado de Dispositivo Activo (`#deviceLockBadgeContainer`):**
-     - Genera una clave de hardware (`KEY-XXXX`) vinculada al teléfono del trabajador, impidiendo que capturas de pantalla sean enviadas a terceros para retirar combos fraudulentamente.
-   - **Código QR Criptográfico Dinámico (`#workerQrContainer`):**
-     - **Rotación Criptográfica:** El código QR incorpora un *Nonce* de un solo uso y firma HMAC SHA-256 que se renueva cada 60 segundos.
-     - **Barra de Cuenta Regresiva (`#qrCountdownFill`):** Indicador visual que muestra el tiempo restante antes de la regeneración del token.
-     - **Botón Brillo 100% (`#btnToggleBrightness`):** Eleva al máximo el brillo de la pantalla del smartphone para facilitar la lectura óptica bajo iluminación de sótano.
-   - **Validación por Proximidad NFC Móvil (`#workerNfcTouchPanel`):**
-     - Para teléfonos con chip NFC, el beneficiario puede presionar *Tocar con NFC* y acercar su dispositivo a la tablet del operador (validación *Tap-to-Claim P2P* sin encender cámara).
+### 🖥️ Pantalla del Carnet Oficial del Trabajador (`#view-worker`):
+- **App Bar Ministerial (`.mobile-app-bar`):**
+  - Fotografía oficial y avatar con iniciales (`#workerHeaderAvatar`).
+  - Nombre completo, número de Cédula y adscripción departamental (`#workerHeaderIdentity`).
+  - Insignia de Condición Laboral (`#workerConditionBadge`): *Personal Directivo, Empleado Fijo, Contratado, Jubilado o Comisión de Servicio*.
+- **Semáforo de Afluencia de Colas en Tiempo Real (`#queueTrafficContainer`):**
+  - Informa al trabajador el estado del flujo en el comedor o sótano:
+    - 🟢 *Verde:* Cola despejada (tiempo de espera estimado < 3 minutos).
+    - 🟡 *Ámbar:* Flujo moderado (5 a 10 minutos).
+    - 🔴 *Rojo:* Afluencia alta (se sugiere aguardar el aviso por departamento).
+- **Desglose de Combos Asignados (`#workerPackagesSection`):**
+  - **Bulto 1 (Víveres Secos - Canasta Básica MIPPCI):** 12 rubros esenciales (Harina de maíz precocida, arroz blanco, pasta alimenticia, caraotas negras, aceite vegetal, azúcar refinada y leche en polvo).
+  - **Bulto 2 (Combo Proteico Fresco):** Cadena de frío garantizada (Pollo entero beneficiado ~2.2 kg, carne de res molida 1 kg, mortadela especial 1 kg).
+- **Candado de Dispositivo Activo (`#deviceLockBadgeContainer`):**
+  - Genera una clave de hardware (`KEY-A7F9-MIPPCI`) vinculada al teléfono del trabajador, impidiendo que capturas de pantalla sean enviadas a terceros para retirar combos fraudulentamente.
+- **Código QR Criptográfico Dinámico (`#workerQrContainer`):**
+  - **Rotación Criptográfica:** El código QR incorpora un *Nonce* de un solo uso y firma HMAC SHA-256 que se renueva cada 60 segundos.
+  - **Barra de Cuenta Regresiva (`#qrCountdownFill`):** Indicador visual que muestra el tiempo restante antes de la regeneración del token.
+  - **Botón Brillo 100% (`#btnToggleBrightness`):** Eleva al máximo el brillo de la pantalla del smartphone para facilitar la lectura óptica bajo iluminación de sótano.
+- **Validación por Proximidad NFC Móvil (`#workerNfcTouchPanel`):**
+  - Para teléfonos con chip NFC, el beneficiario puede presionar *Tocar con NFC* y acercar su dispositivo a la tablet del operador (validación *Tap-to-Claim P2P* sin encender cámara).
+
+![Carnet Digital Oficial del Trabajador](images/02_carnet_beneficiario_movil.png)
+*Figura 3: Carnet Móvil Institucional con App Bar oficial, semáforo de colas, cuota de bultos, candado de hardware y QR dinámico.*
 
 ---
 
@@ -81,12 +89,12 @@ En la taquilla de entrega, el operador captura la credencial del beneficiario.
      - El operador inicia el escáner (`#btnStartCameraScanner`) que activa la cámara con selección de lente frontal/trasera (`#btnFlipCameraLive`).
      - Compatible con pistolas lectoras láser USB / Bluetooth que ingresan el token en milisegundos sin latencia.
    - **HUD de Detección Sub-segundo (`#cameraScanHUD`):**
-     - En menos de 120 ms, la interfaz proyecta una superposición de confirmación con el nombre y combo detectado.
+     - En menos de 120 ms, la interfaz proyecta una superposición de confirmación en verde con el nombre del funcionario y su cuota autorizada.
    - **Ficha de Verificación de Identidad:**
      - Proyecta la fotografía oficial de la ficha de personal, cédula y departamento para verificación visual del operador contra la persona en ventanilla.
-   - **Modalidad de Despacho (Totalizado vs. Estaciones):**
-     - *Modalidad Totalizada:* Retiro de víveres secos y combo proteico en una sola mesa.
-     - *Modalidad Multiestación:* La Estación 1 entrega víveres secos y sella el primer paso; el carnet del trabajador conmuta automáticamente a la tarjeta de transición (`#stationTransitionCard`): `🍗 APROBAR Y PASAR A ESTACIÓN 2 (COMBO PROTEICO)`, habilitando el QR específico para la cava refrigerada.
+
+![Lector Óptico con HUD de Validación Sub-segundo](images/04_lector_escaner_hud.png)
+*Figura 4: Visor de escaneo óptico en vivo con HUD verde de confirmación instantánea de identidad y combos asignados.*
 
 2. **El Escudo Matemático de Idempotencia (`idx_unique_daily_claim`):**
    - Antes de habilitar cualquier entrega, el motor relacional ejecuta una consulta con bloqueo exclusivo:
@@ -116,6 +124,9 @@ El SGBT contempla casos excepcionales para garantizar que ningún trabajador que
      - El supervisor debe tipificar el motivo: *Sin teléfono inteligente, teléfono descargado/averiado, adulto mayor con asistencia o caso médico*.
    - **Autorización de Supervisor:** La entrega requiere el PIN o escaneo del código QR diario del supervisor (`SUP-YYMMDD-XXXXXX`), quedando registrada la firma del supervisor en el acta de auditoría.
 
+![Modal de Contingencia Asistida del Supervisor](images/05_contingencia_supervisor_modal.png)
+*Figura 5: Modal de Contingencia Asistida para desbloqueo formal de trabajadores sin smartphone o adultos mayores.*
+
 2. **Modal de Retiro Delegado a Terceros (`#delegationModalBackdrop`):**
    - Permite autorizar a un compañero de trabajo para retirar el beneficio de un funcionario de reposo médico o comisión de servicio, validando la constancia oficial pre-cargada.
 
@@ -126,21 +137,20 @@ El SGBT contempla casos excepcionales para garantizar que ningún trabajador que
 Una vez verificados los rubros físicos en mesa, se sella formalmente el despacho.
 
 ### 🖥️ Pantallas Involucradas:
-1. **Overlay de Confirmación en Mesa (`#distributorFeedbackOverlay`):**
-   - Emite un tono sonoro armónico y un mensaje en verde de pantalla completa: `✅ ENTREGA AUTORIZADA - Combo Despachado con Éxito`.
-   - El contador de la mesa (`#distributorDeliveriesHeaderCount`) se incrementa automáticamente.
-
-2. **Actualización del Carnet Móvil del Trabajador:**
+1. **Actualización del Carnet Móvil del Trabajador:**
    - Mediante canal de eventos en tiempo real (Server-Sent Events / BroadcastChannel local), la pantalla del beneficiario actualiza su carnet de inmediato:
      - El visor de QR desaparece y se proyecta el **Sello Oficial de Entrega:**
        - `🏛️ DESPACHADO • BENEFICIO ENTREGADO CON ÉXITO`.
-   - **Acceso a Recibos Digitales (`#btnOpenReceiptsHistoryModal`):**
-     - Despliega el comprobante digital con:
-       - Número de comprobante único (UUIDv4).
-       - Hash SHA-256 inmutable de la transacción.
-       - Cantidad exacta de bultos y kilos entregados.
-       - Marca temporal con precisión de milisegundos.
-     - **Botón Compartir por WhatsApp:** Envía el comprobante formal con formato institucional para respaldo personal del trabajador.
+2. **Acceso a Recibos Digitales (`#btnOpenReceiptsHistoryModal`):**
+   - Despliega el comprobante digital con:
+     - Número de comprobante único (UUIDv4).
+     - Hash SHA-256 inmutable de la transacción.
+     - Cantidad exacta de bultos y kilos entregados.
+     - Marca temporal con precisión de milisegundos.
+   - **Botón Compartir por WhatsApp:** Envía el comprobante formal con formato institucional para respaldo personal del trabajador.
+
+![Historial de Recibos Digitales y Comprobante Oficial](images/06_recibos_digitales_modal.png)
+*Figura 6: Ventana institucional de Recibos Digitales con folio oficial, fecha, combos recibidos y hash de auditoría.*
 
 ---
 
@@ -148,19 +158,21 @@ Una vez verificados los rubros físicos en mesa, se sella formalmente el despach
 
 Desde la Dirección General y la Dirección de Gestión Humana se supervisa el desarrollo de la jornada sin intermediarios.
 
-### 🖥️ Pantallas Involucradas:
-1. **Tablero Central de Gestión y Auditoría (`#view-admin`):**
-   - **Panel de KPIs en Vivo:**
-     - *Total Funcionarios Atendidos:* Contador dinámico con porcentaje de avance de nómina.
-     - *Tonelaje Total Distribuido:* Sumatoria exacta en kilogramos de alimentos secos y proteínas entregadas.
-     - *Mermas o Faltantes:* Indicador en 0.0%, garantizando cuadre exacto de inventario.
-     - *Tiempo Promedio de Atención:* Monitoreo de eficiencia operativa (promedio: 14 segundos por beneficiario).
-   - **Desglose en Vivo por Dependencias Administrativas:**
-     - Barra de progreso por cada viceministerio y dirección general (Gestión Comunicacional, Redes Sociales, Prensa, Administración, Servicios Generales, etc.).
-   - **Sincronización PWA Cloud (`#syncQueueCounter`):**
-     - Los despachos efectuados en mesas sin internet se acumulan en la cola local segura. Al restablecerse la señal WiFi o 4G, el botón `#btnSyncDeferredQueue` o el proceso en segundo plano *Background Sync* sincroniza automáticamente todos los registros hacia **Supabase Cloud**.
-   - **Emisión del Acta Oficial Ministerial (`#ministerialActaModalBackdrop`):**
-     - Genera en formato PDF/Impresión oficial el **Acta de Cierre de Despacho Institucional**, firmada digitalmente con hash criptográfico, lista para ser archivada por la Contraloría Interna y la Dirección General.
+### 🖥️ Pantalla del Tablero Central de Auditoría Ministerial (`#view-admin`):
+- **Panel de KPIs en Vivo:**
+  - *Total Funcionarios Atendidos:* Contador dinámico con porcentaje de avance de nómina (ej: 1,842 / 2,267 beneficiarios).
+  - *Tonelaje Total Distribuido:* Sumatoria exacta en kilogramos de alimentos secos y proteínas entregadas (ej: 26.7 TN).
+  - *Mermas o Faltantes:* Indicador en 0.0%, garantizando cuadre exacto de inventario físico vs. sistema.
+  - *Tiempo Promedio de Atención:* Monitoreo de eficiencia operativa (promedio: 14 segundos por beneficiario).
+- **Desglose en Vivo por Dependencias Administrativas:**
+  - Barra de progreso por cada viceministerio y dirección general (Gestión Comunicacional, Redes Sociales, Prensa, Administración, Servicios Generales, etc.).
+- **Sincronización PWA Cloud (`#syncQueueCounter`):**
+  - Los despachos efectuados en mesas sin internet se acumulan en la cola local segura. Al restablecerse la señal WiFi o 4G, el botón `#btnSyncDeferredQueue` o el proceso en segundo plano *Background Sync* sincroniza automáticamente todos los registros hacia **Supabase Cloud**.
+- **Emisión del Acta Oficial Ministerial (`#ministerialActaModalBackdrop`):**
+  - Genera en formato PDF/Impresión oficial el **Acta de Cierre de Despacho Institucional**, firmada digitalmente con hash criptográfico, lista para ser archivada por la Contraloría Interna y la Dirección General.
+
+![Tablero Central de Auditoría Ministerial](images/07_tablero_auditoria_ministerial.png)
+*Figura 7: Consola Central de Auditoría Ministerial con métricas en tiempo real, desglose por dependencias y cierre contable.*
 
 ---
 

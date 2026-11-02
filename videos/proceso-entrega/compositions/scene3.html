@@ -16,8 +16,8 @@
     .hud-scanner-stage {
       position: absolute;
       top: 145px;
-      left: 120px;
-      width: 760px;
+      left: 100px;
+      width: 860px;
       height: 820px;
       background: #020617;
       border: 2px solid rgba(56, 189, 248, 0.4);
@@ -28,164 +28,31 @@
       flex-direction: column;
       position: relative;
     }
-    .hud-overlay-header {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      right: 20px;
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(16, 185, 129, 0.4);
-      border-radius: 16px;
-      padding: 12px 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      backdrop-filter: blur(12px);
-      z-index: 10;
-    }
-    .hud-title-box {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .hud-status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 12px #10b981;
-    }
-    .hud-title-box h4 {
-      font-size: 14px;
-      font-weight: 800;
-      color: #ffffff;
-    }
-    .hud-latency-pill {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 700;
-      color: #38bdf8;
-      background: rgba(2, 132, 199, 0.2);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      padding: 4px 10px;
-      border-radius: 6px;
-    }
-
-    /* Retícula de escaneo */
-    .viewfinder-area {
+    .hud-screen-img {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-    }
-    .target-reticle {
-      width: 320px;
-      height: 320px;
-      border: 2px dashed rgba(56, 189, 248, 0.4);
-      border-radius: 24px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 23, 42, 0.5);
-    }
-    .corner-bracket {
-      position: absolute;
-      width: 28px;
-      height: 28px;
-      border-color: #38bdf8;
-      border-style: solid;
-    }
-    .c-tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-top-left-radius: 20px; }
-    .c-tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-top-right-radius: 20px; }
-    .c-bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-bottom-left-radius: 20px; }
-    .c-br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-bottom-right-radius: 20px; }
-    .detected-qr-wireframe {
-      width: 220px;
-      height: 220px;
-      background-image: radial-gradient(#38bdf8 2px, transparent 2px), radial-gradient(#10b981 2px, transparent 2px);
-      background-size: 14px 14px;
-      border-radius: 16px;
-      opacity: 0.85;
-      position: relative;
-    }
-    .laser-beam {
-      position: absolute;
-      top: 0;
-      left: 0;
       width: 100%;
-      height: 5px;
+      height: 100%;
+      background-image: url('assets/04_lector_escaner_hud.png');
+      background-size: cover;
+      background-position: center top;
+      position: relative;
+    }
+    .scanning-laser-line {
+      position: absolute;
+      top: 260px;
+      left: 140px;
+      width: 580px;
+      height: 6px;
       background: linear-gradient(90deg, transparent, #22c55e, #38bdf8, #22c55e, transparent);
       box-shadow: 0 0 25px #22c55e, 0 0 10px #38bdf8;
-    }
-
-    /* Ficha Instantánea del Trabajador (Emergencia HUD inferior) */
-    .worker-detected-card {
-      margin: 0 20px 20px 20px;
-      background: rgba(15, 23, 42, 0.95);
-      border: 1px solid rgba(56, 189, 248, 0.35);
-      border-radius: 20px;
-      padding: 20px;
-      display: flex;
-      gap: 20px;
-      align-items: center;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-    }
-    .detected-avatar-box {
-      width: 80px;
-      height: 80px;
-      border-radius: 16px;
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      border: 2px solid #38bdf8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 32px;
-      font-weight: 800;
-      color: #fff;
-      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.4);
-    }
-    .detected-details {
-      flex: 1;
-    }
-    .detected-name {
-      font-size: 18px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 4px;
-    }
-    .detected-meta-row {
-      display: flex;
-      gap: 14px;
-      font-size: 13px;
-      color: #94a3b8;
-      margin-bottom: 8px;
-    }
-    .detected-meta-row strong {
-      color: #38bdf8;
-    }
-    .combos-tag-row {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.35);
-      padding: 4px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 700;
-      color: #34d399;
     }
 
     /* Panel explicativo lateral */
     .callout-card {
       position: absolute;
       top: 145px;
-      right: 120px;
-      width: 820px;
+      right: 100px;
+      width: 800px;
       background: rgba(20, 30, 51, 0.92);
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 32px;
@@ -287,8 +154,8 @@
     .phase-banner {
       position: absolute;
       bottom: 35px;
-      left: 120px;
-      right: 120px;
+      left: 100px;
+      right: 100px;
       background: linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
       border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 20px;
@@ -322,43 +189,10 @@
   </style>
 
   <div id="root" data-composition-id="scene3" data-width="1920" data-height="1080">
-    <!-- Visor de Escaneo HUD -->
+    <!-- Pantalla Real del Visor de Escaneo HUD -->
     <div class="hud-scanner-stage" id="s3Stage">
-      <!-- HUD Header -->
-      <div class="hud-overlay-header">
-        <div class="hud-title-box">
-          <span class="hud-status-dot"></span>
-          <h4>Lector Láser Activo • Cámara HD 1080p</h4>
-        </div>
-        <span class="hud-latency-pill">Latencia: 112 ms</span>
-      </div>
-
-      <!-- Área de Retícula con Láser -->
-      <div class="viewfinder-area">
-        <div class="target-reticle">
-          <div class="corner-bracket c-tl"></div>
-          <div class="corner-bracket c-tr"></div>
-          <div class="corner-bracket c-bl"></div>
-          <div class="corner-bracket c-br"></div>
-          <div class="detected-qr-wireframe"></div>
-          <div class="laser-beam" id="s3Laser"></div>
-        </div>
-      </div>
-
-      <!-- Ficha del Funcionario Detectada -->
-      <div class="worker-detected-card" id="s3WorkerCard">
-        <div class="detected-avatar-box">SF</div>
-        <div class="detected-details">
-          <div class="detected-name">SAHIB ALEXANDER FRANCO VILLANUEVA</div>
-          <div class="detected-meta-row">
-            <span>C.I: <strong>V-13.537.582</strong></span>
-            <span>Dpto: <strong>Gestión Comunicacional</strong></span>
-            <span>Condición: <strong>Directivo</strong></span>
-          </div>
-          <div class="combos-tag-row">
-            <span>📦 Cuota Asignada: 4 Combos (3 Víveres Secos + 1 Proteína Fresca)</span>
-          </div>
-        </div>
+      <div class="hud-screen-img">
+        <div class="scanning-laser-line" id="s3Laser"></div>
       </div>
     </div>
 
@@ -448,15 +282,8 @@
     tl.fromTo(
       "#s3Laser",
       { y: 0, opacity: 0.4 },
-      { y: 314, opacity: 1, duration: 1.4, repeat: 2, yoyo: true, ease: "power1.inOut" },
+      { y: 220, opacity: 1, duration: 1.4, repeat: 2, yoyo: true, ease: "power1.inOut" },
       0.5
-    );
-
-    tl.fromTo(
-      "#s3WorkerCard",
-      { y: 40, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.7, ease: "back.out(1.6)" },
-      1.8
     );
 
     window.__timelines = window.__timelines || {};

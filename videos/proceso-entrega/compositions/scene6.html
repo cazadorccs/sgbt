@@ -16,153 +16,83 @@
     .admin-dashboard-stage {
       position: absolute;
       top: 145px;
-      left: 120px;
-      width: 880px;
+      left: 100px;
+      width: 960px;
+      height: 820px;
       background: #0f172a;
       border: 1px solid rgba(56, 189, 248, 0.35);
       border-radius: 28px;
-      padding: 32px;
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 50px rgba(2, 132, 199, 0.2);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 22px;
     }
-    .dash-header-bar {
+    .dash-window-header {
+      height: 48px;
+      background: #1e293b;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 16px;
+      justify-content: space-between;
+      padding: 0 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
     }
-    .dash-title-group h3 {
-      font-size: 22px;
-      font-weight: 800;
-      color: #ffffff;
+    .window-dots {
+      display: flex;
+      gap: 8px;
     }
-    .dash-title-group p {
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #eab308; }
+    .dot-green { background: #22c55e; }
+    .dash-title-text {
       font-size: 13px;
+      font-weight: 700;
       color: #38bdf8;
     }
-    .live-broadcast-pill {
+    .dash-screen-img {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background-image: url('assets/07_tablero_auditoria_ministerial.png');
+      background-size: cover;
+      background-position: center top;
+      position: relative;
+    }
+    .live-broadcast-tag {
+      position: absolute;
+      top: 24px;
+      right: 24px;
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      color: #f87171;
+      background: rgba(239, 68, 68, 0.9);
+      border: 1px solid #ef4444;
+      color: #ffffff;
       padding: 6px 14px;
       border-radius: 9999px;
       font-size: 12px;
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
     }
     .pulsing-red-dot {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #ef4444;
-      box-shadow: 0 0 10px #ef4444;
-    }
-
-    /* Grid de KPIs */
-    .kpi-metrics-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-    .kpi-card {
-      background: rgba(30, 41, 59, 0.6);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .kpi-caption {
-      font-size: 11px;
-      color: #94a3b8;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-    .kpi-big-number {
-      font-size: 28px;
-      font-weight: 900;
-      color: #38bdf8;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .kpi-status-sub {
-      font-size: 12px;
-      color: #34d399;
-      font-weight: 600;
-    }
-
-    /* Gráfico de Dependencias */
-    .dept-progress-panel {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .dept-item {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .dept-labels {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      color: #cbd5e1;
-    }
-    .dept-bar-track {
-      width: 100%;
-      height: 8px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-    .dept-bar-fill {
-      height: 100%;
-      border-radius: 4px;
-    }
-    .fill-cyan { width: 92%; background: linear-gradient(90deg, #0284c7, #38bdf8); }
-    .fill-green { width: 85%; background: linear-gradient(90deg, #059669, #34d399); }
-    .fill-amber { width: 78%; background: linear-gradient(90deg, #d97706, #fbbf24); }
-
-    /* Barra de Acta y Cloud */
-    .acta-cloud-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 16px;
-      padding: 16px 20px;
-    }
-    .btn-acta-download {
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      border: 1px solid #38bdf8;
-      color: #ffffff;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 13px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 15px rgba(2, 132, 199, 0.4);
+      background: #ffffff;
     }
 
     /* Panel Explicativo Lateral */
     .callout-card {
       position: absolute;
       top: 145px;
-      right: 120px;
+      right: 100px;
       width: 700px;
       background: rgba(20, 30, 51, 0.92);
       border: 1px solid rgba(56, 189, 248, 0.25);
@@ -251,8 +181,8 @@
     .phase-banner {
       position: absolute;
       bottom: 35px;
-      left: 120px;
-      right: 120px;
+      left: 100px;
+      right: 100px;
       background: linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
       border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 20px;
@@ -286,83 +216,21 @@
   </style>
 
   <div id="root" data-composition-id="scene6" data-width="1920" data-height="1080">
-    <!-- Dashboard Ministerial de Auditoría -->
+    <!-- Ventana del Dashboard Ministerial con Captura Real -->
     <div class="admin-dashboard-stage" id="s6Dashboard">
-      <div class="dash-header-bar">
-        <div class="dash-title-group">
-          <h3>Tablero Central de Auditoría Ministerial SGBT</h3>
-          <p>Ministerio del Poder Popular para la Comunicación y la Información</p>
+      <div class="dash-window-header">
+        <div class="window-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
         </div>
-        <div class="live-broadcast-pill">
+        <div class="dash-title-text">SGBT — Tablero de Control y Auditoría Ministerial (MIPPCI)</div>
+        <div style="width: 40px;"></div>
+      </div>
+      <div class="dash-screen-img">
+        <div class="live-broadcast-tag" id="s6LiveTag">
           <span class="pulsing-red-dot"></span>
           <span>Transmisión en Vivo</span>
-        </div>
-      </div>
-
-      <!-- Métricas Clave de Despacho -->
-      <div class="kpi-metrics-grid">
-        <div class="kpi-card">
-          <span class="kpi-caption">Atendidos Hoy</span>
-          <span class="kpi-big-number">1,842</span>
-          <span class="kpi-status-sub">▲ 81.2% Nómina</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-caption">Tonelaje Total</span>
-          <span class="kpi-big-number">26.7 TN</span>
-          <span class="kpi-status-sub">Secos + Frío</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-caption">Mermas / Pérdidas</span>
-          <span class="kpi-big-number">0.0%</span>
-          <span class="kpi-status-sub">Cuadre Exacto</span>
-        </div>
-        <div class="kpi-card">
-          <span class="kpi-caption">Tiempo Medio</span>
-          <span class="kpi-big-number">14s</span>
-          <span class="kpi-status-sub">Por Trabajador</span>
-        </div>
-      </div>
-
-      <!-- Progreso por Direcciones -->
-      <div class="dept-progress-panel">
-        <div style="font-size: 13px; font-weight: 700; color: #ffffff;">Avance en Vivo por Dependencias Adscritas:</div>
-        <div class="dept-item">
-          <div class="dept-labels">
-            <span>Dirección General de Gestión Comunicacional</span>
-            <strong>92% (184/200)</strong>
-          </div>
-          <div class="dept-bar-track">
-            <div class="dept-bar-fill fill-cyan"></div>
-          </div>
-        </div>
-        <div class="dept-item">
-          <div class="dept-labels">
-            <span>Dirección General de Redes Sociales y Contenido</span>
-            <strong>85% (170/200)</strong>
-          </div>
-          <div class="dept-bar-track">
-            <div class="dept-bar-fill fill-green"></div>
-          </div>
-        </div>
-        <div class="dept-item">
-          <div class="dept-labels">
-            <span>Dirección de Gestión Humana y Nómina</span>
-            <strong>78% (156/200)</strong>
-          </div>
-          <div class="dept-bar-track">
-            <div class="dept-bar-fill fill-amber"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Acta Oficial y Cloud Sync -->
-      <div class="acta-cloud-row">
-        <div>
-          <div style="font-weight: 800; color: #ffffff; font-size: 14px;">Acta de Cierre Ministerial Generada</div>
-          <div style="font-size: 12px; color: #a7f3d0;">Firmada digitalmente y sincronizada con Supabase Cloud.</div>
-        </div>
-        <div class="btn-acta-download">
-          <span>📄 Descargar Acta Oficial (PDF)</span>
         </div>
       </div>
     </div>
@@ -432,6 +300,13 @@
       { y: 40, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.8, ease: "power2.out" },
       0.2
+    );
+
+    tl.fromTo(
+      "#s6LiveTag",
+      { scale: 0.85, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" },
+      1.0
     );
 
     window.__timelines = window.__timelines || {};

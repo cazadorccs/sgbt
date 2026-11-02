@@ -13,155 +13,94 @@
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       color: #f8fafc;
     }
-    .contingency-receipt-stage {
+    .dual-screens-stage {
       position: absolute;
       top: 145px;
-      left: 120px;
-      width: 760px;
+      left: 100px;
+      width: 860px;
       height: 820px;
       display: flex;
       flex-direction: column;
       gap: 20px;
+      position: relative;
     }
 
-    /* Modal de Contingencia de Supervisor */
-    .contingency-card {
+    /* Ventana 1: Captura Real Modal Supervisor */
+    .contingency-screen-box {
+      flex: 1;
       background: #0f172a;
       border: 1.5px solid rgba(245, 158, 11, 0.45);
       border-radius: 24px;
-      padding: 22px;
       box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(245, 158, 11, 0.15);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 12px;
     }
-    .contingency-header {
+    .box-header-title {
+      height: 38px;
+      background: #1e293b;
+      padding: 0 16px;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
-    }
-    .contingency-badge-tag {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.4);
+      font-size: 12px;
+      font-weight: 700;
       color: #fbbf24;
-      font-size: 12px;
-      font-weight: 800;
-      padding: 4px 12px;
-      border-radius: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
-    .input-mock-row {
-      display: flex;
-      gap: 10px;
-    }
-    .mock-input {
+    .contingency-img-body {
       flex: 1;
-      background: #020617;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 10px;
-      padding: 8px 14px;
-      font-size: 13px;
-      color: #ffffff;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .mock-btn-auth {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #ffffff;
-      font-size: 13px;
-      font-weight: 800;
-      padding: 8px 16px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .contingency-reason-pill {
-      background: rgba(15, 23, 42, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: #cbd5e1;
+      width: 100%;
+      height: 100%;
+      background-image: url('assets/05_contingencia_supervisor_modal.png');
+      background-size: cover;
+      background-position: center top;
     }
 
-    /* Comprobante Digital con Sello */
-    .receipt-container {
+    /* Ventana 2: Captura Real Modal Recibos */
+    .receipts-screen-box {
+      flex: 1;
       background: #0f172a;
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      border: 1.5px solid rgba(16, 185, 129, 0.45);
       border-radius: 24px;
-      padding: 24px;
       box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6), 0 0 35px rgba(16, 185, 129, 0.15);
+      overflow: hidden;
       display: flex;
       flex-direction: column;
-      gap: 12px;
       position: relative;
     }
-    .receipt-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 2px dashed rgba(255, 255, 255, 0.12);
-      padding-bottom: 12px;
-    }
-    .receipt-title {
-      font-size: 16px;
-      font-weight: 800;
-      color: #ffffff;
-    }
-    .receipt-data-list {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 13px;
-      color: #cbd5e1;
-    }
-    .receipt-data-row {
-      display: flex;
-      justify-content: space-between;
-    }
-    .receipt-data-row strong {
-      color: #ffffff;
-      font-family: 'JetBrains Mono', monospace;
-    }
-    .receipt-hash-box {
-      background: rgba(2, 6, 23, 0.7);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      border-radius: 10px;
-      padding: 8px 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-    .hash-text {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: #38bdf8;
-      word-break: break-all;
-    }
-    .whatsapp-share-bar {
+    .box-header-title-green {
+      height: 38px;
+      background: #1e293b;
+      padding: 0 16px;
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
-      background: rgba(37, 211, 102, 0.15);
-      border: 1px solid rgba(37, 211, 102, 0.4);
-      color: #25d366;
-      padding: 8px;
-      border-radius: 10px;
-      font-size: 13px;
+      justify-content: space-between;
+      font-size: 12px;
       font-weight: 700;
+      color: #34d399;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .receipts-img-body {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background-image: url('assets/06_recibos_digitales_modal.png');
+      background-size: cover;
+      background-position: center top;
     }
 
     /* Gran Sello Ministerial Estampado */
     .ministerial-seal-badge {
       position: absolute;
-      top: 360px;
-      right: 60px;
-      width: 220px;
-      height: 220px;
+      top: 410px;
+      right: 30px;
+      width: 230px;
+      height: 230px;
       border: 6px double #10b981;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(16, 185, 129, 0.25), rgba(2, 6, 23, 0.9));
-      box-shadow: 0 0 50px rgba(16, 185, 129, 0.4), inset 0 0 30px rgba(16, 185, 129, 0.2);
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.3), rgba(2, 6, 23, 0.92));
+      box-shadow: 0 0 50px rgba(16, 185, 129, 0.45), inset 0 0 30px rgba(16, 185, 129, 0.25);
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -169,7 +108,7 @@
       text-align: center;
       padding: 16px;
       transform: rotate(-12deg);
-      z-index: 20;
+      z-index: 25;
     }
     .seal-ribbon {
       font-size: 11px;
@@ -186,7 +125,7 @@
       text-shadow: 0 0 15px rgba(16, 185, 129, 0.8);
     }
     .seal-check {
-      font-size: 30px;
+      font-size: 32px;
       color: #10b981;
     }
 
@@ -194,8 +133,8 @@
     .callout-card {
       position: absolute;
       top: 145px;
-      right: 120px;
-      width: 820px;
+      right: 100px;
+      width: 800px;
       background: rgba(20, 30, 51, 0.92);
       border: 1px solid rgba(56, 189, 248, 0.25);
       border-radius: 32px;
@@ -271,8 +210,8 @@
     .phase-banner {
       position: absolute;
       bottom: 35px;
-      left: 120px;
-      right: 120px;
+      left: 100px;
+      right: 100px;
       background: linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
       border: 1px solid rgba(56, 189, 248, 0.3);
       border-radius: 20px;
@@ -306,59 +245,26 @@
   </style>
 
   <div id="root" data-composition-id="scene5" data-width="1920" data-height="1080">
-    <div class="contingency-receipt-stage">
-      <!-- Modal de Contingencia Asistida -->
-      <div class="contingency-card" id="s5ContingencyCard">
-        <div class="contingency-header">
-          <div style="font-size: 14px; font-weight: 800; color: #ffffff;">Módulo de Contingencia Asistida</div>
-          <span class="contingency-badge-tag">Supervisor Autorizado</span>
+    <div class="dual-screens-stage">
+      <!-- Modal de Contingencia Asistida Real -->
+      <div class="contingency-screen-box" id="s5ContingencyBox">
+        <div class="box-header-title">
+          <span>Ventana de Contingencia Asistida (Supervisor)</span>
+          <span>Desbloqueo Auditado</span>
         </div>
-        <div class="input-mock-row">
-          <div class="mock-input">V-18456123</div>
-          <div class="mock-btn-auth">
-            <span>🔑 Desbloquear</span>
-          </div>
-        </div>
-        <div class="contingency-reason-pill">
-          Motivo: <strong>Adulto Mayor / Sin teléfono inteligente</strong> · Token: <code>SUP-261102-B6AB0B</code>
-        </div>
+        <div class="contingency-img-body"></div>
       </div>
 
-      <!-- Comprobante Digital Oficial -->
-      <div class="receipt-container" id="s5ReceiptCard">
-        <div class="receipt-header-row">
-          <div class="receipt-title">COMPROBANTE ELECTRÓNICO OFICIAL</div>
-          <span style="font-size: 12px; color: #10b981; font-weight: 800;">CONFIRMADO</span>
+      <!-- Modal de Recibos Digitales Real -->
+      <div class="receipts-screen-box" id="s5ReceiptsBox">
+        <div class="box-header-title-green">
+          <span>Historial de Recibos Digitales y Comprobantes Oficiales</span>
         </div>
-        <div class="receipt-data-list">
-          <div class="receipt-data-row">
-            <span>Beneficiario:</span>
-            <strong>SAHIB ALEXANDER FRANCO</strong>
-          </div>
-          <div class="receipt-data-row">
-            <span>Cédula:</span>
-            <strong>V-13.537.582</strong>
-          </div>
-          <div class="receipt-data-row">
-            <span>Asignación:</span>
-            <strong>4 Combos (3 Secos + 1 Proteína)</strong>
-          </div>
-          <div class="receipt-data-row">
-            <span>Estampa:</span>
-            <strong>2026-11-02 11:42:15.820 VET</strong>
-          </div>
-        </div>
-        <div class="receipt-hash-box">
-          <span style="font-size: 10px; color: #94a3b8; text-transform: uppercase;">Firma Criptográfica SHA-256:</span>
-          <span class="hash-text">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
-        </div>
-        <div class="whatsapp-share-bar">
-          <span>📲 Enviar Comprobante Digital a WhatsApp</span>
-        </div>
+        <div class="receipts-img-body"></div>
       </div>
 
       <!-- Sello Ministerial Estampado -->
-      <div class="ministerial-seal-badge" id="s5Seal">
+      <div class="ministerial-seal-badge" id="s5Seal" data-layout-allow-overlap>
         <div class="seal-ribbon">AUDITORÍA MINISTERIAL</div>
         <div class="seal-main">DESPACHADO</div>
         <div class="seal-check">✓</div>
@@ -413,14 +319,14 @@
     const tl = gsap.timeline({ paused: true });
 
     tl.fromTo(
-      "#s5ContingencyCard",
+      "#s5ContingencyBox",
       { y: -30, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
       0.1
     );
 
     tl.fromTo(
-      "#s5ReceiptCard",
+      "#s5ReceiptsBox",
       { y: 30, opacity: 0 },
       { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
       0.4
