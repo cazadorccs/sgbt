@@ -42,6 +42,7 @@ store_icon.png
 
 
 .agents/
+.hyperframes/
 .system_generated/
 .tempmediaStorage/
 scratch/

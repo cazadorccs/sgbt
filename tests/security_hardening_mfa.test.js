@@ -114,6 +114,8 @@ async function runSecurityTests() {
     console.log('3. Verificando Inyección de Cookies HttpOnly + SameSite=Strict...');
     const resLogin = await makeRequest('POST', '/api/v1/auth/login', {
       document_id: '13537582',
+      admin_secret: '0578',
+      require_admin: true,
       device_id: 'dev_test_device_pc_1'
     });
     assert.strictEqual(resLogin.status, 200);

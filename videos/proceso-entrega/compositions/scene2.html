@@ -1,0 +1,301 @@
+<template>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f8fafc;
+    }
+    .scanner-stage {
+      position: absolute;
+      top: 180px;
+      left: 140px;
+      width: 720px;
+      height: 680px;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.95), rgba(8, 12, 22, 0.98));
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 32px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(2, 132, 199, 0.15);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .scanner-reticle {
+      position: relative;
+      width: 360px;
+      height: 360px;
+      background: rgba(2, 6, 23, 0.8);
+      border: 2px dashed rgba(56, 189, 248, 0.5);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 50px rgba(56, 189, 248, 0.25);
+    }
+    .reticle-corner {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-color: #38bdf8;
+      border-style: solid;
+    }
+    .corner-tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-top-left-radius: 26px; }
+    .corner-tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-top-right-radius: 26px; }
+    .corner-bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-bottom-left-radius: 26px; }
+    .corner-br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-bottom-right-radius: 26px; }
+    .qr-symbol {
+      width: 250px;
+      height: 250px;
+      background-image: radial-gradient(#38bdf8 2px, transparent 2px), radial-gradient(#10b981 2px, transparent 2px);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+      border-radius: 16px;
+      opacity: 0.9;
+      position: relative;
+    }
+    .scanner-active-laser {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, transparent, #22c55e, #38bdf8, #22c55e, transparent);
+      box-shadow: 0 0 25px #22c55e, 0 0 10px #38bdf8;
+      border-radius: 3px;
+    }
+    .scan-status-pill {
+      margin-top: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      padding: 10px 24px;
+      border-radius: 9999px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #34d399;
+    }
+    .pulse-dot {
+      width: 10px;
+      height: 10px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #10b981;
+    }
+
+    .callout-card {
+      position: absolute;
+      top: 180px;
+      right: 140px;
+      width: 820px;
+      background: rgba(20, 30, 51, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 32px;
+      padding: 40px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+    .callout-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .callout-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+    }
+    .callout-header h3 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .callout-header span {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    .callout-body p {
+      font-size: 18px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      margin-bottom: 28px;
+    }
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+    .telemetry-item {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .telemetry-label {
+      font-size: 13px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .telemetry-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #38bdf8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .phase-banner {
+      position: absolute;
+      bottom: 40px;
+      left: 140px;
+      right: 140px;
+      background: linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+    .phase-info h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .phase-info p {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    .phase-step-tag {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene2" data-width="1920" data-height="1080">
+    <div class="scanner-stage" id="s2ScannerStage">
+      <div class="scanner-reticle">
+        <div class="reticle-corner corner-tl"></div>
+        <div class="reticle-corner corner-tr"></div>
+        <div class="reticle-corner corner-bl"></div>
+        <div class="reticle-corner corner-br"></div>
+        <div class="qr-symbol"></div>
+        <div class="scanner-active-laser" id="s2ActiveLaser"></div>
+      </div>
+      <div class="scan-status-pill" id="s2StatusPill">
+        <span class="pulse-dot"></span>
+        <span>Código QR Detectado • Descifrado Criptográfico</span>
+      </div>
+    </div>
+
+    <div class="callout-card" id="s2Callout">
+      <div class="callout-header">
+        <div class="callout-icon">⚡</div>
+        <div>
+          <h3>Verificación Instantánea sin Contacto</h3>
+          <span>Arquitectura Cero-Confianza (Zero Trust)</span>
+        </div>
+      </div>
+      <div class="callout-body">
+        <p>El escáner óptico de la mesa de despacho captura el token con firma digital. El algoritmo valida la firma criptográfica en milisegundos contra la base descentralizada de beneficiarios.</p>
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span class="telemetry-label">Algoritmo de Validación</span>
+            <span class="telemetry-value">HMAC SHA-256</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Latencia de Verificación</span>
+            <span class="telemetry-value">&lt; 115 ms</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Modo Operativo</span>
+            <span class="telemetry-value">SQLite PWA Offline</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="telemetry-label">Protección Antifraude</span>
+            <span class="telemetry-value">Anti-Replay / Nonce</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-banner" id="s2Banner">
+      <div class="phase-info">
+        <h2>Fase 2: Escaneo Criptográfico en Punto de Despacho</h2>
+        <p>Captura omnicanal con cámara estándar o pistola láser USB / Bluetooth.</p>
+      </div>
+      <div class="phase-step-tag">Paso 02 / 04</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo(
+      "#s2ScannerStage",
+      { scale: 0.9, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 1.0, ease: "power3.out" },
+      0.1
+    );
+
+    tl.fromTo(
+      "#s2Callout",
+      { x: 60, opacity: 0 },
+      { x: 0, opacity: 1, duration: 1.0, ease: "power3.out" },
+      0.4
+    );
+
+    tl.fromTo(
+      "#s2Banner",
+      { y: 40, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, ease: "power2.out" },
+      0.3
+    );
+
+    // Animación de barrido láser sub-pixel con 'y' (0 a 354px)
+    tl.fromTo(
+      "#s2ActiveLaser",
+      { y: 0, opacity: 0.4 },
+      { y: 354, opacity: 1, duration: 1.4, repeat: 2, yoyo: true, ease: "power1.inOut" },
+      0.6
+    );
+
+    tl.fromTo(
+      "#s2StatusPill",
+      { scale: 0.85, opacity: 0 },
+      { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.7)" },
+      1.6
+    );
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene2"] = tl;
+    tl.seek(0);
+  </script>
+</template>

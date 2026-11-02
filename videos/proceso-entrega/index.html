@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Proceso de Entrega y Despacho SGBT - MIPPCI</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground-dark: #090d16;
+        --ground-slate: #0f172a;
+        --surface-glass: rgba(20, 30, 51, 0.85);
+        --ink-main: #f8fafc;
+        --ink-dim: #94a3b8;
+        --accent-blue: #0284c7;
+        --accent-cyan: #38bdf8;
+        --accent-emerald: #10b981;
+        --border-subtle: rgba(56, 189, 248, 0.25);
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground-dark);
+        font-family: var(--font-sans);
+        color: var(--ink-main);
+      }
+
+      #root {
+        width: 1920px;
+        height: 1080px;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 15%, #1e293b 0%, #090d16 80%);
+      }
+
+      /* Barra de Cabecera Institucional Global */
+      .brand-top-bar {
+        position: absolute;
+        top: 36px;
+        left: 80px;
+        right: 80px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        background: var(--surface-glass);
+        border: 1px solid var(--border-subtle);
+        border-radius: 20px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        z-index: 100;
+      }
+
+      .brand-badge {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .brand-logo-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 20px;
+        color: #ffffff;
+        box-shadow: 0 4px 15px rgba(2, 132, 199, 0.35);
+      }
+
+      .brand-text h1 {
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+      }
+
+      .brand-text p {
+        font-size: 13px;
+        color: var(--accent-cyan);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .status-pill-secure {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 9999px;
+        color: #34d399;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+
+      .status-dot-pulse {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--accent-emerald);
+        box-shadow: 0 0 10px var(--accent-emerald);
+      }
+
+      /* Scene Hosts */
+      .scene-host {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="24"
+      data-width="1920"
+      data-height="1080"
+    >
+      <!-- Cabecera Institucional Permanente -->
+      <div class="brand-top-bar" id="brandHeader">
+        <div class="brand-badge">
+          <div class="brand-logo-box">🏛️</div>
+          <div class="brand-text">
+            <h1>SGBT — MIPPCI</h1>
+            <p>Plataforma de Despacho y Auditoría Ministerial</p>
+          </div>
+        </div>
+        <div class="status-pill-secure">
+          <span class="status-dot-pulse"></span>
+          <span>Despacho Seguro • Trazabilidad Criptográfica 100%</span>
+        </div>
+      </div>
+
+      <!-- Escena 1: Presentación del Carnet y Código QR Dinámico (0s - 5s) -->
+      <div
+        id="scene1"
+        class="scene-host"
+        data-composition-id="scene1"
+        data-composition-src="compositions/scene1.html"
+        data-start="0"
+        data-duration="5"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 2: Escaneo Criptográfico en Punto de Despacho (5s - 10s) -->
+      <div
+        id="scene2"
+        class="scene-host"
+        data-composition-id="scene2"
+        data-composition-src="compositions/scene2.html"
+        data-start="5"
+        data-duration="5"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 3: Mesa de Despacho y Regla de Idempotencia (10s - 16s) -->
+      <div
+        id="scene3"
+        class="scene-host"
+        data-composition-id="scene3"
+        data-composition-src="compositions/scene3.html"
+        data-start="10"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 4: Sello Criptográfico Inmutable Ministerial (16s - 20s) -->
+      <div
+        id="scene4"
+        class="scene-host"
+        data-composition-id="scene4"
+        data-composition-src="compositions/scene4.html"
+        data-start="16"
+        data-duration="4"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+
+      <!-- Escena 5: Pantalla Dividida y Tablero en Tiempo Real (20s - 24s) -->
+      <div
+        id="scene5"
+        class="scene-host"
+        data-composition-id="scene5"
+        data-composition-src="compositions/scene5.html"
+        data-start="20"
+        data-duration="4"
+        data-track-index="1"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const masterTl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = masterTl;
+    </script>
+  </body>
+</html>

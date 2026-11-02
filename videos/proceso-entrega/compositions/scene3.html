@@ -1,0 +1,375 @@
+<template>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f8fafc;
+    }
+    .dispatch-interface-window {
+      position: absolute;
+      top: 150px;
+      left: 120px;
+      width: 1000px;
+      height: 720px;
+      background: #0f172a;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 28px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.8), 0 0 50px rgba(2, 132, 199, 0.2);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .window-header {
+      height: 52px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .window-dots {
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #eab308; }
+    .dot-green { background: #22c55e; }
+    .window-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #94a3b8;
+      letter-spacing: 0.02em;
+    }
+    .dispatch-content {
+      flex: 1;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      background-image: radial-gradient(circle at top right, rgba(56, 189, 248, 0.06), transparent 50%);
+    }
+    .worker-card {
+      display: flex;
+      gap: 28px;
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 24px;
+      align-items: center;
+    }
+    .worker-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      font-weight: 700;
+      color: #ffffff;
+      border: 3px solid rgba(56, 189, 248, 0.5);
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.4);
+    }
+    .worker-details {
+      flex: 1;
+    }
+    .worker-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+    }
+    .worker-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 15px;
+      color: #94a3b8;
+    }
+    .worker-meta span strong {
+      color: #38bdf8;
+    }
+    .combo-package-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+    .combo-box {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .combo-title {
+      font-size: 14px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .combo-qty {
+      font-size: 32px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .combo-desc {
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+    .dispatch-btn-row {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .status-verified {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #10b981;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    .action-btn-mock {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #ffffff;
+      padding: 14px 32px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .side-info-panel {
+      position: absolute;
+      top: 150px;
+      right: 120px;
+      width: 620px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .callout-card {
+      background: rgba(20, 30, 51, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 28px;
+      padding: 32px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+    .callout-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .callout-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .callout-header h3 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .idempotency-badge {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 14px 20px;
+      border-radius: 14px;
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .idempotency-badge code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: #f87171;
+      font-weight: 700;
+    }
+
+    .phase-banner {
+      position: absolute;
+      bottom: 40px;
+      left: 120px;
+      right: 120px;
+      background: linear-gradient(90deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+    }
+    .phase-info h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .phase-info p {
+      font-size: 14px;
+      color: #94a3b8;
+    }
+    .phase-step-tag {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 8px 18px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene3" data-width="1920" data-height="1080">
+    <div class="dispatch-interface-window" id="s3Window">
+      <div class="window-header">
+        <div class="window-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="window-title">SGBT — Mesa de Despacho Institucional (Punto Central)</div>
+        <div style="width: 50px;"></div>
+      </div>
+      <div class="dispatch-content">
+        <div class="worker-card">
+          <div class="worker-avatar">SF</div>
+          <div class="worker-details">
+            <div class="worker-name">SAHIB ALEXANDER FRANCO VILLANUEVA</div>
+            <div class="worker-meta">
+              <span>C.I: <strong>V-13.537.582</strong></span>
+              <span>Cargo: <strong>Personal Directivo</strong></span>
+              <span>Dpto: <strong>Gestión Comunicacional</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="combo-package-grid">
+          <div class="combo-box">
+            <span class="combo-title">Combos Asignados</span>
+            <span class="combo-qty">4</span>
+            <span class="combo-desc">Cuota mensual aprobada</span>
+          </div>
+          <div class="combo-box">
+            <span class="combo-title">Rubros Básicos</span>
+            <span class="combo-qty">3</span>
+            <span class="combo-desc">Viveres secos de primera necesidad</span>
+          </div>
+          <div class="combo-box">
+            <span class="combo-title">Proteína Animal</span>
+            <span class="combo-qty">1</span>
+            <span class="combo-desc">Cadena de frío garantizada</span>
+          </div>
+        </div>
+
+        <div class="dispatch-btn-row">
+          <div class="status-verified">
+            <span>● Cédula y QR validados • Sin reclamos previos hoy</span>
+          </div>
+          <div class="action-btn-mock" id="s3DispatchBtn">
+            <span>📦 Autorizar y Despachar Entrega</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-info-panel">
+      <div class="callout-card" id="s3Callout">
+        <div class="callout-header">
+          <div class="callout-icon">🔒</div>
+          <div>
+            <h3>Garantía de Idempotencia Estricta</h3>
+            <span style="font-size: 14px; color: #94a3b8;">Restricción a nivel de Base de Datos</span>
+          </div>
+        </div>
+        <div class="callout-body">
+          <p style="font-size: 16px; line-height: 1.6; color: #cbd5e1;">El sistema valida automáticamente que el trabajador no haya recibido su beneficio en otra mesa o en la misma jornada. Cada entrega genera una clave única intransferible.</p>
+          <div class="idempotency-badge">
+            <span style="font-size: 20px;">🛡️</span>
+            <div>
+              <div style="font-size: 12px; color: #fca5a5; text-transform: uppercase;">Constraint SQL Activo:</div>
+              <code>idx_unique_daily_claim(worker_id, date)</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-banner" id="s3Banner">
+      <div class="phase-info">
+        <h2>Fase 3: Mesa de Despacho y Regla de Idempotencia</h2>
+        <p>Asignación transparente según nómina oficial y bloqueo automático de duplicidades.</p>
+      </div>
+      <div class="phase-step-tag">Paso 03 / 04</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo(
+      "#s3Window",
+      { y: 60, opacity: 0, scale: 0.96 },
+      { y: 0, opacity: 1, scale: 1, duration: 1.0, ease: "power3.out" },
+      0.1
+    );
+
+    tl.fromTo(
+      "#s3Callout",
+      { x: 50, opacity: 0 },
+      { x: 0, opacity: 1, duration: 0.9, ease: "power3.out" },
+      0.4
+    );
+
+    tl.fromTo(
+      "#s3Banner",
+      { y: 40, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.8, ease: "power2.out" },
+      0.3
+    );
+
+    // Efecto de confirmación en el botón
+    tl.fromTo(
+      "#s3DispatchBtn",
+      { scale: 0.95 },
+      { scale: 1.05, duration: 0.4, repeat: 1, yoyo: true, ease: "power2.inOut" },
+      2.2
+    );
+
+    window.__timelines = window.__timelines || {};
+    window.__timelines["scene3"] = tl;
+    tl.seek(0);
+  </script>
+</template>

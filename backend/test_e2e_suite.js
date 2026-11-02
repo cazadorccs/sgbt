@@ -119,7 +119,11 @@ test('E2E-06: Verificación y Login de Trabajador Beneficiario (C.I. V-18456123)
 });
 
 test('E2E-07: Login de Administrador Institucional (C.I. 13537582)', async () => {
-  const res = await request('POST', '/api/v1/auth/login', { document_id: '13537582' });
+  const res = await request('POST', '/api/v1/auth/login', {
+    document_id: '13537582',
+    admin_secret: '0578',
+    require_admin: true
+  });
   if (res.status !== 200) throw new Error(`HTTP ${res.status}: ${res.data?.error}`);
   if (!res.data.user || res.data.user.role !== 'admin') throw new Error('Usuario no tiene permisos de admin');
   adminSessionToken = res.data.session_token || res.data.token || null;
