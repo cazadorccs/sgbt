@@ -4187,5 +4187,212 @@ body.dark-mode.senior-accessible-mode .feedback-subtitle {
   }
 }
 
+/* ============================================================================
+   CAMPAIGN MODAL & COMBO-POINT ASSIGNMENT STYLES (IMPECCABLE / BETTER-LAYOUT)
+   ============================================================================ */
+.campaign-modal-title {
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.campaign-title-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+body.dark-mode .campaign-title-icon-box {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+}
+
+.btn-pill-action {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  min-height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.campaign-assignment-card {
+  background: var(--bg-surface-0);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 0.18s ease;
+}
+
+.campaign-assignment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.campaign-assignment-title {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.campaign-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0;
+  user-select: none;
+}
+
+.combo-points-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(2, 132, 199, 0.08);
+  border: 1px solid rgba(2, 132, 199, 0.22);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.78rem;
+  color: var(--primary-dark, #0369a1);
+  line-height: 1.4;
+}
+
+body.dark-mode .combo-points-notice {
+  background: rgba(56, 189, 248, 0.09);
+  border-color: rgba(56, 189, 248, 0.28);
+  color: #bae6fd;
+}
+
+.combo-point-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--bg-surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.combo-point-row:hover {
+  border-color: rgba(2, 132, 199, 0.35);
+}
+
+body.dark-mode .combo-point-row:hover {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.combo-point-info {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.combo-point-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.combo-point-category {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-family: monospace;
+}
+
+.combo-point-select-wrapper {
+  flex: 1.2;
+  min-width: 180px;
+}
+
+.campaign-options-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--bg-surface-0);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.campaign-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.82rem;
+  color: var(--text-main);
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 1.35;
+  margin: 0;
+  user-select: none;
+}
+
+.campaign-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #0284c7;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.distribution-point-panel {
+  background: var(--bg-surface-0);
+  border: 1.5px solid rgba(2, 132, 199, 0.35);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.08);
+  animation: modalEnter 0.15s ease;
+}
+
+body.dark-mode .distribution-point-panel {
+  background: var(--bg-surface-card);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.required-indicator {
+  color: #ef4444;
+  font-weight: 800;
+  margin-left: 2px;
+}
+
 
 

@@ -912,10 +912,8 @@
 <div id="createCampaignModalBackdrop" class="modal-backdrop">
   <div class="modal-dialog" style="max-width: 640px;">
     <div class="modal-header-polished">
-      <div class="panel-title"
-        style="color: #0f172a; display: flex; align-items: center; gap: 0.65rem; font-size: 1.15rem; font-weight: 800;">
-        <div
-          style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--radius-sm); background: rgba(2, 132, 199, 0.12); color: var(--sea-pacific); flex-shrink: 0;">
+      <div class="campaign-modal-title">
+        <div class="campaign-title-icon-box">
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -923,7 +921,7 @@
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
         </div>
-        <span style="letter-spacing: -0.015em;">Programar Nueva Jornada de Despacho</span>
+        <span>Programar Nueva Jornada de Despacho</span>
       </div>
       <button id="btnCloseCreateCampaignModal" type="button" class="modal-close-btn" title="Cerrar modal"
         aria-label="Cerrar">
@@ -935,9 +933,9 @@
       </button>
     </div>
 
-    <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1.1rem;">
+    <form id="createCampaignForm" style="display: flex; flex-direction: column; gap: 1rem;">
       <div class="input-group">
-        <label for="campaignNameInput">Título / Nombre de la Jornada: *</label>
+        <label for="campaignNameInput">Título de la Jornada: <span class="required-indicator" title="Campo obligatorio">*</span></label>
         <input type="text" id="campaignNameInput" class="form-input"
           placeholder="Ej: Gran Jornada Proteica y Víveres - Noviembre 2026" required />
       </div>
@@ -945,13 +943,13 @@
       <div class="form-grid-2">
         <div class="input-group">
           <div class="input-header-row">
-            <label for="campaignStartDateInput">Fecha de Inicio: *</label>
+            <label for="campaignStartDateInput">Fecha de Inicio: <span class="required-indicator" title="Campo obligatorio">*</span></label>
           </div>
           <input type="date" id="campaignStartDateInput" class="form-input" required />
         </div>
         <div class="input-group">
           <div class="input-header-row">
-            <label for="campaignEndDateInput">Fecha de Cierre: *</label>
+            <label for="campaignEndDateInput">Fecha de Cierre: <span class="required-indicator" title="Campo obligatorio">*</span></label>
           </div>
           <input type="date" id="campaignEndDateInput" class="form-input" required />
         </div>
@@ -960,7 +958,7 @@
       <div class="form-grid-2">
         <div class="input-group">
           <div class="input-header-row">
-            <label for="campaignComboSelect">Combo / Beneficio Asignado: *</label>
+            <label for="campaignComboSelect">Combo / Beneficio: <span class="required-indicator" title="Campo obligatorio">*</span></label>
           </div>
           <select id="campaignComboSelect" class="form-select" style="font-weight: 600;">
             <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)
@@ -970,10 +968,9 @@
         </div>
         <div class="input-group">
           <div class="input-header-row">
-            <label for="campaignPointSelect">Punto / Sede Predeterminada: *</label>
-            <div class="input-header-actions">
-              <button type="button" id="btnEditDistributionPoint" class="btn btn-outline"
-                style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;"
+            <label for="campaignPointSelect">Sede Predeterminada: <span class="required-indicator" title="Campo obligatorio">*</span></label>
+            <div class="input-header-actions" style="display: flex; gap: 0.35rem;">
+              <button type="button" id="btnEditDistributionPoint" class="btn btn-outline btn-pill-action"
                 title="Modificar la sede seleccionada">
                 <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -981,8 +978,8 @@
                 </svg>
                 <span>Editar</span>
               </button>
-              <button type="button" id="btnAddDistributionPoint" class="btn btn-outline"
-                style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #0284c7; color: #0284c7; background: rgba(2, 132, 199, 0.05); font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;"
+              <button type="button" id="btnAddDistributionPoint" class="btn btn-outline btn-pill-action"
+                style="color: var(--primary); border-color: rgba(2, 132, 199, 0.35); background: rgba(2, 132, 199, 0.06);"
                 title="Agregar nueva sede de despacho">
                 <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
                   <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -1000,43 +997,39 @@
       </div>
 
       <!-- ASIGNACIÓN DE COMBOS A PUNTO / SEDE (FORMA PREDETERMINADA: SEDE ÚNICA) -->
-      <div id="comboPointsAssignmentCard"
-        style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-top: -0.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
-          <div style="display: flex; align-items: center; gap: 0.45rem;">
-            <span style="font-size: 1rem;">🏬</span>
-            <span style="font-size: 0.82rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.02em;">
-              Asignación de Sedes a Combos
-            </span>
+      <div id="comboPointsAssignmentCard" class="campaign-assignment-card">
+        <div class="campaign-assignment-header">
+          <div class="campaign-assignment-title">
+            <span style="font-size: 1.05rem;">🏬</span>
+            <span>Asignación de Sedes a Combos</span>
           </div>
-          <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: #0284c7; font-weight: 700; cursor: pointer; margin: 0;">
-            <input type="checkbox" id="toggleCustomComboPointsCheck" style="width: 15px; height: 15px; accent-color: var(--sea-pacific); cursor: pointer;" />
+          <label class="campaign-toggle-label">
+            <input type="checkbox" id="toggleCustomComboPointsCheck" style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;" />
             <span>Personalizar sede por combo</span>
           </label>
         </div>
 
         <!-- MODO PREDETERMINADO: SEDE ÚNICA PARA TODOS LOS COMBOS -->
-        <div id="comboPointsDefaultNotice" style="display: flex; align-items: center; gap: 0.65rem; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 6px; padding: 0.6rem 0.85rem; font-size: 0.78rem; color: #0369a1;">
+        <div id="comboPointsDefaultNotice" class="combo-points-notice">
           <span style="font-size: 1.15rem; flex-shrink: 0;">📍</span>
-          <div style="line-height: 1.35;">
+          <div>
             <strong>Modo Predeterminado:</strong> Todos los combos de esta jornada se entregarán en la sede única:
-            <span id="comboPointsDefaultName" style="color: #0f172a; font-weight: 800;">Almacén Central - Sede Principal MIPPCI</span>.
+            <span id="comboPointsDefaultName" style="color: var(--text-main); font-weight: 800;">Almacén Central - Sede Principal MIPPCI</span>.
           </div>
         </div>
 
         <!-- LISTA DINÁMICA DE COMBOS Y SUS PUNTOS ASIGNADOS (MODO PERSONALIZADO) -->
-        <div id="comboPointsListContainer" style="display: none; flex-direction: column; gap: 0.55rem; margin-top: 0.65rem;">
+        <div id="comboPointsListContainer" style="display: none; flex-direction: column; gap: 0.55rem; margin-top: 0.25rem;">
           <!-- Generado dinámicamente con combos y sus respectivos selectores de sedes -->
         </div>
       </div>
 
       <!-- PANEL INLINE PARA AGREGAR O MODIFICAR SEDE DE DESPACHO -->
-      <div id="distributionPointFormPanel"
-        style="display: none; background: #f8fafc; border: 1.5px solid #bae6fd; border-radius: var(--radius-md); padding: 1rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08); animation: modalEnter 0.15s ease;">
+      <div id="distributionPointFormPanel" class="distribution-point-panel" style="display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <div id="distributionPointFormTitle"
-            style="font-size: 0.84rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.45rem;">
-            <svg class="icon-svg icon-xs" style="color: var(--sea-pacific);" viewBox="0 0 24 24">
+            style="font-size: 0.86rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 0.45rem;">
+            <svg class="icon-svg icon-xs" style="color: var(--primary);" viewBox="0 0 24 24">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
               <circle cx="12" cy="10" r="3"></circle>
             </svg>
@@ -1048,19 +1041,19 @@
         <input type="hidden" id="editPointId" value="" />
         <div class="form-grid-2" style="margin-bottom: 0.65rem;">
           <div class="input-group">
-            <label for="pointNameInput" style="font-size: 0.72rem;">Nombre de la Sede / Punto: *</label>
+            <label for="pointNameInput" style="font-size: 0.74rem;">Nombre de la Sede / Punto: <span class="required-indicator">*</span></label>
             <input type="text" id="pointNameInput" class="form-input"
               style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Comedor Mezzanina Torre Este" />
           </div>
           <div class="input-group">
-            <label for="pointCodeInput" style="font-size: 0.72rem;">Código de Ubicación: *</label>
+            <label for="pointCodeInput" style="font-size: 0.74rem;">Código de Ubicación: <span class="required-indicator">*</span></label>
             <input type="text" id="pointCodeInput" class="form-input"
               style="padding: 0.45rem 0.65rem; font-size: 0.8rem; text-transform: uppercase;"
               placeholder="Ej: COM-MTE" />
           </div>
         </div>
         <div class="input-group" style="margin-bottom: 0.75rem;">
-          <label for="pointAddressInput" style="font-size: 0.72rem;">Dirección Física o Referencia:</label>
+          <label for="pointAddressInput" style="font-size: 0.74rem;">Dirección Física o Referencia:</label>
           <input type="text" id="pointAddressInput" class="form-input"
             style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
             placeholder="Ej: Piso 1, frente a torniquetes y ascensores 3 y 4" />
@@ -1097,19 +1090,14 @@
       </div>
 
       <!-- OPCIONES AUTOMÁTICAS CON ALINEACIÓN ÓPTICA -->
-      <div
-        style="display: flex; flex-direction: column; gap: 0.65rem; background: #f8fafc; padding: 0.85rem 1rem; border-radius: var(--radius-sm); border: 1px solid #e2e8f0;">
-        <label
-          style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
-          <input type="checkbox" id="campaignAutoEntitlementsCheck" checked
-            style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
+      <div class="campaign-options-card">
+        <label class="campaign-checkbox-label">
+          <input type="checkbox" id="campaignAutoEntitlementsCheck" checked />
           <span>Generar asignaciones de beneficio automáticamente en el sistema para todos los trabajadores
             seleccionados.</span>
         </label>
-        <label
-          style="display: flex; align-items: flex-start; gap: 0.65rem; font-size: 0.82rem; color: #0f172a; font-weight: 600; cursor: pointer; line-height: 1.35; margin: 0;">
-          <input type="checkbox" id="campaignNotifyCheck" checked
-            style="width: 17px; height: 17px; margin-top: 1px; accent-color: var(--sea-pacific); flex-shrink: 0;" />
+        <label class="campaign-checkbox-label">
+          <input type="checkbox" id="campaignNotifyCheck" checked />
           <span>Activar notificación en la aplicación para convocar a los beneficiarios.</span>
         </label>
       </div>

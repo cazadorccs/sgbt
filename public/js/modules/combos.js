@@ -994,18 +994,18 @@ window.renderComboPointsAssignment = function() {
   listContainer.innerHTML = activeCombos.map(cb => {
     const selectedPointForCombo = previousSelections[cb.id] || currentPointId;
     return `
-      <div class="combo-point-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.45rem 0.65rem;">
-        <div style="display: flex; align-items: center; gap: 0.45rem; flex: 1; min-width: 140px;">
-          <span style="font-size: 1.1rem; flex-shrink: 0;">${cb.icon || '📦'}</span>
+      <div class="combo-point-row">
+        <div class="combo-point-info">
+          <span style="font-size: 1.15rem; flex-shrink: 0;">${cb.icon || '📦'}</span>
           <div style="min-width: 0;">
-            <div style="font-size: 0.76rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div class="combo-point-name">
               ${cb.name.replace(/^(Combo de |Bolsa de )/i, '')}
             </div>
-            <div style="font-size: 0.66rem; color: #64748b;">${cb.category || 'general'}</div>
+            <div class="combo-point-category">${cb.category || 'general'}</div>
           </div>
         </div>
-        <div style="flex: 1.2; min-width: 180px;">
-          <select class="form-select combo-point-select" data-combo-id="${cb.id}" style="font-size: 0.74rem; padding: 0.35rem 0.5rem; font-weight: 600;">
+        <div class="combo-point-select-wrapper">
+          <select class="form-select combo-point-select" data-combo-id="${cb.id}" style="font-size: 0.76rem; padding: 0.4rem 0.6rem; font-weight: 600;">
             ${pointsList.map(p => `
               <option value="${p.id}" ${p.id === selectedPointForCombo ? 'selected' : ''}>
                 📍 ${p.name} (${p.location_code || 'SEDE'})
