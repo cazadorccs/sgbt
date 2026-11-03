@@ -4,7 +4,39 @@
 
 window.currentLoginMode = 'beneficiary';
 
+// Verificación de acceso a la consola de administración vía URL segura (/coseg)
+function isCosegAccess() {
+  const path = (window.location.pathname || '').toLowerCase().replace(/\/+$/, '');
+  const hash = (window.location.hash || '').toLowerCase();
+  const search = (window.location.search || '').toLowerCase();
+  return path === '/coseg' || path.endsWith('/coseg') || 
+         hash === '#coseg' || hash.startsWith('#coseg') ||
+         search.includes('coseg');
+}
+window.isCosegAccess = isCosegAccess;
+
+function updateCosegUiVisibility() {
+  const tabAdmin = document.getElementById('tabModeAdmin');
+  const allowed = isCosegAccess();
+
+  if (tabAdmin) {
+    tabAdmin.style.display = allowed ? 'flex' : 'none';
+  }
+
+  // Si no está en URL /coseg y actualmente está en modo admin en pantalla de login, devolver a beneficiario
+  if (!allowed && window.currentLoginMode === 'admin') {
+    window.setLoginMode('beneficiary');
+  }
+}
+window.updateCosegUiVisibility = updateCosegUiVisibility;
+
 window.setLoginMode = function(mode) {
+  // Blindaje de seguridad: el modo administración solo es accesible desde la URL /coseg
+  if (mode === 'admin' && !isCosegAccess()) {
+    console.warn('[AUTH] Intento de acceso a la consola administrativa restringido a la URL /coseg');
+    mode = 'beneficiary';
+  }
+
   window.currentLoginMode = mode;
   const loginSection = document.getElementById('view-login');
   if (loginSection && !loginSection.classList.contains('active-view') && typeof navigateTo === 'function') {
@@ -40,11 +72,15 @@ window.setLoginMode = function(mode) {
       t.style.background = 'transparent';
       t.style.color = '#64748b';
       t.style.boxShadow = 'none';
+      if (t === tabAdmin) {
+        t.style.display = isCosegAccess() ? 'flex' : 'none';
+      }
     }
   });
 
   if (mode === 'admin') {
     if (tabAdmin) {
+      tabAdmin.style.display = 'flex';
       tabAdmin.classList.add('active');
       tabAdmin.style.background = '#ffffff';
       tabAdmin.style.color = '#0284c7';
@@ -166,9 +202,15 @@ window.setLoginMode = function(mode) {
 };
 
 window.setupAuth = function() {
+  updateCosegUiVisibility();
+
   const urlParams = new URLSearchParams(window.location.search);
   const targetViewParam = urlParams.get('view');
-  if (targetViewParam === 'worker') {
+  if (isCosegAccess()) {
+    window.setLoginMode('admin');
+    sessionStorage.setItem('sgbt_intended_view', 'admin');
+    sessionStorage.setItem('sgbt_session_view_mode', 'admin');
+  } else if (targetViewParam === 'worker') {
     window.setLoginMode('beneficiary');
     sessionStorage.setItem('sgbt_intended_view', 'worker');
     sessionStorage.setItem('sgbt_session_view_mode', 'beneficiary');
@@ -176,11 +218,12 @@ window.setupAuth = function() {
     window.setLoginMode('operator');
     sessionStorage.setItem('sgbt_intended_view', 'distributor');
     sessionStorage.setItem('sgbt_session_view_mode', 'operator');
-  } else if (targetViewParam === 'admin' || targetViewParam === 'portal') {
-    window.setLoginMode('admin');
-    sessionStorage.setItem('sgbt_intended_view', 'admin');
-    sessionStorage.setItem('sgbt_session_view_mode', 'admin');
+  } else {
+    window.setLoginMode('beneficiary');
   }
+
+  window.addEventListener('popstate', updateCosegUiVisibility);
+  window.addEventListener('hashchange', updateCosegUiVisibility);
 
   const loginForm = document.getElementById('loginForm');
   const btnSubmit = document.getElementById('btnLoginSubmit');
@@ -1204,6 +1247,9 @@ window.handleLogout = function(reason) {
   if (bottomNav) bottomNav.style.display = 'none';
 
   navigateTo('view-login');
+  if (typeof updateCosegUiVisibility === 'function') {
+    updateCosegUiVisibility();
+  }
 };
 
 window.checkAuthSession = function() {
@@ -1249,6 +1295,9 @@ window.checkAuthSession = function() {
   if (bottomNav) bottomNav.style.display = 'none';
 
   navigateTo('view-login');
+  if (typeof updateCosegUiVisibility === 'function') {
+    updateCosegUiVisibility();
+  }
 };
 
 // ============================================================================

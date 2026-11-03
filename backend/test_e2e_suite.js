@@ -71,6 +71,12 @@ test('E2E-01: Carga de Shell HTML y Contenedor de Modales', async () => {
   if (!res.data.includes('/js/core/state.js')) throw new Error('Falta script state.js');
 });
 
+test('E2E-01B: Ruta Segura de Acceso Administrativo (/coseg)', async () => {
+  const res = await request('GET', '/coseg');
+  if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+  if (!res.data.includes('id="tabModeAdmin"')) throw new Error('Falta tabModeAdmin en el shell servido en /coseg');
+});
+
 test('E2E-02: Carga de Plantilla Externa de Modales (/templates/modals.html)', async () => {
   const res = await request('GET', '/templates/modals.html');
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
