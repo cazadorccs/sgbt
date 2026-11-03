@@ -962,7 +962,7 @@
           <div class="input-header-row">
             <label for="campaignComboSelect">Combo / Beneficio Asignado: *</label>
           </div>
-          <select id="campaignComboSelect" class="form-select">
+          <select id="campaignComboSelect" class="form-select" style="font-weight: 600;">
             <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)
             </option>
             <option value="ae65fee7-79f6-48a3-bc41-a61c928876b5">🍗 Combo Proteico Fresco (Cadena de Frío)</option>
@@ -970,7 +970,7 @@
         </div>
         <div class="input-group">
           <div class="input-header-row">
-            <label for="campaignPointSelect">Punto / Sede: *</label>
+            <label for="campaignPointSelect">Punto / Sede Predeterminada: *</label>
             <div class="input-header-actions">
               <button type="button" id="btnEditDistributionPoint" class="btn btn-outline"
                 style="padding: 0.15rem 0.5rem; font-size: 0.72rem; min-height: 26px; border-color: #cbd5e1; color: #475569; display: inline-flex; align-items: center; gap: 0.25rem;"
@@ -992,10 +992,41 @@
               </button>
             </div>
           </div>
-          <select id="campaignPointSelect" class="form-select">
+          <select id="campaignPointSelect" class="form-select" style="font-weight: 600;">
             <option value="b12f492f-ebb3-430f-bc20-26ca4aa5b865">Almacén Central - Sede Principal MIPPCI (ALM-MIPPCI)
             </option>
           </select>
+        </div>
+      </div>
+
+      <!-- ASIGNACIÓN DE COMBOS A PUNTO / SEDE (FORMA PREDETERMINADA: SEDE ÚNICA) -->
+      <div id="comboPointsAssignmentCard"
+        style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem 1rem; margin-top: -0.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.4rem;">
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <span style="font-size: 1rem;">🏬</span>
+            <span style="font-size: 0.82rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.02em;">
+              Asignación de Sedes a Combos
+            </span>
+          </div>
+          <label style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: #0284c7; font-weight: 700; cursor: pointer; margin: 0;">
+            <input type="checkbox" id="toggleCustomComboPointsCheck" style="width: 15px; height: 15px; accent-color: var(--sea-pacific); cursor: pointer;" />
+            <span>Personalizar sede por combo</span>
+          </label>
+        </div>
+
+        <!-- MODO PREDETERMINADO: SEDE ÚNICA PARA TODOS LOS COMBOS -->
+        <div id="comboPointsDefaultNotice" style="display: flex; align-items: center; gap: 0.65rem; background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 6px; padding: 0.6rem 0.85rem; font-size: 0.78rem; color: #0369a1;">
+          <span style="font-size: 1.15rem; flex-shrink: 0;">📍</span>
+          <div style="line-height: 1.35;">
+            <strong>Modo Predeterminado:</strong> Todos los combos de esta jornada se entregarán en la sede única:
+            <span id="comboPointsDefaultName" style="color: #0f172a; font-weight: 800;">Almacén Central - Sede Principal MIPPCI</span>.
+          </div>
+        </div>
+
+        <!-- LISTA DINÁMICA DE COMBOS Y SUS PUNTOS ASIGNADOS (MODO PERSONALIZADO) -->
+        <div id="comboPointsListContainer" style="display: none; flex-direction: column; gap: 0.55rem; margin-top: 0.65rem;">
+          <!-- Generado dinámicamente con combos y sus respectivos selectores de sedes -->
         </div>
       </div>
 

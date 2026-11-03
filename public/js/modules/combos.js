@@ -859,6 +859,8 @@ window.populateCampaignCombosSelect = async function(selectedId = null) {
       ];
     }
 
+    cachedCombosList = combosList;
+
     comboSelect.innerHTML = `
       <option value="all_four_combos" selected>✨ Despacho Integral: Cuatro Combos (Víveres, Higiene, Limpieza y Charcutería)</option>
     `;
@@ -867,12 +869,19 @@ window.populateCampaignCombosSelect = async function(selectedId = null) {
       const isSel = selectedId ? (cb.id === selectedId) : '';
       comboSelect.innerHTML += `<option value="${cb.id}" ${isSel}>${cb.icon || '🍱'} ${cb.name} (${cb.category || 'general'})</option>`;
     });
+
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
   } catch (err) {
     console.error('Error poblando combos select:', err);
     comboSelect.innerHTML = `
       <option value="all_four_combos" selected>✨ Despacho Integral: Cuatro Combos (Víveres, Higiene, Limpieza y Charcutería)</option>
       <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Combo de Víveres Secos (Canasta Básica)</option>
     `;
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
   }
 };
 
@@ -907,10 +916,106 @@ window.reloadDistributionPoints = async function(selectedId = null) {
       pointSelect.innerHTML += `<option value="${p.id}" ${isSelected ? 'selected' : ''}>${p.name} (${p.location_code || 'SEDE'})</option>`;
     });
     if (selectedId) pointSelect.value = selectedId;
+
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
   } catch (err) {
     console.warn('Error al recargar sedes de despacho:', err);
     pointSelect.innerHTML = '<option value="b12f492f-ebb3-430f-bc20-26ca4aa5b865">Almacén Central - Sede Principal MIPPCI (ALM-MIPPCI)</option>';
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
   }
+};
+
+window.renderComboPointsAssignment = function() {
+  const comboSelect = document.getElementById('campaignComboSelect');
+  const pointSelect = document.getElementById('campaignPointSelect');
+  const defaultNotice = document.getElementById('comboPointsDefaultNotice');
+  const defaultNameEl = document.getElementById('comboPointsDefaultName');
+  const listContainer = document.getElementById('comboPointsListContainer');
+  const customCheck = document.getElementById('toggleCustomComboPointsCheck');
+
+  if (!comboSelect || !pointSelect) return;
+
+  const currentPointId = pointSelect.value || (cachedDistributionPoints[0] ? cachedDistributionPoints[0].id : '');
+  const selectedPointOption = pointSelect.options[pointSelect.selectedIndex];
+  const pointName = selectedPointOption ? selectedPointOption.textContent : (cachedDistributionPoints[0] ? cachedDistributionPoints[0].name : 'Almacén Central');
+
+  if (defaultNameEl) {
+    defaultNameEl.textContent = pointName;
+  }
+
+  // Identificar qué combos aplican según la selección
+  const comboVal = comboSelect.value;
+  let activeCombos = [];
+  if (comboVal === 'all_four_combos') {
+    activeCombos = (cachedCombosList && cachedCombosList.length > 0)
+      ? cachedCombosList
+      : [
+          { id: 'c1a2b3c4-1111-2222-3333-444455556666', name: 'Combo de Víveres Secos (Canasta Básica)', icon: '🌾', category: 'bolsa_viveres' },
+          { id: '3df50537-3333-4fce-8bdc-f4ecbb567adf', name: 'Combo de Higiene Personal', icon: '🧼', category: 'combo_higienico' },
+          { id: '2e39c4a5-0611-4a03-b10c-08ef7e270684', name: 'Combo de Limpieza', icon: '🧹', category: 'combo_limpieza' },
+          { id: 'c1a2b3c4-1111-2222-3333-444455557777', name: 'Combo de Charcutería', icon: '🧀', category: 'combo_proteico' }
+        ];
+  } else {
+    const single = (cachedCombosList || []).find(cb => cb.id === comboVal);
+    if (single) {
+      activeCombos = [single];
+    } else {
+      activeCombos = [{ id: comboVal, name: 'Combo Institucional', icon: '🍱', category: 'general' }];
+    }
+  }
+
+  const isCustom = customCheck ? customCheck.checked : false;
+
+  if (isCustom) {
+    if (defaultNotice) defaultNotice.style.display = 'none';
+    if (listContainer) listContainer.style.display = 'flex';
+  } else {
+    if (defaultNotice) defaultNotice.style.display = 'flex';
+    if (listContainer) listContainer.style.display = 'none';
+  }
+
+  if (!listContainer) return;
+
+  // Preservar selecciones previas por combo si el usuario ya había interactuado
+  const previousSelections = {};
+  listContainer.querySelectorAll('.combo-point-select').forEach(sel => {
+    const cId = sel.getAttribute('data-combo-id');
+    if (cId) previousSelections[cId] = sel.value;
+  });
+
+  const pointsList = (cachedDistributionPoints && cachedDistributionPoints.length > 0)
+    ? cachedDistributionPoints
+    : [{ id: currentPointId || 'b12f492f-ebb3-430f-bc20-26ca4aa5b865', name: 'Almacén Central - Sede Principal MIPPCI', location_code: 'ALM-MIPPCI' }];
+
+  listContainer.innerHTML = activeCombos.map(cb => {
+    const selectedPointForCombo = previousSelections[cb.id] || currentPointId;
+    return `
+      <div class="combo-point-row" style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.45rem 0.65rem;">
+        <div style="display: flex; align-items: center; gap: 0.45rem; flex: 1; min-width: 140px;">
+          <span style="font-size: 1.1rem; flex-shrink: 0;">${cb.icon || '📦'}</span>
+          <div style="min-width: 0;">
+            <div style="font-size: 0.76rem; font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${cb.name.replace(/^(Combo de |Bolsa de )/i, '')}
+            </div>
+            <div style="font-size: 0.66rem; color: #64748b;">${cb.category || 'general'}</div>
+          </div>
+        </div>
+        <div style="flex: 1.2; min-width: 180px;">
+          <select class="form-select combo-point-select" data-combo-id="${cb.id}" style="font-size: 0.74rem; padding: 0.35rem 0.5rem; font-weight: 600;">
+            ${pointsList.map(p => `
+              <option value="${p.id}" ${p.id === selectedPointForCombo ? 'selected' : ''}>
+                📍 ${p.name} (${p.location_code || 'SEDE'})
+              </option>
+            `).join('')}
+          </select>
+        </div>
+      </div>
+    `;
+  }).join('');
 };
 
 window.openCreateCampaignModal = async function() {
@@ -930,6 +1035,14 @@ window.openCreateCampaignModal = async function() {
   const panel = document.getElementById('distributionPointFormPanel');
   if (panel) panel.style.display = 'none';
 
+  // Asegurar que el modo predeterminado sea Sede Única para todos los combos
+  const customCheck = document.getElementById('toggleCustomComboPointsCheck');
+  if (customCheck) customCheck.checked = false;
+  const defaultNotice = document.getElementById('comboPointsDefaultNotice');
+  if (defaultNotice) defaultNotice.style.display = 'flex';
+  const listContainer = document.getElementById('comboPointsListContainer');
+  if (listContainer) listContainer.style.display = 'none';
+
   const today = new Date().toISOString().split('T')[0];
   const startInput = document.getElementById('campaignStartDateInput');
   const endInput = document.getElementById('campaignEndDateInput');
@@ -943,6 +1056,10 @@ window.openCreateCampaignModal = async function() {
     window.populateCampaignCombosSelect(),
     window.reloadDistributionPoints()
   ]);
+
+  if (typeof window.renderComboPointsAssignment === 'function') {
+    window.renderComboPointsAssignment();
+  }
 
   modal.classList.add('active');
 };
@@ -1145,13 +1262,19 @@ window.loadCampaigns = async function() {
 
       // Renderizar badges de combos vinculados (los 4 combos o los asignados)
       const combosList = (c.combos && c.combos.length > 0) ? c.combos : [
-        { name: c.combo_name || 'Bolsa de Beneficios', icon: c.combo_icon || '🍱', weight_kg: 14.0 }
+        { name: c.combo_name || 'Bolsa de Beneficios', icon: c.combo_icon || '🍱', weight_kg: 14.0, point_name: c.point_name }
       ];
+
+      // Evaluar si todos los combos se entregan en una única sede (forma predeterminada)
+      const distinctPoints = new Set(combosList.map(cb => cb.point_name || c.point_name || 'Almacén Central'));
+      const isSinglePoint = c.is_single_point !== undefined ? c.is_single_point : (distinctPoints.size <= 1);
+      const mainPointName = c.point_name || Array.from(distinctPoints)[0] || 'Almacén Central';
 
       const combosPillsHtml = combosList.map(cb => `
         <span class="badge" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.72rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;">
           <span>${cb.icon || '📦'}</span>
           <strong>${cb.name.replace(/^(Combo de |Bolsa de )/i, '')}</strong>
+          ${!isSinglePoint && cb.point_name ? `<span style="background: #e0f2fe; color: #0369a1; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;">📍 ${cb.point_name}</span>` : ''}
           ${cb.weight_kg ? `<span style="color: #64748b; font-size: 0.68rem;">(${cb.weight_kg}kg)</span>` : ''}
         </span>
       `).join('');
@@ -1164,7 +1287,7 @@ window.loadCampaigns = async function() {
               <div class="campaign-dates-row" style="margin-top: 0.25rem;">
                 <span>🗓️ ${c.start_date === c.end_date ? c.start_date : `${c.start_date} al ${c.end_date}`}</span>
                 <span>&middot;</span>
-                <span>📍 ${c.point_name || 'Almacén Central'}</span>
+                <span>📍 ${isSinglePoint ? `${mainPointName} (Sede única)` : `Multisede (${distinctPoints.size} sedes)`}</span>
               </div>
             </div>
             <div>${statusBadge}</div>
@@ -1319,6 +1442,27 @@ window.setupCampaignsManagement = function() {
 
   const startInput = document.getElementById('campaignStartDateInput');
   const endInput = document.getElementById('campaignEndDateInput');
+  const comboSelect = document.getElementById('campaignComboSelect');
+  const pointSelect = document.getElementById('campaignPointSelect');
+  const customCheck = document.getElementById('toggleCustomComboPointsCheck');
+
+  pointSelect?.addEventListener('change', () => {
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
+  });
+
+  comboSelect?.addEventListener('change', () => {
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
+  });
+
+  customCheck?.addEventListener('change', () => {
+    if (typeof window.renderComboPointsAssignment === 'function') {
+      window.renderComboPointsAssignment();
+    }
+  });
 
   btnOpen?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -1396,6 +1540,31 @@ window.setupCampaignsManagement = function() {
       } else {
         payload.combo_id = comboSelectValue || null;
       }
+
+      // Asignación de Punto / Sede por Combo (Predeterminado: todos a la misma sede única)
+      const customCheck = document.getElementById('toggleCustomComboPointsCheck');
+      const isCustomPoints = customCheck && customCheck.checked;
+      const combo_point_assignments = {};
+
+      const activeComboIds = (comboSelectValue === 'all_four_combos')
+        ? (payload.combo_ids || [])
+        : [comboSelectValue];
+
+      if (isCustomPoints) {
+        document.querySelectorAll('.combo-point-select').forEach(sel => {
+          const cId = sel.getAttribute('data-combo-id');
+          if (cId && sel.value) {
+            combo_point_assignments[cId] = sel.value;
+          }
+        });
+      } else {
+        // Forma predeterminada: Todos los combos se entregan en el único Punto/Sede seleccionado
+        activeComboIds.forEach(cId => {
+          if (cId) combo_point_assignments[cId] = distribution_point_id || null;
+        });
+      }
+
+      payload.combo_point_assignments = combo_point_assignments;
 
       const data = await API.post('/api/v1/admin/campaigns', payload);
 

@@ -110,13 +110,15 @@ const getCampaigns = (req, res) => {
     const todayStr = new Date().toISOString().split('T')[0];
 
     const enriched = campaigns.map(camp => {
-      // Combos vinculados a esta jornada (multi-combo)
+      // Combos vinculados a esta jornada (multi-combo con su punto/sede respectivo)
       let campCombos = [];
       try {
         campCombos = db.prepare(`
-          SELECT cb.id, cb.name, cb.category, cb.icon, cb.items_detail, cb.weight_kg, cb.calories
+          SELECT cb.id, cb.name, cb.category, cb.icon, cb.items_detail, cb.weight_kg, cb.calories,
+                 cc.distribution_point_id, dp.name as point_name, dp.location_code as point_code
           FROM campaign_combos cc
           JOIN combos cb ON cc.combo_id = cb.id
+          LEFT JOIN distribution_points dp ON cc.distribution_point_id = dp.id
           WHERE cc.campaign_id = ?
         `).all(camp.id);
       } catch (e) {}
@@ -128,9 +130,24 @@ const getCampaigns = (req, res) => {
           category: camp.combo_category || 'general',
           icon: camp.combo_icon || '🍱',
           items_detail: camp.combo_items || '',
-          weight_kg: Number(camp.combo_weight) || 14.0
+          weight_kg: Number(camp.combo_weight) || 14.0,
+          distribution_point_id: camp.distribution_point_id,
+          point_name: camp.point_name || 'Almacén Central',
+          point_code: camp.point_code || 'ALM-MIPPCI'
         }];
+      } else {
+        // Enriquecer cada combo: si cc.distribution_point_id es null, adopta la sede principal de la jornada
+        campCombos = campCombos.map(c => ({
+          ...c,
+          distribution_point_id: c.distribution_point_id || camp.distribution_point_id,
+          point_name: c.point_name || camp.point_name || 'Almacén Central',
+          point_code: c.point_code || camp.point_code || 'ALM-MIPPCI'
+        }));
       }
+
+      // Evaluar si todos los combos se entregan en una única sede (forma predeterminada)
+      const assignedPointsSet = new Set(campCombos.map(c => c.distribution_point_id).filter(Boolean));
+      const isSinglePoint = assignedPointsSet.size <= 1;
 
       let workerCondition = "status = 'active'";
       if (camp.target_group === 'activo') workerCondition += " AND worker_type = 'activo'";
@@ -207,6 +224,7 @@ const getCampaigns = (req, res) => {
         ...camp,
         combos: campCombos,
         combos_count: campCombos.length,
+        is_single_point: isSinglePoint,
         total_eligible: totalEligible,
         assigned_count: assignedCount,
         claimed_count: claimedCount,
@@ -227,7 +245,7 @@ const getCampaigns = (req, res) => {
 };
 
 const createCampaign = (req, res) => {
-  const { name, description, start_date, end_date, combo_id, combo_ids, target_group, distribution_point_id, auto_generate_entitlements } = req.body;
+  const { name, description, start_date, end_date, combo_id, combo_ids, combo_point_assignments, target_group, distribution_point_id, auto_generate_entitlements } = req.body;
 
   if (!name || !start_date || !end_date) {
     return res.status(400).json({ error: 'Nombre de jornada, fecha inicio y fecha fin son obligatorios' });
@@ -260,6 +278,10 @@ const createCampaign = (req, res) => {
         const found = db.prepare('SELECT id FROM distribution_points WHERE id = ?').get(distribution_point_id);
         if (found) validPointId = found.id;
       }
+      if (!validPointId) {
+        const defaultPt = db.prepare('SELECT id FROM distribution_points WHERE is_active = 1 ORDER BY name ASC LIMIT 1').get();
+        if (defaultPt) validPointId = defaultPt.id;
+      }
 
       db.prepare(`
         INSERT INTO delivery_campaigns (
@@ -276,14 +298,29 @@ const createCampaign = (req, res) => {
         validPointId
       );
 
-      // Vincular todos los combos en campaign_combos
+      // Vincular todos los combos en campaign_combos con su sede correspondiente
+      // Forma predeterminada: todos los combos se entregan en validPointId, a menos que se especifique combo_point_assignments
       for (const cId of validCombos) {
+        let assignedPoint = validPointId;
+        if (combo_point_assignments && combo_point_assignments[cId]) {
+          const ptCheck = db.prepare('SELECT id FROM distribution_points WHERE id = ?').get(combo_point_assignments[cId]);
+          if (ptCheck) assignedPoint = ptCheck.id;
+        }
+
         try {
           db.prepare(`
-            INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id)
-            VALUES (?, ?)
-          `).run(campaignId, cId);
-        } catch (e) {}
+            INSERT INTO campaign_combos (campaign_id, combo_id, distribution_point_id)
+            VALUES (?, ?, ?)
+            ON CONFLICT(campaign_id, combo_id) DO UPDATE SET
+              distribution_point_id = excluded.distribution_point_id
+          `).run(campaignId, cId, assignedPoint);
+        } catch (e) {
+          try {
+            db.prepare(`INSERT OR REPLACE INTO campaign_combos (campaign_id, combo_id, distribution_point_id) VALUES (?, ?, ?)`).run(campaignId, cId, assignedPoint);
+          } catch (e2) {
+            db.prepare(`INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id) VALUES (?, ?)`).run(campaignId, cId);
+          }
+        }
       }
 
       let generatedCount = 0;
@@ -296,15 +333,21 @@ const createCampaign = (req, res) => {
 
         const workers = db.prepare(workerQuery).all();
         const insertEntitlement = db.prepare(`
-          INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id)
-          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?)
+          INSERT INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id, distribution_point_id)
+          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?, ?)
           ON CONFLICT(worker_id, valid_date, combo_id) DO UPDATE SET
-            campaign_id = excluded.campaign_id
+            campaign_id = excluded.campaign_id,
+            distribution_point_id = excluded.distribution_point_id
         `);
 
         for (const w of workers) {
           for (const cId of validCombos) {
-            insertEntitlement.run(crypto.randomUUID(), w.id, cId, start_date, campaignId);
+            let assignedPoint = validPointId;
+            if (combo_point_assignments && combo_point_assignments[cId]) {
+              const ptCheck = db.prepare('SELECT id FROM distribution_points WHERE id = ?').get(combo_point_assignments[cId]);
+              if (ptCheck) assignedPoint = ptCheck.id;
+            }
+            insertEntitlement.run(crypto.randomUUID(), w.id, cId, start_date, campaignId, assignedPoint);
             generatedCount++;
           }
         }
@@ -454,19 +497,28 @@ const getCampaignActa = (req, res) => {
       `).get(camp.start_date);
     } catch (e) {}
 
-    // Obtener combos de la jornada
+    // Obtener combos de la jornada con sus puntos/sedes asignados
     let combos = [];
     try {
       combos = db.prepare(`
-        SELECT cb.* FROM campaign_combos cc
+        SELECT cb.*, cc.distribution_point_id, dp.name as point_name, dp.location_code as point_code
+        FROM campaign_combos cc
         JOIN combos cb ON cc.combo_id = cb.id
+        LEFT JOIN distribution_points dp ON cc.distribution_point_id = dp.id
         WHERE cc.campaign_id = ?
       `).all(camp.id);
     } catch (e) {}
 
     if (combos.length === 0 && camp.combo_id) {
       const single = db.prepare('SELECT * FROM combos WHERE id = ?').get(camp.combo_id);
-      if (single) combos = [single];
+      if (single) combos = [{ ...single, distribution_point_id: camp.distribution_point_id, point_name: camp.point_name, point_code: camp.point_code }];
+    } else {
+      combos = combos.map(cb => ({
+        ...cb,
+        distribution_point_id: cb.distribution_point_id || camp.distribution_point_id,
+        point_name: cb.point_name || camp.point_name || 'Almacén Central',
+        point_code: cb.point_code || camp.point_code || 'ALM-MIPPCI'
+      }));
     }
 
     // Totales de entregas

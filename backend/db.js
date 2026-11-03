@@ -245,6 +245,7 @@ function initializeDatabase() {
       status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'claimed', 'expired'
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       campaign_id TEXT REFERENCES delivery_campaigns(id),
+      distribution_point_id TEXT REFERENCES distribution_points(id),
       UNIQUE (worker_id, valid_date, combo_id)
     );
 
@@ -326,6 +327,7 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS campaign_combos (
       campaign_id TEXT NOT NULL REFERENCES delivery_campaigns(id) ON DELETE CASCADE,
       combo_id TEXT NOT NULL REFERENCES combos(id) ON DELETE CASCADE,
+      distribution_point_id TEXT REFERENCES distribution_points(id) ON DELETE SET NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (campaign_id, combo_id)
     );
@@ -476,6 +478,8 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE deliveries ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE deliveries ADD COLUMN batch_order_id TEXT REFERENCES department_batch_orders(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN campaign_id TEXT REFERENCES delivery_campaigns(id)"); } catch (e) {}
+  try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN distribution_point_id TEXT REFERENCES distribution_points(id)"); } catch (e) {}
+  try { db.exec("ALTER TABLE campaign_combos ADD COLUMN distribution_point_id TEXT REFERENCES distribution_points(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE daily_entitlements ADD COLUMN batch_order_id TEXT REFERENCES department_batch_orders(id)"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_initialized INTEGER DEFAULT 1"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN dispatch_mode TEXT DEFAULT 'total'"); } catch (e) {}
