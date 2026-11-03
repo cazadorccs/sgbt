@@ -1,0 +1,339 @@
+<template>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1080px;
+      height: 1920px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    /* Cabecera de la Escena */
+    .scene-header-box {
+      position: absolute;
+      top: 150px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .step-pill {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #f87171;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .scene-title {
+      font-size: 38px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .scene-desc {
+      font-size: 19px;
+      color: #94a3b8;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Escenario Central: Dos Tarjetas de Comparación de Idempotencia */
+    .idempotency-dual-stage {
+      position: absolute;
+      top: 310px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Tarjeta Aprobada (Verde) */
+    .idempotency-card-green {
+      background: #0f172a;
+      border: 1.5px solid rgba(16, 185, 129, 0.4);
+      border-radius: 28px;
+      padding: 28px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(16, 185, 129, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .card-header-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .status-pill-green {
+      background: rgba(16, 185, 129, 0.16);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: 9999px;
+    }
+    .card-body-text {
+      font-size: 16px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    /* Tarjeta Rechazada (Rojo Bloqueo) */
+    .idempotency-card-red {
+      background: #0f172a;
+      border: 1.5px solid rgba(239, 68, 68, 0.4);
+      border-radius: 28px;
+      padding: 28px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 30px rgba(239, 68, 68, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .status-pill-red {
+      background: rgba(239, 68, 68, 0.16);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: 9999px;
+    }
+
+    /* Barra de Flujo Multiestación */
+    .multistation-banner {
+      background: rgba(20, 30, 51, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      border-radius: 24px;
+      padding: 22px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+    .station-node {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .station-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .station-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+    .station-sub {
+      font-size: 13px;
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    .station-arrow {
+      font-size: 24px;
+      color: #38bdf8;
+      font-weight: 900;
+    }
+
+    /* Tarjetas Inferiores */
+    .features-container {
+      position: absolute;
+      top: 1260px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(20, 30, 51, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 20px;
+      padding: 18px 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    .feature-icon-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .icon-emerald {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .icon-red {
+      background: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .icon-blue {
+      background: rgba(2, 132, 199, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .feature-info {
+      flex: 1;
+    }
+    .feature-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .feature-desc {
+      font-size: 15px;
+      color: #94a3b8;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene4" data-duration="6" data-width="1080" data-height="1920">
+    <!-- Cabecera de Escena -->
+    <div class="scene-header-box" id="sceneHeader">
+      <div class="step-pill">
+        <span>PASO 4 DE 6</span>
+        <span>•</span>
+        <span>SEGURIDAD Y MULTIESTACIÓN</span>
+      </div>
+      <h2 class="scene-title">Blindaje Antifraude e Idempotencia</h2>
+      <p class="scene-desc">
+        Protección criptográfica que impide duplicados y coordina la entrega en múltiples estaciones físicas.
+      </p>
+    </div>
+
+    <!-- Escenario de Idempotencia y Multiestación -->
+    <div class="idempotency-dual-stage">
+      <!-- Tarjeta 1: Aprobado -->
+      <div class="idempotency-card-green" id="cardGreen">
+        <div class="card-header-status">
+          <div class="status-title-group">
+            <span style="font-size: 22px;">✅</span>
+            <span style="font-size: 20px; font-weight: 800; color: #ffffff;">Primer Escaneo: Válido</span>
+          </div>
+          <div class="status-pill-green">AUTORIZADO</div>
+        </div>
+        <div class="card-body-text">
+          El sistema descuenta la asignación inmediatamente de la nómina local. La entrega queda registrada en el libro mayor inmutable.
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Rechazado Inmediato -->
+      <div class="idempotency-card-red" id="cardRed">
+        <div class="card-header-status">
+          <div class="status-title-group">
+            <span style="font-size: 22px;">⛔</span>
+            <span style="font-size: 20px; font-weight: 800; color: #ffffff;">Segundo Intento: Bloqueado</span>
+          </div>
+          <div class="status-pill-red">DUPLICADO PREVENIDO</div>
+        </div>
+        <div class="card-body-text">
+          Cualquier intento posterior en esta o en otra mesa es rechazado de inmediato, alertando con hora exacta y mesa previa de retiro.
+        </div>
+      </div>
+
+      <!-- Multiestación -->
+      <div class="multistation-banner" id="bannerMulti">
+        <div class="station-node">
+          <div class="station-badge">E1</div>
+          <div>
+            <div class="station-title">Estación 1: Víveres Secos</div>
+            <div class="station-sub">Canasta Básica Entregada</div>
+          </div>
+        </div>
+        <div class="station-arrow">➔</div>
+        <div class="station-node">
+          <div class="station-badge" style="background: #10b981;">E2</div>
+          <div>
+            <div class="station-title">Estación 2: Refrigerados</div>
+            <div class="station-sub">Combo de Proteínas</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bloque de Características Inferior -->
+    <div class="features-container" id="featuresContainer">
+      <div class="feature-item" id="f1">
+        <div class="feature-icon-badge icon-red">🛑</div>
+        <div class="feature-info">
+          <div class="feature-title">Cero Fugas ni Doble Despacho</div>
+          <div class="feature-desc">El mecanismo de bloqueo actúa de forma atómica impidiendo cualquier duplicación.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" id="f2">
+        <div class="feature-icon-badge icon-emerald">🏬</div>
+        <div class="feature-info">
+          <div class="feature-title">Despacho Multiestación Coordinado</div>
+          <div class="feature-desc">Permite separar la fila de secos y la cadena de frío asegurando trazabilidad por bulto.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" id="f3">
+        <div class="feature-icon-badge icon-blue">🔒</div>
+        <div class="feature-info">
+          <div class="feature-title">Estándar RFC 7807 y Alerta Inmediata</div>
+          <div class="feature-desc">Notificación enriquecida al operador con fecha, hora, estación y cédula del duplicado.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+
+    tl.from('#sceneHeader', { opacity: 0, y: -25, duration: 0.8, ease: 'power2.out' }, 0);
+    tl.from('#cardGreen', { opacity: 0, y: 25, duration: 0.7, ease: 'power2.out' }, 0.2);
+    tl.from('#cardRed', { opacity: 0, y: 25, duration: 0.7, ease: 'power2.out' }, 0.6);
+    tl.from('#bannerMulti', { opacity: 0, scale: 0.96, duration: 0.7, ease: 'back.out(1.2)' }, 1.0);
+
+    tl.from('#f1', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 1.4);
+    tl.from('#f2', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 1.9);
+    tl.from('#f3', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 2.4);
+
+    window.__timelines['scene4'] = tl;
+  </script>
+</template>

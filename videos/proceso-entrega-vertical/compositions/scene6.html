@@ -1,0 +1,270 @@
+<template>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1080px;
+      height: 1920px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    /* Cabecera de la Escena */
+    .scene-header-box {
+      position: absolute;
+      top: 150px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .step-pill {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(2, 132, 199, 0.15);
+      border: 1px solid rgba(2, 132, 199, 0.4);
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .scene-title {
+      font-size: 38px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .scene-desc {
+      font-size: 19px;
+      color: #94a3b8;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Ventana del Tablero Ministerial */
+    .screen-preview-window {
+      position: absolute;
+      top: 310px;
+      left: 40px;
+      width: 1000px;
+      height: 860px;
+      background: #0f172a;
+      border: 1.5px solid rgba(56, 189, 248, 0.35);
+      border-radius: 32px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), 0 0 45px rgba(2, 132, 199, 0.25);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .window-header {
+      height: 52px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 10;
+    }
+    .window-dots {
+      display: flex;
+      gap: 8px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot-red { background: #ef4444; }
+    .dot-yellow { background: #eab308; }
+    .dot-green { background: #22c55e; }
+    .window-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #cbd5e1;
+      letter-spacing: 0.02em;
+    }
+    .screen-img-body {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background-image: url('assets/07_tablero_auditoria_ministerial.png');
+      background-size: cover;
+      background-position: center top;
+      position: relative;
+    }
+    .kpi-floating-pill {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(15, 23, 42, 0.94);
+      border: 1.5px solid #0284c7;
+      padding: 10px 22px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    }
+    .dot-indicator-blue {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 12px #38bdf8;
+    }
+
+    /* Tarjetas Inferiores */
+    .features-container {
+      position: absolute;
+      top: 1210px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(20, 30, 51, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 20px;
+      padding: 18px 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    .feature-icon-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .icon-blue {
+      background: rgba(2, 132, 199, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .icon-emerald {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .icon-purple {
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+    .feature-info {
+      flex: 1;
+    }
+    .feature-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .feature-desc {
+      font-size: 15px;
+      color: #94a3b8;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene6" data-duration="6" data-width="1080" data-height="1920">
+    <!-- Cabecera de Escena -->
+    <div class="scene-header-box" id="sceneHeader">
+      <div class="step-pill">
+        <span>PASO 6 DE 6</span>
+        <span>•</span>
+        <span>AUDITORÍA Y CIERRE</span>
+      </div>
+      <h2 class="scene-title">Tablero Ministerial y Conciliación</h2>
+      <p class="scene-desc">
+        Visualización centralizada de metas de entrega, sincronización con la nube y emisión del acta oficial ministerial.
+      </p>
+    </div>
+
+    <!-- Ventana del Tablero Real -->
+    <div class="screen-preview-window" id="screenWindow">
+      <div class="window-header">
+        <div class="window-dots">
+          <div class="dot dot-red"></div>
+          <div class="dot dot-yellow"></div>
+          <div class="dot dot-green"></div>
+        </div>
+        <div class="window-title">SGBT Tablero Central — Auditoría Ministerial en Tiempo Real</div>
+        <div style="width: 50px;"></div>
+      </div>
+      <div class="screen-img-body">
+        <div class="kpi-floating-pill">
+          <div class="dot-indicator-blue"></div>
+          <span>CONCILIACIÓN 100% AUDITADA • ACTA EMITIDA</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bloque de Características Inferior -->
+    <div class="features-container" id="featuresContainer">
+      <div class="feature-item" id="f1">
+        <div class="feature-icon-badge icon-blue">📊</div>
+        <div class="feature-info">
+          <div class="feature-title">Monitoreo Ministerial en Vivo</div>
+          <div class="feature-desc">Métricas de velocidad, avance porcentual y total de funcionarios atendidos por jornada.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" id="f2">
+        <div class="feature-icon-badge icon-emerald">☁️</div>
+        <div class="feature-info">
+          <div class="feature-title">Sincronización Transparente con la Nube</div>
+          <div class="feature-desc">Consolidación en Supabase Cloud con respaldo de auditoría accesible por la directiva.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" id="f3">
+        <div class="feature-icon-badge icon-purple">📜</div>
+        <div class="feature-info">
+          <div class="feature-title">Acta Oficial Ministerial de Despacho</div>
+          <div class="feature-desc">Generación de informe legal con membrete institucional, desglose de combos y firma digital.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+
+    tl.from('#sceneHeader', { opacity: 0, y: -25, duration: 0.8, ease: 'power2.out' }, 0);
+    tl.from('#screenWindow', { opacity: 0, scale: 0.94, y: 30, duration: 0.9, ease: 'power3.out' }, 0.2);
+
+    tl.from('#f1', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 1.0);
+    tl.from('#f2', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 1.6);
+    tl.from('#f3', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 2.2);
+
+    window.__timelines['scene6'] = tl;
+  </script>
+</template>

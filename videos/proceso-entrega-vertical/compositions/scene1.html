@@ -1,0 +1,233 @@
+<template>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      width: 1080px;
+      height: 1920px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #f8fafc;
+      overflow: hidden;
+    }
+
+    /* Cabecera de la Escena (Paso) */
+    .scene-header-box {
+      position: absolute;
+      top: 150px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .step-pill {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 800;
+      color: #38bdf8;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .scene-title {
+      font-size: 38px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+    .scene-desc {
+      font-size: 19px;
+      color: #94a3b8;
+      line-height: 1.4;
+      font-weight: 500;
+    }
+
+    /* Maqueta Central de Teléfono Móvil */
+    .phone-mockup-wrapper {
+      position: absolute;
+      top: 310px;
+      left: 290px;
+      width: 500px;
+      height: 900px;
+      background: #0f172a;
+      border: 12px solid #1e293b;
+      border-radius: 54px;
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.85), 0 0 50px rgba(2, 132, 199, 0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-notch {
+      width: 150px;
+      height: 24px;
+      background: #1e293b;
+      margin: 0 auto;
+      border-bottom-left-radius: 16px;
+      border-bottom-right-radius: 16px;
+      z-index: 10;
+    }
+    .phone-screen-img {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      background-image: url('assets/02_carnet_beneficiario_movil.png');
+      background-size: cover;
+      background-position: center top;
+      position: relative;
+    }
+    .qr-laser-scanner {
+      position: absolute;
+      top: 490px;
+      left: 125px;
+      width: 250px;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, #10b981, #38bdf8, transparent);
+      box-shadow: 0 0 18px #10b981;
+    }
+
+    /* Tarjetas Inferiores de Características (WhatsApp UI) */
+    .features-container {
+      position: absolute;
+      top: 1250px;
+      left: 40px;
+      width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feature-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(20, 30, 51, 0.9);
+      border: 1px solid rgba(56, 189, 248, 0.22);
+      border-radius: 20px;
+      padding: 18px 24px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    .feature-icon-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      flex-shrink: 0;
+    }
+    .icon-blue {
+      background: rgba(2, 132, 199, 0.2);
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+    .icon-green {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    .icon-purple {
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.35);
+    }
+    .feature-info {
+      flex: 1;
+    }
+    .feature-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+    .feature-desc {
+      font-size: 15px;
+      color: #94a3b8;
+      line-height: 1.35;
+      font-weight: 500;
+    }
+  </style>
+
+  <div id="root" data-composition-id="scene1" data-duration="6" data-width="1080" data-height="1920">
+    <!-- Cabecera de Escena -->
+    <div class="scene-header-box" id="sceneHeader">
+      <div class="step-pill">
+        <span>PASO 1 DE 6</span>
+        <span>•</span>
+        <span>IDENTIFICACIÓN DIGITAL</span>
+      </div>
+      <h2 class="scene-title">Carnet Oficial de Beneficiario</h2>
+      <p class="scene-desc">
+        Acreditación móvil instantánea con Cédula de Identidad o Passkeys biométricos, protegida contra fraude.
+      </p>
+    </div>
+
+    <!-- Teléfono Móvil con Pantalla Real -->
+    <div class="phone-mockup-wrapper" id="phoneMockup">
+      <div class="phone-notch"></div>
+      <div class="phone-screen-img">
+        <div class="qr-laser-scanner" id="qrLaser"></div>
+      </div>
+    </div>
+
+    <!-- Bloque de Características Inferior -->
+    <div class="features-container" id="featuresContainer">
+      <div class="feature-item" id="f1">
+        <div class="feature-icon-badge icon-blue">📱</div>
+        <div class="feature-info">
+          <div class="feature-title">QR Dinámico Rotativo (TOTP)</div>
+          <div class="feature-desc">El código cambia periódicamente impidiendo capturas de pantalla o reutilizaciones no autorizadas.</div>
+        </div>
+      </div>
+
+      <div class="feature-item" id="f2">
+        <div class="feature-icon-badge icon-green">🚦</div>
+        <div class="feature-info">
+          <div class="feature-title">Semáforo de Retiro en Tiempo Real</div>
+          <div class="feature-desc">Indica con claridad el estado del beneficio: Verde (Autorizado) o Rojo (Ya Entregado).</div>
+        </div>
+      </div>
+
+      <div class="feature-item" id="f3">
+        <div class="feature-icon-badge icon-purple">📦</div>
+        <div class="feature-info">
+          <div class="feature-title">Desglose Exacto de Rubros y Bultos</div>
+          <div class="feature-desc">Detalle institucional de Canasta Básica de Víveres Secos y Combo de Proteínas Asignadas.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+
+    tl.from('#sceneHeader', { opacity: 0, y: -25, duration: 0.8, ease: 'power2.out' }, 0);
+    tl.from('#phoneMockup', { opacity: 0, scale: 0.92, y: 30, duration: 0.9, ease: 'back.out(1.2)' }, 0.2);
+
+    tl.fromTo(
+      '#qrLaser',
+      { y: -30, opacity: 0.2 },
+      { y: 30, opacity: 1, duration: 1.0, repeat: 4, yoyo: true, ease: 'sine.inOut' },
+      0.5
+    );
+
+    tl.from('#f1', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 1.0);
+    tl.from('#f2', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 1.6);
+    tl.from('#f3', { opacity: 0, x: -30, duration: 0.6, ease: 'power2.out' }, 2.2);
+
+    window.__timelines['scene1'] = tl;
+  </script>
+</template>

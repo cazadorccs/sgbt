@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Proceso de Entrega y Despacho SGBT - MIPPCI (Vertical WhatsApp)</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground-dark: #090d16;
+        --ground-slate: #0f172a;
+        --surface-glass: rgba(20, 30, 51, 0.92);
+        --ink-main: #f8fafc;
+        --ink-dim: #94a3b8;
+        --accent-blue: #0284c7;
+        --accent-cyan: #38bdf8;
+        --accent-emerald: #10b981;
+        --border-subtle: rgba(56, 189, 248, 0.28);
+        --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+        background: var(--ground-dark);
+        font-family: var(--font-sans);
+        color: var(--ink-main);
+      }
+
+      #root {
+        width: 1080px;
+        height: 1920px;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at 50% 12%, #1e293b 0%, #090d16 75%);
+      }
+
+      /* Barra de Cabecera Institucional Superior (Adaptada a Vertical / WhatsApp) */
+      .brand-top-bar {
+        position: absolute;
+        top: 40px;
+        left: 40px;
+        right: 40px;
+        height: 84px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 28px;
+        background: var(--surface-glass);
+        border: 1px solid var(--border-subtle);
+        border-radius: 24px;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+      }
+
+      .brand-badge {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .brand-logo-box {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #0284c7, #0369a1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        font-size: 24px;
+        color: #ffffff;
+        box-shadow: 0 4px 18px rgba(2, 132, 199, 0.4);
+      }
+
+      .brand-text h1 {
+        font-size: 22px;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        color: #ffffff;
+        line-height: 1.1;
+      }
+
+      .brand-text p {
+        font-size: 13px;
+        color: var(--accent-cyan);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .status-pill-secure {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 18px;
+        background: rgba(16, 185, 129, 0.16);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        border-radius: 9999px;
+        color: #34d399;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .status-dot-pulse {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: var(--accent-emerald);
+        box-shadow: 0 0 12px var(--accent-emerald);
+      }
+
+      /* Scene Hosts (1080x1920) */
+      .scene-host {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="36"
+      data-width="1080"
+      data-height="1920"
+    >
+      <!-- Cabecera Institucional Permanente -->
+      <div class="brand-top-bar" id="brandHeader">
+        <div class="brand-badge">
+          <div class="brand-logo-box">🏛️</div>
+          <div class="brand-text">
+            <h1>SGBT — MIPPCI</h1>
+            <p>Plataforma de Despacho</p>
+          </div>
+        </div>
+        <div class="status-pill-secure">
+          <span class="status-dot-pulse"></span>
+          <span>Despacho Seguro • 100% Trazable</span>
+        </div>
+      </div>
+
+      <!-- Escena 1: Carnet Digital Oficial y Visor de Retiro Móvil (0s - 6s) -->
+      <div
+        id="scene1"
+        class="scene-host"
+        data-composition-id="scene1"
+        data-composition-src="compositions/scene1.html"
+        data-start="0"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <!-- Escena 2: Mesa de Despacho y Arquitectura Offline-First (6s - 12s) -->
+      <div
+        id="scene2"
+        class="scene-host"
+        data-composition-id="scene2"
+        data-composition-src="compositions/scene2.html"
+        data-start="6"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <!-- Escena 3: Verificación Criptográfica y Validación Óptica (12s - 18s) -->
+      <div
+        id="scene3"
+        class="scene-host"
+        data-composition-id="scene3"
+        data-composition-src="compositions/scene3.html"
+        data-start="12"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <!-- Escena 4: Regla de Idempotencia y Despacho Multiestación (18s - 24s) -->
+      <div
+        id="scene4"
+        class="scene-host"
+        data-composition-id="scene4"
+        data-composition-src="compositions/scene4.html"
+        data-start="18"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <!-- Escena 5: Contingencia Asistida y Sello Criptográfico (24s - 30s) -->
+      <div
+        id="scene5"
+        class="scene-host"
+        data-composition-id="scene5"
+        data-composition-src="compositions/scene5.html"
+        data-start="24"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+
+      <!-- Escena 6: Auditoría Ministerial y Conciliación Logística (30s - 36s) -->
+      <div
+        id="scene6"
+        class="scene-host"
+        data-composition-id="scene6"
+        data-composition-src="compositions/scene6.html"
+        data-start="30"
+        data-duration="6"
+        data-track-index="1"
+        data-width="1080"
+        data-height="1920"
+      ></div>
+    </div>
+
+    <script>
+      window.__timelines = window.__timelines || {};
+      const masterTl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = masterTl;
+    </script>
+  </body>
+</html>

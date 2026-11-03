@@ -183,3 +183,20 @@ Desde la Dirección General y la Dirección de Gestión Humana se supervisa el d
 - **Cero Duplicidades:** Control estricto por base de datos relacional (`idx_unique_daily_claim`).
 - **100% Disponibilidad:** Continuidad operativa absoluta en sótanos y almacenes sin acceso a Internet gracias a la arquitectura PWA Offline-First y SQLite local.
 - **Transparencia Total:** Cada kilogramo de alimento cuenta con trazabilidad completa desde la recepción en almacén hasta las manos de la trabajadora o trabajador de la Patria.
+
+---
+
+## 🎬 Videos Explicativos Renderizados
+
+Para facilitar la inducción, divulgación y auditoría institucional, el proceso completo cuenta con dos producciones audiovisuales automatizadas de alta fidelidad:
+
+1. **Formato Panorámico (16:9 - 1920x1080):**
+   - **Ruta:** `videos/proceso-entrega/renders/proceso_entrega_sgbt.mp4`
+   - **Uso:** Presentaciones directivas, pantallas en salas situacionales y auditoría ministerial.
+   - **Duración:** 36 segundos (6 fases x 6 segundos).
+
+2. **Formato Vertical Móvil (9:16 - 1080x1920):**
+   - **Ruta:** `videos/proceso-entrega-vertical/renders/proceso_entrega_sgbt_vertical.mp4`
+   - **Uso:** Difusión institucional por WhatsApp (Estados y Chats), Telegram y visualización nativa en smartphones.
+   - **Duración:** 36 segundos (6 fases x 6 segundos), tamaño optimizado (~7.4 MB).
+
