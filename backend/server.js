@@ -43,6 +43,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Sanitización activa contra Cross-Site Scripting (XSS) en payloads JSON y formularios
 app.use(xssSanitizerMiddleware);
 
+// Ruta segura de acceso a la consola de administración institucional (/coseg)
+app.get(/^\/coseg(\/.*)?$/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
+
 // Servidor de estáticos (PWA, CSS, JS, Assets)
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
@@ -79,11 +84,6 @@ app.use(async (req, res, next) => {
 // Redirecciones amigables a la documentación interactiva OpenAPI 3.1
 app.get('/docs', (req, res) => res.redirect('/api/v1/docs'));
 app.get('/api/docs', (req, res) => res.redirect('/api/v1/docs'));
-
-// Ruta segura de acceso a la consola de administración institucional (/coseg)
-app.get(/^\/coseg(\/.*)?$/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
 
 // Soporte de idempotencia en peticiones mutadoras de la API (RFC / Idempotency-Key)
 app.use('/api', idempotencyMiddleware);
