@@ -3432,6 +3432,42 @@ Listo para recibir transacciones de nómina institucional...
     </div>
   </div>
 
+  <!-- ======================================================================
+       BARRA DE NAVEGACIÓN INFERIOR MÓVIL (MATERIAL 3 / ANDROID GUIDELINES)
+       ====================================================================== -->
+  <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Navegación Móvil Rápida">
+    <button type="button" class="bottom-nav-item nav-tab-btn active" data-view="view-portal" id="bottomNavPortal" title="Administración y Control">
+      <div class="bottom-nav-icon-wrapper">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
+      </div>
+      <span class="bottom-nav-label">Gestión</span>
+    </button>
+    <button type="button" class="bottom-nav-item nav-tab-btn" data-view="view-worker" id="bottomNavWorker" title="Carnet Oficial de Beneficiario">
+      <div class="bottom-nav-icon-wrapper">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+      </div>
+      <span class="bottom-nav-label">Mi Carnet</span>
+    </button>
+    <button type="button" class="bottom-nav-item nav-tab-btn" data-view="view-distributor" id="bottomNavDistributor" title="Mesa de Despacho y Escaneo QR">
+      <div class="bottom-nav-icon-wrapper">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>
+      </div>
+      <span class="bottom-nav-label">Despacho</span>
+    </button>
+    <button type="button" class="bottom-nav-item nav-tab-btn" data-view="view-payroll" id="bottomNavPayroll" title="Padrón de Personal y Trabajadores">
+      <div class="bottom-nav-icon-wrapper">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+      </div>
+      <span class="bottom-nav-label">Padrón</span>
+    </button>
+    <button type="button" class="bottom-nav-item" id="bottomNavMore" title="Menú Completo del Sistema" aria-label="Abrir Menú Principal">
+      <div class="bottom-nav-icon-wrapper">
+        <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </div>
+      <span class="bottom-nav-label">Menú</span>
+    </button>
+  </nav>
+
   <!-- SCRIPTS Y NÚCLEO MODULAR V3.2 -->
   <script src="/js/core/logger.js?v=3.2"></script>
   <script src="/js/qrcode.js?v=3.2"></script>

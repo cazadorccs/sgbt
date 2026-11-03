@@ -8,7 +8,10 @@ window.setLoginMode = function(mode) {
   window.currentLoginMode = mode;
   const loginSection = document.getElementById('view-login');
   if (loginSection && !loginSection.classList.contains('active-view') && typeof navigateTo === 'function') {
-    navigateTo('view-login');
+    const bottomNav = document.getElementById('mobileBottomNav');
+  if (bottomNav) bottomNav.style.display = 'none';
+
+  navigateTo('view-login');
   }
 
   const alertBox = document.getElementById('loginAlertBox');
@@ -1065,6 +1068,18 @@ window.applyUserSession = function(user, targetMode) {
     if (typeof window.updateWorkerCard === 'function') {
       window.updateWorkerCard();
     }
+    // Sincronizar barra de navegación inferior móvil
+    const bPortal = document.getElementById('bottomNavPortal');
+    const bWorker = document.getElementById('bottomNavWorker');
+    const bDistributor = document.getElementById('bottomNavDistributor');
+    const bPayroll = document.getElementById('bottomNavPayroll');
+    const bNav = document.getElementById('mobileBottomNav');
+    if (bNav) bNav.style.display = '';
+    if (bWorker) bWorker.style.display = 'flex';
+    if (bPortal) bPortal.style.display = 'none';
+    if (bDistributor) bDistributor.style.display = 'none';
+    if (bPayroll) bPayroll.style.display = 'none';
+
     navigateTo('view-worker');
 
   } else if (isOperator || mode === 'operator') {
@@ -1084,6 +1099,18 @@ window.applyUserSession = function(user, targetMode) {
     if (opBadge) opBadge.textContent = `Mesa de Despacho · C.I. ${user.document_id}`;
     if (opAvatar) opAvatar.textContent = initials;
 
+    // Sincronizar barra de navegación inferior móvil
+    const bPortal = document.getElementById('bottomNavPortal');
+    const bWorker = document.getElementById('bottomNavWorker');
+    const bDistributor = document.getElementById('bottomNavDistributor');
+    const bPayroll = document.getElementById('bottomNavPayroll');
+    const bNav = document.getElementById('mobileBottomNav');
+    if (bNav) bNav.style.display = '';
+    if (bWorker) bWorker.style.display = 'flex';
+    if (bPortal) bPortal.style.display = 'none';
+    if (bDistributor) bDistributor.style.display = 'flex';
+    if (bPayroll) bPayroll.style.display = 'none';
+
     navigateTo('view-distributor');
 
   } else {
@@ -1095,6 +1122,18 @@ window.applyUserSession = function(user, targetMode) {
     if (btnToggleSidebar) btnToggleSidebar.style.display = 'inline-flex';
     if (simSelector) simSelector.style.display = 'block';
     if (techPanel) techPanel.style.display = 'block';
+    // Sincronizar barra de navegación inferior móvil
+    const bPortal = document.getElementById('bottomNavPortal');
+    const bWorker = document.getElementById('bottomNavWorker');
+    const bDistributor = document.getElementById('bottomNavDistributor');
+    const bPayroll = document.getElementById('bottomNavPayroll');
+    const bNav = document.getElementById('mobileBottomNav');
+    if (bNav) bNav.style.display = '';
+    if (bWorker) bWorker.style.display = 'flex';
+    if (bPortal) bPortal.style.display = 'flex';
+    if (bDistributor) bDistributor.style.display = 'flex';
+    if (bPayroll) bPayroll.style.display = 'flex';
+
     STATE.supervisorId = user.document_id;
     navigateTo('view-portal');
   }
@@ -1161,6 +1200,9 @@ window.handleLogout = function(reason) {
     }
   }
 
+  const bottomNav = document.getElementById('mobileBottomNav');
+  if (bottomNav) bottomNav.style.display = 'none';
+
   navigateTo('view-login');
 };
 
@@ -1203,6 +1245,9 @@ window.checkAuthSession = function() {
     console.warn('Error al leer sesión guardada:', e);
   }
   
+  const bottomNav = document.getElementById('mobileBottomNav');
+  if (bottomNav) bottomNav.style.display = 'none';
+
   navigateTo('view-login');
 };
 

@@ -130,8 +130,18 @@ function navigateTo(viewId) {
     }
   }
 
-  const activeBtn = document.querySelector(`.nav-tab-btn[data-view="${viewId}"]`);
-  if (activeBtn) activeBtn.classList.add('active');
+  const activeBtns = document.querySelectorAll(`.nav-tab-btn[data-view="${viewId}"]`);
+  activeBtns.forEach(btn => btn.classList.add('active'));
+
+  // Visibilidad de barra de navegación inferior móvil
+  const bottomNav = document.getElementById('mobileBottomNav');
+  if (bottomNav) {
+    if (viewId === 'view-login') {
+      bottomNav.style.display = 'none';
+    } else {
+      bottomNav.style.display = '';
+    }
+  }
 
   STATE.currentView = viewId;
 
@@ -195,6 +205,19 @@ function setupNavigation() {
 
   if (btnToggleSidebar) {
     btnToggleSidebar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = sidebarDrawer && sidebarDrawer.classList.contains('open');
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+  }
+
+  const btnBottomNavMore = document.getElementById('bottomNavMore');
+  if (btnBottomNavMore) {
+    btnBottomNavMore.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = sidebarDrawer && sidebarDrawer.classList.contains('open');
       if (isOpen) {
