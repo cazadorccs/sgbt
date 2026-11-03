@@ -382,12 +382,12 @@ function renderDistributorCombos(combos) {
   }
 
   STATE.assignedCombo = activeStationCombo;
-  STATE.activeStation = activeStationCombo.id;
+  STATE.distributorStation = activeStationCombo.id;
   STATE.activeStationName = activeStationCombo.mesa_name || 'Mesa 1';
 
   if (tabsContainer) {
     tabsContainer.innerHTML = activeList.map(c => {
-      const isSelected = c.id === STATE.activeStation;
+      const isSelected = c.id === (STATE.distributorStation || STATE.activeStation);
       return `
         <button type="button" class="btn btn-outline ${isSelected ? 'active-station-tab' : ''}" data-station="${c.id}" style="padding: 0.45rem 0.7rem; font-size: 0.75rem; font-weight: 700; text-align: center; border-radius: 8px; line-height: 1.2; ${isSelected ? 'background: rgba(14, 165, 233, 0.25); border-color: #0284c7; color: #38bdf8;' : 'border-color: rgba(148, 163, 184, 0.2); color: #94a3b8;'}">
           ${c.icon || '📦'} ${c.mesa_name || 'Mesa'}<br><span style="font-size: 0.65rem; font-weight: 600; opacity: 0.9;">${c.name}</span>
@@ -437,7 +437,7 @@ function updateStationUI(st) {
     const found = STATE.distributorCombos.find(c => c.id === st);
     if (found) {
       STATE.assignedCombo = found;
-      STATE.activeStation = found.id;
+      STATE.distributorStation = found.id;
       STATE.activeStationName = found.mesa_name || 'Mesa';
     }
   }

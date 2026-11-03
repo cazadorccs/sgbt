@@ -112,7 +112,8 @@ window.setupWorkerSimulator = function() {
         if (statusRes && statusRes.delivered) {
           const qrContainer = document.getElementById('workerQrContainer');
           if (qrContainer) qrContainer.style.display = 'flex';
-          STATE.activeStation = (statusRes.station_1_delivered && !statusRes.station_2_delivered) ? '1' : null;
+          STATE.workerActiveStation = (statusRes.station_1_delivered && !statusRes.station_2_delivered) ? '2' : null;
+          STATE.activeStation = STATE.workerActiveStation || 'all';
           handleDeliveryApproved(statusRes);
           if (statusRes.all_completed) {
             return;
@@ -121,6 +122,7 @@ window.setupWorkerSimulator = function() {
             startDeliveryMonitoring({ wid: STATE.selectedWorkerId });
           }
         } else {
+          STATE.workerActiveStation = '1';
           STATE.activeStation = '1';
           STATE.deliveredStations = new Set();
           STATE._lastShownToast = null;
@@ -223,19 +225,26 @@ window.setupWorkerSimulator = function() {
   }
 
   // Manejador del botón de transición para autorizar y desplegar el 2do QR (Estación 2)
-  document.getElementById('btnProceedToStation2')?.addEventListener('click', () => {
+  document.getElementById('btnProceedToStation2')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     playAudioFeedback('success');
+    STATE.workerActiveStation = '2';
     STATE.activeStation = '2';
     generateWorkerStationQr('2');
   });
 
   // Generar QR firmado offline (o Enrolar + Generar en 1 Clic si no tiene passkey)
-  btnGenerate?.addEventListener('click', async () => {
+  btnGenerate?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!STATE.selectedWorkerId) return;
     if (STATE.deliveredStations && STATE.deliveredStations.has(1) && !STATE.deliveredStations.has(2)) {
+      STATE.workerActiveStation = '2';
       STATE.activeStation = '2';
       generateWorkerStationQr('2');
     } else {
+      STATE.workerActiveStation = 'all';
       STATE.activeStation = 'all';
       generateWorkerStationQr('all');
     }
@@ -322,7 +331,8 @@ window.setupWorkerSimulator = function() {
   async function generateWorkerStationQr(targetStation = 'all') {
     if (!STATE.selectedWorkerId) return;
 
-    STATE.activeStation = targetStation;
+    STATE.workerActiveStation = String(targetStation);
+    STATE.activeStation = String(targetStation);
     if (btnGenerate) btnGenerate.disabled = true;
 
     try {
@@ -398,7 +408,8 @@ window.setupWorkerSimulator = function() {
       });
 
       STATE.activeQrPayload = signData.qr_payload;
-      STATE.activeStation = targetStation;
+      STATE.workerActiveStation = String(targetStation);
+      STATE.activeStation = String(targetStation);
 
       // Sincronizar en localStorage y BroadcastChannel para pruebas multi-pestaña
       try {
@@ -539,7 +550,8 @@ window.setupWorkerSimulator = function() {
             const data = JSON.parse(e.data);
             console.log('[SSE EVENT] Notificación de entrega en tiempo real recibida:', data);
             const isStation2 = (data.station === 2) || (data.delivery && data.delivery.station === 2) || data.station_2_delivered || data.all_completed;
-            if (STATE.activeStation === '2') {
+            const currentStation = String(STATE.workerActiveStation || STATE.activeStation);
+            if (currentStation === '2') {
               if (isStation2) {
                 handleDeliveryApproved(data);
               }
@@ -566,12 +578,19 @@ window.setupWorkerSimulator = function() {
       try {
         const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}`);
         if (res && res.delivered) {
-          if (STATE.activeStation === '2') {
+          const currentStation = String(STATE.workerActiveStation || STATE.activeStation);
+          if (currentStation === '2') {
             if (res.station_2_delivered || res.all_completed) {
               handleDeliveryApproved(res);
             }
+          } else if (currentStation === '1') {
+            if (res.station_1_delivered || res.all_completed) {
+              handleDeliveryApproved(res);
+            }
           } else {
-            handleDeliveryApproved(res);
+            if (res.all_completed || res.delivered) {
+              handleDeliveryApproved(res);
+            }
           }
         }
       } catch (e) {}
@@ -586,7 +605,8 @@ window.setupWorkerSimulator = function() {
           if (e.data && e.data.type === 'DELIVERY_APPROVED') {
             if (e.data.worker_id === wid) {
               const isStation2 = (e.data.station === 2) || (e.data.delivery && e.data.delivery.station === 2) || e.data.station_2_delivered || e.data.all_completed;
-              if (STATE.activeStation === '2') {
+              const currentStation = String(STATE.workerActiveStation || STATE.activeStation);
+              if (currentStation === '2') {
                 if (isStation2) {
                   handleDeliveryApproved(e.data);
                 }
@@ -607,7 +627,8 @@ window.setupWorkerSimulator = function() {
           const data = JSON.parse(e.newValue);
           if (data.worker_id === wid) {
             const isStation2 = (data.station === 2) || (data.delivery && data.delivery.station === 2) || data.station_2_delivered || data.all_completed;
-            if (STATE.activeStation === '2') {
+            const currentStation = String(STATE.workerActiveStation || STATE.activeStation);
+            if (currentStation === '2') {
               if (isStation2) {
                 handleDeliveryApproved(data);
               }
@@ -846,7 +867,9 @@ window.setupWorkerSimulator = function() {
     } else if (station1Done && !station2Done) {
       // Si el usuario ya autorizó y está visualizando activamente el QR de la Estación 2:
       // NO ocultar el QR, NO mostrar la tarjeta de transición y NO reiniciar el temporizador de expiración.
-      if (STATE.activeStation === '2') {
+      const isViewingStation2 = (String(STATE.workerActiveStation || STATE.activeStation) === '2' && Boolean(STATE.activeQrPayload)) || 
+        (STATE.activeQrPayload && String(STATE.activeQrPayload.station) === '2');
+      if (isViewingStation2) {
         if (qrDisplayBox) qrDisplayBox.style.display = 'block';
         if (receiptBox) receiptBox.style.display = 'none';
         if (transitionCard) transitionCard.style.display = 'none';
