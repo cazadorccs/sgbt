@@ -697,27 +697,40 @@ const deleteCampaign = async (req, res) => {
       camp = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
     }
 
-    if (!camp) {
-      return res.status(404).json({ error: 'Jornada no encontrada' });
+    // Si el ID no coincidió (ej. réplicas serverless con UUIDs desincronizados), buscar por nombre
+    if (!camp && req.body?.name) {
+      camp = db.prepare('SELECT * FROM delivery_campaigns WHERE name = ? LIMIT 1').get(req.body.name);
     }
+
+    // Si la jornada ya no existe ni por ID ni por nombre, retornar éxito idempotente
+    if (!camp) {
+      await syncCampaignsToCloud();
+      return res.json({
+        success: true,
+        message: 'La jornada ya ha sido removida del cronograma institucional.',
+        deleted_id: id
+      });
+    }
+
+    const targetId = camp.id;
 
     // Eliminación en cascada segura en transacción
     const deleteTx = db.transaction(() => {
       // 1. Desvincular o eliminar asignaciones vinculadas
-      db.prepare("DELETE FROM daily_entitlements WHERE campaign_id = ? AND status = 'pending'").run(id);
-      db.prepare("UPDATE daily_entitlements SET campaign_id = NULL WHERE campaign_id = ?").run(id);
+      db.prepare("DELETE FROM daily_entitlements WHERE campaign_id = ? AND status = 'pending'").run(targetId);
+      db.prepare("UPDATE daily_entitlements SET campaign_id = NULL WHERE campaign_id = ?").run(targetId);
 
       // 2. Desvincular entregas físicas para conservar el historial del trabajador
-      db.prepare("UPDATE deliveries SET campaign_id = NULL WHERE campaign_id = ?").run(id);
+      db.prepare("UPDATE deliveries SET campaign_id = NULL WHERE campaign_id = ?").run(targetId);
 
       // 3. Eliminar combos vinculados en campaign_combos
-      db.prepare("DELETE FROM campaign_combos WHERE campaign_id = ?").run(id);
+      db.prepare("DELETE FROM campaign_combos WHERE campaign_id = ?").run(targetId);
 
       // 4. Eliminar notificaciones de la campaña
-      db.prepare("DELETE FROM system_notifications WHERE campaign_id = ?").run(id);
+      db.prepare("DELETE FROM system_notifications WHERE campaign_id = ?").run(targetId);
 
       // 5. Eliminar la jornada
-      db.prepare("DELETE FROM delivery_campaigns WHERE id = ?").run(id);
+      db.prepare("DELETE FROM delivery_campaigns WHERE id = ?").run(targetId);
     });
 
     deleteTx();
@@ -739,7 +752,7 @@ const deleteCampaign = async (req, res) => {
         userName: req.user?.full_name || req.user?.username || 'Administrador Institucional',
         ipAddress: req.ip || req.connection?.remoteAddress,
         requestPayload: JSON.stringify({
-          deleted_campaign_id: id,
+          deleted_campaign_id: targetId,
           name: camp.name,
           start_date: camp.start_date,
           end_date: camp.end_date,
@@ -755,7 +768,7 @@ const deleteCampaign = async (req, res) => {
     res.json({
       success: true,
       message: `Jornada "${camp.name}" eliminada exitosamente y registrada en el historial de auditoría.`,
-      deleted_id: id
+      deleted_id: targetId
     });
   } catch (err) {
     console.error('[CAMPAIGN DELETE ERROR]', err);

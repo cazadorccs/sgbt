@@ -1491,6 +1491,7 @@ window.loadCampaigns = async function() {
         try {
           const res = await API.post(`/api/v1/admin/campaigns/${id}/delete`, {
             admin_key: key.trim(),
+            name: name,
             reason: 'Eliminación administrativa por duplicidad'
           });
 

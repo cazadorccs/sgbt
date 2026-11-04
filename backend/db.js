@@ -619,10 +619,10 @@ function initializeDatabase() {
     );
   }
 
-  // Inicializar una campaña de demostración si la tabla está vacía
-  const campCount = db.prepare("SELECT COUNT(*) as count FROM delivery_campaigns").get();
-  if (campCount.count === 0) {
-    const campId = crypto.randomUUID();
+  // Inicializar una campaña fija institucional si la tabla está vacía o no existe la activa
+  const activeCampExisting = db.prepare("SELECT id FROM delivery_campaigns WHERE id = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b' OR (status = 'en_curso' AND name LIKE '%Mes en Curso%') LIMIT 1").get();
+  if (!activeCampExisting) {
+    const campId = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b';
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -633,13 +633,13 @@ function initializeDatabase() {
     const pointId = firstPoint ? firstPoint.id : null;
 
     db.prepare(`
-      INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent)
+      INSERT OR IGNORE INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent)
       VALUES (?, 'Gran Jornada Integral de Víveres y Proteína - Mes en Curso', 'Despacho institucional para todo el personal activo y jubilado en Almacén Central', ?, ?, ?, 'all', ?, 'en_curso', 1)
     `).run(campId, todayStr, endOfMonthStr, comboViveres, pointId);
 
     // Notificación inicial de la jornada
     db.prepare(`
-      INSERT INTO system_notifications (id, campaign_id, title, message, target_group, notification_type)
+      INSERT OR IGNORE INTO system_notifications (id, campaign_id, title, message, target_group, notification_type)
       VALUES (?, ?, '📢 ¡Jornada de Despacho Activa!', 'Se encuentra activo el despacho de tu Bolsa de Víveres y Proteína en el Almacén Central. Recuerda presentar tu código QR biométrico o documento.', 'all', 'jornada')
     `).run(crypto.randomUUID(), campId);
   }
