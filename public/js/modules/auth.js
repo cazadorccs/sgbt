@@ -1003,7 +1003,7 @@ window.applyUserSession = function(user, targetMode) {
   const workerHeaderAvatar = document.getElementById('workerHeaderAvatar');
   if (workerHeaderAvatar) {
     if (user.avatar_url && String(user.avatar_url).startsWith('data:image')) {
-      workerHeaderAvatar.innerHTML = `<img src="${user.avatar_url}" alt="${user.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
+      workerHeaderAvatar.innerHTML = `<img src="${user.avatar_url}" alt="Foto de perfil" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
     } else {
       workerHeaderAvatar.textContent = initials;
     }

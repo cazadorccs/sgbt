@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=2.3">
+  <link rel="stylesheet" href="/css/styles.css?v=2.4">
 
   <!-- SGBT Dark/Light Theme Pre-render Script (Evita parpadeos FOUC) -->
   <script>
@@ -2374,24 +2374,27 @@
           <div class="device-screen">
             <!-- App Bar / Carnet Oficial Institucional -->
             <div class="mobile-app-bar">
-              <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex: 1;">
+              <div class="mobile-app-bar-header">
+                <div class="mobile-app-title">
+                  <span>🏛️ MIPPCI Beneficios</span>
+                </div>
+                <div class="mobile-app-bar-actions">
+                  <span id="workerConditionBadge" class="badge badge-activo" style="font-size: 0.65rem;">🏢 Activo</span>
+                  <button id="btnWorkerMobileLogout" class="btn btn-outline btn-mobile-logout" title="Cerrar Sesión">
+                    🚪 Salir
+                  </button>
+                </div>
+              </div>
+
+              <div class="mobile-app-bar-profile">
                 <div id="workerHeaderAvatar" class="mobile-avatar-circle">
                   👤
                 </div>
-                <div style="min-width: 0; flex: 1;">
-                  <div class="mobile-app-title">
-                    <span>🏛️ MIPPCI Beneficios</span>
-                  </div>
+                <div class="mobile-app-profile-details">
                   <div id="workerHeaderIdentity" class="mobile-app-identity">
                     Cargando...
                   </div>
                 </div>
-              </div>
-              <div style="display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0;">
-                <span id="workerConditionBadge" class="badge badge-activo" style="font-size: 0.65rem;">🏢 Activo</span>
-                <button id="btnWorkerMobileLogout" class="btn btn-outline btn-mobile-logout" title="Cerrar Sesión">
-                  🚪 Salir
-                </button>
               </div>
             </div>
 
@@ -2426,72 +2429,86 @@
               </select>
             </div>
 
-            <!-- BULTOS A ENTREGAR EN LA JORNADA INSTITUCIONAL -->
+            <!-- BULTOS A ENTREGAR EN LA JORNADA INSTITUCIONAL (MINIMALISTA / COLAPSABLE) -->
             <div class="packages-container" id="workerPackagesSection">
               <!-- BULTO 1: VÍVERES SECOS -->
-              <div class="package-card viveres-card">
-                <div class="package-card-header">
+              <div class="package-card viveres-card is-collapsed" id="cardViveresSecos">
+                <div class="package-card-header" id="headerViveresSecos" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros">
                   <div class="package-card-title">
                     <span>📦 Bolsa de Víveres Secos</span>
                   </div>
-                  <span id="badgeViveresSecos" class="package-card-badge badge-viveres">12 Rubros</span>
+                  <div class="package-header-right">
+                    <span id="badgeViveresSecos" class="package-card-badge badge-viveres">12 Rubros</span>
+                    <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
                 </div>
-                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
-                  Alimentos no perecederos de la cesta básica familiar:
+                <div class="package-card-body" id="bodyViveresSecos">
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                    Alimentos no perecederos de la cesta básica familiar:
+                  </div>
+                  <ul class="package-rubros-list">
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🌽 Harina de Maíz Precocida</span>
+                      <span class="rubro-qty">4 unids</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🍚 Arroz Blanco Grano Entero</span>
+                      <span class="rubro-qty">2 kg</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🍝 Pasta Alimenticia (Larga/Corta)</span>
+                      <span class="rubro-qty">2 kg</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🫘 Caraotas Negras Seleccionadas</span>
+                      <span class="rubro-qty">1 kg</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🌻 Aceite Vegetal Comestible</span>
+                      <span class="rubro-qty">1 Litro</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🧂 Azúcar Refinada & Leche Polvo</span>
+                      <span class="rubro-qty">2 kg</span>
+                    </li>
+                  </ul>
                 </div>
-                <ul class="package-rubros-list">
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🌽 Harina de Maíz Precocida</span>
-                    <span class="rubro-qty">4 unids</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🍚 Arroz Blanco Grano Entero</span>
-                    <span class="rubro-qty">2 kg</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🍝 Pasta Alimenticia (Larga/Corta)</span>
-                    <span class="rubro-qty">2 kg</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🫘 Caraotas Negras Seleccionadas</span>
-                    <span class="rubro-qty">1 kg</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🌻 Aceite Vegetal Comestible</span>
-                    <span class="rubro-qty">1 Litro</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🧂 Azúcar Refinada & Leche Polvo</span>
-                    <span class="rubro-qty">2 kg</span>
-                  </li>
-                </ul>
               </div>
 
               <!-- BULTO 2: COMBO PROTEICO -->
-              <div class="package-card proteina-card">
-                <div class="package-card-header">
+              <div class="package-card proteina-card is-collapsed" id="cardComboProteico">
+                <div class="package-card-header" id="headerComboProteico" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros">
                   <div class="package-card-title">
                     <span>🍗 Combo Proteico Fresco</span>
                   </div>
-                  <span id="badgeComboProteico" class="package-card-badge badge-proteina">Cadena de Frío</span>
+                  <div class="package-header-right">
+                    <span id="badgeComboProteico" class="package-card-badge badge-proteina">Cadena de Frío</span>
+                    <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                  </div>
                 </div>
-                <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
-                  Proteínas refrigeradas con despacho inmediato en cavas:
+                <div class="package-card-body" id="bodyComboProteico">
+                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+                    Proteínas refrigeradas con despacho inmediato en cavas:
+                  </div>
+                  <ul class="package-rubros-list">
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🍗 Pollo Entero Beneficiado</span>
+                      <span class="rubro-qty">~2.2 kg</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🥩 Carne de Res Molida</span>
+                      <span class="rubro-qty">1.0 kg</span>
+                    </li>
+                    <li class="package-rubro-item">
+                      <span class="rubro-name">🍖 Mortadela Especial</span>
+                      <span class="rubro-qty">1.0 kg</span>
+                    </li>
+                  </ul>
                 </div>
-                <ul class="package-rubros-list">
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🍗 Pollo Entero Beneficiado</span>
-                    <span class="rubro-qty">~2.2 kg</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🥩 Carne de Res Molida</span>
-                    <span class="rubro-qty">1.0 kg</span>
-                  </li>
-                  <li class="package-rubro-item">
-                    <span class="rubro-name">🍖 Mortadela Especial</span>
-                    <span class="rubro-qty">1.0 kg</span>
-                  </li>
-                </ul>
               </div>
             </div>
 
@@ -3487,7 +3504,7 @@ Listo para recibir transacciones de nómina institucional...
 
   <!-- Feature Modules -->
   <script src="/js/modules/auth.js?v=3.3"></script>
-  <script src="/js/modules/beneficiary.js?v=3.5"></script>
+  <script src="/js/modules/beneficiary.js?v=3.6"></script>
   <script src="/js/modules/distributor.js?v=3.9"></script>
   <script src="/js/modules/admin.js?v=3.2"></script>
   <script src="/js/modules/manual_dispatch.js?v=3.6"></script>

@@ -75,7 +75,7 @@ window.setupWorkerSimulator = function() {
       const headerAvatarEl = document.getElementById('workerHeaderAvatar');
       if (headerAvatarEl) {
         if (worker.avatar_url && String(worker.avatar_url).startsWith('data:image')) {
-          headerAvatarEl.innerHTML = `<img src="${worker.avatar_url}" alt="${worker.full_name}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
+          headerAvatarEl.innerHTML = `<img src="${worker.avatar_url}" alt="Foto de perfil" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;">`;
         } else {
           const parts = (worker.full_name || 'U').trim().split(/\s+/);
           const ini = parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
@@ -1292,6 +1292,24 @@ window.setupWorkerSimulator = function() {
       loadQueueTraffic();
     }
   }, 45000);
+
+  // Soporte interactivo para desplegar y contraer los combos (vista minimalista de carnet)
+  function setupCombosAccordion() {
+    const packagesSection = document.getElementById('workerPackagesSection');
+    if (!packagesSection || packagesSection._hasAccordionSetup) return;
+    packagesSection._hasAccordionSetup = true;
+
+    packagesSection.addEventListener('click', (e) => {
+      const header = e.target.closest('.package-card-header');
+      if (!header) return;
+      const card = header.closest('.package-card');
+      if (!card) return;
+
+      const isCollapsed = card.classList.toggle('is-collapsed');
+      header.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    });
+  }
+  setupCombosAccordion();
 
   // Carga inicial
   loadWorkerSelect();

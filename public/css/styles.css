@@ -1822,8 +1822,8 @@ body.dark-mode .sidebar-tool-text small {
    ============================================================================ */
 .mobile-app-bar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.65rem;
   margin-bottom: 1rem;
   padding: 0.85rem 1rem;
   border-radius: var(--radius-md);
@@ -1833,25 +1833,57 @@ body.dark-mode .sidebar-tool-text small {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.mobile-app-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.mobile-app-bar-actions {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-app-bar-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.mobile-app-profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1;
+}
+
 .mobile-avatar-circle {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   overflow: hidden;
-  border: 2px solid rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(255, 255, 255, 0.7);
   flex-shrink: 0;
   color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
 }
 
 .mobile-app-title {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 800;
   color: #ffffff !important;
   display: flex;
@@ -1862,15 +1894,12 @@ body.dark-mode .sidebar-tool-text small {
 }
 
 .mobile-app-identity {
-  font-size: 0.74rem;
-  color: #e0f2fe !important;
-  font-weight: 600;
-  margin-top: 0.15rem;
+  font-size: 0.84rem;
+  color: #f0f9ff !important;
+  font-weight: 700;
   letter-spacing: 0.01em;
-  line-height: 1.25;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 .mobile-app-bar .badge {
@@ -2370,7 +2399,66 @@ body.dark-mode .sidebar-tool-text small {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.65rem;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0.15rem 0;
+  transition: color 0.15s ease;
+}
+
+.package-card-header:hover .package-card-title {
+  color: #0284c7;
+}
+
+body.dark-mode .package-card-header:hover .package-card-title {
+  color: #38bdf8;
+}
+
+.package-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+
+.package-chevron {
+  width: 18px;
+  height: 18px;
+  color: #0284c7;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  flex-shrink: 0;
+}
+
+body.dark-mode .package-chevron {
+  color: #38bdf8;
+}
+
+.package-card-body {
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px dashed rgba(2, 132, 199, 0.2);
+  transition: all 0.25s ease;
+}
+
+.package-card.is-collapsed {
+  padding-bottom: 0.75rem;
+}
+
+.package-card.is-collapsed .package-card-header {
+  margin-bottom: 0;
+}
+
+.package-card.is-collapsed .package-card-body {
+  display: none;
+}
+
+.package-card.is-collapsed .package-chevron {
+  transform: rotate(-90deg);
+}
+
+.package-card:not(.is-collapsed) .package-chevron {
+  transform: rotate(0deg);
 }
 
 .package-card-title {
