@@ -1799,95 +1799,95 @@
      MODAL: COMPROBANTE DIGITAL CONSOLIDADO - RETIRO ÚNICO TOTALIZADO (FASE 3)
      ====================================================================== -->
 <div id="consolidatedReceiptModalBackdrop" class="modal-backdrop">
-  <div class="modal-dialog" style="max-width: 560px;">
-    <div class="panel-header" style="border-bottom: 1.5px solid rgba(52, 211, 153, 0.3);">
-      <div class="panel-title" style="color: #34d399; display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+  <div class="modal-dialog" style="max-width: 560px; background: #0f172a; border: 2px solid #10b981; box-shadow: 0 10px 30px rgba(16, 185, 129, 0.25);">
+    <div class="panel-header" style="border-bottom: 2px solid #10b981; padding-bottom: 0.85rem; background: rgba(16, 185, 129, 0.08);">
+      <div class="panel-title" style="color: #34d399; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.05rem;">
         🌟 Comprobante Consolidado &middot; Retiro Único Totalizado
       </div>
       <button id="btnCloseConsolidatedReceiptModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
-        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="icon-svg" style="width: 20px; height: 20px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
     </div>
 
-    <div style="padding: 0.5rem 0;">
+    <div style="padding: 0.75rem 0.25rem;">
       <!-- CABECERA INSTITUCIONAL CON LOGO Y FECHA -->
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.85rem; padding-bottom: 0.65rem; border-bottom: 1px dashed rgba(255, 255, 255, 0.1);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.95rem; padding: 0.65rem 0.85rem; background: #1e293b; border: 1.5px solid #334155; border-radius: 8px;">
         <div>
-          <div style="font-size: 0.88rem; font-weight: 800; color: #fff;">🏛️ MIPPCI &middot; Gestión Institucional de Beneficios</div>
-          <div style="font-size: 0.72rem; color: #94a3b8;">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
+          <div style="font-size: 0.92rem; font-weight: 800; color: #ffffff;">🏛️ MIPPCI &middot; Gestión Institucional</div>
+          <div style="font-size: 0.78rem; font-weight: 700; color: #38bdf8; margin-top: 0.15rem;">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
         </div>
         <div style="text-align: right;">
-          <span class="badge" style="background: rgba(52, 211, 153, 0.2); color: #34d399; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(52, 211, 153, 0.4);">
+          <span class="badge" style="background: #047857; color: #ffffff; font-size: 0.75rem; font-weight: 800; border: 1.5px solid #34d399; padding: 0.25rem 0.65rem; border-radius: 6px; display: inline-block;">
             ✅ 100% Entregado
           </span>
-          <div id="modalConsolidatedTimestamp" style="font-size: 0.68rem; color: #64748b; margin-top: 0.2rem;">--</div>
+          <div id="modalConsolidatedTimestamp" style="font-size: 0.75rem; font-weight: 700; color: #38bdf8; margin-top: 0.25rem;">--</div>
         </div>
       </div>
 
       <!-- DATOS DEL BENEFICIARIO TITULAR -->
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.78rem;">
+      <div style="background: #1e293b; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0.85rem; margin-bottom: 0.95rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.82rem;">
           <div>
-            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Beneficiario Titular:</span>
-            <div id="modalConsolidatedWorkerName" style="font-weight: 700; color: #f8fafc;">--</div>
+            <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;">Beneficiario Titular:</span>
+            <div id="modalConsolidatedWorkerName" style="font-weight: 800; color: #ffffff; font-size: 0.9rem; margin-top: 0.15rem;">--</div>
           </div>
           <div>
-            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Cédula de Identidad:</span>
-            <div id="modalConsolidatedWorkerDoc" class="text-mono" style="font-weight: 700; color: #38bdf8;">--</div>
+            <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;">Cédula de Identidad:</span>
+            <div id="modalConsolidatedWorkerDoc" class="text-mono" style="font-weight: 800; color: #fef08a; font-size: 0.9rem; margin-top: 0.15rem;">--</div>
           </div>
           <div>
-            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Modalidad de Despacho:</span>
-            <div style="font-weight: 600; color: #34d399;">⚡ Retiro Único Totalizado (1 Escaneo)</div>
+            <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;">Modalidad de Despacho:</span>
+            <div style="font-weight: 800; color: #34d399; font-size: 0.85rem; margin-top: 0.15rem;">⚡ Retiro Único Totalizado (1 Escaneo)</div>
           </div>
           <div>
-            <span style="color: #64748b; font-size: 0.68rem; text-transform: uppercase;">Estado de Candado:</span>
-            <div style="font-weight: 600; color: #38bdf8;">🔓 Liberado en Automático</div>
+            <span style="color: #38bdf8; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em;">Estado de Candado:</span>
+            <div style="font-weight: 800; color: #38bdf8; font-size: 0.85rem; margin-top: 0.15rem;">🔓 Liberado en Automático</div>
           </div>
         </div>
       </div>
 
       <!-- DESGLOSE DE COMBOS DESPACHADOS SIMULTÁNEAMENTE -->
-      <div style="margin-bottom: 0.85rem;">
-        <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem; letter-spacing: 0.05em;">
-          📦 Desglose de Combos Entregados en el Mismo Acto:
+      <div style="margin-bottom: 0.95rem;">
+        <div style="font-size: 0.78rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.45rem; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📦 Combos Entregados en el Mismo Acto:</span>
         </div>
-        <div id="modalConsolidatedCombosList" style="display: flex; flex-direction: column; gap: 0.45rem;">
+        <div id="modalConsolidatedCombosList" style="display: flex; flex-direction: column; gap: 0.5rem;">
           <!-- Dinámico -->
         </div>
       </div>
 
       <!-- RESUMEN DE PESO Y MÉTRICAS -->
-      <div style="background: linear-gradient(135deg, rgba(5, 150, 105, 0.12), rgba(2, 132, 199, 0.12)); border: 1px solid rgba(52, 211, 153, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+      <div style="background: linear-gradient(135deg, rgba(6, 78, 59, 0.95), rgba(7, 89, 133, 0.95)); border: 2px solid #10b981; border-radius: 8px; padding: 0.85rem 1rem; margin-bottom: 0.95rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);">
         <div>
-          <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">Total Bultos Despachados:</span>
-          <div id="modalConsolidatedCombosCount" style="font-size: 1.1rem; font-weight: 800; color: #34d399;">2 Combos</div>
+          <span style="font-size: 0.74rem; color: #a7f3d0; text-transform: uppercase; font-weight: 800; letter-spacing: 0.03em;">Total Bultos Despachados:</span>
+          <div id="modalConsolidatedCombosCount" style="font-size: 1.25rem; font-weight: 900; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">2 Combos</div>
         </div>
         <div style="text-align: right;">
-          <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;">Peso Bruto Estimado:</span>
-          <div id="modalConsolidatedGrossWeight" style="font-size: 1.1rem; font-weight: 800; color: #38bdf8;">~28.5 kg</div>
+          <span style="font-size: 0.74rem; color: #bae6fd; text-transform: uppercase; font-weight: 800; letter-spacing: 0.03em;">Peso Bruto Estimado:</span>
+          <div id="modalConsolidatedGrossWeight" style="font-size: 1.25rem; font-weight: 900; color: #fef08a; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">~28.5 kg</div>
         </div>
       </div>
 
       <!-- SELLO CRIPTOGRÁFICO DE VERIFICACIÓN -->
-      <div style="background: rgba(2, 6, 23, 0.5); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 0.6rem 0.75rem; margin-bottom: 1rem; font-size: 0.68rem; color: #64748b;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
-          <span>Sello Criptográfico ECDSA P-256:</span>
-          <span id="modalConsolidatedTxId" class="text-mono" style="color: #a7f3d0;">#TX-ATOMIC-OK</span>
+      <div style="background: #1e293b; border: 1.5px solid #334155; border-radius: 8px; padding: 0.75rem 0.85rem; margin-bottom: 1rem; font-size: 0.74rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+          <span style="color: #93c5fd; font-weight: 700;">Sello Criptográfico ECDSA P-256:</span>
+          <span id="modalConsolidatedTxId" class="text-mono" style="color: #34d399; font-weight: 800; font-size: 0.78rem;">#TX-ATOMIC-OK</span>
         </div>
-        <div id="modalConsolidatedHash" class="text-mono" style="word-break: break-all; color: #475569; font-size: 0.62rem;">
+        <div id="modalConsolidatedHash" class="text-mono" style="word-break: break-all; color: #f1f5f9; font-size: 0.68rem; font-weight: 600; background: #0f172a; padding: 0.35rem 0.5rem; border-radius: 4px; border: 1px solid #334155;">
           SHA256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
         </div>
       </div>
 
       <!-- ACCIONES DEL MODAL -->
       <div style="display: flex; gap: 0.65rem;">
-        <button type="button" id="btnPrintConsolidatedReceipt" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #059669, #047857); border: 1px solid #34d399; color: #fff;">
+        <button type="button" id="btnPrintConsolidatedReceipt" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-size: 0.88rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: 2px solid #34d399; color: #ffffff; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); cursor: pointer;">
           🖨️ Imprimir Comprobante Oficial
         </button>
-        <button type="button" id="btnCloseConsolidatedReceiptModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+        <button type="button" id="btnCloseConsolidatedReceiptModalBtn" class="btn btn-outline" style="padding: 0.75rem 1.25rem; font-weight: 700; color: #ffffff; border-color: #64748b; background: rgba(255,255,255,0.08); cursor: pointer;">
           Cerrar
         </button>
       </div>

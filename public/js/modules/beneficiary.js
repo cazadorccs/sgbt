@@ -1069,17 +1069,17 @@ window.setupWorkerSimulator = function() {
 
     if (combosListEl) {
       combosListEl.innerHTML = combos.map(c => `
-        <div style="background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(52, 211, 153, 0.2); border-radius: 6px; padding: 0.5rem 0.65rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="background: #1e293b; border: 1.5px solid #059669; border-radius: 8px; padding: 0.65rem 0.8rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
           <div>
-            <div style="font-weight: 700; color: #f1f5f9; font-size: 0.78rem;">
+            <div style="font-weight: 800; color: #ffffff; font-size: 0.84rem;">
               <span>${c.icon || '📦'}</span> <strong>${c.name}</strong>
-              <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; margin-left: 0.35rem; padding: 0.1rem 0.4rem;">${c.mesa || 'Mesa 1'}</span>
+              <span class="badge" style="font-size: 0.68rem; font-weight: 800; background: #0369a1; color: #ffffff; border: 1px solid #38bdf8; margin-left: 0.45rem; padding: 0.15rem 0.5rem; border-radius: 4px;">${c.mesa || 'Mesa 1'}</span>
             </div>
-            <div style="font-size: 0.68rem; color: #94a3b8; margin-top: 0.15rem;">${c.desc || c.items || 'Rubros oficiales asignados'}</div>
+            <div style="font-size: 0.74rem; font-weight: 600; color: #e2e8f0; margin-top: 0.25rem; line-height: 1.3;">${c.desc || c.items || 'Rubros oficiales asignados'}</div>
           </div>
-          <div style="text-align: right; min-width: 65px;">
-            <span style="font-weight: 800; color: #34d399; font-size: 0.75rem;">${c.weight || 14} kg</span>
-            <div style="font-size: 0.62rem; color: #34d399;">✅ Entregado</div>
+          <div style="text-align: right; min-width: 75px; padding-left: 0.5rem;">
+            <span style="font-weight: 900; color: #34d399; font-size: 0.85rem;">${c.weight || 14} kg</span>
+            <div style="font-size: 0.7rem; font-weight: 800; color: #10b981; margin-top: 0.15rem;">✅ Entregado</div>
           </div>
         </div>
       `).join('');

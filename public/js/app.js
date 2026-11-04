@@ -105,7 +105,8 @@ function navigateTo(viewId) {
         viewId = 'view-worker';
       }
     } else if (isOp) {
-      if (viewId !== 'view-distributor' && viewId !== 'view-worker' && viewId !== 'view-login') {
+      // Blindaje estricto de rol: La mesa de despacho solo puede ver la pantalla de mesa de despacho
+      if (viewId !== 'view-distributor' && viewId !== 'view-login') {
         viewId = 'view-distributor';
       }
     }

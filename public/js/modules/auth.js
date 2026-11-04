@@ -689,13 +689,10 @@ async function executeLogin(rawDocId) {
     const urlView = new URLSearchParams(window.location.search).get('view');
 
     let targetMode = 'beneficiary';
-    if (window.currentLoginMode === 'operator' || intendedView === 'distributor' || urlView === 'distributor') {
+    if (isOperator || window.currentLoginMode === 'operator' || intendedView === 'distributor' || urlView === 'distributor') {
       targetMode = 'operator';
     } else if (urlView === 'worker' || intendedView === 'worker') {
       targetMode = 'beneficiary';
-    } else if (isOperator) {
-      // Si el funcionario es operador de almacén, abrir directamente la Mesa de Despacho
-      targetMode = 'operator';
     } else if (isAdmin && window.currentLoginMode === 'admin') {
       targetMode = 'admin';
     } else {
@@ -1017,8 +1014,10 @@ window.applyUserSession = function(user, targetMode) {
 
   // Determinar la vista destino:
   let mode = targetMode || sessionStorage.getItem('sgbt_session_view_mode');
-  if (!mode) {
-    mode = isOperator ? 'operator' : (user.role === 'worker' ? 'beneficiary' : 'admin');
+  if (isOperator) {
+    mode = 'operator';
+  } else if (!mode) {
+    mode = (user.role === 'worker' ? 'beneficiary' : 'admin');
   }
   sessionStorage.setItem('sgbt_session_view_mode', mode);
 
@@ -1066,13 +1065,13 @@ window.applyUserSession = function(user, targetMode) {
     brandingSubtab.style.display = isAdmin ? 'inline-flex' : 'none';
   }
   if (btnSwitchToAdmin) {
-    btnSwitchToAdmin.style.display = (isAdmin && mode !== 'admin') ? 'flex' : 'none';
+    btnSwitchToAdmin.style.display = (isAdmin && !isOperator && mode !== 'admin') ? 'flex' : 'none';
   }
   if (btnSwitchToDistributor) {
-    btnSwitchToDistributor.style.display = (isAdmin || isOperator) && mode !== 'operator' ? 'flex' : 'none';
+    btnSwitchToDistributor.style.display = (isAdmin && !isOperator && mode !== 'operator') ? 'flex' : 'none';
   }
   if (btnSwitchToWorker) {
-    btnSwitchToWorker.style.display = (isAdmin || isOperator) && mode !== 'beneficiary' ? 'flex' : 'none';
+    btnSwitchToWorker.style.display = (isAdmin && !isOperator && mode !== 'beneficiary') ? 'flex' : 'none';
   }
 
   const btnSupervisorContingency = document.getElementById('btnOpenSupervisorContingencyModal');
@@ -1130,7 +1129,7 @@ window.applyUserSession = function(user, targetMode) {
     if (linkPortal) linkPortal.style.display = 'none';
     if (linkDistributor) linkDistributor.style.display = 'flex';
     if (linkPayroll) linkPayroll.style.display = 'none';
-    if (linkWorker) linkWorker.style.display = 'flex';
+    if (linkWorker) linkWorker.style.display = 'none'; // El operador NO debe ver carnet ni retirar combos
     if (typeof window.closeSidebar === 'function') window.closeSidebar();
     STATE.operatorId = user.id;
 
@@ -1149,7 +1148,7 @@ window.applyUserSession = function(user, targetMode) {
     const bPayroll = document.getElementById('bottomNavPayroll');
     const bNav = document.getElementById('mobileBottomNav');
     if (bNav) bNav.style.display = '';
-    if (bWorker) bWorker.style.display = 'flex';
+    if (bWorker) bWorker.style.display = 'none'; // El operador NO debe ver el botón de Mi Carnet
     if (bPortal) bPortal.style.display = 'none';
     if (bDistributor) bDistributor.style.display = 'flex';
     if (bPayroll) bPayroll.style.display = 'none';
@@ -1271,10 +1270,12 @@ window.checkAuthSession = function() {
           const isOp = (user.role === 'operator' || user.role === 'distributor');
           const urlView = new URLSearchParams(window.location.search).get('view');
           let savedMode = sessionStorage.getItem('sgbt_session_view_mode');
-          if (urlView === 'worker') {
+          if (isOp) {
+            savedMode = 'operator';
+          } else if (urlView === 'worker') {
             savedMode = 'beneficiary';
           } else if (!savedMode) {
-            savedMode = isOp ? 'operator' : (user.role === 'worker' ? 'beneficiary' : 'admin');
+            savedMode = (user.role === 'worker' ? 'beneficiary' : 'admin');
           }
           applyUserSession(user, savedMode);
           if (window.SessionManager) {
