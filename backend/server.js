@@ -50,7 +50,7 @@ app.get(/^\/coseg(\/.*)?$/, (req, res) => {
 
 // Ruta para la vista independiente de Registro y Auditoría de Entregas en Vivo (/entregas)
 app.get(/^\/entregas(\/.*)?$/, (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/entregas.html'));
+  res.sendFile(path.join(__dirname, '../public/entregas/index.html'));
 });
 
 // Servidor de estáticos (PWA, CSS, JS, Assets)

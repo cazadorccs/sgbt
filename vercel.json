@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api",
@@ -19,11 +20,11 @@
     },
     {
       "source": "/entregas",
-      "destination": "/public/entregas.html"
+      "destination": "/public/entregas/index.html"
     },
     {
       "source": "/entregas/(.*)",
-      "destination": "/public/entregas.html"
+      "destination": "/public/entregas/index.html"
     },
     {
       "source": "/(.*)",

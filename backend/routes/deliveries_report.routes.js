@@ -13,3 +13,4 @@ router.get('/deliveries/report', authenticate, controller.getDeliveriesReport);
 router.get('/deliveries/export-csv', authenticate, controller.exportDeliveriesCsv);
 
 module.exports = router;
+
