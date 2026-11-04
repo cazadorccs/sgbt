@@ -2618,6 +2618,56 @@ body.dark-mode .package-chevron {
   color: var(--text-dim);
 }
 
+/* Acordeón Desplegable / Contraíble para Mesa de Despacho */
+.dispatch-checklist .checklist-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+.checklist-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.75rem;
+  width: 100%;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease;
+}
+
+.checklist-card-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.checklist-card-body {
+  transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease;
+  overflow: hidden;
+}
+
+.checklist-card.is-collapsed .checklist-card-body {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  padding: 0 0.75rem 0 2.2rem !important;
+  pointer-events: none;
+}
+
+.checklist-card:not(.is-collapsed) .checklist-card-body {
+  max-height: 250px;
+  opacity: 1;
+  padding: 0 0.75rem 0.55rem 2.2rem;
+}
+
+.checklist-card.is-collapsed .package-chevron {
+  transform: rotate(-90deg);
+}
+
+.checklist-card:not(.is-collapsed) .package-chevron {
+  transform: rotate(0deg);
+}
+
 /* ============================================================================
    CONFIGURACIÓN GENERAL & SWITCHES DE CONTROL
    ============================================================================ */

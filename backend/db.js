@@ -682,20 +682,40 @@ function initializeDatabase() {
       WHERE id = 'c1a2b3c4-1111-2222-3333-444455557777' OR name LIKE '%Charcuter%'
     `).run();
 
-    // Garantizar asignaciones para todos los combos activos para hoy (en bloque atómico)
+    // Sincronizar combos de la jornada activa (Víveres Secos + Proteína Fresca)
+    const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    if (activeCamp) {
+      const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCamp.id)?.c || 0;
+      if (campCombosCount === 0) {
+        db.prepare("INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id) VALUES (?, ?)").run(activeCamp.id, 'c1a2b3c4-1111-2222-3333-444455556666');
+        db.prepare("INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id) VALUES (?, ?)").run(activeCamp.id, 'c1a2b3c4-1111-2222-3333-444455557777');
+      }
+    }
+
+    // Garantizar asignaciones para los combos de la jornada activa para hoy (en bloque atómico)
     const today = new Date().toISOString().split('T')[0];
     const entCount = db.prepare("SELECT COUNT(*) as c FROM daily_entitlements WHERE valid_date = ?").get()?.c || 0;
     if (entCount === 0) {
       const allWorkers = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
-      const activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
-      if (activeCombos.length > 0 && allWorkers && allWorkers.length > 0) {
+      let assignedCombos = [];
+      if (activeCamp) {
+        assignedCombos = db.prepare(`
+          SELECT cb.id FROM campaign_combos cc
+          JOIN combos cb ON cc.combo_id = cb.id
+          WHERE cc.campaign_id = ? AND cb.is_active = 1
+        `).all(activeCamp.id);
+      }
+      if (!assignedCombos || assignedCombos.length === 0) {
+        assignedCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+      }
+      if (assignedCombos.length > 0 && allWorkers && allWorkers.length > 0) {
         const assignTx = db.transaction((workersList) => {
           const insEnt = db.prepare(`
             INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
             VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
           `);
           for (const w of workersList) {
-            for (const c of activeCombos) {
+            for (const c of assignedCombos) {
               insEnt.run(crypto.randomUUID(), w.id, c.id, today);
             }
           }

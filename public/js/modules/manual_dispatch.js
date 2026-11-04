@@ -1023,13 +1023,12 @@ window.addEventListener('focus', () => {
   }
 });
 
-// Sondeo adaptativo en segundo plano cada 5 segundos si el panel o el modal de despachos están visibles
+// Sondeo adaptativo en segundo plano cada 5 segundos si el panel o el modal de despachos están visibles (exclusivo Admin/Supervisor)
 setInterval(() => {
   const isModalOpen = document.getElementById('recentDeliveriesModalBackdrop')?.classList.contains('active');
   const isManualTabActive = document.getElementById('subtab-manual-dispatch')?.style.display === 'block';
-  const isDistributorActive = document.getElementById('view-distributor')?.classList.contains('active-view');
   
-  if ((isModalOpen || isManualTabActive || isDistributorActive) && document.visibilityState === 'visible') {
+  if ((isModalOpen || isManualTabActive) && document.visibilityState === 'visible') {
     if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
       window.ManualDispatch.loadTodaySummary();
     }

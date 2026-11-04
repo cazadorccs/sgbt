@@ -19,7 +19,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=2.4">
+  <link rel="stylesheet" href="/css/styles.css?v=2.5">
 
   <!-- SGBT Dark/Light Theme Pre-render Script (Evita parpadeos FOUC) -->
   <script>
@@ -2819,25 +2819,41 @@
             </div>
 
             <!-- COMBOS A ENTREGAR (SOLO LECTURA, VERIFICACIÓN FÍSICA EN MESA) -->
-            <div style="margin-bottom: 0.85rem;">
+            <div style="margin-bottom: 0.85rem;" class="distributor-combos-section" id="distributorCombosSection">
               <div class="flex-between" style="margin-bottom: 0.35rem;">
-                <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
-                  Combos a Entregar (Verificación Física en Mesa):
-                </span>
+                <div style="display: flex; align-items: center; gap: 0.45rem; cursor: pointer;" id="headerToggleDistributorCombos" role="button" aria-expanded="false" title="Toca para desplegar o contraer todos los combos">
+                  <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                    Combos a Entregar (Verificación Física en Mesa):
+                  </span>
+                  <svg class="package-chevron" style="width: 14px; height: 14px; color: var(--text-muted); transition: transform 0.25s ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                </div>
                 <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">Combos Asignados</span>
               </div>
 
               <div class="dispatch-checklist" id="dispatchChecklist">
-                <!-- Se inyecta dinámicamente como tarjeta informativa de solo-lectura -->
-                <div class="checklist-card checked" style="cursor: default;">
-                  <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981;">✓</div>
-                  <div class="checklist-info">
-                    <div class="checklist-title">
-                      <strong>Combo Programado</strong>
-                      <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">Mesa de Despacho</span>
+                <!-- Se inyecta dinámicamente como tarjeta informativa de acordeón minimalista -->
+                <div class="checklist-card checked is-collapsed" style="border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(15, 23, 42, 0.6); overflow: hidden;">
+                  <div class="checklist-card-header" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros">
+                    <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1.5px solid #10b981; border-radius: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; pointer-events: none; flex-shrink: 0;">✓</div>
+                    <div class="checklist-info" style="flex: 1; min-width: 0;">
+                      <div class="checklist-title" style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem;">
+                        <span style="font-size: 1.15rem; line-height: 1;">🌾</span>
+                        <strong style="color: #f1f5f9; font-size: 0.84rem;">Bolsa de Víveres Secos</strong>
+                        <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700;">Mesa 1</span>
+                        <span class="badge" style="font-size: 0.62rem; background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); padding: 0.15rem 0.35rem; border-radius: 4px;">14.5 kg</span>
+                      </div>
                     </div>
-                    <div class="checklist-subtitle" style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem;">
-                      Verificación automática al escanear la credencial QR del beneficiario.
+                    <div class="package-header-right" style="display: flex; align-items: center; padding-left: 0.25rem;">
+                      <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; color: #94a3b8; transition: transform 0.25s ease;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="checklist-card-body" style="padding: 0 0.65rem 0.5rem 2.2rem; transition: all 0.25s ease;">
+                    <div class="checklist-subtitle" style="font-size: 0.74rem; color: #cbd5e1; line-height: 1.35; padding: 0.4rem 0.6rem; background: rgba(15, 23, 42, 0.5); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                      4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite, 1 kg Azúcar, 1 kg Granos, 2 Sardinas
                     </div>
                   </div>
                 </div>
@@ -2943,46 +2959,6 @@
               </div>
             </div>
 
-          </div>
-        </div>
-
-        <!-- PANEL LATERAL DE REGISTRO DE DESPACHOS EN VIVO EN MESA DE DESPACHO -->
-        <div class="glass-panel" style="max-width: 520px; flex: 1; display: flex; flex-direction: column;">
-          <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; padding-bottom: 0.65rem; border-bottom: 1px solid #e2e8f0;">
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <span style="font-size: 1.25rem;">📋</span>
-              <div>
-                <div class="panel-title" style="font-size: 1.05rem; font-weight: 800; color: #0f172a; line-height: 1.2;">
-                  Registro de Despachos en Vivo (Hoy)
-                </div>
-                <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.15rem;">
-                  Funcionarios que ya retiraron combos en esta jornada
-                </div>
-              </div>
-            </div>
-            <div style="display: flex; gap: 0.4rem; align-items: center;">
-              <span id="distributorLiveDeliveriesCountBadge" class="badge" style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; font-size: 0.75rem; font-weight: 800; padding: 0.25rem 0.65rem; border-radius: 9999px;">
-                0 entregas
-              </span>
-              <button type="button" onclick="window.openRecentDeliveriesModal && window.openRecentDeliveriesModal()" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.6rem; color: #0284c7; border-color: #0284c7; font-weight: 700; border-radius: 6px;" title="Abrir visor completo de auditoría">
-                Ampliar ↗
-              </button>
-            </div>
-          </div>
-
-          <!-- LISTADO EN VIVO DE FUNCIONARIOS QUE RETIRARON -->
-          <div id="distributorRecentDeliveriesList" style="flex: 1; min-height: 280px; max-height: 480px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.78rem; padding-right: 0.2rem;">
-            <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; background: rgba(255,255,255,0.02); border-radius: 8px; border: 1px dashed rgba(255,255,255,0.1);">
-              <div style="font-size: 1.8rem; margin-bottom: 0.35rem;">📦</div>
-              <div style="font-weight: 600; font-size: 0.8rem; color: #cbd5e1;">Sin despachos registrados hoy</div>
-              <div style="font-size: 0.7rem; color: #64748b; margin-top: 0.2rem;">Los combos aprobados en esta mesa aparecerán aquí en vivo.</div>
-            </div>
-          </div>
-
-          <!-- RESUMEN TÉCNICO OFFLINE INFERIOR -->
-          <div style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: var(--text-dim);">
-            <span>💾 Motor: SQLite + SQLCipher</span>
-            <span id="syncQueueCounterBottom">0 pendientes de subir</span>
           </div>
         </div>
 
@@ -3505,9 +3481,9 @@ Listo para recibir transacciones de nómina institucional...
   <!-- Feature Modules -->
   <script src="/js/modules/auth.js?v=3.3"></script>
   <script src="/js/modules/beneficiary.js?v=3.6"></script>
-  <script src="/js/modules/distributor.js?v=3.9"></script>
+  <script src="/js/modules/distributor.js?v=4.0"></script>
   <script src="/js/modules/admin.js?v=3.2"></script>
-  <script src="/js/modules/manual_dispatch.js?v=3.6"></script>
+  <script src="/js/modules/manual_dispatch.js?v=3.7"></script>
   <script src="/js/modules/department_batches.js?v=4.0"></script>
   <script src="/js/modules/ministerial_audit.js?v=5.0"></script>
   <script src="/js/modules/payroll.js?v=3.2"></script>

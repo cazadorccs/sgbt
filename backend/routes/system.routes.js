@@ -21,10 +21,30 @@ router.post('/setup/initialize', systemController.initializeSetup);
 router.get('/setup/sample-payroll.csv', systemController.samplePayrollCsv);
 router.get('/payroll/sample-payroll.csv', systemController.samplePayrollCsv);
 
-// Catálogo de combos activos para estaciones de despacho y beneficiarios
+// Catálogo de combos activos para estaciones de despacho y beneficiarios (sincronizado con la jornada activa)
 router.get('/combos', (req, res) => {
   try {
     const { db } = require('../db');
+    const { all } = req.query;
+
+    // Si no se solicita el catálogo completo forzado, retornar los combos de la jornada activa
+    if (all !== 'true' && all !== '1') {
+      const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+      if (activeCamp) {
+        const campCombos = db.prepare(`
+          SELECT cb.id, cb.name, cb.description, cb.category, cb.items_detail, cb.icon, cb.mesa_name, cb.mesa_number, cb.weight_kg, cb.is_active
+          FROM campaign_combos cc
+          JOIN combos cb ON cc.combo_id = cb.id
+          WHERE cc.campaign_id = ? AND cb.is_active = 1
+          ORDER BY cb.created_at ASC, cb.id ASC
+        `).all(activeCamp.id);
+
+        if (campCombos && campCombos.length > 0) {
+          return res.json(campCombos);
+        }
+      }
+    }
+
     const combos = db.prepare(`
       SELECT id, name, description, category, items_detail, icon, mesa_name, mesa_number, weight_kg, is_active
       FROM combos

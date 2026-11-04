@@ -219,9 +219,22 @@ const atomicClaim = async (req, res) => {
       ORDER BY c.created_at ASC, e.shift ASC
     `).all(wid, today);
 
-    // Auto-generación de entitlements para combos activos si no existían
+    // Auto-generación de entitlements para combos de la jornada activa si no existían
     if (!entitlements || entitlements.length === 0) {
-      const activeCombos = db.prepare("SELECT id, name, category, icon, mesa_name FROM combos WHERE is_active = 1 ORDER BY created_at ASC, id ASC").all();
+      let activeCombos = [];
+      const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+      if (activeCamp) {
+        activeCombos = db.prepare(`
+          SELECT cb.id, cb.name, cb.category, cb.icon, cb.mesa_name
+          FROM campaign_combos cc
+          JOIN combos cb ON cc.combo_id = cb.id
+          WHERE cc.campaign_id = ? AND cb.is_active = 1
+          ORDER BY cb.created_at ASC, cb.id ASC
+        `).all(activeCamp.id);
+      }
+      if (!activeCombos || activeCombos.length === 0) {
+        activeCombos = db.prepare("SELECT id, name, category, icon, mesa_name FROM combos WHERE is_active = 1 ORDER BY created_at ASC, id ASC").all();
+      }
       for (const ac of activeCombos) {
         const newEntId = crypto.randomUUID();
         try {

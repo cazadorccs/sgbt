@@ -226,41 +226,36 @@ window.setupDistributorSimulator = function () {
   // Escuchar sincronización en tiempo real de QR generado por el beneficiario (Multi-pestaña)
   setupRealtimeQrSyncListener();
 
-  // Cargar resumen de despachos en vivo de la jornada para la mesa
-  if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
-    window.ManualDispatch.loadTodaySummary();
-  }
+  // Inicializar acordeón desplegable/contraíble para combos a entregar en mesa de despacho
+  setupDistributorCombosAccordion();
 };
 
 async function loadDistributorCombos() {
   let combos = null;
-  // 1. Intentar desde STATE.localCache.combos
-  if (STATE.localCache && Array.isArray(STATE.localCache.combos) && STATE.localCache.combos.length > 0) {
-    combos = STATE.localCache.combos;
+  // 1. Consultar siempre primero el backend /api/v1/combos (sincronizado con la jornada activa)
+  try {
+    combos = await API.get('/api/v1/combos');
+  } catch (e) {
+    console.warn('[DISTRIBUIDOR] No se pudo cargar /api/v1/combos en red:', e);
   }
-  // 2. Si no, consultar /api/v1/combos
-  if (!combos) {
-    try {
-      combos = await API.get('/api/v1/combos');
-    } catch (e) {
-      console.warn('[DISTRIBUIDOR] No se pudo cargar /api/v1/combos:', e);
+
+  // 2. Si falla la red, intentar desde STATE.localCache o localStorage
+  if (!combos || !Array.isArray(combos) || combos.length === 0) {
+    if (STATE.localCache && Array.isArray(STATE.localCache.combos) && STATE.localCache.combos.length > 0) {
+      combos = STATE.localCache.combos;
+    } else {
+      try {
+        const stored = localStorage.getItem('sgbt_cached_combos');
+        if (stored) combos = JSON.parse(stored);
+      } catch (e) { }
     }
   }
-  // 3. Si no, consultar localStorage
-  if (!combos) {
-    try {
-      const stored = localStorage.getItem('sgbt_cached_combos');
-      if (stored) combos = JSON.parse(stored);
-    } catch (e) { }
-  }
-  // 4. Fallback estándar a catálogo oficial asegurando Combo de Útiles Escolares
+
+  // 3. Fallback oficial sincronizado con la jornada activa (Víveres Secos + Proteína Fresca)
   if (!combos || !Array.isArray(combos) || combos.length === 0) {
     combos = [
-      { id: '0f74d741-6310-4d6c-b8e5-8cd6e76f9113', name: 'Combo de Útiles Escolares', icon: '🎒', category: 'utiles_escolares', mesa_name: 'Mesa 1', mesa_number: 1, weight_kg: 3.5, items_detail: '6 Cuadernos engrapados, 1 Morral tricolor impermeable, 1 Caja lápices 2B, 1 Juego de geometría, 1 Caja creyones, 1 Pega blanca' },
       { id: 'c1a2b3c4-1111-2222-3333-444455556666', name: 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)', icon: '🌾', mesa_name: 'Mesa 1', weight_kg: 14.5, items_detail: '4 kg Harina de Maíz Precocida, 2 kg Arroz Blanco, 2 kg Pasta Larga, 1 Lt Aceite Vegetal, 1 kg Azúcar, 1 kg Granos Negros, 2 Sardinas' },
-      { id: 'c1a2b3c4-1111-2222-3333-444455557777', name: 'Combo Charcutería', icon: '🍗', mesa_name: 'Mesa 2 - Charcutería / Proteína', weight_kg: 14.0, items_detail: 'Cadena de frío: Pollo entero, Carne molida, Mortadela especial' },
-      { id: '3df50537-3333-4fce-8bdc-f4ecbb567adf', name: 'Combo de Higiene Personal', icon: '🧼', mesa_name: 'Mesa 2 - Higiene y Aseo Personal', weight_kg: 5.2, items_detail: '4 artículos: 4 Jabones de Tocador, 1 Crema Dental, 1 Champú, 4 Rollos de Papel Higiénico' },
-      { id: '2e39c4a5-0611-4a03-b10c-08ef7e270684', name: 'Combo de Limpieza', icon: '🧹', mesa_name: 'Mesa 4 - Artículos de Limpieza', weight_kg: 5.2, items_detail: 'Artículos de limpieza: 1 Detergente en Polvo (1kg), 1 Jabón Lavaplatos, Desinfectante y Cloro' }
+      { id: 'c1a2b3c4-1111-2222-3333-444455557777', name: 'Combo Proteico Fresco (Charcutería)', icon: '🍗', mesa_name: 'Mesa 2 - Charcutería / Proteína', weight_kg: 14.0, items_detail: 'Cadena de frío: Pollo entero beneficiado, Carne de res molida, Mortadela especial' }
     ];
   }
 
@@ -354,16 +349,25 @@ function renderDistributorCombos(combos) {
 
     if (checklistContainer) {
       checklistContainer.innerHTML = activeList.map(c => `
-        <div class="checklist-card checked" data-combo-id="${c.id}" style="margin-bottom: 0.4rem; cursor: default;">
-          <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981; pointer-events: none;">✓</div>
-          <div class="checklist-info">
-            <div class="checklist-title">
-              <span style="font-size: 1.15rem; margin-right: 0.3rem;">${c.icon || '📦'}</span>
-              <strong>${c.name}</strong>
-              <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">${c.mesa_name || 'Mesa'}</span>
-              ${c.weight_kg ? `<span class="badge" style="font-size: 0.62rem; background: rgba(148, 163, 184, 0.15); color: #94a3b8; margin-left: 0.25rem;">${c.weight_kg} kg</span>` : ''}
+        <div class="checklist-card checked is-collapsed" data-combo-id="${c.id}" style="margin-bottom: 0.45rem; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(15, 23, 42, 0.6); overflow: hidden; transition: all 0.25s ease;">
+          <div class="checklist-card-header" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros de este combo">
+            <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1.5px solid #10b981; border-radius: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; pointer-events: none; flex-shrink: 0;">✓</div>
+            <div class="checklist-info" style="flex: 1; min-width: 0;">
+              <div class="checklist-title" style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem;">
+                <span style="font-size: 1.15rem; line-height: 1;">${c.icon || '📦'}</span>
+                <strong style="color: #f1f5f9; font-size: 0.84rem;">${c.name}</strong>
+                <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700;">${c.mesa_name || 'Mesa'}</span>
+                ${c.weight_kg ? `<span class="badge" style="font-size: 0.62rem; background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.25); padding: 0.15rem 0.35rem; border-radius: 4px;">${c.weight_kg} kg</span>` : ''}
+              </div>
             </div>
-            <div class="checklist-subtitle" style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.2rem;">
+            <div class="package-header-right" style="display: flex; align-items: center; padding-left: 0.25rem;">
+              <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; color: #94a3b8; transition: transform 0.25s ease;">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="checklist-card-body" style="padding: 0 0.65rem 0.5rem 2.2rem; transition: all 0.25s ease;">
+            <div class="checklist-subtitle" style="font-size: 0.74rem; color: #cbd5e1; line-height: 1.35; padding: 0.4rem 0.6rem; background: rgba(15, 23, 42, 0.5); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
               ${c.items_detail || 'Artículos y víveres asignados &middot; Despacho oficial'}
             </div>
           </div>
@@ -425,20 +429,68 @@ function renderDistributorCombos(combos) {
 
   if (checklistContainer) {
     checklistContainer.innerHTML = `
-      <div class="checklist-card checked" data-combo-id="${activeStationCombo.id}" style="cursor: default;">
-        <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: #10b981; pointer-events: none;">✓</div>
-        <div class="checklist-info">
-          <div class="checklist-title">
-            <span style="font-size: 1.2rem; margin-right: 0.3rem;">${activeStationCombo.icon || '📦'}</span>
-            <strong>${activeStationCombo.name}</strong>
-            <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; margin-left: 0.4rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700;">${activeStationCombo.mesa_name || 'Mesa 1'}</span>
+      <div class="checklist-card checked is-collapsed" data-combo-id="${activeStationCombo.id}" style="border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(15, 23, 42, 0.6); overflow: hidden; transition: all 0.25s ease;">
+        <div class="checklist-card-header" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros de este combo">
+          <div class="checklist-checkbox" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border: 1.5px solid #10b981; border-radius: 4px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; pointer-events: none; flex-shrink: 0;">✓</div>
+          <div class="checklist-info" style="flex: 1; min-width: 0;">
+            <div class="checklist-title" style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem;">
+              <span style="font-size: 1.2rem; line-height: 1;">${activeStationCombo.icon || '📦'}</span>
+              <strong style="color: #f1f5f9; font-size: 0.84rem;">${activeStationCombo.name}</strong>
+              <span class="badge" style="font-size: 0.65rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 700;">${activeStationCombo.mesa_name || 'Mesa 1'}</span>
+            </div>
           </div>
-          <div class="checklist-subtitle" style="font-size: 0.74rem; color: #94a3b8; margin-top: 0.25rem;">
+          <div class="package-header-right" style="display: flex; align-items: center; padding-left: 0.25rem;">
+            <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; color: #94a3b8; transition: transform 0.25s ease;">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+        <div class="checklist-card-body" style="padding: 0 0.65rem 0.5rem 2.2rem; transition: all 0.25s ease;">
+          <div class="checklist-subtitle" style="font-size: 0.74rem; color: #cbd5e1; line-height: 1.35; padding: 0.4rem 0.6rem; background: rgba(15, 23, 42, 0.5); border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
             ${activeStationCombo.items_detail || 'Artículos y víveres asignados &middot; Despacho oficial'}
           </div>
         </div>
       </div>
     `;
+  }
+}
+
+function setupDistributorCombosAccordion() {
+  const checklistContainer = document.getElementById('dispatchChecklist');
+  if (checklistContainer && !checklistContainer.dataset.accordionInit) {
+    checklistContainer.dataset.accordionInit = 'true';
+    checklistContainer.addEventListener('click', (e) => {
+      const header = e.target.closest('.checklist-card-header');
+      if (!header) return;
+      const card = header.closest('.checklist-card');
+      if (!card) return;
+      const isCollapsed = card.classList.toggle('is-collapsed');
+      header.setAttribute('aria-expanded', String(!isCollapsed));
+    });
+  }
+
+  const headerToggleDistributorCombos = document.getElementById('headerToggleDistributorCombos');
+  if (headerToggleDistributorCombos && !headerToggleDistributorCombos.dataset.toggleInit) {
+    headerToggleDistributorCombos.dataset.toggleInit = 'true';
+    headerToggleDistributorCombos.addEventListener('click', () => {
+      const cards = checklistContainer?.querySelectorAll('.checklist-card') || [];
+      if (cards.length === 0) return;
+      const anyCollapsed = Array.from(cards).some(c => c.classList.contains('is-collapsed'));
+      cards.forEach(card => {
+        const header = card.querySelector('.checklist-card-header');
+        if (anyCollapsed) {
+          card.classList.remove('is-collapsed');
+          if (header) header.setAttribute('aria-expanded', 'true');
+        } else {
+          card.classList.add('is-collapsed');
+          if (header) header.setAttribute('aria-expanded', 'false');
+        }
+      });
+      const chevron = headerToggleDistributorCombos.querySelector('.package-chevron');
+      if (chevron) {
+        chevron.style.transform = anyCollapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+      }
+    });
   }
 }
 
@@ -2169,9 +2221,6 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
   if (icon) icon.textContent = isSuccess ? '✅' : '🛑';
   if (t) t.textContent = title;
   if (isSuccess) {
-    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
-      window.ManualDispatch.loadTodaySummary();
-    }
     window.dispatchEvent(new CustomEvent('delivery:completed', { detail: { title, subtitle, extraData } }));
   }
 
@@ -2206,9 +2255,7 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
         }
         return `
               <div>✅ <strong>Bolsa de Víveres Secos</strong> (Canasta Básica MIPPCI)</div>
-              <div>✅ <strong>Combo Charcutería / Proteína</strong> (Cadena de Frío)</div>
-              <div>✅ <strong>Combo de Higiene Personal</strong> (4 artículos de aseo)</div>
-              <div>✅ <strong>Combo de Limpieza</strong> (Artículos de limpieza)</div>
+              <div>✅ <strong>Combo Proteico Fresco / Charcutería</strong> (Cadena de Frío)</div>
             `;
       })()}
         </div>
