@@ -219,23 +219,54 @@ const atomicClaim = async (req, res) => {
       ORDER BY c.created_at ASC, e.shift ASC
     `).all(wid, today);
 
-    // Auto-generación de entitlements para combos de la jornada activa si no existían
-    if (!entitlements || entitlements.length === 0) {
-      let activeCombos = [];
-      const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
-      if (activeCamp) {
-        activeCombos = db.prepare(`
-          SELECT cb.id, cb.name, cb.category, cb.icon, cb.mesa_name
-          FROM campaign_combos cc
-          JOIN combos cb ON cc.combo_id = cb.id
-          WHERE cc.campaign_id = ? AND cb.is_active = 1
-          ORDER BY cb.created_at ASC, cb.id ASC
-        `).all(activeCamp.id);
+    // Auto-generación y sincronización de entitlements para combos de la jornada activa
+    const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    let campCombos = [];
+    if (activeCamp) {
+      campCombos = db.prepare(`
+        SELECT cb.id, cb.name, cb.category, cb.icon, cb.mesa_name
+        FROM campaign_combos cc
+        JOIN combos cb ON cc.combo_id = cb.id
+        WHERE cc.campaign_id = ? AND cb.is_active = 1
+        ORDER BY cb.created_at ASC, cb.id ASC
+      `).all(activeCamp.id);
+
+      if ((!campCombos || campCombos.length === 0) && activeCamp.combo_id) {
+        const directCb = db.prepare("SELECT id, name, category, icon, mesa_name FROM combos WHERE id = ? AND is_active = 1").get(activeCamp.combo_id);
+        if (directCb) campCombos = [directCb];
       }
-      if (!activeCombos || activeCombos.length === 0) {
-        activeCombos = db.prepare("SELECT id, name, category, icon, mesa_name FROM combos WHERE is_active = 1 ORDER BY created_at ASC, id ASC").all();
+    }
+
+    if (campCombos.length > 0) {
+      const existingCombos = new Set(entitlements.map(e => e.combo_id));
+      for (const ac of campCombos) {
+        if (!existingCombos.has(ac.id)) {
+          const newEntId = crypto.randomUUID();
+          try {
+            db.prepare(`
+              INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id)
+              VALUES (?, ?, ?, ?, ?, 'pending', ?)
+            `).run(newEntId, wid, ac.id, today, ac.mesa_name ? ac.mesa_name.split(' - ')[0].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua', activeCamp.id);
+          } catch (e) { }
+        }
       }
-      for (const ac of activeCombos) {
+
+      entitlements = db.prepare(`
+        SELECT e.id, e.combo_id, e.shift, e.status,
+               c.name as combo_name, c.category as combo_category, c.mesa_number, c.icon, c.mesa_name, c.weight_kg, c.items_detail
+        FROM daily_entitlements e
+        JOIN combos c ON e.combo_id = c.id
+        WHERE e.worker_id = ? AND date(e.valid_date) = date(?) AND c.is_active = 1
+          AND (e.campaign_id = ? OR e.combo_id IN (
+            SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
+            UNION
+            SELECT combo_id FROM delivery_campaigns WHERE id = ? AND combo_id IS NOT NULL
+          ))
+        ORDER BY c.created_at ASC, e.shift ASC
+      `).all(wid, today, activeCamp.id, activeCamp.id, activeCamp.id);
+    } else if (!entitlements || entitlements.length === 0) {
+      let fallbackCombos = db.prepare("SELECT id, name, category, icon, mesa_name FROM combos WHERE is_active = 1 ORDER BY created_at ASC, id ASC").all();
+      for (const ac of fallbackCombos) {
         const newEntId = crypto.randomUUID();
         try {
           db.prepare(`
@@ -300,7 +331,6 @@ const atomicClaim = async (req, res) => {
       : db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
     const finalOperatorId = operatorUser ? operatorUser.id : null;
 
-    const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     const campId = activeCamp ? activeCamp.id : null;
 
     const methodUsed = verification_method || (qr_payload && qr_payload.transport === 'nfc' ? 'passkey_nfc' : 'passkey_qr');

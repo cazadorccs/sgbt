@@ -155,6 +155,34 @@ window.setupWorkerSimulator = function() {
         }
       } catch (e) {}
 
+      // Cargar y renderizar dinámicamente los combos asignados a la jornada activa
+      let activeCampaignCombos = [];
+      try {
+        const combosRes = await API.get('/api/v1/combos');
+        if (combosRes && Array.isArray(combosRes) && combosRes.length > 0) {
+          activeCampaignCombos = combosRes;
+        }
+      } catch (cErr) {
+        console.warn('[BENEFICIARY] No se pudieron cargar combos vía /api/v1/combos:', cErr);
+      }
+
+      if (activeCampaignCombos.length === 0 && worker.entitlements && worker.entitlements.length > 0) {
+        activeCampaignCombos = worker.entitlements.map(e => ({
+          id: e.combo_id,
+          name: e.combo_name,
+          category: e.combo_category,
+          icon: e.combo_icon,
+          description: e.combo_description,
+          items_detail: e.items_detail
+        }));
+      }
+
+      STATE.cachedActiveCombos = activeCampaignCombos;
+      if (typeof window.renderWorkerPackagesSection === 'function') {
+        const isDelivered = Boolean(STATE.deliveredStations && STATE.deliveredStations.size > 0);
+        window.renderWorkerPackagesSection(activeCampaignCombos, isDelivered);
+      }
+
       // Verificar si tiene passkey activa
       const activePasskey = passkeys.find(p => p.status === 'active');
       const statusText = document.getElementById('workerPasskeyStatusText');
@@ -803,6 +831,9 @@ window.setupWorkerSimulator = function() {
     }
 
     // 2. Actualizar insignias de bultos individualmente
+    if (typeof window.renderWorkerPackagesSection === 'function' && STATE.cachedActiveCombos && STATE.cachedActiveCombos.length > 0) {
+      window.renderWorkerPackagesSection(STATE.cachedActiveCombos, true);
+    }
     const badgeViveres = document.getElementById('badgeViveresSecos');
     if (badgeViveres) {
       if (station1Done || data.delivery_type === 'atomic_total_claim') {
@@ -1362,6 +1393,78 @@ window.setupWorkerSimulator = function() {
   }, 45000);
 
   // Soporte interactivo para desplegar y contraer los combos (vista minimalista de carnet)
+  window.renderWorkerPackagesSection = function(combosList, isDelivered = false) {
+    const packagesSection = document.getElementById('workerPackagesSection');
+    if (!packagesSection) return;
+
+    if (!combosList || !Array.isArray(combosList) || combosList.length === 0) {
+      packagesSection.innerHTML = `
+        <div style="background: rgba(15, 23, 42, 0.4); border: 1px dashed rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 0.85rem; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
+          📦 No hay combos asignados en la jornada activa en este momento.
+        </div>
+      `;
+      return;
+    }
+
+    packagesSection.innerHTML = combosList.map((c, idx) => {
+      let icon = c.icon || '📦';
+      let catClass = 'viveres-card';
+      let badgeClass = 'badge-viveres';
+      let catLabel = (c.category || 'beneficio').replace('_', ' ').toUpperCase();
+
+      if (c.category === 'combo_proteico' || c.category === 'proteico') {
+        catClass = 'proteina-card';
+        badgeClass = 'badge-proteina';
+        catLabel = 'PROTEÍNA FRESCA';
+        if (!c.icon) icon = '🍗';
+      } else if (c.category === 'utiles_escolares') {
+        catClass = 'escolar-card';
+        badgeClass = 'badge-escolar';
+        catLabel = 'ÚTILES ESCOLARES';
+        if (!c.icon) icon = '🎒';
+      } else if (c.category === 'combo_higienico') {
+        catClass = 'higienico-card';
+        badgeClass = 'badge-higienico';
+        catLabel = 'HIGIENE & ASEO';
+        if (!c.icon) icon = '🧼';
+      }
+
+      const rubrosText = c.items_detail || c.description || 'Alimentos e insumos asignados en la jornada oficial.';
+      const rubros = rubrosText.split(/,|\n/).map(r => r.trim()).filter(Boolean);
+      const rubrosHtml = rubros.length > 0
+        ? rubros.map(r => `<li class="package-rubro-item"><span class="rubro-name">${r}</span></li>`).join('')
+        : `<li class="package-rubro-item"><span class="rubro-name">${c.description || 'Beneficio institucional'}</span></li>`;
+
+      const statusBadgeHtml = isDelivered
+        ? `<span class="package-card-badge" style="background: #047857; color: #ffffff;">✅ Retirado</span>`
+        : `<span class="package-card-badge ${badgeClass}">${c.weight_kg ? `~${c.weight_kg}kg` : (rubros.length ? `${rubros.length} Rubros` : catLabel)}</span>`;
+
+      return `
+        <div class="package-card ${catClass} is-collapsed" id="cardCombo_${c.id || idx}">
+          <div class="package-card-header" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros">
+            <div class="package-card-title">
+              <span>${icon} ${c.name}</span>
+            </div>
+            <div class="package-header-right">
+              ${statusBadgeHtml}
+              <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+          </div>
+          <div class="package-card-body" id="bodyCombo_${c.id || idx}">
+            <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
+              ${c.description || 'Alimentos e insumos asignados en la jornada oficial:'}
+            </div>
+            <ul class="package-rubros-list">
+              ${rubrosHtml}
+            </ul>
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
   function setupCombosAccordion() {
     const packagesSection = document.getElementById('workerPackagesSection');
     if (!packagesSection || packagesSection._hasAccordionSetup) return;
@@ -1378,6 +1481,12 @@ window.setupWorkerSimulator = function() {
     });
   }
   setupCombosAccordion();
+
+  window.addEventListener('campaign:status_changed', async () => {
+    if (typeof loadWorkerData === 'function') {
+      try { await loadWorkerData(); } catch (e) {}
+    }
+  });
 
   // Gestión del Modal de Seguridad y Candado de Dispositivo
   window.openDeviceSecurityModal = function() {

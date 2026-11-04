@@ -11,13 +11,35 @@ const getDailyPack = (req, res) => {
   const distribution_point_id = req.query.distribution_point_id || '550e8400-e29b-41d4-a716-446655440000';
   const targetDate = req.query.date || new Date().toISOString().split('T')[0];
 
-  // 1. Obtener todos los combos activos del catálogo institucional
-  const activeCombos = db.prepare(`
-    SELECT id, name, description, category, icon, mesa_name, mesa_number, weight_kg, items_detail
-    FROM combos
-    WHERE is_active = 1
-    ORDER BY created_at ASC, id ASC
-  `).all();
+  // 1. Obtener los combos vinculados a la jornada activa (o catálogo completo si no hay jornada activa)
+  let activeCombos = [];
+  const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+  if (activeCamp) {
+    activeCombos = db.prepare(`
+      SELECT cb.id, cb.name, cb.description, cb.category, cb.icon, cb.mesa_name, cb.mesa_number, cb.weight_kg, cb.items_detail
+      FROM campaign_combos cc
+      JOIN combos cb ON cc.combo_id = cb.id
+      WHERE cc.campaign_id = ? AND cb.is_active = 1
+      ORDER BY cb.created_at ASC, cb.id ASC
+    `).all(activeCamp.id);
+
+    if ((!activeCombos || activeCombos.length === 0) && activeCamp.combo_id) {
+      const directCb = db.prepare(`
+        SELECT id, name, description, category, icon, mesa_name, mesa_number, weight_kg, items_detail
+        FROM combos WHERE id = ? AND is_active = 1
+      `).get(activeCamp.combo_id);
+      if (directCb) activeCombos = [directCb];
+    }
+  }
+
+  if (!activeCombos || activeCombos.length === 0) {
+    activeCombos = db.prepare(`
+      SELECT id, name, description, category, icon, mesa_name, mesa_number, weight_kg, items_detail
+      FROM combos
+      WHERE is_active = 1
+      ORDER BY created_at ASC, id ASC
+    `).all();
+  }
 
   // 2. Garantizar auto-asignación diaria de TODOS los combos activos para trabajadores activos
   try {

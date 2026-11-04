@@ -697,13 +697,12 @@ function initializeDatabase() {
       WHERE id = 'c1a2b3c4-1111-2222-3333-444455557777' OR name LIKE '%Charcuter%'
     `).run();
 
-    // Sincronizar combos de la jornada activa (Víveres Secos + Proteína Fresca)
-    const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    // Sincronizar combos de la jornada activa (asegurar su combo_id respectivo en campaign_combos)
+    const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     if (activeCamp) {
       const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCamp.id)?.c || 0;
-      if (campCombosCount === 0) {
-        db.prepare("INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id) VALUES (?, ?)").run(activeCamp.id, 'c1a2b3c4-1111-2222-3333-444455556666');
-        db.prepare("INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id) VALUES (?, ?)").run(activeCamp.id, 'c1a2b3c4-1111-2222-3333-444455557777');
+      if (campCombosCount === 0 && activeCamp.combo_id) {
+        db.prepare("INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id) VALUES (?, ?)").run(activeCamp.id, activeCamp.combo_id);
       }
     }
 
@@ -1045,6 +1044,14 @@ async function syncFromSupabase() {
                   } catch (e) {}
                 }
               }
+
+              // Regla de Exclusividad: Garantizar que exista como máximo 1 sola jornada activa tras hidratar
+              const activeCamps = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' ORDER BY created_at DESC, id DESC").all();
+              if (activeCamps.length > 1) {
+                const keepId = activeCamps[0].id;
+                db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(keepId);
+              }
+
               console.log(`[SUPABASE HYDRATION] ${parsed.campaigns.length} jornadas sincronizadas desde Supabase Cloud.`);
             }
           } catch (campErr) {

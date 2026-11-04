@@ -268,6 +268,16 @@ async function loadDistributorCombos() {
   return combos;
 }
 
+window.addEventListener('campaign:status_changed', async () => {
+  try {
+    localStorage.removeItem('sgbt_cached_combos');
+    if (STATE && STATE.localCache) STATE.localCache.combos = null;
+    await loadDistributorCombos();
+  } catch (e) {
+    console.warn('[DISTRIBUTOR] Error recargando combos tras cambio de jornada:', e);
+  }
+});
+
 function setDistributorDispatchMode(mode = 'total') {
   STATE.dispatchMode = mode;
   if (mode === 'total') {

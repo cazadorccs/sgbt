@@ -143,18 +143,20 @@ function buildComboCardElement(c) {
   // Badge de Jornada Institucional
   let campaignBadgeHtml = '';
   if (c.campaign_name) {
-    const isAct = c.campaign_status === 'active';
-    const isSched = c.campaign_status === 'scheduled';
-    const bg = isAct ? '#dcfce7' : (isSched ? '#fef9c3' : '#f1f5f9');
-    const color = isAct ? '#15803d' : (isSched ? '#854d0e' : '#475569');
-    const border = isAct ? '#bbf7d0' : (isSched ? '#fef08a' : '#cbd5e1');
-    const dot = isAct ? '🟢' : (isSched ? '🟡' : '⚪');
+    const isAct = c.campaign_status === 'en_curso' || c.campaign_status === 'active';
+    const isSusp = c.campaign_status === 'suspendida';
+    const isSched = c.campaign_status === 'programada' || c.campaign_status === 'scheduled';
+    const bg = isAct ? '#dcfce7' : (isSusp ? '#fef3c7' : (isSched ? '#fef9c3' : '#f1f5f9'));
+    const color = isAct ? '#15803d' : (isSusp ? '#b45309' : (isSched ? '#854d0e' : '#475569'));
+    const border = isAct ? '#bbf7d0' : (isSusp ? '#fde68a' : (isSched ? '#fef08a' : '#cbd5e1'));
+    const dot = isAct ? '🟢' : (isSusp ? '⏸️' : (isSched ? '🟡' : '⚪'));
+    const label = isAct ? 'EN CURSO (ACTIVA)' : (isSusp ? 'SUSPENDIDA' : (isSched ? 'PROGRAMADA' : 'FINALIZADA'));
     campaignBadgeHtml = `
       <div style="margin: 0.35rem 0 0.5rem 0; display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; font-size: 0.72rem; background: ${bg}; color: ${color}; border: 1px solid ${border}; padding: 0.25rem 0.55rem; border-radius: 6px; font-weight: 700;">
         <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;" title="Jornada: ${c.campaign_name}">
           📅 ${c.campaign_name}
         </span>
-        <span style="font-size: 0.65rem; white-space: nowrap;">${dot} ${(c.campaign_status || 'activa').toUpperCase()}</span>
+        <span style="font-size: 0.65rem; white-space: nowrap;">${dot} ${label}</span>
       </div>
     `;
   } else {
@@ -445,11 +447,16 @@ window.renderCombosView = function() {
           </div>
         `;
       } else {
-        const statusBadge = sample.campaign_status === 'active'
-          ? '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #bbf7d0;">🟢 En Curso</span>'
-          : (sample.campaign_status === 'scheduled'
-             ? '<span class="badge" style="background: #fef9c3; color: #854d0e; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #fef08a;">🟡 Programada</span>'
-             : '<span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #cbd5e1;">⚪ Finalizada</span>');
+        const isAct = sample.campaign_status === 'en_curso' || sample.campaign_status === 'active';
+        const isSusp = sample.campaign_status === 'suspendida';
+        const isSched = sample.campaign_status === 'programada' || sample.campaign_status === 'scheduled';
+        const statusBadge = isAct
+          ? '<span class="badge" style="background: #dcfce7; color: #15803d; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #bbf7d0;">🟢 En Curso (Activa)</span>'
+          : (isSusp
+             ? '<span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #fde68a;">⏸️ Suspendida</span>'
+             : (isSched
+                ? '<span class="badge" style="background: #fef9c3; color: #854d0e; font-weight: 800; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #fef08a;">🟡 Programada</span>'
+                : '<span class="badge" style="background: #f1f5f9; color: #475569; font-weight: 700; font-size: 0.72rem; padding: 0.25rem 0.6rem; border-radius: 999px; border: 1px solid #cbd5e1;">⚪ Finalizada</span>'));
 
         const dateRangeText = (sample.campaign_start_date || sample.campaign_end_date)
           ? `🗓️ ${sample.campaign_start_date || ''} ${sample.campaign_end_date ? '→ ' + sample.campaign_end_date : ''}`
@@ -1451,6 +1458,10 @@ window.loadCampaigns = async function() {
           }
           if (typeof loadNotifications === 'function') await loadNotifications();
           await loadCampaigns();
+          if (typeof loadCombosCatalog === 'function') await loadCombosCatalog();
+          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+          try { localStorage.removeItem('sgbt_cached_combos'); } catch (e) {}
+          window.dispatchEvent(new CustomEvent('campaign:status_changed', { detail: { id, status } }));
         } catch (err) {
           window.showToast('Error al emitir notificación: ' + err.message, 'error');
           btn.disabled = false;
@@ -1501,6 +1512,10 @@ window.loadCampaigns = async function() {
             window.showToast(`Estado actualizado: ${status}`, 'success');
           }
           await loadCampaigns();
+          if (typeof loadCombosCatalog === 'function') await loadCombosCatalog();
+          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+          try { localStorage.removeItem('sgbt_cached_combos'); } catch (e) {}
+          window.dispatchEvent(new CustomEvent('campaign:status_changed', { detail: { id, status } }));
         } catch (err) {
           window.showToast('Error actualizando estado: ' + err.message, 'error');
         } finally {
@@ -1551,6 +1566,10 @@ window.loadCampaigns = async function() {
             }
             if (typeof window.playAudioFeedback === 'function') window.playAudioFeedback('success');
             await loadCampaigns();
+          if (typeof loadCombosCatalog === 'function') await loadCombosCatalog();
+          if (typeof window.refreshPortalData === 'function') await window.refreshPortalData();
+          try { localStorage.removeItem('sgbt_cached_combos'); } catch (e) {}
+          window.dispatchEvent(new CustomEvent('campaign:status_changed', { detail: { id, status } }));
           } else {
             throw new Error(res?.error || 'No se pudo eliminar la jornada.');
           }

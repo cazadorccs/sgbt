@@ -278,19 +278,38 @@ const login = async (req, res) => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Auto-asignación de todos los combos activos de la jornada para trabajadores activos/jubilados
+    // Auto-asignación de combos vinculados a la jornada activa para trabajadores activos/jubilados
     if (worker.status === 'active') {
       try {
-        const activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+        let activeCombos = [];
+        const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+        if (activeCamp) {
+          activeCombos = db.prepare(`
+            SELECT cb.id FROM campaign_combos cc
+            JOIN combos cb ON cc.combo_id = cb.id
+            WHERE cc.campaign_id = ? AND cb.is_active = 1
+          `).all(activeCamp.id);
+
+          if ((!activeCombos || activeCombos.length === 0) && activeCamp.combo_id) {
+            const cb = db.prepare("SELECT id FROM combos WHERE id = ? AND is_active = 1").get(activeCamp.combo_id);
+            if (cb) activeCombos = [cb];
+          }
+        }
+
+        if (!activeCombos || activeCombos.length === 0) {
+          activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+        }
+
+        const campId = activeCamp ? activeCamp.id : null;
         const existingCombos = db.prepare("SELECT combo_id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").all(worker.id, today);
         const existingIds = new Set(existingCombos.map(e => e.combo_id));
         const insEnt = db.prepare(`
-          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+          INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id)
+          VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?)
         `);
         for (const c of activeCombos) {
           if (!existingIds.has(c.id)) {
-            insEnt.run(crypto.randomUUID(), worker.id, c.id, today);
+            insEnt.run(crypto.randomUUID(), worker.id, c.id, today, campId);
           }
         }
       } catch (autoEntErr) {
@@ -298,13 +317,24 @@ const login = async (req, res) => {
       }
     }
 
-    const allEntitlements = db.prepare(`
-      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon
+    const currentActiveCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    let entQuery = `
+      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon, c.items_detail, c.weight_kg
       FROM daily_entitlements de
       JOIN combos c ON de.combo_id = c.id
       WHERE de.worker_id = ? AND de.valid_date = ? AND c.is_active = 1
-      ORDER BY c.created_at ASC
-    `).all(worker.id, today);
+    `;
+    const entParams = [worker.id, today];
+    if (currentActiveCamp) {
+      entQuery += ` AND (de.campaign_id = ? OR de.campaign_id IS NULL OR de.combo_id IN (
+        SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
+        UNION
+        SELECT combo_id FROM delivery_campaigns WHERE id = ? AND combo_id IS NOT NULL
+      ))`;
+      entParams.push(currentActiveCamp.id, currentActiveCamp.id, currentActiveCamp.id);
+    }
+    entQuery += ` ORDER BY c.created_at ASC`;
+    const allEntitlements = db.prepare(entQuery).all(...entParams);
 
     let entitlement = allEntitlements[0] || null;
 
@@ -842,29 +872,59 @@ const enrollBeneficiary = async (req, res) => {
     // Auto-asignación de combos activos de la jornada
     const today = new Date().toISOString().split('T')[0];
     try {
-      const activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+      let activeCombos = [];
+      const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+      if (activeCamp) {
+        activeCombos = db.prepare(`
+          SELECT cb.id FROM campaign_combos cc
+          JOIN combos cb ON cc.combo_id = cb.id
+          WHERE cc.campaign_id = ? AND cb.is_active = 1
+        `).all(activeCamp.id);
+
+        if ((!activeCombos || activeCombos.length === 0) && activeCamp.combo_id) {
+          const cb = db.prepare("SELECT id FROM combos WHERE id = ? AND is_active = 1").get(activeCamp.combo_id);
+          if (cb) activeCombos = [cb];
+        }
+      }
+
+      if (!activeCombos || activeCombos.length === 0) {
+        activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+      }
+
+      const campId = activeCamp ? activeCamp.id : null;
       const existingCombos = db.prepare("SELECT combo_id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ?").all(worker.id, today);
       const existingIds = new Set(existingCombos.map(e => e.combo_id));
       const insEnt = db.prepare(`
-        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id)
+        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?)
       `);
       for (const c of activeCombos) {
         if (!existingIds.has(c.id)) {
-          insEnt.run(crypto.randomUUID(), worker.id, c.id, today);
+          insEnt.run(crypto.randomUUID(), worker.id, c.id, today, campId);
         }
       }
     } catch (e) {
       console.warn('[ENROLL AUTO-ENTITLEMENT WARNING]', e.message);
     }
 
-    const allEntitlements = db.prepare(`
-      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon
+    const enrollActiveCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    let enrollEntQuery = `
+      SELECT de.*, c.name as combo_name, c.category as combo_category, c.description as combo_description, c.icon as combo_icon, c.items_detail, c.weight_kg
       FROM daily_entitlements de
       JOIN combos c ON de.combo_id = c.id
       WHERE de.worker_id = ? AND de.valid_date = ? AND c.is_active = 1
-      ORDER BY c.created_at ASC
-    `).all(worker.id, today);
+    `;
+    const enrollEntParams = [worker.id, today];
+    if (enrollActiveCamp) {
+      enrollEntQuery += ` AND (de.campaign_id = ? OR de.campaign_id IS NULL OR de.combo_id IN (
+        SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
+        UNION
+        SELECT combo_id FROM delivery_campaigns WHERE id = ? AND combo_id IS NOT NULL
+      ))`;
+      enrollEntParams.push(enrollActiveCamp.id, enrollActiveCamp.id, enrollActiveCamp.id);
+    }
+    enrollEntQuery += ` ORDER BY c.created_at ASC`;
+    const allEntitlements = db.prepare(enrollEntQuery).all(...enrollEntParams);
 
     // Generar sesión institucional por dispositivo (Device-Bound) de 12 horas
     const { sessionToken, jti } = createDeviceSession({

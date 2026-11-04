@@ -593,20 +593,41 @@ const getCombos = async (req, res) => {
 
   const combos = db.prepare(`
     SELECT c.*,
-           COALESCE(c.campaign_id, dc.id, de_camp.id) as campaign_id,
-           COALESCE(camp_direct.name, dc.name, de_camp.name) as campaign_name,
-           COALESCE(camp_direct.status, dc.status, de_camp.status) as campaign_status,
-           COALESCE(camp_direct.start_date, dc.start_date, de_camp.start_date) as campaign_start_date,
-           COALESCE(camp_direct.end_date, dc.end_date, de_camp.end_date) as campaign_end_date
+           best_camp.id as campaign_id,
+           best_camp.name as campaign_name,
+           best_camp.status as campaign_status,
+           best_camp.start_date as campaign_start_date,
+           best_camp.end_date as campaign_end_date
     FROM combos c
-    LEFT JOIN delivery_campaigns camp_direct ON c.campaign_id = camp_direct.id
-    LEFT JOIN delivery_campaigns dc ON dc.combo_id = c.id
     LEFT JOIN (
-      SELECT DISTINCT de.combo_id, camp.id, camp.name, camp.status, camp.start_date, camp.end_date
-      FROM daily_entitlements de
-      JOIN delivery_campaigns camp ON de.campaign_id = camp.id
-    ) de_camp ON de_camp.combo_id = c.id
-    GROUP BY c.id
+      SELECT 
+        combo_link.combo_id,
+        camp.id,
+        camp.name,
+        camp.status,
+        camp.start_date,
+        camp.end_date,
+        ROW_NUMBER() OVER (
+          PARTITION BY combo_link.combo_id 
+          ORDER BY 
+            CASE camp.status 
+              WHEN 'en_curso' THEN 1 
+              WHEN 'programada' THEN 2 
+              WHEN 'suspendida' THEN 3 
+              WHEN 'finalizada' THEN 4 
+              ELSE 5 
+            END,
+            camp.created_at DESC
+        ) as rn
+      FROM (
+        SELECT combo_id, campaign_id FROM campaign_combos
+        UNION
+        SELECT combo_id, id as campaign_id FROM delivery_campaigns WHERE combo_id IS NOT NULL
+        UNION
+        SELECT id as combo_id, campaign_id FROM combos WHERE campaign_id IS NOT NULL
+      ) combo_link
+      JOIN delivery_campaigns camp ON combo_link.campaign_id = camp.id
+    ) best_camp ON best_camp.combo_id = c.id AND best_camp.rn = 1
     ORDER BY c.created_at DESC
   `).all();
   res.json(combos);

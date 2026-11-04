@@ -29,15 +29,24 @@ router.get('/combos', (req, res) => {
 
     // Si no se solicita el catálogo completo forzado, retornar los combos de la jornada activa
     if (all !== 'true' && all !== '1') {
-      const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+      const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
       if (activeCamp) {
-        const campCombos = db.prepare(`
+        let campCombos = db.prepare(`
           SELECT cb.id, cb.name, cb.description, cb.category, cb.items_detail, cb.icon, cb.mesa_name, cb.mesa_number, cb.weight_kg, cb.is_active
           FROM campaign_combos cc
           JOIN combos cb ON cc.combo_id = cb.id
           WHERE cc.campaign_id = ? AND cb.is_active = 1
           ORDER BY cb.created_at ASC, cb.id ASC
         `).all(activeCamp.id);
+
+        if ((!campCombos || campCombos.length === 0) && activeCamp.combo_id) {
+          const directCombo = db.prepare(`
+            SELECT id, name, description, category, items_detail, icon, mesa_name, mesa_number, weight_kg, is_active
+            FROM combos
+            WHERE id = ? AND is_active = 1
+          `).get(activeCamp.combo_id);
+          if (directCombo) campCombos = [directCombo];
+        }
 
         if (campCombos && campCombos.length > 0) {
           return res.json(campCombos);

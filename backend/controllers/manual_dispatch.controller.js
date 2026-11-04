@@ -58,7 +58,8 @@ const searchWorkerByCedula = (req, res) => {
     ensureTodayEntitlementsForWorker(worker.id, today);
 
     // Obtener los derechos / combos de hoy para este trabajador (activos o ya entregados)
-    const entitlements = db.prepare(`
+    const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    let entSql = `
       SELECT 
         e.id as entitlement_id, e.shift, e.status, e.valid_date,
         c.id as combo_id, c.name as combo_name, c.category, c.items_detail,
@@ -70,8 +71,18 @@ const searchWorkerByCedula = (req, res) => {
       LEFT JOIN deliveries d ON d.entitlement_id = e.id
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
       WHERE e.worker_id = ? AND e.valid_date = ? AND (c.is_active = 1 OR d.id IS NOT NULL)
-      ORDER BY c.created_at ASC, c.id ASC
-    `).all(worker.id, today);
+    `;
+    const entParams = [worker.id, today];
+    if (activeCamp) {
+      entSql += ` AND (e.campaign_id = ? OR e.combo_id IN (
+        SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
+        UNION
+        SELECT combo_id FROM delivery_campaigns WHERE id = ? AND combo_id IS NOT NULL
+      ) OR d.id IS NOT NULL)`;
+      entParams.push(activeCamp.id, activeCamp.id, activeCamp.id);
+    }
+    entSql += ` ORDER BY c.created_at ASC, c.id ASC`;
+    const entitlements = db.prepare(entSql).all(...entParams);
 
     const totalCombos = entitlements.length;
     const claimedCombos = entitlements.filter(e => e.status === 'claimed').length;
@@ -612,9 +623,30 @@ const resetDeliveriesAction = async (req, res) => {
 // Helper interno para asegurar que el trabajador tenga asignaciones para hoy
 function ensureTodayEntitlementsForWorker(workerId, today) {
   try {
-    // 1. Obtener todos los combos activos del catálogo institucional
-    const activeCombos = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE is_active = 1").all();
+    // 1. Obtener combos vinculados a la jornada activa (o catálogo completo si no hay jornada activa)
+    let activeCombos = [];
+    const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    if (activeCamp) {
+      activeCombos = db.prepare(`
+        SELECT cb.id, cb.name, cb.category, cb.icon, cb.weight_kg, cb.mesa_name
+        FROM campaign_combos cc
+        JOIN combos cb ON cc.combo_id = cb.id
+        WHERE cc.campaign_id = ? AND cb.is_active = 1
+        ORDER BY cb.created_at ASC, cb.id ASC
+      `).all(activeCamp.id);
+
+      if ((!activeCombos || activeCombos.length === 0) && activeCamp.combo_id) {
+        const directCb = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE id = ? AND is_active = 1").get(activeCamp.combo_id);
+        if (directCb) activeCombos = [directCb];
+      }
+    }
+
+    if (!activeCombos || activeCombos.length === 0) {
+      activeCombos = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE is_active = 1").all();
+    }
     if (!activeCombos || activeCombos.length === 0) return;
+
+    const campId = activeCamp ? activeCamp.id : null;
 
     // 2. Consultar cuáles combos ya están asignados hoy a este trabajador
     const existingEnts = db.prepare(
@@ -623,15 +655,15 @@ function ensureTodayEntitlementsForWorker(workerId, today) {
     const existingComboIds = new Set(existingEnts.map(e => e.combo_id));
 
     const ins = db.prepare(`
-      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id)
+      VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?)
     `);
 
     const newEnts = [];
     for (const combo of activeCombos) {
       if (!existingComboIds.has(combo.id)) {
         const entId = crypto.randomUUID();
-        const r = ins.run(entId, workerId, combo.id, today);
+        const r = ins.run(entId, workerId, combo.id, today, campId);
         if (r.changes > 0) {
           newEnts.push({
             id: entId,
@@ -639,7 +671,8 @@ function ensureTodayEntitlementsForWorker(workerId, today) {
             combo_id: combo.id,
             valid_date: today,
             shift: 'jornada_continua',
-            status: 'pending'
+            status: 'pending',
+            campaign_id: campId
           });
         }
       }

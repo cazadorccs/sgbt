@@ -529,6 +529,37 @@ const updateCampaignStatus = async (req, res) => {
         if (suspendedOthers.length > 0) {
           db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(id);
         }
+
+        // Asegurar que el combo principal de la campaña esté en campaign_combos
+        if (camp.combo_id) {
+          db.prepare("INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id, distribution_point_id) VALUES (?, ?, ?)").run(id, camp.combo_id, camp.distribution_point_id || null);
+        }
+
+        // Obtener los combos vinculados a la jornada activada
+        let newCampCombos = db.prepare("SELECT combo_id FROM campaign_combos WHERE campaign_id = ?").all(id);
+        if ((!newCampCombos || newCampCombos.length === 0) && camp.combo_id) {
+          newCampCombos = [{ combo_id: camp.combo_id }];
+        }
+
+        // Auto-reconciliar asignaciones del día para la nueva jornada activa
+        const todayStr = new Date().toISOString().split('T')[0];
+        if (newCampCombos.length > 0) {
+          let workerCondition = "status = 'active'";
+          if (camp.target_group === 'activo') workerCondition += " AND worker_type = 'activo'";
+          else if (camp.target_group === 'jubilado') workerCondition += " AND worker_type = 'jubilado'";
+          else if (camp.target_group === 'contratado') workerCondition += " AND worker_type = 'contratado'";
+
+          const activeWorkers = db.prepare(`SELECT id FROM workers WHERE ${workerCondition}`).all();
+          const insEnt = db.prepare(`
+            INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status, campaign_id, distribution_point_id)
+            VALUES (?, ?, ?, ?, 'jornada_continua', 'pending', ?, ?)
+          `);
+          for (const w of activeWorkers) {
+            for (const nc of newCampCombos) {
+              insEnt.run(crypto.randomUUID(), w.id, nc.combo_id, todayStr, id, camp.distribution_point_id || null);
+            }
+          }
+        }
       }
 
       db.prepare('UPDATE delivery_campaigns SET status = ? WHERE id = ?').run(status, id);
