@@ -573,29 +573,34 @@ window.setupWorkerSimulator = function() {
       console.warn('[SSE INIT ERROR]', sseErr);
     }
 
-    // 2. Sondeo periódico de respaldo ultra-rápido (cada 1000ms)
+    // 2. Sondeo periódico de respaldo optimizado para datos móviles (cada 3500ms con timeout)
     const checkStatus = async () => {
       try {
-        const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}`);
+        const res = await API.get(`/api/v1/auth/delivery-status?worker_id=${encodeURIComponent(wid)}`, { timeout: 3000 });
         if (res && res.delivered) {
           const currentStation = String(STATE.workerActiveStation || STATE.activeStation);
           if (currentStation === '2') {
             if (res.station_2_delivered || res.all_completed) {
               handleDeliveryApproved(res);
+              stopDeliveryMonitoring();
             }
           } else if (currentStation === '1') {
             if (res.station_1_delivered || res.all_completed) {
               handleDeliveryApproved(res);
+              stopDeliveryMonitoring();
             }
           } else {
             if (res.all_completed || res.delivered) {
               handleDeliveryApproved(res);
+              stopDeliveryMonitoring();
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        // En caso de caída de señal móvil, no spam ni logs ruidosos
+      }
     };
-    STATE.deliveryMonitorInterval = setInterval(checkStatus, 1000);
+    STATE.deliveryMonitorInterval = setInterval(checkStatus, 3500);
 
     // 3. Canal BroadcastChannel para actualización multi-pestaña local en el mismo navegador
     if ('BroadcastChannel' in window) {

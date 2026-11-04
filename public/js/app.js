@@ -292,7 +292,7 @@ function setupNavigation() {
 }
 
 // ----------------------------------------------------------------------------
-// 3. CONMUTADOR DE ENTORNO DE RED (ONLINE / OFFLINE)
+// 3. CONMUTADOR DE ENTORNO DE RED (ONLINE / OFFLINE) Y ESCUCHA NATIVA
 // ----------------------------------------------------------------------------
 function setupNetworkToggle() {
   const btn = document.getElementById('btnToggleNetwork');
@@ -300,16 +300,15 @@ function setupNetworkToggle() {
   const text = document.getElementById('connectionText');
   const dropdownLabel = document.getElementById('networkToggleItemLabel');
 
-  function toggle() {
-    STATE.isOnline = !STATE.isOnline;
-    if (STATE.isOnline) {
+  function updateNetworkUI(isOnline) {
+    STATE.isOnline = isOnline;
+    if (isOnline) {
       if (pill) {
         pill.className = 'status-pill status-pill-compact online';
         pill.title = 'Estado del entorno de red: Online (Clic para conmutar simulación)';
       }
       if (text) text.textContent = 'Online';
       if (dropdownLabel) dropdownLabel.textContent = 'Simular Desconexión';
-      // Auto-sincronizar cola acumulada al restablecer conexión
       if (typeof window.syncDeferredQueue === 'function') {
         window.syncDeferredQueue(true);
       }
@@ -321,6 +320,27 @@ function setupNetworkToggle() {
       if (text) text.textContent = 'Offline';
       if (dropdownLabel) dropdownLabel.textContent = 'Restablecer Red Online';
     }
+  }
+
+  function toggle() {
+    updateNetworkUI(!STATE.isOnline);
+  }
+
+  // Escucha activa de cambios en la conexión de datos móviles y Wi-Fi del dispositivo
+  window.addEventListener('online', () => {
+    console.log('[NETWORK] 📶 Conexión de red restablecida a nivel de sistema operativo.');
+    updateNetworkUI(true);
+  });
+
+  window.addEventListener('offline', () => {
+    console.warn('[NETWORK] 🚫 Pérdida de conectividad móvil / Wi-Fi detectada.');
+    updateNetworkUI(false);
+  });
+
+  // Estado inicial basado en la conectividad del dispositivo
+  if (typeof navigator.onLine === 'boolean') {
+    STATE.isOnline = navigator.onLine;
+    updateNetworkUI(navigator.onLine);
   }
 
   btn?.addEventListener('click', () => {

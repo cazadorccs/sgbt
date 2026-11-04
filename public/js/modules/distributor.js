@@ -79,6 +79,16 @@ window.setupDistributorSimulator = function () {
     syncDeferredQueue(true);
   });
 
+  // Daemon de auto-sincronización periódica silenciosa cada 15 segundos
+  if (!window._sgbtSyncDaemonStarted) {
+    window._sgbtSyncDaemonStarted = true;
+    setInterval(() => {
+      if (STATE.isOnline && navigator.onLine && STATE.localCache.syncQueue && STATE.localCache.syncQueue.length > 0) {
+        syncDeferredQueue(true);
+      }
+    }, 15000);
+  }
+
   // Escuchar notificaciones de sincronización en segundo plano desde el Service Worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.addEventListener('message', async (event) => {
@@ -823,12 +833,16 @@ async function startLiveCameraScanner() {
     }
 
     const config = {
-      fps: 20,
+      fps: 15,
       qrbox: (viewfinderWidth, viewfinderHeight) => {
-        const edge = Math.min(viewfinderWidth, viewfinderHeight) * 0.75;
-        return { width: Math.floor(edge), height: Math.floor(edge) };
+        const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+        const edge = Math.max(200, Math.floor(minEdge * 0.8));
+        return { width: Math.min(edge, viewfinderWidth - 20), height: Math.min(edge, viewfinderHeight - 20) };
       },
-      aspectRatio: 1.0
+      aspectRatio: 1.0,
+      formatsToSupport: (typeof Html5QrcodeSupportedFormats !== 'undefined')
+        ? [Html5QrcodeSupportedFormats.QR_CODE]
+        : undefined
     };
 
     let lastScannedRaw = '';
@@ -1198,24 +1212,13 @@ async function processQrPayload(payload, isLiveCamera = false) {
     return;
   }
 
-  if (!STATE.isOnline) {
-    const pubKey = STATE.localCache.publicKeys[payload.wid];
-    if (!pubKey) {
-      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
-        showCameraScanHUD(false, 'SIN REGISTRO PREVIO', 'El beneficiario no tiene dispositivo activo');
-      } else {
-        showDistributorFeedback(false, 'DISPOSITIVO NO REGISTRADO', 'El trabajador no posee un teléfono o método activo registrado en la base de datos.');
-      }
-      return;
-    }
-
+  function executeOfflineDispatch(payload, isLiveCamera, isTotalMode, qrStation, stationCacheKey, isNfcMobile, methodUsed, triggerReason = 'Modo Offline') {
     const worker = STATE.localCache.workers.find(w => w.worker_id === payload.wid);
-    const isNfcMobile = payload.transport === 'nfc';
-    const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
     const nowIso = new Date().toISOString();
+    const isAutoFallback = triggerReason.includes('Fallback');
 
     // ========================================================================
-    // CASO OFFLINE A: RETIRO ÚNICO TOTALIZADO OFFLINE
+    // CASO OFFLINE A: RETIRO ÚNICO TOTALIZADO
     // ========================================================================
     if (isTotalMode) {
       const workerEnts = (worker && worker.entitlements && worker.entitlements.length > 0)
@@ -1253,14 +1256,21 @@ async function processQrPayload(payload, isLiveCamera = false) {
       STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_2');
       updateSyncQueueUI();
 
-      const offlineHeader = isNfcMobile ? 'DESPACHO TOTALIZADO NFC (OFFLINE)' : 'DESPACHO TOTALIZADO (OFFLINE)';
-      const offlineDesc = isNfcMobile
-        ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada. Todos los combos encolados para sincronización.'
-        : 'Entrega totalizada validada correctamente en Almacén Sótano 1 sin conexión.';
+      const offlineHeader = isNfcMobile 
+        ? 'DESPACHO TOTALIZADO NFC (GUARDADO LOCAL)' 
+        : (isAutoFallback ? 'DESPACHO TOTALIZADO APROBADO (COLA LOCAL)' : 'DESPACHO TOTALIZADO (OFFLINE)');
+      const offlineDesc = isAutoFallback
+        ? '📶 Red móvil o Wi-Fi lenta. Despacho validado localmente y encolado en IndexedDB para sincronización automática.'
+        : (isNfcMobile
+          ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada. Todos los combos encolados para sincronización.'
+          : 'Entrega totalizada validada correctamente en almacén sin conexión.');
 
       if (window.AppLogger) {
-        window.AppLogger.info('OFFLINE_ATOMIC_DELIVERY_ENQUEUED', 'Retiro totalizado registrado offline', { createdOffline });
+        window.AppLogger.info('OFFLINE_ATOMIC_DELIVERY_ENQUEUED', `Retiro totalizado (${triggerReason})`, { createdOffline });
       }
+
+      playAudioFeedback('success');
+      if (navigator.vibrate) navigator.vibrate([120, 80, 200]);
 
       if (isLiveCamera && typeof showCameraScanHUD === 'function') {
         showCameraScanHUD(
@@ -1272,7 +1282,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
         showDistributorFeedback(
           true,
           offlineHeader,
-          `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><strong>🌟 Retiro Totalizado Offline:</strong> ${createdOffline.length} combos despachados y encolados.<br><small style="color: #34d399;">${offlineDesc}</small>`,
+          `Beneficiario: <strong>${worker ? worker.full_name : 'Carlos Mendoza'}</strong> &middot; Cédula: <strong>${worker ? worker.document_id : 'V-18456123'}</strong><br><strong>🌟 Retiro Totalizado Guardado Localmente:</strong> ${createdOffline.length} combos despachados y encolados.<br><small style="color: #34d399;">${offlineDesc}</small>`,
           worker || { worker_type: 'activo' }
         );
       }
@@ -1285,7 +1295,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
         worker_name: worker ? worker.full_name : 'Beneficiario',
         document_id: worker ? worker.document_id : 'V-18456123',
         total_combos: createdOffline.length,
-        toast_message: `🎉 ¡RETIRO ÚNICO TOTALIZADO OFFLINE APROBADO! (${createdOffline.length} combos encolados)`,
+        toast_message: `🎉 ¡RETIRO ÚNICO TOTALIZADO APROBADO! (${createdOffline.length} combos guardados localmente)`,
         verification_method: methodUsed
       }, payload);
 
@@ -1293,7 +1303,7 @@ async function processQrPayload(payload, isLiveCamera = false) {
     }
 
     // ========================================================================
-    // CASO OFFLINE B: ESTACIÓN INDIVIDUAL OFFLINE
+    // CASO OFFLINE B: ESTACIÓN INDIVIDUAL
     // ========================================================================
     const deliveryId = crypto.randomUUID();
     const offlineRecord = {
@@ -1320,14 +1330,21 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const isStation2Offline = qrStation === '2';
     const offlineComboTitle = isStation2Offline ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto Víveres Secos';
 
-    const offlineHeader = isNfcMobile ? 'DESPACHO NFC MÓVIL AUTORIZADO (OFFLINE)' : 'DESPACHO AUTORIZADO';
-    const offlineDesc = isNfcMobile
-      ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada offline.'
-      : 'Entrega validada correctamente en Almacén Sótano 1.';
+    const offlineHeader = isNfcMobile 
+      ? 'DESPACHO NFC MÓVIL AUTORIZADO (OFFLINE)' 
+      : (isAutoFallback ? 'DESPACHO APROBADO (COLA LOCAL)' : 'DESPACHO AUTORIZADO');
+    const offlineDesc = isAutoFallback
+      ? '📶 Red móvil o Wi-Fi lenta. Despacho validado localmente y encolado para sincronización en segundo plano.'
+      : (isNfcMobile
+        ? '📡 Proximidad NFC P2P · Llave criptográfica ECDSA P-256 evaluada y autorizada offline.'
+        : 'Entrega validada correctamente en almacén.');
 
     if (window.AppLogger) {
-      window.AppLogger.info('OFFLINE_DELIVERY_ENQUEUED', 'Despacho registrado offline en cola', offlineRecord);
+      window.AppLogger.info('OFFLINE_DELIVERY_ENQUEUED', `Despacho registrado (${triggerReason})`, offlineRecord);
     }
+
+    playAudioFeedback('success');
+    if (navigator.vibrate) navigator.vibrate([120, 80, 200]);
 
     if (isLiveCamera && typeof showCameraScanHUD === 'function') {
       showCameraScanHUD(
@@ -1344,18 +1361,32 @@ async function processQrPayload(payload, isLiveCamera = false) {
       );
     }
     broadcastDeliveryApproval({ valid: true, worker_name: worker ? worker.full_name : 'Beneficiario', document_id: worker ? worker.document_id : 'V-18456123', combo_name: offlineComboTitle, station: parseInt(qrStation, 10), verification_method: methodUsed }, payload);
+  }
+
+  const isNfcMobile = payload.transport === 'nfc';
+  const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
+
+  if (!STATE.isOnline) {
+    const pubKey = STATE.localCache.publicKeys[payload.wid];
+    if (!pubKey) {
+      if (isLiveCamera && typeof showCameraScanHUD === 'function') {
+        showCameraScanHUD(false, 'SIN REGISTRO PREVIO', 'El beneficiario no tiene dispositivo activo');
+      } else {
+        showDistributorFeedback(false, 'DISPOSITIVO NO REGISTRADO', 'El trabajador no posee un teléfono o método activo registrado en la base de datos.');
+      }
+      return;
+    }
+    executeOfflineDispatch(payload, isLiveCamera, isTotalMode, qrStation, stationCacheKey, isNfcMobile, methodUsed, 'Modo Offline Forzado');
   } else {
     try {
       const activeStation = isTotalMode ? 'all' : qrStation;
-      const isNfcMobile = payload.transport === 'nfc';
-      const methodUsed = isNfcMobile ? 'passkey_nfc' : 'passkey_qr';
       const result = await API.post('/api/v1/verify/qr', {
         qr_payload: payload,
         delivered_by_user_id: STATE.operatorId,
         station: activeStation,
         mode: isTotalMode ? 'total' : 'station',
         verification_method: methodUsed
-      });
+      }, { timeout: 3500 });
 
       if (result.valid) {
         STATE.localCache.deliveredEntitlements.add(payload.ent);
@@ -1444,6 +1475,14 @@ async function processQrPayload(payload, isLiveCamera = false) {
         }
       }
     } catch (err) {
+      // RESILIENCIA MÓVIL: Si la transmisión online falla por timeout, pérdida de datos móviles o lentitud de Wi-Fi
+      const isNetFail = err.isNetworkError || err.isTimeout || !navigator.onLine || (err.status >= 500 && err.status !== 500);
+      if (isNetFail) {
+        console.warn('[DISTRIBUTOR RESILIENCE] Fallo de transmisión en red móvil/Wi-Fi. Ejecutando Auto-Fallback a cola local:', err.message);
+        window.showToast('📶 Conexión móvil inestable: Despacho guardado localmente de forma segura.', 'info');
+        return executeOfflineDispatch(payload, isLiveCamera, isTotalMode, qrStation, stationCacheKey, isNfcMobile, methodUsed, 'Auto-Fallback por Inestabilidad de Red');
+      }
+
       const errMsg = err.message || 'Error al validar código QR en el servidor central';
       if (window.AppLogger) {
         window.AppLogger.error('VERIFY_QR_SERVER_ERROR', errMsg, err, { payload });
@@ -2011,7 +2050,10 @@ function recordContingencyDelivery(method, reason, supervisorId) {
   }
 }
 
+let isSyncingDeferredQueue = false;
+
 async function syncDeferredQueue(isAuto = false) {
+  if (isSyncingDeferredQueue) return;
   let queue = [...STATE.localCache.syncQueue];
 
   // Recuperar cualquier transacción guardada en IndexedDB
@@ -2034,23 +2076,25 @@ async function syncDeferredQueue(isAuto = false) {
     return;
   }
 
-  if (!STATE.isOnline) {
+  if (!STATE.isOnline || !navigator.onLine) {
     if (!isAuto) window.showToast('No hay conexión de red. Restablezca la conexión para transmitir.', 'warning');
     return;
   }
 
+  isSyncingDeferredQueue = true;
   try {
     const data = await API.post('/api/v1/sync/batch-deliveries', {
       distribution_point_id: '550e8400-e29b-41d4-a716-446655440000',
       device_id: 'distributor_tablet_01',
       deliveries: queue
-    });
+    }, { timeout: 7000 });
 
-    const msg = isAuto
-      ? `☁️ Sincronización Automática en Segundo Plano:\n• Procesadas: ${data.processed}\n• Duplicados bloqueados: ${data.failed_duplicates}`
-      : `☁️ Sincronización en Lote:\n• Procesadas: ${data.processed}\n• Duplicados bloqueados: ${data.failed_duplicates}`;
-
-    window.showToast(msg, 'success');
+    if (!isAuto || (data && data.processed > 0)) {
+      const msg = isAuto
+        ? `☁️ Sincronización Automática Exitosa:\n• Transmitidas: ${data.processed}\n• Duplicados protegidos: ${data.failed_duplicates}`
+        : `☁️ Sincronización en Lote:\n• Procesadas: ${data.processed}\n• Duplicados bloqueados: ${data.failed_duplicates}`;
+      window.showToast(msg, 'success');
+    }
 
     if (window.OfflineStore && typeof window.OfflineStore.clearAll === 'function') {
       await window.OfflineStore.clearAll();
@@ -2060,7 +2104,9 @@ async function syncDeferredQueue(isAuto = false) {
     if (typeof refreshPortalData === 'function') refreshPortalData();
   } catch (err) {
     if (!isAuto) window.showToast('Error transmitiendo lote: ' + err.message, 'error');
-    console.warn('[OFFLINE SYNC ERROR]', err);
+    console.warn('[OFFLINE SYNC ERROR]', err.message || err);
+  } finally {
+    isSyncingDeferredQueue = false;
   }
 }
 window.syncDeferredQueue = syncDeferredQueue;
