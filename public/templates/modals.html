@@ -2664,3 +2664,69 @@
     </div>
   </div>
 </div>
+
+<!-- ======================================================================
+     MODAL 20: ESTADO DE SEGURIDAD Y DISPOSITIVO AUTORIZADO (BENEFICIARIO)
+     ====================================================================== -->
+<div id="deviceSecurityModalBackdrop" class="modal-backdrop" style="display: none; align-items: center; justify-content: center; z-index: 10000; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);">
+  <div class="modal-dialog modal-md" style="max-width: 520px; width: 92%; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 14px; padding: 1.35rem; background: var(--bg-surface-1);">
+    
+    <!-- Encabezado del Modal -->
+    <div class="panel-header" style="margin-bottom: 0.85rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+          🔒
+        </div>
+        <div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-main);">Seguridad y Dispositivo</div>
+          <p style="margin: 0.15rem 0 0 0; font-size: 0.75rem; color: var(--text-dim);">Validación en tu celular y amarre institucional de equipo</p>
+        </div>
+      </div>
+      <button type="button" id="btnCloseDeviceSecurityModal" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Contenido del Modal -->
+    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+      
+      <!-- ESTADO DE LA PASSKEY -->
+      <div id="workerPasskeyStatusBox" class="alert-box alert-info" style="margin-bottom: 0;">
+        <div>
+          <strong>Validación en tu celular: </strong>
+          <span id="workerPasskeyStatusText">Verificando estado...</span>
+        </div>
+      </div>
+
+      <!-- CANDADO ESTRICTO DE DISPOSITIVO (AMARRE HARDWARE & ANTI-PRÉSTAMO) -->
+      <div id="deviceLockBadgeContainer" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 0.75rem 0.95rem; box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <span style="color: #38bdf8; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
+            🔒 Candado de Dispositivo Activo
+          </span>
+          <span id="deviceLockKeyLabel" style="background: rgba(56, 189, 248, 0.25); color: #bae6fd; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 800; font-size: 0.75rem;">
+            KEY-XXXX
+          </span>
+        </div>
+        <p id="deviceLockText" style="margin: 0; color: #94a3b8; font-size: 0.72rem; line-height: 1.35;">
+          Amarre estricto a este smartphone hasta completar el retiro de todos los combos. No transferible.
+        </p>
+      </div>
+
+      <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem; font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
+        🛡️ <strong>Aviso de Gobernanza:</strong> Este teléfono queda vinculado criptográficamente a tu documento de identidad para prevenir duplicidades o suplantación durante la jornada. Solo tú puedes presentar este carnet.
+      </div>
+    </div>
+
+    <!-- Pie del Modal -->
+    <div style="display: flex; justify-content: flex-end; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+      <button type="button" id="btnFooterCloseDeviceSecurityModal" class="btn btn-primary" style="padding: 0.45rem 1.25rem; font-weight: 700; border-radius: 8px; font-size: 0.82rem;">
+        Entendido
+      </button>
+    </div>
+
+  </div>
+</div>

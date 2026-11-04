@@ -171,6 +171,7 @@ window.setupWorkerSimulator = function() {
       } catch (e) {}
 
       const securityBadge = document.getElementById('securityMenuBadge');
+      const btnMobileSec = document.getElementById('btnMobileDeviceSecurityModal');
       if (deviceLockBadge) {
         if (savedLock && savedLock.claim_key) {
           deviceLockBadge.style.display = 'block';
@@ -183,12 +184,22 @@ window.setupWorkerSimulator = function() {
             securityBadge.style.color = '#38bdf8';
             securityBadge.style.background = 'rgba(56, 189, 248, 0.25)';
           }
+          if (btnMobileSec) {
+            btnMobileSec.innerHTML = '🔒 <span>Candado</span>';
+            btnMobileSec.style.color = '#38bdf8';
+            btnMobileSec.style.borderColor = 'rgba(56, 189, 248, 0.6)';
+          }
         } else {
           deviceLockBadge.style.display = 'none';
           if (securityBadge) {
             securityBadge.textContent = activePasskey ? 'Passkey Activa' : 'Protegido';
             securityBadge.style.color = '#34d399';
             securityBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+          }
+          if (btnMobileSec) {
+            btnMobileSec.innerHTML = '🔒 <span>Dispositivo</span>';
+            btnMobileSec.style.color = activePasskey ? '#34d399' : '#38bdf8';
+            btnMobileSec.style.borderColor = activePasskey ? 'rgba(52, 211, 153, 0.4)' : 'rgba(56, 189, 248, 0.4)';
           }
         }
       }
@@ -1322,23 +1333,62 @@ window.setupWorkerSimulator = function() {
   }
   setupCombosAccordion();
 
-  // Soporte interactivo para el menú desplegable de seguridad y dispositivo
-  function setupSecurityMenuAccordion() {
-    const headerSecurity = document.getElementById('headerToggleSecurityMenu');
-    const bodySecurity = document.getElementById('bodySecurityMenu');
-    if (!headerSecurity || !bodySecurity || headerSecurity._hasSecuritySetup) return;
-    headerSecurity._hasSecuritySetup = true;
+  // Gestión del Modal de Seguridad y Candado de Dispositivo
+  window.openDeviceSecurityModal = function() {
+    const modal = document.getElementById('deviceSecurityModalBackdrop');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('is-active');
+    }
+    // Cerrar el dropdown del usuario si estuviera abierto
+    const dropdown = document.getElementById('userMenuDropdown');
+    if (dropdown) dropdown.style.display = 'none';
+  };
 
-    headerSecurity.addEventListener('click', () => {
-      const isCollapsed = bodySecurity.classList.toggle('is-collapsed');
-      headerSecurity.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
-      const chevron = headerSecurity.querySelector('.package-chevron');
-      if (chevron) {
-        chevron.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
-      }
-    });
+  window.closeDeviceSecurityModal = function() {
+    const modal = document.getElementById('deviceSecurityModalBackdrop');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('is-active');
+    }
+  };
+
+  function setupDeviceSecurityModalListeners() {
+    const btnOpenDropdown = document.getElementById('btnOpenDeviceSecurityModal');
+    if (btnOpenDropdown && !btnOpenDropdown._hasSecModalSetup) {
+      btnOpenDropdown._hasSecModalSetup = true;
+      btnOpenDropdown.addEventListener('click', () => window.openDeviceSecurityModal());
+    }
+
+    const btnOpenMobile = document.getElementById('btnMobileDeviceSecurityModal');
+    if (btnOpenMobile && !btnOpenMobile._hasSecModalSetup) {
+      btnOpenMobile._hasSecModalSetup = true;
+      btnOpenMobile.addEventListener('click', () => window.openDeviceSecurityModal());
+    }
+
+    const btnClose = document.getElementById('btnCloseDeviceSecurityModal');
+    if (btnClose && !btnClose._hasSecModalSetup) {
+      btnClose._hasSecModalSetup = true;
+      btnClose.addEventListener('click', () => window.closeDeviceSecurityModal());
+    }
+
+    const btnFooterClose = document.getElementById('btnFooterCloseDeviceSecurityModal');
+    if (btnFooterClose && !btnFooterClose._hasSecModalSetup) {
+      btnFooterClose._hasSecModalSetup = true;
+      btnFooterClose.addEventListener('click', () => window.closeDeviceSecurityModal());
+    }
+
+    const modalBackdrop = document.getElementById('deviceSecurityModalBackdrop');
+    if (modalBackdrop && !modalBackdrop._hasSecModalSetup) {
+      modalBackdrop._hasSecModalSetup = true;
+      modalBackdrop.addEventListener('click', (e) => {
+        if (e.target === modalBackdrop) window.closeDeviceSecurityModal();
+      });
+    }
   }
-  setupSecurityMenuAccordion();
+
+  setupDeviceSecurityModalListeners();
+  window.addEventListener('templates:loaded', setupDeviceSecurityModalListeners);
 
   // Carga inicial
   loadWorkerSelect();

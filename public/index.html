@@ -239,6 +239,15 @@
               </svg>
               <span>💻 Dispositivos Conectados</span>
             </button>
+
+            <!-- Seguridad de Dispositivo / Celular Autorizado -->
+            <button id="btnOpenDeviceSecurityModal" class="dropdown-item" title="Ver estado de validación en celular y candado de dispositivo" style="color: #38bdf8;">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>🔒 Seguridad & Dispositivo</span>
+            </button>
           </div>
 
           <div class="dropdown-divider"></div>
@@ -2380,6 +2389,9 @@
                 </div>
                 <div class="mobile-app-bar-actions">
                   <span id="workerConditionBadge" class="badge badge-activo" style="font-size: 0.65rem;">🏢 Activo</span>
+                  <button type="button" id="btnMobileDeviceSecurityModal" class="btn btn-outline" style="padding: 0.2rem 0.45rem; font-size: 0.65rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); display: flex; align-items: center; gap: 0.25rem;" title="Ver estado de validación y seguridad del dispositivo">
+                    🔒 <span>Dispositivo</span>
+                  </button>
                   <button id="btnWorkerMobileLogout" class="btn btn-outline btn-mobile-logout" title="Cerrar Sesión">
                     🚪 Salir
                   </button>
@@ -2508,47 +2520,6 @@
                       <span class="rubro-qty">1.0 kg</span>
                     </li>
                   </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- MENÚ DESPLEGABLE DE SEGURIDAD Y VALIDACIÓN DE DISPOSITIVO (MINIMALISTA) -->
-            <div class="worker-menu-section" style="margin-bottom: 0.75rem;">
-              <div id="headerToggleSecurityMenu" class="worker-menu-header" role="button" aria-expanded="false" title="Toca para desplegar o contraer los detalles de validación y seguridad de tu dispositivo" style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; cursor: pointer; user-select: none;">
-                <div style="display: flex; align-items: center; gap: 0.45rem;">
-                  <span style="font-size: 0.95rem;">🔒</span>
-                  <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-main);">Seguridad y Dispositivo Autorizado</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <span id="securityMenuBadge" class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.15rem 0.45rem; border-radius: 4px;">Protegido</span>
-                  <svg class="package-chevron" style="width: 14px; height: 14px; color: var(--text-dim); transition: transform 0.25s ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                  </svg>
-                </div>
-              </div>
-
-              <div id="bodySecurityMenu" class="worker-menu-body is-collapsed" style="margin-top: 0.4rem;">
-                <!-- ESTADO DE LA PASSKEY -->
-                <div id="workerPasskeyStatusBox" class="alert-box alert-info" style="margin-bottom: 0.65rem;">
-                  <div>
-                    <strong>Validación en tu celular: </strong>
-                    <span id="workerPasskeyStatusText">Verificando estado...</span>
-                  </div>
-                </div>
-
-                <!-- CANDADO ESTRICTO DE DISPOSITIVO (AMARRE HARDWARE & ANTI-PRÉSTAMO) -->
-                <div id="deviceLockBadgeContainer" style="display: none; margin-bottom: 0.65rem; background: rgba(56, 189, 248, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 0.75rem 0.95rem; box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12);">
-                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem;">
-                    <span style="color: #38bdf8; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem;">
-                      🔒 Candado de Dispositivo Activo
-                    </span>
-                    <span id="deviceLockKeyLabel" style="background: rgba(56, 189, 248, 0.25); color: #bae6fd; border: 1px solid rgba(56, 189, 248, 0.4); padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 800; font-size: 0.75rem;">
-                      KEY-XXXX
-                    </span>
-                  </div>
-                  <p id="deviceLockText" style="margin: 0; color: #94a3b8; font-size: 0.72rem; line-height: 1.35;">
-                    Amarre estricto a este smartphone hasta completar el retiro de todos los combos. No transferible.
-                  </p>
                 </div>
               </div>
             </div>
@@ -3498,7 +3469,7 @@ Listo para recibir transacciones de nómina institucional...
 
   <!-- Feature Modules -->
   <script src="/js/modules/auth.js?v=3.3"></script>
-  <script src="/js/modules/beneficiary.js?v=3.7"></script>
+  <script src="/js/modules/beneficiary.js?v=3.8"></script>
   <script src="/js/modules/distributor.js?v=4.0"></script>
   <script src="/js/modules/admin.js?v=3.3"></script>
   <script src="/js/modules/manual_dispatch.js?v=3.7"></script>
