@@ -273,10 +273,35 @@ window.setupWorkerSimulator = function() {
     generateWorkerStationQr('2');
   });
 
-  // Generar QR firmado offline (o Enrolar + Generar en 1 Clic si no tiene passkey)
+  // Cierre de sesión final tras validar y completar la entrega totalizada
+  window.handleCompletedDeliveryLogout = function() {
+    if (typeof window.showToast === 'function') {
+      window.showToast('✅ ¡Retiro finalizado exitosamente! Cerrando sesión institucional...', 'success', 2000);
+    }
+    setTimeout(() => {
+      if (typeof window.handleLogout === 'function') {
+        window.handleLogout('Retiro totalizado finalizado (Todos los bultos entregados)');
+      } else if (typeof sessionManager !== 'undefined' && sessionManager.logout) {
+        sessionManager.logout();
+      } else {
+        sessionStorage.clear();
+        localStorage.removeItem('sgbt_session_token');
+        window.location.href = '/?view=login';
+      }
+    }, 450);
+  };
+
+  // Generar QR firmado offline (o Salir si ya completó el retiro totalizado)
   btnGenerate?.addEventListener('click', async (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Si ya completó la entrega, presionar el botón cierra la sesión
+    if (btnGenerate.dataset.isCompletedLogout === 'true') {
+      window.handleCompletedDeliveryLogout();
+      return;
+    }
+
     if (!STATE.selectedWorkerId) return;
     if (STATE.deliveredStations && STATE.deliveredStations.has(1) && !STATE.deliveredStations.has(2)) {
       STATE.workerActiveStation = '2';
@@ -287,6 +312,12 @@ window.setupWorkerSimulator = function() {
       STATE.activeStation = 'all';
       generateWorkerStationQr('all');
     }
+  });
+
+  const btnReceiptFinalExit = document.getElementById('btnReceiptFinalExit');
+  btnReceiptFinalExit?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.handleCompletedDeliveryLogout();
   });
 
   // Transmitir Llave Criptográfica por Proximidad NFC (Tap-to-Claim / P2P)
@@ -916,10 +947,19 @@ window.setupWorkerSimulator = function() {
       }
 
       if (btnGenerate) {
-        btnGenerate.disabled = true;
+        btnGenerate.disabled = false;
+        btnGenerate.dataset.isCompletedLogout = 'true';
         btnGenerate.style.background = 'linear-gradient(135deg, #059669, #047857)';
         btnGenerate.style.borderColor = '#34d399';
-        btnGenerate.innerHTML = '<span>✅ Retiro Totalizado Finalizado (Todos los Bultos Entregados)</span>';
+        btnGenerate.style.color = '#ffffff';
+        btnGenerate.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
+        btnGenerate.style.cursor = 'pointer';
+        btnGenerate.innerHTML = '<span>✅ Retiro Totalizado Finalizado (Todos los Bultos Entregados) Salir 🚪</span>';
+      }
+
+      const btnReceiptExit = document.getElementById('btnReceiptFinalExit');
+      if (btnReceiptExit) {
+        btnReceiptExit.style.display = 'flex';
       }
 
       receiptBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
