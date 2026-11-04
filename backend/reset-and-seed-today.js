@@ -2,14 +2,18 @@
 const crypto = require('crypto');
 const { db } = require('./db');
 const { supabase, isSupabaseConfigured } = require('./supabase');
+const { clearDeliveriesInCloud } = require('./services/cloud_sync.service');
 
-function resetDeliveriesAndSeedToday() {
+async function resetDeliveriesAndSeedToday() {
   const todayUtc = new Date().toISOString().split('T')[0];
   const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
   const today = todayVzla;
   
-  // 1. Eliminar entregas previas (llevar a 0)
+  // 1. Eliminar entregas previas y liberar candados de dispositivos
   const delResult = db.prepare('DELETE FROM deliveries').run();
+  try {
+    db.prepare('DELETE FROM device_locks').run();
+  } catch (e) {}
   
   // 2. Obtener todos los combos activos del catálogo institucional
   const activeCombos = db.prepare("SELECT id, name FROM combos WHERE is_active = 1").all();
@@ -39,11 +43,10 @@ function resetDeliveriesAndSeedToday() {
   });
   tx();
 
-  // 4. Sincronizar reseteo a Supabase Cloud para que Vercel Serverless permanezca en 0
+  // 4. Sincronizar reseteo a Supabase Cloud con AWAIT garantizado (para que Vercel Serverless permanezca en 0)
   if (isSupabaseConfigured() && supabase) {
     try {
-      supabase.from('deliveries').delete().gte('delivered_at', new Date(Date.now() - 48*3600*1000).toISOString()).catch(() => {});
-      supabase.from('daily_entitlements').update({ status: 'pending' }).in('valid_date', [todayUtc, todayVzla]).catch(() => {});
+      await clearDeliveriesInCloud();
     } catch (sbErr) {
       console.warn('[RESET] No se pudo sincronizar reseteo a Supabase:', sbErr.message);
     }

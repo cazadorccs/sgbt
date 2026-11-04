@@ -915,6 +915,28 @@ window.ManualDispatch = (function() {
       const res = await API.post('/api/v1/manual-dispatch/reset-deliveries', { key: key.trim() });
       if (res.success) {
         Toast.success('¡Entregas reiniciadas a 0 exitosamente!');
+
+        // Limpiar caché local en memoria de entregas de la sesión actual
+        if (window.STATE && window.STATE.localCache) {
+          window.STATE.localCache.deliveredEntitlements = new Set();
+          window.STATE.localCache.syncQueue = [];
+        }
+        if (window.STATE) {
+          window.STATE.deliveredStations = new Set();
+          window.STATE.workerActiveStation = null;
+        }
+
+        // Difundir reseteo a todas las pestañas y módulos abiertos (Mesa de Despacho y Mi Carnet)
+        try {
+          if ('BroadcastChannel' in window) {
+            const bc = new BroadcastChannel('sgbt_qr_channel');
+            bc.postMessage({ type: 'DELIVERIES_RESET', timestamp: Date.now() });
+            bc.close();
+          }
+          localStorage.removeItem('sgbt_last_delivery_event');
+          window.dispatchEvent(new CustomEvent('deliveries:reset'));
+        } catch (e) {}
+
         // Limpiar tarjeta actual si había alguien buscado
         const cardResult = document.getElementById('manualWorkerResultCard');
         if (cardResult) cardResult.style.display = 'none';

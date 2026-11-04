@@ -619,6 +619,13 @@ window.setupWorkerSimulator = function() {
                 handleDeliveryApproved(e.data);
               }
             }
+          } else if (e.data && e.data.type === 'DELIVERIES_RESET') {
+            console.log('[BENEFICIARY] Jornada reseteada a 0. Reactivando carnet de retiro...');
+            STATE.deliveredStations = new Set();
+            STATE.workerActiveStation = null;
+            if (typeof updateWorkerCard === 'function') {
+              updateWorkerCard();
+            }
           }
         };
         STATE._beneficiaryBc = bc;
@@ -646,6 +653,15 @@ window.setupWorkerSimulator = function() {
     };
     window.addEventListener('storage', onStorage);
     STATE._beneficiaryStorageHandler = onStorage;
+
+    window.addEventListener('deliveries:reset', () => {
+      console.log('[BENEFICIARY] Evento deliveries:reset recibido. Restaurando carnet...');
+      STATE.deliveredStations = new Set();
+      STATE.workerActiveStation = null;
+      if (typeof updateWorkerCard === 'function') {
+        updateWorkerCard();
+      }
+    });
   }
 
   function stopDeliveryMonitoring() {

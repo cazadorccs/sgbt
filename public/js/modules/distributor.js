@@ -525,12 +525,26 @@ function setupRealtimeQrSyncListener() {
         if (e.data && e.data.type === 'NEW_QR_GENERATED') {
           console.log('[DISTRIBUIDOR] QR recibido por canal BroadcastChannel:', e.data);
           showBanner(e.data.worker_name, e.data.doc_id, e.data.payload, e.data.station);
+        } else if (e.data && e.data.type === 'DELIVERIES_RESET') {
+          console.log('[DISTRIBUIDOR] Evento DELIVERIES_RESET recibido por canal. Limpiando caché local...');
+          STATE.localCache.deliveredEntitlements = new Set();
+          STATE.localCache.syncQueue = [];
+          if (typeof updateSyncQueueUI === 'function') updateSyncQueueUI();
+          if (typeof downloadDailyPack === 'function') downloadDailyPack();
         }
       };
     } catch (e) {
       console.warn('BroadcastChannel error:', e);
     }
   }
+
+  window.addEventListener('deliveries:reset', () => {
+    console.log('[DISTRIBUIDOR] Evento deliveries:reset local detectado. Limpiando entregas en memoria...');
+    STATE.localCache.deliveredEntitlements = new Set();
+    STATE.localCache.syncQueue = [];
+    if (typeof updateSyncQueueUI === 'function') updateSyncQueueUI();
+    if (typeof downloadDailyPack === 'function') downloadDailyPack();
+  });
 
   window.addEventListener('storage', (e) => {
     if (e.key === 'sgbt_active_qr_payload' && e.newValue) {
@@ -2204,7 +2218,20 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
       </div>
     `;
   } else if (d) {
-    d.textContent = `Código de Anomalía: ERR_${Date.now().toString().slice(-6)} &middot; Revisión Requerida`;
+    const errCode = `ERR_${Date.now().toString().slice(-6)}`;
+    d.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.35rem; text-align: left;">
+        <div style="color: #f87171; font-weight: 700; font-size: 0.85rem;">
+          ⚠️ ${title || 'Acceso No Autorizado'}
+        </div>
+        <div style="color: #f1f5f9; font-size: 0.8rem; line-height: 1.4;">
+          ${subtitle || 'El beneficio no pudo ser procesado. Verifique la condición del beneficiario.'}
+        </div>
+        <div class="text-mono" style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">
+          Código de Anomalía: ${errCode} &middot; Revisión Requerida
+        </div>
+      </div>
+    `;
   }
 
   playAudioFeedback(isSuccess ? 'success' : 'error');

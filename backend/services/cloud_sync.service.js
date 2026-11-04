@@ -267,11 +267,50 @@ async function revokeNfcCard(workerId) {
   }
 }
 
+/**
+ * Reinicia las entregas a cero en Supabase Cloud y restaura entitlements de hoy a estado pendiente
+ */
+async function clearDeliveriesInCloud() {
+  if (!isSupabaseConfigured() || !supabase) return false;
+
+  try {
+    const todayUtc = new Date().toISOString().split('T')[0];
+    const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
+
+    // Borrado garantizado de entregas en Supabase
+    const { error: delError } = await supabase
+      .from('deliveries')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000');
+
+    if (delError) {
+      console.warn('[CLOUD RESET WARN] Advertencia al limpiar entregas en Supabase:', delError.message);
+    }
+
+    // Restaurar daily_entitlements a status = 'pending'
+    const { error: entError } = await supabase
+      .from('daily_entitlements')
+      .update({ status: 'pending' })
+      .in('valid_date', [todayUtc, todayVzla]);
+
+    if (entError) {
+      console.warn('[CLOUD RESET WARN] Advertencia al restaurar derechos en Supabase:', entError.message);
+    }
+
+    console.log('[CLOUD RESET] ✅ Entregas y derechos reiniciados exitosamente a cero en Supabase Cloud');
+    return true;
+  } catch (err) {
+    console.warn('[CLOUD RESET ERROR] Fallo al reiniciar entregas en Supabase:', err.message);
+    return false;
+  }
+}
+
 module.exports = {
   persistWorkerFormalization,
   persistPasskey,
   persistDeliveries,
   persistNfcCard,
-  revokeNfcCard
+  revokeNfcCard,
+  clearDeliveriesInCloud
 };
 

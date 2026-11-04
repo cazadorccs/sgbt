@@ -584,7 +584,7 @@ const getTodayStatsAndRecent = async (req, res) => {
 };
 
 // 5. Reiniciar todas las entregas a 0 (Acción crítica protegida con clave de seguridad y RBAC)
-const resetDeliveriesAction = (req, res) => {
+const resetDeliveriesAction = async (req, res) => {
   const { key, pin, password } = req.body || {};
   const providedKey = String(key || pin || password || '').trim();
   const configuredSecret = (process.env.SYSTEM_RESET_SECRET || '0578').trim();
@@ -597,7 +597,7 @@ const resetDeliveriesAction = (req, res) => {
   }
 
   try {
-    const result = resetDeliveriesAndSeedToday();
+    const result = await resetDeliveriesAndSeedToday();
     res.json({
       success: true,
       message: 'Todas las entregas han sido reiniciadas a 0. Asignaciones de hoy preparadas en estado pendiente.',
