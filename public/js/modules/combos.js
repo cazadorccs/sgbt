@@ -27,7 +27,7 @@ window.populateComboCampaignModalSelect = async function(selectedId = '') {
   cachedCampaignsList.forEach(camp => {
     const opt = document.createElement('option');
     opt.value = camp.id;
-    const statusText = camp.status === 'active' ? 'EN CURSO' : (camp.status === 'scheduled' ? 'PROGRAMADA' : 'FINALIZADA');
+    const statusText = camp.status === 'en_curso' || camp.status === 'active' ? 'EN CURSO' : (camp.status === 'suspendida' ? 'SUSPENDIDA' : (camp.status === 'scheduled' || camp.status === 'programada' ? 'PROGRAMADA' : 'FINALIZADA'));
     opt.textContent = `📅 ${camp.name} [${statusText}]`;
     if (camp.id === selectedId) opt.selected = true;
     select.appendChild(opt);
@@ -50,7 +50,7 @@ function updateCombosToolbarCampaignFilter() {
   cachedCampaignsList.forEach(camp => {
     const opt = document.createElement('option');
     opt.value = camp.id;
-    const statusText = camp.status === 'active' ? 'En Curso' : (camp.status === 'scheduled' ? 'Programada' : 'Finalizada');
+    const statusText = camp.status === 'en_curso' || camp.status === 'active' ? 'En Curso' : (camp.status === 'suspendida' ? 'Suspendida' : (camp.status === 'scheduled' || camp.status === 'programada' ? 'Programada' : 'Finalizada'));
     opt.textContent = `📅 ${camp.name} (${statusText})`;
     filterSelect.appendChild(opt);
   });
@@ -1273,7 +1273,9 @@ window.loadCampaigns = async function() {
 
       let statusBadge = '<span class="badge badge-activo">Programada</span>';
       if (c.status === 'en_curso') {
-        statusBadge = '<span class="badge badge-passkey" style="background:#10b981; color:#fff;">● En Curso (Activa)</span>';
+        statusBadge = '<span class="badge badge-passkey" style="background:#10b981; color:#fff; font-weight:700;">● En Curso (Activa)</span>';
+      } else if (c.status === 'suspendida') {
+        statusBadge = '<span class="badge" style="background:#f59e0b; color:#fff; font-weight:700;">⏸️ Suspendida (Pausada)</span>';
       } else if (c.status === 'finalizada') {
         statusBadge = '<span class="badge" style="background:#059669; color:#fff; font-weight:700;">● Finalizada y Conciliada (100%)</span>';
       }
@@ -1394,13 +1396,23 @@ window.loadCampaigns = async function() {
               </button>
             </div>
             
-            <div style="display: flex; gap: 0.35rem; align-items: center;">
+            <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
               ${c.status === 'programada' ? `
-                <button class="btn btn-primary btn-status-campaign" data-id="${c.id}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
-                  Iniciar Jornada
+                <button type="button" class="btn btn-primary btn-status-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;" title="Activar esta jornada (suspenderá cualquier otra activa)">
+                  ▶️ Activar e Iniciar
+                </button>
+              ` : c.status === 'suspendida' ? `
+                <button type="button" class="btn btn-success btn-status-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #10b981; border-color: #059669; color: #fff;" title="Reanudar y activar esta jornada (suspenderá cualquier otra activa)">
+                  ▶️ Activar Jornada
+                </button>
+                <button type="button" class="btn btn-outline btn-status-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" data-status="finalizada" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; border-color: #64748b;" title="Finalizar definitivamente y conciliar acta">
+                  Finalizar y Conciliar
                 </button>
               ` : `
-                <button class="btn btn-outline btn-status-campaign" data-id="${c.id}" data-status="finalizada" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; border-color: #64748b;">
+                <button type="button" class="btn btn-warning btn-status-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" data-status="suspendida" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #f59e0b; border-color: #d97706; color: #fff;" title="Pausar y suspender esta jornada temporalmente">
+                  ⏸️ Suspender
+                </button>
+                <button type="button" class="btn btn-outline btn-status-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" data-status="finalizada" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; border-color: #64748b;" title="Finalizar definitivamente y conciliar acta">
                   Finalizar y Conciliar
                 </button>
               `}
@@ -1451,12 +1463,48 @@ window.loadCampaigns = async function() {
       btn.addEventListener('click', async () => {
         const id = btn.getAttribute('data-id');
         const status = btn.getAttribute('data-status');
+        const name = btn.getAttribute('data-name') || 'esta jornada';
+
+        if (status === 'en_curso') {
+          const activeOther = activeCampaigns.find(c => c.status === 'en_curso' && c.id !== id);
+          if (activeOther) {
+            const ok = confirm(
+              '⚠️ REGLA DE JORNADA ÚNICA ACTIVA:\n\n' +
+              `Actualmente la jornada "${activeOther.name}" está ACTIVA.\n\n` +
+              `Al activar "${name}", la jornada "${activeOther.name}" pasará automáticamente a estado SUSPENDIDA, ya que no pueden haber 2 jornadas activas simultáneamente.\n\n` +
+              '¿Deseas activar esta jornada ahora?'
+            );
+            if (!ok) return;
+          }
+        } else if (status === 'suspendida') {
+          const ok = confirm(
+            '⏸️ SUSPENDER JORNADA:\n\n' +
+            `¿Deseas pausar y suspender temporalmente la jornada "${name}"?\n\n` +
+            'Las entregas y despachos quedarán pausados hasta que la jornada sea activada nuevamente.'
+          );
+          if (!ok) return;
+        } else if (status === 'finalizada') {
+          const ok = confirm(
+            '🏁 FINALIZAR Y CONCILIAR:\n\n' +
+            `¿Confirmas la culminación oficial de la jornada "${name}"?\n\n` +
+            'Esta acción archivará la jornada en el Histórico de Auditoría Ministerial con conciliación al 100%.'
+          );
+          if (!ok) return;
+        }
 
         try {
-          await API.put(`/api/v1/admin/campaigns/${id}/status`, { status });
+          btn.disabled = true;
+          const res = await API.put(`/api/v1/admin/campaigns/${id}/status`, { status });
+          if (res && res.message) {
+            window.showToast(res.message, 'success');
+          } else {
+            window.showToast(`Estado actualizado: ${status}`, 'success');
+          }
           await loadCampaigns();
         } catch (err) {
           window.showToast('Error actualizando estado: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
         }
       });
     });

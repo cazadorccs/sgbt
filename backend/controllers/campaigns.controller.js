@@ -63,6 +63,14 @@ async function syncCampaignsFromCloud() {
           } catch (e) {}
         }
       }
+
+      // Regla de Exclusividad: Garantizar que exista como máximo 1 sola jornada activa tras hidratar
+      const activeCamps = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' ORDER BY created_at DESC, id DESC").all();
+      if (activeCamps.length > 1) {
+        const keepId = activeCamps[0].id;
+        db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(keepId);
+      }
+
       console.log(`[SUPABASE CLOUD HYDRATE] ${parsed.campaigns.length} jornadas hidratadas desde la nube.`);
     }
   } catch (e) {
@@ -169,7 +177,7 @@ const getCampaigns = async (req, res) => {
     } else if (type === 'history') {
       query += ` WHERE c.status = 'finalizada'`;
     } else if (type === 'active') {
-      query += ` WHERE c.status IN ('programada', 'en_curso')`;
+      query += ` WHERE c.status IN ('programada', 'en_curso', 'suspendida')`;
     }
     query += ` ORDER BY c.start_date DESC, c.created_at DESC`;
 
@@ -223,7 +231,7 @@ const getCampaigns = async (req, res) => {
 
       const totalEligible = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${workerCondition}`).get().count;
 
-      const effectiveEndDate = (camp.status === 'en_curso' && camp.end_date < todayStr)
+      const effectiveEndDate = ((camp.status === 'en_curso' || camp.status === 'suspendida') && camp.end_date < todayStr)
         ? todayStr
         : camp.end_date;
 
@@ -450,28 +458,38 @@ const updateCampaign = (req, res) => {
       return res.status(404).json({ error: 'Jornada no encontrada' });
     }
 
-    db.prepare(`
-      UPDATE delivery_campaigns
-      SET name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          start_date = COALESCE(?, start_date),
-          end_date = COALESCE(?, end_date),
-          combo_id = COALESCE(?, combo_id),
-          distribution_point_id = COALESCE(?, distribution_point_id),
-          target_group = COALESCE(?, target_group),
-          status = COALESCE(?, status)
-      WHERE id = ?
-    `).run(
-      name ? name.trim() : null,
-      description !== undefined ? description : null,
-      start_date || null,
-      end_date || null,
-      combo_id || null,
-      distribution_point_id || null,
-      target_group || null,
-      status || null,
-      id
-    );
+    const tx = db.transaction(() => {
+      // Regla de Exclusividad: No pueden existir 2 jornadas activas al mismo tiempo
+      if (status === 'en_curso') {
+        db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(id);
+      }
+
+      db.prepare(`
+        UPDATE delivery_campaigns
+        SET name = COALESCE(?, name),
+            description = COALESCE(?, description),
+            start_date = COALESCE(?, start_date),
+            end_date = COALESCE(?, end_date),
+            combo_id = COALESCE(?, combo_id),
+            distribution_point_id = COALESCE(?, distribution_point_id),
+            target_group = COALESCE(?, target_group),
+            status = COALESCE(?, status)
+        WHERE id = ?
+      `).run(
+        name ? name.trim() : null,
+        description !== undefined ? description : null,
+        start_date || null,
+        end_date || null,
+        combo_id || null,
+        distribution_point_id || null,
+        target_group || null,
+        status || null,
+        id
+      );
+    });
+
+    tx();
+    syncCampaignsToCloud().catch(() => {});
 
     const updated = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
     res.json({ success: true, message: 'Jornada actualizada con éxito', campaign: updated });
@@ -485,15 +503,94 @@ const updateCampaignStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
-  if (!status) {
-    return res.status(400).json({ error: 'Estado requerido' });
+  const validStatuses = ['programada', 'en_curso', 'suspendida', 'finalizada', 'cancelada'];
+  if (!status || !validStatuses.includes(status)) {
+    return res.status(400).json({ error: `Estado inválido. Debe ser uno de: ${validStatuses.join(', ')}` });
   }
 
   try {
-    db.prepare('UPDATE delivery_campaigns SET status = ? WHERE id = ?').run(status, id);
-    syncCampaignsToCloud().catch(() => {});
-    res.json({ success: true, message: `Estado de la jornada actualizado a: ${status}` });
+    let camp = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
+    if (!camp) {
+      await syncCampaignsFromCloud();
+      camp = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
+    }
+
+    if (!camp) {
+      return res.status(404).json({ error: 'Jornada no encontrada' });
+    }
+
+    const previousStatus = camp.status;
+    let suspendedOthers = [];
+
+    const tx = db.transaction(() => {
+      // REGLA INSTITUCIONAL ESTRICTA: No pueden haber 2 jornadas activas al mismo tiempo
+      if (status === 'en_curso') {
+        suspendedOthers = db.prepare("SELECT id, name FROM delivery_campaigns WHERE status = 'en_curso' AND id != ?").all(id);
+        if (suspendedOthers.length > 0) {
+          db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(id);
+        }
+      }
+
+      db.prepare('UPDATE delivery_campaigns SET status = ? WHERE id = ?').run(status, id);
+    });
+
+    tx();
+
+    // Sincronizar inmediatamente a la nube Supabase
+    await syncCampaignsToCloud();
+
+    // Registro en auditoría institucional
+    try {
+      const { logActivity } = require('../services/logger.service');
+      const actionName = status === 'en_curso' 
+        ? 'CAMPAIGN_ACTIVATE' 
+        : (status === 'suspendida' ? 'CAMPAIGN_SUSPEND' : 'CAMPAIGN_STATUS_CHANGE');
+
+      logActivity({
+        level: status === 'suspendida' ? 'WARN' : 'INFO',
+        source: 'CAMPAIGNS_ENGINE',
+        action: actionName,
+        method: req.method,
+        endpoint: req.originalUrl,
+        statusCode: 200,
+        userId: req.user?.id || 'admin',
+        userName: req.user?.full_name || req.user?.username || 'Administrador Institucional',
+        ipAddress: req.ip || req.connection?.remoteAddress,
+        requestPayload: JSON.stringify({
+          campaign_id: id,
+          campaign_name: camp.name,
+          previous_status: previousStatus,
+          new_status: status,
+          auto_suspended_others: suspendedOthers.map(c => ({ id: c.id, name: c.name }))
+        }),
+        responsePayload: JSON.stringify({ success: true, status })
+      });
+    } catch (logErr) {
+      console.warn('[CAMPAIGN STATUS AUDIT WARN]', logErr.message);
+    }
+
+    let message = '';
+    if (status === 'en_curso') {
+      message = `Jornada "${camp.name}" activada con éxito.`;
+      if (suspendedOthers.length > 0) {
+        message += ` Se suspendió automáticamente: ${suspendedOthers.map(c => `"${c.name}"`).join(', ')} para mantener solo una jornada activa.`;
+      }
+    } else if (status === 'suspendida') {
+      message = `Jornada "${camp.name}" suspendida temporalmente. Entregas pausadas.`;
+    } else if (status === 'finalizada') {
+      message = `Jornada "${camp.name}" finalizada y conciliada al 100%.`;
+    } else {
+      message = `Estado de la jornada "${camp.name}" actualizado a ${status}.`;
+    }
+
+    res.json({
+      success: true,
+      message,
+      status,
+      suspended_others: suspendedOthers
+    });
   } catch (err) {
+    console.error('[CAMPAIGN STATUS ERROR]', err);
     res.status(500).json({ error: err.message });
   }
 };

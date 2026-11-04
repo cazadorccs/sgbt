@@ -2974,6 +2974,10 @@ body.senior-accessible-mode .feedback-subtitle {
   border-left: 2.5px solid #10b981;
 }
 
+.campaign-card.status-suspendida {
+  border-left: 2.5px solid #f59e0b;
+}
+
 .campaign-card.status-programada {
   border-left: 2.5px solid var(--sea-pacific);
 }

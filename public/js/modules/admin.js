@@ -411,7 +411,7 @@ window.loadAuditStats = async function() {
       data.campaigns_list.forEach(c => {
         const opt = document.createElement('option');
         opt.value = c.id;
-        const statusBadge = c.status === 'en_curso' ? '🟢 [En Curso]' : (c.status === 'finalizada' ? '📁 [Finalizada]' : '📅 [Programada]');
+        const statusBadge = c.status === 'en_curso' ? '🟢 [En Curso]' : (c.status === 'suspendida' ? '⏸️ [Suspendida]' : (c.status === 'finalizada' ? '📁 [Finalizada]' : '📅 [Programada]'));
         opt.textContent = `${statusBadge} ${c.name} (${c.start_date})`;
         selectCampaign.appendChild(opt);
       });

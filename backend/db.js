@@ -644,6 +644,21 @@ function initializeDatabase() {
     `).run(crypto.randomUUID(), campId);
   }
 
+  // Regla de Exclusividad: Garantizar que no hayan 2 o más jornadas activas al mismo tiempo
+  try {
+    // Purgar duplicados huérfanos sin entregas
+    db.prepare("DELETE FROM delivery_campaigns WHERE id IN ('00b0edff-a9db-4dcf-84fa-25b9cea1ae9b', '725f2015-ec78-4b2d-a601-e85c31153321')").run();
+
+    const activeCamps = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' ORDER BY created_at DESC, id DESC").all();
+    if (activeCamps.length > 1) {
+      // Priorizar la campaña fija institucional '51f3c32c-3b68-40f6-97ed-37f7c8e9441b' si está en el grupo
+      const mainActive = activeCamps.find(c => c.id === '51f3c32c-3b68-40f6-97ed-37f7c8e9441b') || activeCamps[0];
+      db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(mainActive.id);
+    }
+  } catch (e) {
+    console.warn('[DB INIT] Ajuste de jornadas activas:', e.message);
+  }
+
   // Actualizar detalle de rubros para los cuatro combos institucionales
   try {
     db.prepare(`
