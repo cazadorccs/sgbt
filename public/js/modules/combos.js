@@ -861,14 +861,19 @@ window.populateCampaignCombosSelect = async function(selectedId = null) {
 
     cachedCombosList = combosList;
 
+    const isAllFourSelected = !selectedId || selectedId === 'all_four_combos';
     comboSelect.innerHTML = `
-      <option value="all_four_combos" selected>✨ Despacho Integral: Cuatro Combos (Víveres, Higiene, Limpieza y Charcutería)</option>
+      <option value="all_four_combos" ${isAllFourSelected ? 'selected' : ''}>✨ Despacho Integral: Cuatro Combos (Víveres, Higiene, Limpieza y Charcutería)</option>
     `;
 
     combosList.forEach(cb => {
-      const isSel = selectedId ? (cb.id === selectedId) : '';
+      const isSel = (selectedId && cb.id === selectedId) ? 'selected' : '';
       comboSelect.innerHTML += `<option value="${cb.id}" ${isSel}>${cb.icon || '🍱'} ${cb.name} (${cb.category || 'general'})</option>`;
     });
+
+    if (selectedId) {
+      comboSelect.value = selectedId;
+    }
 
     if (typeof window.renderComboPointsAssignment === 'function') {
       window.renderComboPointsAssignment();
@@ -1029,11 +1034,25 @@ window.openCreateCampaignModal = async function() {
     return;
   }
 
+  // Asegurar que los componentes y manejadores del modal estén inicializados
+  if (typeof window.setupCampaignsManagement === 'function') {
+    window.setupCampaignsManagement();
+  }
+  if (typeof window.setupDistributionPointsManagement === 'function') {
+    window.setupDistributionPointsManagement();
+  }
+  if (typeof window.setupCampaignInlineComboManagement === 'function') {
+    window.setupCampaignInlineComboManagement();
+  }
+
   const form = document.getElementById('createCampaignForm');
   if (form) form.reset();
 
   const panel = document.getElementById('distributionPointFormPanel');
   if (panel) panel.style.display = 'none';
+
+  const comboPanel = document.getElementById('comboFormPanelFromCampaign');
+  if (comboPanel) comboPanel.style.display = 'none';
 
   // Asegurar que el modo predeterminado sea Sede Única para todos los combos
   const customCheck = document.getElementById('toggleCustomComboPointsCheck');
@@ -1470,8 +1489,10 @@ window.setupCampaignsManagement = function() {
   });
 
   const closeModal = () => {
-    const panel = document.getElementById('distributionPointFormPanel');
-    if (panel) panel.style.display = 'none';
+    const ptPanel = document.getElementById('distributionPointFormPanel');
+    if (ptPanel) ptPanel.style.display = 'none';
+    const cbPanel = document.getElementById('comboFormPanelFromCampaign');
+    if (cbPanel) cbPanel.style.display = 'none';
     modal?.classList.remove('active');
   };
   btnClose?.addEventListener('click', closeModal);
@@ -1566,7 +1587,7 @@ window.setupCampaignsManagement = function() {
 
       payload.combo_point_assignments = combo_point_assignments;
 
-      const data = await API.post('/api/v1/admin/campaigns', payload);
+      const data = await API.post('/api/v1/admin/campaigns', payload, { timeout: 35000 });
 
       if (notify_workers && data.campaign?.id) {
         try {
@@ -1577,10 +1598,18 @@ window.setupCampaignsManagement = function() {
       }
 
       closeModal();
-      await loadCampaigns();
+      
+      // Conmutar a la vista activa para garantizar visualización inmediata de la jornada creada
+      if (typeof window.switchCampaignsView === 'function') {
+        window.switchCampaignsView('active');
+      } else {
+        window.currentCampaignsView = 'active';
+        await loadCampaigns();
+      }
+
       if (typeof loadNotifications === 'function') await loadNotifications();
       playAudioFeedback('success');
-      Toast.success(`¡Jornada "${name}" publicada exitosamente!`);
+      Toast.success(`¡Jornada "${name}" planificada y agregada al cronograma exitosamente!`);
 
     } catch (err) {
       console.error('[CAMPAIGN ERROR]', err);
@@ -1597,7 +1626,9 @@ window.setupCampaignsManagement = function() {
     }
   }
 
-  form?.addEventListener('submit', handleCampaignSubmit);
+  if (form) {
+    form.onsubmit = handleCampaignSubmit;
+  }
 
   submitBtn?.addEventListener('click', (e) => {
     if (form && !form.checkValidity()) {
@@ -1605,6 +1636,124 @@ window.setupCampaignsManagement = function() {
       return;
     }
     handleCampaignSubmit(e);
+  });
+
+  // Inicializar sub-módulos del modal
+  if (typeof window.setupCampaignInlineComboManagement === 'function') {
+    window.setupCampaignInlineComboManagement();
+  }
+};
+
+window.setupCampaignInlineComboManagement = function() {
+  const btnAdd = document.getElementById('btnAddComboFromCampaign');
+  const panel = document.getElementById('comboFormPanelFromCampaign');
+  const btnCancel = document.getElementById('btnCancelComboPanelFromCampaign');
+  const btnClose = document.getElementById('btnCloseComboPanelFromCampaign');
+  const btnSave = document.getElementById('btnSaveComboFromCampaign');
+  const alertBox = document.getElementById('comboFormAlertFromCampaign');
+
+  const nameInput = document.getElementById('newComboNameInput');
+  const categorySelect = document.getElementById('newComboCategorySelect');
+  const iconInput = document.getElementById('newComboIconInput');
+  const weightInput = document.getElementById('newComboWeightInput');
+  const itemsInput = document.getElementById('newComboItemsInput');
+
+  const closePanel = () => {
+    if (panel) panel.style.display = 'none';
+    if (alertBox) alertBox.style.display = 'none';
+    if (nameInput) nameInput.value = '';
+    if (itemsInput) itemsInput.value = '';
+    if (weightInput) weightInput.value = '12.0';
+  };
+
+  btnCancel?.addEventListener('click', closePanel);
+  btnClose?.addEventListener('click', closePanel);
+
+  btnAdd?.addEventListener('click', (e) => {
+    e.preventDefault();
+    closePanel();
+    const ptPanel = document.getElementById('distributionPointFormPanel');
+    if (ptPanel) ptPanel.style.display = 'none';
+    if (panel) {
+      panel.style.display = 'block';
+      nameInput?.focus();
+    }
+  });
+
+  btnSave?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const name = nameInput?.value?.trim();
+    const category = categorySelect?.value || 'bolsa_viveres';
+    const icon = iconInput?.value || '🍱';
+    const weight_kg = parseFloat(weightInput?.value) || 12.0;
+    const items = itemsInput?.value?.trim() || '';
+
+    if (!name) {
+      if (alertBox) {
+        alertBox.textContent = 'Por favor indique el nombre del combo / beneficio.';
+        alertBox.style.display = 'block';
+      }
+      nameInput?.focus();
+      return;
+    }
+
+    if (alertBox) alertBox.style.display = 'none';
+    if (btnSave) {
+      btnSave.disabled = true;
+      btnSave.textContent = 'Guardando...';
+    }
+
+    try {
+      const payload = {
+        name,
+        category,
+        icon,
+        description: items,
+        items_detail: items,
+        weight_kg,
+        calories: 0,
+        is_active: 1
+      };
+
+      const res = await API.post('/api/v1/admin/combos', payload);
+      const newCombo = res?.combo || { id: res?.id, name };
+
+      // Actualizar el selector de combos de la jornada y seleccionar el nuevo
+      await window.populateCampaignCombosSelect(newCombo.id);
+      const comboSelect = document.getElementById('campaignComboSelect');
+      if (comboSelect && newCombo.id) {
+        comboSelect.value = newCombo.id;
+      }
+
+      if (typeof window.renderComboPointsAssignment === 'function') {
+        window.renderComboPointsAssignment();
+      }
+
+      closePanel();
+      if (typeof window.playAudioFeedback === 'function') window.playAudioFeedback('success');
+      if (window.Toast && typeof window.Toast.success === 'function') {
+        window.Toast.success(`¡Combo "${newCombo.name}" creado e incorporado a la jornada!`);
+      } else if (typeof window.showToast === 'function') {
+        window.showToast(`¡Combo "${newCombo.name}" creado e incorporado a la jornada!`, 'success');
+      }
+
+      // Refrescar catálogo general en background
+      if (typeof loadCombosCatalog === 'function') loadCombosCatalog().catch(() => {});
+    } catch (err) {
+      console.error('[INLINE COMBO CREATE ERROR]', err);
+      if (alertBox) {
+        alertBox.textContent = err.message || 'Error al guardar el nuevo combo.';
+        alertBox.style.display = 'block';
+      }
+      if (window.Toast && typeof window.Toast.error === 'function') {
+        window.Toast.error(err.message || 'Error al registrar el nuevo combo.');
+      }
+    } finally {
+      if (btnSave) {
+        btnSave.disabled = false;
+        btnSave.textContent = 'Guardar y Asignar a la Jornada';
+      }
+    }
   });
 };
 
@@ -1709,10 +1858,24 @@ if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       if (typeof initCombosManagement === 'function') initCombosManagement();
+      if (typeof setupCampaignsManagement === 'function') setupCampaignsManagement();
+      if (typeof setupCampaignInlineComboManagement === 'function') setupCampaignInlineComboManagement();
+      if (typeof setupDistributionPointsManagement === 'function') setupDistributionPointsManagement();
     });
   } else {
     setTimeout(() => {
       if (typeof initCombosManagement === 'function') initCombosManagement();
+      if (typeof setupCampaignsManagement === 'function') setupCampaignsManagement();
+      if (typeof setupCampaignInlineComboManagement === 'function') setupCampaignInlineComboManagement();
+      if (typeof setupDistributionPointsManagement === 'function') setupDistributionPointsManagement();
     }, 100);
   }
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('templates:loaded', () => {
+    if (typeof setupCampaignsManagement === 'function') setupCampaignsManagement();
+    if (typeof setupCampaignInlineComboManagement === 'function') setupCampaignInlineComboManagement();
+    if (typeof setupDistributionPointsManagement === 'function') setupDistributionPointsManagement();
+  });
 }

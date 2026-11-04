@@ -959,11 +959,24 @@
         <div class="input-group">
           <div class="input-header-row">
             <label for="campaignComboSelect">Combo / Beneficio: <span class="required-indicator" title="Campo obligatorio">*</span></label>
+            <div class="input-header-actions" style="display: flex; gap: 0.35rem;">
+              <button type="button" id="btnAddComboFromCampaign" class="btn btn-outline btn-pill-action"
+                style="color: var(--primary); border-color: rgba(2, 132, 199, 0.35); background: rgba(2, 132, 199, 0.06);"
+                title="Crear un nuevo combo o rubro institucional">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <span>Nuevo Combo</span>
+              </button>
+            </div>
           </div>
           <select id="campaignComboSelect" class="form-select" style="font-weight: 600;">
-            <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)
-            </option>
-            <option value="ae65fee7-79f6-48a3-bc41-a61c928876b5">🍗 Combo Proteico Fresco (Cadena de Frío)</option>
+            <option value="all_four_combos" selected>✨ Despacho Integral: Cuatro Combos (Víveres, Higiene, Limpieza y Charcutería)</option>
+            <option value="c1a2b3c4-1111-2222-3333-444455556666">🌾 Bolsa de Víveres Secos (Canasta Básica MIPPCI)</option>
+            <option value="c1a2b3c4-1111-2222-3333-444455557777">🧀 Combo Charcutería (Proteína Fresca)</option>
+            <option value="3df50537-3333-4fce-8bdc-f4ecbb567adf">🧼 Combo de Higiene Personal</option>
+            <option value="2e39c4a5-0611-4a03-b10c-08ef7e270684">🧹 Combo de Limpieza</option>
           </select>
         </div>
         <div class="input-group">
@@ -1069,6 +1082,81 @@
               <polyline points="20 6 9 17 4 12"></polyline>
             </svg>
             <span id="btnSavePointText">Guardar y Asignar Sede</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PANEL INLINE PARA CREAR NUEVO COMBO DESDE LA JORNADA -->
+      <div id="comboFormPanelFromCampaign" class="distribution-point-panel" style="display: none; background: #f8fafc; border: 1.5px solid #0284c7; border-radius: 10px; padding: 0.85rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div style="font-size: 0.86rem; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 0.45rem;">
+            <span style="font-size: 1.15rem;">🍱</span>
+            <span>Registrar Nuevo Combo / Rubro para la Jornada</span>
+          </div>
+          <button type="button" id="btnCancelComboPanelFromCampaign" class="modal-close-btn"
+            style="width: 28px; height: 28px; min-width: 28px; min-height: 28px;" title="Cerrar">✕</button>
+        </div>
+
+        <div class="form-grid-2" style="margin-bottom: 0.65rem;">
+          <div class="input-group">
+            <label for="newComboNameInput" style="font-size: 0.74rem;">Nombre del Combo / Rubro: <span class="required-indicator">*</span></label>
+            <input type="text" id="newComboNameInput" class="form-input"
+              style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" placeholder="Ej: Combo Proteico Especial / Cesta Navideña" />
+          </div>
+          <div class="input-group">
+            <label for="newComboCategorySelect" style="font-size: 0.74rem;">Categoría Institucional: <span class="required-indicator">*</span></label>
+            <select id="newComboCategorySelect" class="form-select" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;">
+              <option value="bolsa_viveres">🌾 Bolsa de Víveres Secos</option>
+              <option value="combo_proteico">🥩 Cadena de Frío / Charcutería / Proteína</option>
+              <option value="combo_higienico">🧼 Higiene y Cuidado Personal</option>
+              <option value="combo_limpieza">🧹 Aseo y Limpieza del Hogar</option>
+              <option value="combo_escolar">🎒 Útiles Escolares / Textil</option>
+              <option value="especial">🎁 Beneficio Especial Extraordinario</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-bottom: 0.65rem;">
+          <div class="input-group">
+            <label for="newComboIconInput" style="font-size: 0.74rem;">Ícono / Emoji:</label>
+            <select id="newComboIconInput" class="form-select" style="padding: 0.45rem 0.65rem; font-size: 0.8rem;">
+              <option value="🍱">🍱 Bento / General</option>
+              <option value="🌾">🌾 Víveres / Granos</option>
+              <option value="🧀">🧀 Queso / Charcutería</option>
+              <option value="🍗">🍗 Proteína / Pollo / Carnes</option>
+              <option value="🧼">🧼 Higiene Personal</option>
+              <option value="🧹">🧹 Limpieza</option>
+              <option value="🎒">🎒 Útiles Escolares</option>
+              <option value="📦">📦 Caja Institucional</option>
+              <option value="🎁">🎁 Beneficio Especial</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="newComboWeightInput" style="font-size: 0.74rem;">Peso Aproximado (Kg):</label>
+            <input type="number" id="newComboWeightInput" class="form-input"
+              style="padding: 0.45rem 0.65rem; font-size: 0.8rem;" step="0.1" min="0.1" value="12.0" placeholder="Ej: 12.5" />
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 0.75rem;">
+          <label for="newComboItemsInput" style="font-size: 0.74rem;">Detalle de Rubros o Artículos Contenidos:</label>
+          <textarea id="newComboItemsInput" class="form-input" rows="2"
+            style="padding: 0.45rem 0.65rem; font-size: 0.8rem;"
+            placeholder="Ej: 4 Harina de Maíz, 2 Arroz Blanco, 2 Pasta, 1 Aceite Vegetal, 1 Azúcar, 2 Sardinas"></textarea>
+        </div>
+
+        <div id="comboFormAlertFromCampaign" class="alert-box alert-danger"
+          style="display: none; padding: 0.45rem 0.65rem; font-size: 0.75rem; margin-bottom: 0.5rem;"></div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" id="btnCloseComboPanelFromCampaign" class="btn btn-outline"
+            style="padding: 0.4rem 0.85rem; font-size: 0.78rem;">Cancelar</button>
+          <button type="button" id="btnSaveComboFromCampaign" class="btn btn-primary"
+            style="padding: 0.4rem 1rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.35rem;">
+            <svg class="icon-svg icon-xs" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span id="btnSaveComboText">Guardar y Asignar a la Jornada</span>
           </button>
         </div>
       </div>

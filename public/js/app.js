@@ -330,6 +330,14 @@ function setupNavigation() {
       const target = document.getElementById(subtabId);
       if (target) target.style.display = 'block';
       STATE.currentSubtab = subtabId;
+
+      if (subtabId === 'subtab-campaigns' && typeof window.loadCampaigns === 'function') {
+        window.loadCampaigns();
+      } else if (subtabId === 'subtab-combos' && typeof window.loadCombosCatalog === 'function') {
+        window.loadCombosCatalog();
+      } else if (subtabId === 'subtab-workers' && typeof window.loadWorkersDirectory === 'function') {
+        window.loadWorkersDirectory();
+      }
     });
   });
 
