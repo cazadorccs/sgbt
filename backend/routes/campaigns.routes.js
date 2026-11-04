@@ -16,6 +16,8 @@ router.post('/admin/campaigns', requireRole('admin', 'director'), campaignsContr
 router.put('/admin/campaigns/:id', requireRole('admin', 'director'), campaignsController.updateCampaign);
 router.put('/admin/campaigns/:id/status', requireRole('admin', 'director'), campaignsController.updateCampaignStatus);
 router.post('/admin/campaigns/:id/notify', requireRole('admin', 'director'), campaignsController.notifyCampaign);
+router.delete('/admin/campaigns/:id', requireRole('admin', 'director'), campaignsController.deleteCampaign);
+router.post('/admin/campaigns/:id/delete', requireRole('admin', 'director'), campaignsController.deleteCampaign);
 
 module.exports = router;
 

@@ -1376,17 +1376,25 @@ window.loadCampaigns = async function() {
               <span style="font-size: 0.9rem;">📜</span>
               <span><strong>Acta:</strong> ${c.acta ? c.acta.acta_number : 'ACTA-20261023-MIPPCI-001'}</span>
             </div>
-            <button type="button" class="btn btn-primary btn-view-acta" data-id="${c.id}" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
-              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-              <span>Ver Acta Oficial de Cierre</span>
-            </button>
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
+              <button type="button" class="btn btn-primary btn-view-acta" data-id="${c.id}" style="font-size: 0.75rem; padding: 0.35rem 0.85rem; display: inline-flex; align-items: center; gap: 0.35rem;">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <span>Ver Acta Oficial de Cierre</span>
+              </button>
+              <button type="button" class="btn btn-outline btn-delete-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.04); display: inline-flex; align-items: center; gap: 0.25rem;" title="Eliminar jornada (requiere clave de administrador)">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24" style="color: #ef4444;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <span>Eliminar</span>
+              </button>
+            </div>
           ` : `
-            <button class="btn btn-outline btn-notify-campaign" data-id="${c.id}" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #fff; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar notificación a la app de los beneficiarios">
-              <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span>${c.notification_sent ? 'Reenviar Aviso' : 'Notificar'}</span>
-            </button>
-            
             <div style="display: flex; gap: 0.35rem;">
+              <button class="btn btn-outline btn-notify-campaign" data-id="${c.id}" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #fff; display: inline-flex; align-items: center; gap: 0.35rem;" title="Enviar notificación a la app de los beneficiarios">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                <span>${c.notification_sent ? 'Reenviar Aviso' : 'Notificar'}</span>
+              </button>
+            </div>
+            
+            <div style="display: flex; gap: 0.35rem; align-items: center;">
               ${c.status === 'programada' ? `
                 <button class="btn btn-primary btn-status-campaign" data-id="${c.id}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;">
                   Iniciar Jornada
@@ -1396,6 +1404,10 @@ window.loadCampaigns = async function() {
                   Finalizar y Conciliar
                 </button>
               `}
+              <button type="button" class="btn btn-outline btn-delete-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.04); display: inline-flex; align-items: center; gap: 0.25rem;" title="Eliminar jornada (requiere clave de administrador)">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24" style="color: #ef4444;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <span>Eliminar</span>
+              </button>
             </div>
           `}
         </div>
@@ -1445,6 +1457,63 @@ window.loadCampaigns = async function() {
           await loadCampaigns();
         } catch (err) {
           window.showToast('Error actualizando estado: ' + err.message, 'error');
+        }
+      });
+    });
+
+    document.querySelectorAll('.btn-delete-campaign').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name') || 'esta jornada';
+
+        const key = prompt(
+          '🔒 AUTORIZACIÓN DE SEGURIDAD REQUERIDA:\n\n' +
+          `¿Está seguro de que desea eliminar permanentemente la jornada:\n"${name}"?\n\n` +
+          'Esta acción se registrará formalmente en los registros de auditoría del sistema.\n\n' +
+          'Ingrese la clave de seguridad de administrador para autorizar:'
+        );
+
+        if (key === null) return; // Usuario canceló
+
+        if (!key.trim()) {
+          if (window.Toast && typeof window.Toast.error === 'function') {
+            window.Toast.error('Debe ingresar la clave de seguridad de administrador.');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast('Debe ingresar la clave de seguridad de administrador.', 'error');
+          }
+          return;
+        }
+
+        btn.disabled = true;
+        const originalContent = btn.innerHTML;
+        btn.innerHTML = '⏳ Eliminando...';
+
+        try {
+          const res = await API.post(`/api/v1/admin/campaigns/${id}/delete`, {
+            admin_key: key.trim(),
+            reason: 'Eliminación administrativa por duplicidad'
+          });
+
+          if (res && res.success) {
+            if (window.Toast && typeof window.Toast.success === 'function') {
+              window.Toast.success(res.message || 'Jornada eliminada exitosamente.');
+            } else if (typeof window.showToast === 'function') {
+              window.showToast(res.message || 'Jornada eliminada exitosamente.', 'success');
+            }
+            if (typeof window.playAudioFeedback === 'function') window.playAudioFeedback('success');
+            await loadCampaigns();
+          } else {
+            throw new Error(res?.error || 'No se pudo eliminar la jornada.');
+          }
+        } catch (err) {
+          console.error('[CAMPAIGN DELETE ERROR]', err);
+          if (window.Toast && typeof window.Toast.error === 'function') {
+            window.Toast.error(err.message || 'Error al eliminar la jornada.');
+          } else if (typeof window.showToast === 'function') {
+            window.showToast(err.message || 'Error al eliminar la jornada.', 'error');
+          }
+          btn.disabled = false;
+          btn.innerHTML = originalContent;
         }
       });
     });
