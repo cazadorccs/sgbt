@@ -170,6 +170,7 @@ window.setupWorkerSimulator = function() {
         savedLock = JSON.parse(sessionStorage.getItem('sgbt_device_lock'));
       } catch (e) {}
 
+      const securityBadge = document.getElementById('securityMenuBadge');
       if (deviceLockBadge) {
         if (savedLock && savedLock.claim_key) {
           deviceLockBadge.style.display = 'block';
@@ -177,8 +178,18 @@ window.setupWorkerSimulator = function() {
           if (deviceLockText) {
             deviceLockText.textContent = `Amarre exclusivo a este smartphone (${savedLock.claim_key}). Prohibido préstamo de teléfono hasta culminar la entrega.`;
           }
+          if (securityBadge) {
+            securityBadge.textContent = '🔒 Candado Activo';
+            securityBadge.style.color = '#38bdf8';
+            securityBadge.style.background = 'rgba(56, 189, 248, 0.25)';
+          }
         } else {
           deviceLockBadge.style.display = 'none';
+          if (securityBadge) {
+            securityBadge.textContent = activePasskey ? 'Passkey Activa' : 'Protegido';
+            securityBadge.style.color = '#34d399';
+            securityBadge.style.background = 'rgba(16, 185, 129, 0.15)';
+          }
         }
       }
 
@@ -1310,6 +1321,24 @@ window.setupWorkerSimulator = function() {
     });
   }
   setupCombosAccordion();
+
+  // Soporte interactivo para el menú desplegable de seguridad y dispositivo
+  function setupSecurityMenuAccordion() {
+    const headerSecurity = document.getElementById('headerToggleSecurityMenu');
+    const bodySecurity = document.getElementById('bodySecurityMenu');
+    if (!headerSecurity || !bodySecurity || headerSecurity._hasSecuritySetup) return;
+    headerSecurity._hasSecuritySetup = true;
+
+    headerSecurity.addEventListener('click', () => {
+      const isCollapsed = bodySecurity.classList.toggle('is-collapsed');
+      headerSecurity.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+      const chevron = headerSecurity.querySelector('.package-chevron');
+      if (chevron) {
+        chevron.style.transform = isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+      }
+    });
+  }
+  setupSecurityMenuAccordion();
 
   // Carga inicial
   loadWorkerSelect();

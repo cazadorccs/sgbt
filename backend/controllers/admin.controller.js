@@ -461,10 +461,23 @@ const getWorkerDossier = async (req, res) => {
     } catch (e) {}
   }
 
+  const today = new Date().toISOString().split('T')[0];
+  let activeDeviceLock = null;
+  try {
+    activeDeviceLock = db.prepare(`
+      SELECT id, lock_key, device_label, ip_address, status, locked_at, completed_at
+      FROM device_locks
+      WHERE worker_id = ? AND valid_date = ?
+      ORDER BY locked_at DESC
+      LIMIT 1
+    `).get(worker.id, today) || null;
+  } catch (e) {}
+
   res.json({
     worker,
     passkeys,
     nfcCards,
+    activeDeviceLock,
     recentDeliveries
   });
 };

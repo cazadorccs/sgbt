@@ -627,7 +627,30 @@ window.openSecurityDossier = async function(workerId) {
       `;
     }
 
-    content.innerHTML = `
+      const lockData = data.activeDeviceLock;
+      let deviceLockHtml = '';
+      if (lockData && lockData.status === 'active') {
+        deviceLockHtml = `
+          <div style="background: rgba(2, 132, 199, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.4); border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.65rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+              <strong style="color: #0284c7; font-size: 0.8rem;">🔒 Candado Activo: <span class="text-mono">${lockData.lock_key}</span></strong>
+              <span class="badge" style="background: #e0f2fe; color: #0369a1; font-size: 0.65rem; font-weight: 700;">AMARRADO</span>
+            </div>
+            <div style="font-size: 0.72rem; color: #475569;">
+              Dispositivo: <strong>${lockData.device_label || 'Smartphone Autorizado'}</strong> &middot; IP: ${lockData.ip_address || '127.0.0.1'}<br>
+              Amarre fijado: ${new Date(lockData.locked_at).toLocaleString()}
+            </div>
+          </div>
+        `;
+      } else {
+        deviceLockHtml = `
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.55rem 0.75rem; margin-bottom: 0.65rem; font-size: 0.72rem; color: #64748b;">
+            🟢 Sin candado activo hoy (Dispositivo libre para iniciar sesión o entrega culminada).
+          </div>
+        `;
+      }
+
+      content.innerHTML = `
       <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.85rem; display: flex; gap: 0.85rem; align-items: center; margin-bottom: 1rem;">
         ${dossierPhotoHtml}
         <div style="flex: 1; min-width: 0;">
@@ -662,6 +685,7 @@ window.openSecurityDossier = async function(workerId) {
 
       <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px dashed #cbd5e1;">
         <h5 style="font-size: 0.85rem; font-weight: 700; color: #0284c7; margin-bottom: 0.35rem;">🔒 Amarre Exclusivo de Dispositivo:</h5>
+        ${deviceLockHtml}
         <p style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.5rem;">
           Si el funcionario extravió o dañó su smartphone durante la jornada activa, libere el candado para permitir inicio de sesión en otro teléfono.
         </p>

@@ -8,9 +8,9 @@ const { verifyOfflineSignature, generateNonce } = require('../crypto-utils');
 const { notifyDeliveryStream } = require('../services/sse.service');
 const { enqueueEvent } = require('../services/outbox.service');
 const { voidDelivery } = require('../services/delivery.service');
-const { 
-  getDeliveriesSummaryByDate, 
-  getDeviceLockStatsByDate 
+const {
+  getDeliveriesSummaryByDate,
+  getDeviceLockStatsByDate
 } = require('../services/dispatch_repository.service');
 
 // Obtiene el modo de despacho persistente desde tenant_settings con fallback a 'total'
@@ -75,8 +75,8 @@ const getDispatchMode = (req, res) => {
   const currentMode = getStoredDispatchMode();
   return res.json({
     mode: currentMode,
-    label: currentMode === 'total' 
-      ? '🌟 Modo Retiro Totalizado (Todos los Combos en 1 Escaneo)' 
+    label: currentMode === 'total'
+      ? '🌟 Modo Retiro Totalizado (Todos los Combos en 1 Escaneo)'
       : '📦 Modo Estación Específica (Mesa Individual)',
     all_combos_in_single_scan: currentMode === 'total',
     timestamp: new Date().toISOString()
@@ -89,8 +89,8 @@ const getDispatchMode = (req, res) => {
 const setDispatchMode = (req, res) => {
   const { mode } = req.body;
   if (!mode || (mode !== 'total' && mode !== 'station')) {
-    return res.status(400).json({ 
-      error: 'Modo de despacho no válido. Opciones permitidas: "total" o "station"' 
+    return res.status(400).json({
+      error: 'Modo de despacho no válido. Opciones permitidas: "total" o "station"'
     });
   }
 
@@ -140,7 +140,7 @@ const atomicClaim = async (req, res) => {
         let decodedB64 = null;
         try {
           decodedB64 = Buffer.from(rawStr, 'base64').toString('utf8');
-        } catch (e) {}
+        } catch (e) { }
         if (decodedB64 && decodedB64.startsWith('{') && decodedB64.endsWith('}')) {
           qr_payload = JSON.parse(decodedB64);
         } else if (/^[VEve]?[-]?\d{5,9}$/.test(rawStr)) {
@@ -242,7 +242,7 @@ const atomicClaim = async (req, res) => {
             INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
             VALUES (?, ?, ?, ?, ?, 'pending')
           `).run(newEntId, wid, ac.id, today, ac.mesa_name ? ac.mesa_name.split(' - ')[0].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua');
-        } catch (e) {}
+        } catch (e) { }
       }
       entitlements = db.prepare(`
         SELECT e.id, e.combo_id, e.shift, e.status,
@@ -283,20 +283,20 @@ const atomicClaim = async (req, res) => {
 
     // Determinar modo de despacho (Totalizado vs Estación Específica)
     const effectiveMode = mode || (qr_payload && qr_payload.mode) || currentDispatchMode;
-    const reqStation = (station && station !== 'all') 
-      ? String(station).toLowerCase() 
+    const reqStation = (station && station !== 'all')
+      ? String(station).toLowerCase()
       : (qr_payload && qr_payload.station ? String(qr_payload.station).toLowerCase() : 'all');
 
     const isTotalClaim = effectiveMode === 'total' || reqStation === 'all';
 
     // Resolver punto de distribución y operador responsable
-    let distPoint = distribution_point_id 
-      ? db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(distribution_point_id) 
+    let distPoint = distribution_point_id
+      ? db.prepare("SELECT id FROM distribution_points WHERE id = ?").get(distribution_point_id)
       : db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
     const finalPointId = distPoint ? distPoint.id : '5b0f10e3-7eac-4872-bf96-74ecd359be7e';
 
-    let operatorUser = delivered_by_user_id 
-      ? db.prepare("SELECT id FROM workers WHERE id = ?").get(delivered_by_user_id) 
+    let operatorUser = delivered_by_user_id
+      ? db.prepare("SELECT id FROM workers WHERE id = ?").get(delivered_by_user_id)
       : db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
     const finalOperatorId = operatorUser ? operatorUser.id : null;
 
@@ -376,7 +376,7 @@ const atomicClaim = async (req, res) => {
               is_offline_sync: false,
               delivered_at: nowIso
             });
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // Liberación inmediata del candado de dispositivo en la misma transacción
@@ -441,19 +441,19 @@ const atomicClaim = async (req, res) => {
     // ========================================================================
     // CASO B: MODO ESTACIÓN ESPECÍFICA (DESPACHO INDIVIDUAL POR MESA)
     // ========================================================================
-    let targetEnt = pendingEnts.find(e => 
-      e.combo_id === reqStation || 
+    let targetEnt = pendingEnts.find(e =>
+      e.combo_id === reqStation ||
       (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
       (e.shift && e.shift.toLowerCase() === reqStation) ||
       (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))
     );
 
     if (!targetEnt) {
-      const alreadyClaimed = entitlements.find(e => 
-        (e.combo_id === reqStation || 
-        (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
-        (e.shift && e.shift.toLowerCase() === reqStation) ||
-        (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))) &&
+      const alreadyClaimed = entitlements.find(e =>
+        (e.combo_id === reqStation ||
+          (e.combo_category && e.combo_category.toLowerCase() === reqStation) ||
+          (e.shift && e.shift.toLowerCase() === reqStation) ||
+          (e.mesa_name && e.mesa_name.toLowerCase().includes(reqStation))) &&
         (checkDelivery.get(wid, e.id) || e.status === 'claimed')
       );
       if (alreadyClaimed) {
@@ -489,7 +489,7 @@ const atomicClaim = async (req, res) => {
 
     try {
       db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(targetEnt.id);
-    } catch (e) {}
+    } catch (e) { }
 
     // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
     try {

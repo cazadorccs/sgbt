@@ -2668,6 +2668,42 @@ body.dark-mode .package-chevron {
   transform: rotate(0deg);
 }
 
+/* Menú Desplegable de Seguridad en Carnet Beneficiario */
+.worker-menu-header {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.worker-menu-header:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+.worker-menu-body {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  overflow: hidden;
+}
+
+.worker-menu-body.is-collapsed {
+  max-height: 0 !important;
+  opacity: 0 !important;
+  margin-top: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none;
+}
+
+.worker-menu-body:not(.is-collapsed) {
+  max-height: 400px;
+  opacity: 1;
+}
+
+.worker-menu-header[aria-expanded="false"] .package-chevron {
+  transform: rotate(-90deg);
+}
+
+.worker-menu-header[aria-expanded="true"] .package-chevron {
+  transform: rotate(0deg);
+}
+
 /* ============================================================================
    CONFIGURACIÓN GENERAL & SWITCHES DE CONTROL
    ============================================================================ */
