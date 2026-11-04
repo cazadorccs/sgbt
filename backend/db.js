@@ -996,10 +996,50 @@ async function syncFromSupabase() {
 
     // Hidratar combos desde Supabase Cloud
     try {
-      const { data: remoteCombos, error: cErr } = await supabase.from('combos').select('*');
-      if (!cErr && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
+      const { data: rawRemoteCombos, error: cErr } = await supabase.from('combos').select('*');
+      if (!cErr && Array.isArray(rawRemoteCombos) && rawRemoteCombos.length > 0) {
+        // Extraer almacén en la nube de jornadas si existe
+        const campStore = rawRemoteCombos.find(r => r.id === 'c0000000-ca11-4000-8000-000000000001' || r.name === '__SYSTEM_CAMPAIGNS_STORE__');
+        if (campStore && campStore.description) {
+          try {
+            const parsed = JSON.parse(campStore.description);
+            if (parsed && Array.isArray(parsed.campaigns)) {
+              const insertCamp = db.prepare(`
+                INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                  name = excluded.name,
+                  description = excluded.description,
+                  start_date = excluded.start_date,
+                  end_date = excluded.end_date,
+                  combo_id = excluded.combo_id,
+                  target_group = excluded.target_group,
+                  distribution_point_id = excluded.distribution_point_id,
+                  status = excluded.status,
+                  notification_sent = excluded.notification_sent
+              `);
+              for (const c of parsed.campaigns) {
+                try {
+                  insertCamp.run(c.id, c.name, c.description || '', c.start_date, c.end_date, c.combo_id, c.target_group || 'all', c.distribution_point_id, c.status || 'programada', c.notification_sent || 0, c.created_at || new Date().toISOString());
+                } catch (e) {}
+              }
+              if (Array.isArray(parsed.campaign_combos)) {
+                for (const cc of parsed.campaign_combos) {
+                  try {
+                    db.prepare(`INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id, distribution_point_id) VALUES (?, ?, ?)`).run(cc.campaign_id, cc.combo_id, cc.distribution_point_id || null);
+                  } catch (e) {}
+                }
+              }
+              console.log(`[SUPABASE HYDRATION] ${parsed.campaigns.length} jornadas sincronizadas desde Supabase Cloud.`);
+            }
+          } catch (campErr) {
+            console.warn('[SUPABASE HYDRATION WARN] Error parseando jornadas remotas:', campErr.message);
+          }
+        }
+
+        const remoteCombos = rawRemoteCombos.filter(r => r.id !== 'c0000000-ca11-4000-8000-000000000001' && r.name !== '__SYSTEM_CAMPAIGNS_STORE__');
         const remoteIds = new Set(remoteCombos.map(r => r.id));
-        const localCombos = db.prepare('SELECT id FROM combos').all();
+        const localCombos = db.prepare("SELECT id FROM combos WHERE name != '__SYSTEM_CAMPAIGNS_STORE__'").all();
         for (const loc of localCombos) {
           if (!remoteIds.has(loc.id)) {
             try {

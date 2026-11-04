@@ -4,6 +4,7 @@
 
 let cachedDistributionPoints = [];
 let cachedCombos = [];
+let cachedCombosList = [];
 let cachedCampaignsList = [];
 let currentCombosGrouping = 'campaign'; // 'campaign' | 'flat'
 let currentCombosCampaignFilter = 'all'; // 'all' | 'unassigned' | <uuid>
@@ -954,10 +955,13 @@ window.renderComboPointsAssignment = function() {
 
   // Identificar qué combos aplican según la selección
   const comboVal = comboSelect.value;
+  const safeCombosList = (typeof cachedCombosList !== 'undefined' && Array.isArray(cachedCombosList))
+    ? cachedCombosList
+    : [];
   let activeCombos = [];
   if (comboVal === 'all_four_combos') {
-    activeCombos = (cachedCombosList && cachedCombosList.length > 0)
-      ? cachedCombosList
+    activeCombos = (safeCombosList.length > 0)
+      ? safeCombosList
       : [
           { id: 'c1a2b3c4-1111-2222-3333-444455556666', name: 'Combo de Víveres Secos (Canasta Básica)', icon: '🌾', category: 'bolsa_viveres' },
           { id: '3df50537-3333-4fce-8bdc-f4ecbb567adf', name: 'Combo de Higiene Personal', icon: '🧼', category: 'combo_higienico' },
@@ -965,7 +969,7 @@ window.renderComboPointsAssignment = function() {
           { id: 'c1a2b3c4-1111-2222-3333-444455557777', name: 'Combo de Charcutería', icon: '🧀', category: 'combo_proteico' }
         ];
   } else {
-    const single = (cachedCombosList || []).find(cb => cb.id === comboVal);
+    const single = safeCombosList.find(cb => cb.id === comboVal);
     if (single) {
       activeCombos = [single];
     } else {

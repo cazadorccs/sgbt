@@ -3,6 +3,72 @@
 
 const crypto = require('crypto');
 const { db } = require('../db');
+const { supabase } = require('../supabase');
+
+const SYNC_CAMPAIGNS_STORE_UUID = 'c0000000-ca11-4000-8000-000000000001';
+
+async function syncCampaignsToCloud() {
+  if (!supabase) return;
+  try {
+    const camps = db.prepare('SELECT * FROM delivery_campaigns ORDER BY created_at ASC').all();
+    const campCombos = db.prepare('SELECT * FROM campaign_combos').all();
+    const payload = JSON.stringify({ campaigns: camps, campaign_combos: campCombos });
+
+    await supabase.from('combos').upsert({
+      id: SYNC_CAMPAIGNS_STORE_UUID,
+      name: '__SYSTEM_CAMPAIGNS_STORE__',
+      category: 'bolsa_viveres',
+      description: payload,
+      calories: 0,
+      dietary_info: 'Cloud State Store',
+      is_active: false
+    }, { onConflict: 'id' });
+    console.log(`[SUPABASE CLOUD SYNC] ${camps.length} jornadas sincronizadas hacia la nube.`);
+  } catch (e) {
+    console.warn('[SUPABASE CLOUD SYNC WARN]', e.message);
+  }
+}
+
+async function syncCampaignsFromCloud() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase.from('combos').select('description').eq('id', SYNC_CAMPAIGNS_STORE_UUID).single();
+    if (error || !data || !data.description) return;
+    let parsed;
+    try { parsed = JSON.parse(data.description); } catch (e) { return; }
+    if (parsed && Array.isArray(parsed.campaigns) && parsed.campaigns.length > 0) {
+      const insertCamp = db.prepare(`
+        INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          description = excluded.description,
+          start_date = excluded.start_date,
+          end_date = excluded.end_date,
+          combo_id = excluded.combo_id,
+          target_group = excluded.target_group,
+          distribution_point_id = excluded.distribution_point_id,
+          status = excluded.status,
+          notification_sent = excluded.notification_sent
+      `);
+      for (const c of parsed.campaigns) {
+        try {
+          insertCamp.run(c.id, c.name, c.description || '', c.start_date, c.end_date, c.combo_id, c.target_group || 'all', c.distribution_point_id, c.status || 'programada', c.notification_sent || 0, c.created_at || new Date().toISOString());
+        } catch (e) {}
+      }
+      if (Array.isArray(parsed.campaign_combos)) {
+        for (const cc of parsed.campaign_combos) {
+          try {
+            db.prepare(`INSERT OR IGNORE INTO campaign_combos (campaign_id, combo_id, distribution_point_id) VALUES (?, ?, ?)`).run(cc.campaign_id, cc.combo_id, cc.distribution_point_id || null);
+          } catch (e) {}
+        }
+      }
+      console.log(`[SUPABASE CLOUD HYDRATE] ${parsed.campaigns.length} jornadas hidratadas desde la nube.`);
+    }
+  } catch (e) {
+    console.warn('[SUPABASE CLOUD HYDRATE WARN]', e.message);
+  }
+}
 
 const getDistributionPoints = (req, res) => {
   try {
@@ -83,8 +149,9 @@ const updateDistributionPoint = (req, res) => {
   }
 };
 
-const getCampaigns = (req, res) => {
+const getCampaigns = async (req, res) => {
   try {
+    await syncCampaignsFromCloud();
     const { status, type } = req.query;
     let query = `
       SELECT 
@@ -244,7 +311,7 @@ const getCampaigns = (req, res) => {
   }
 };
 
-const createCampaign = (req, res) => {
+const createCampaign = async (req, res) => {
   const { name, description, start_date, end_date, combo_id, combo_ids, combo_point_assignments, target_group, distribution_point_id, auto_generate_entitlements } = req.body;
 
   if (!name || !start_date || !end_date) {
@@ -359,6 +426,8 @@ const createCampaign = (req, res) => {
     const generated = tx();
     const created = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(campaignId);
 
+    await syncCampaignsToCloud();
+
     res.status(201).json({
       success: true,
       message: `Jornada "${created.name}" planificada con éxito (${generated} asignaciones preparadas)`,
@@ -412,7 +481,7 @@ const updateCampaign = (req, res) => {
   }
 };
 
-const updateCampaignStatus = (req, res) => {
+const updateCampaignStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -422,24 +491,36 @@ const updateCampaignStatus = (req, res) => {
 
   try {
     db.prepare('UPDATE delivery_campaigns SET status = ? WHERE id = ?').run(status, id);
+    syncCampaignsToCloud().catch(() => {});
     res.json({ success: true, message: `Estado de la jornada actualizado a: ${status}` });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-const notifyCampaign = (req, res) => {
+const notifyCampaign = async (req, res) => {
   const { id } = req.params;
   const { custom_title, custom_message } = req.body;
 
   try {
-    const camp = db.prepare(`
+    let camp = db.prepare(`
       SELECT c.*, cb.name as combo_name, dp.name as point_name 
       FROM delivery_campaigns c
       LEFT JOIN combos cb ON c.combo_id = cb.id
       LEFT JOIN distribution_points dp ON c.distribution_point_id = dp.id
       WHERE c.id = ?
     `).get(id);
+
+    if (!camp) {
+      await syncCampaignsFromCloud();
+      camp = db.prepare(`
+        SELECT c.*, cb.name as combo_name, dp.name as point_name 
+        FROM delivery_campaigns c
+        LEFT JOIN combos cb ON c.combo_id = cb.id
+        LEFT JOIN distribution_points dp ON c.distribution_point_id = dp.id
+        WHERE c.id = ?
+      `).get(id);
+    }
 
     if (!camp) {
       return res.status(404).json({ error: 'Jornada no encontrada' });
@@ -455,6 +536,7 @@ const notifyCampaign = (req, res) => {
     `).run(notifId, id, title, message, camp.target_group);
 
     db.prepare('UPDATE delivery_campaigns SET notification_sent = 1 WHERE id = ?').run(id);
+    syncCampaignsToCloud().catch(() => {});
 
     res.json({
       success: true,
@@ -584,5 +666,7 @@ module.exports = {
   updateCampaign,
   updateCampaignStatus,
   notifyCampaign,
-  getCampaignActa
+  getCampaignActa,
+  syncCampaignsFromCloud,
+  syncCampaignsToCloud
 };
