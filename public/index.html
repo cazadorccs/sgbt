@@ -99,14 +99,12 @@
         </svg>
       </button>
 
-      <!-- 2.2 DESCARGA DIRECTA APK ANDROID V3.7 -->
-      <a id="btnHeaderApkDownload" href="/download/sgbt-v3.7.apk" download="sgbt-v3.7.apk" class="btn-icon-header" style="color: #38bdf8; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); text-decoration: none; display: inline-flex; align-items: center; justify-content: center;" title="Descargar APK Oficial Android v3.7 para Almacén" aria-label="Descargar APK Android">
+      <!-- 2.2 COMPARTIR APK OFICIAL ANDROID V3.7 POR WHATSAPP -->
+      <button id="btnHeaderApkDownload" type="button" onclick="if (typeof window.shareApkViaWhatsApp === 'function') window.shareApkViaWhatsApp();" class="btn-icon-header" style="color: #22c55e; background: rgba(34, 197, 94, 0.1); border-color: rgba(34, 197, 94, 0.3); display: inline-flex; align-items: center; justify-content: center;" title="Compartir APK Oficial Android v3.7 por WhatsApp" aria-label="Compartir APK Android WhatsApp">
         <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
         </svg>
-      </a>
+      </button>
 
       <!-- BOTÓN INSTALACIÓN PWA -->
       <button id="btnInstallPwa" class="btn btn-primary" style="display: none; padding: 0.3rem 0.75rem; font-size: 0.75rem; border-radius: 9999px;">
@@ -193,15 +191,13 @@
               <span>📋 Logs & Diagnóstico en Vivo</span>
             </button>
 
-            <!-- Descarga de APK Oficial Android -->
-            <a href="/download/sgbt-v3.7.apk" download="sgbt-v3.7.apk" class="dropdown-item" style="color: #22c55e; text-decoration: none;" title="Descargar instalador APK v3.7 para tabletas y terminales de almacén">
+            <!-- Compartir APK Oficial Android por WhatsApp -->
+            <button type="button" id="btnDropdownShareApkWhatsApp" onclick="if (typeof window.shareApkViaWhatsApp === 'function') window.shareApkViaWhatsApp();" class="dropdown-item" style="color: #22c55e;" title="Compartir enlace oficial de APK Android (v3.7) por WhatsApp">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="7 10 12 15 17 10"></polyline>
-                <line x1="12" y1="15" x2="12" y2="3"></line>
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
               </svg>
-              <span>📲 Descargar APK Android (v3.7)</span>
-            </a>
+              <span>📲 Compartir APK Android (v3.7)</span>
+            </button>
 
             <!-- Modo Oscuro / Claro -->
             <button id="btnDropdownToggleTheme" class="dropdown-item" title="Alternar entre modo oscuro y modo claro">
@@ -291,7 +287,7 @@
     </div>
 
     <div class="sidebar-body">
-      <div class="sidebar-nav-label">Navegación del Sistema</div>
+      <div id="sidebarNavLabelSystem" class="sidebar-nav-label">Navegación del Sistema</div>
       <nav class="master-nav sidebar-nav" id="masterNav">
         <button class="nav-tab-btn" data-view="view-portal" id="sidebarLinkPortal">
           <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M3 21h18M3 10h18M5 10v11M9 10v11M15 10v11M19 10v11M12 2l10 5H2l10-5z"/></svg>
@@ -316,7 +312,49 @@
       </nav>
 
       <div class="sidebar-nav-label" style="margin-top: 1.25rem;">Herramientas Móviles</div>
-      <div class="sidebar-quick-tools">
+      <div class="sidebar-quick-tools" id="sidebarQuickTools">
+        <!-- ACCESO AL CARNET DE BENEFICIARIO DESDE LA APK / HERRAMIENTAS MÓVILES -->
+        <button type="button" class="sidebar-tool-btn" id="sidebarToolBtnWorker" onclick="if (typeof window.navigateTo === 'function') window.navigateTo('view-worker'); if (typeof window.closeSidebar === 'function') window.closeSidebar();">
+          <span class="sidebar-tool-icon" style="color: #059669; background: rgba(5, 150, 105, 0.12);">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
+              <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+              <line x1="12" y1="18" x2="12.01" y2="18"></line>
+            </svg>
+          </span>
+          <div class="sidebar-tool-text">
+            <strong>Mi Carnet de Beneficiario</strong>
+            <small>Combos asignados y código QR</small>
+          </div>
+        </button>
+
+        <!-- ACCESO A SEGURIDAD & DISPOSITIVO AUTORIZADO -->
+        <button type="button" class="sidebar-tool-btn" id="sidebarToolBtnSecurity" onclick="if (typeof window.openDeviceSecurityModal === 'function') window.openDeviceSecurityModal(); if (typeof window.closeSidebar === 'function') window.closeSidebar();">
+          <span class="sidebar-tool-icon" style="color: #38bdf8; background: rgba(56, 189, 248, 0.12);">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </span>
+          <div class="sidebar-tool-text">
+            <strong>Seguridad &amp; Dispositivo</strong>
+            <small>Validación en celular y candado</small>
+          </div>
+        </button>
+
+        <!-- COMPARTIR APK OFICIAL ANDROID POR WHATSAPP (NO DESCARGA DIRECTA) -->
+        <button type="button" class="sidebar-tool-btn" id="sidebarBtnShareApkWhatsApp" onclick="if (typeof window.closeSidebar === 'function') window.closeSidebar(); if (typeof window.shareApkViaWhatsApp === 'function') window.shareApkViaWhatsApp();">
+          <span class="sidebar-tool-icon" style="color: #22c55e; background: rgba(34, 197, 94, 0.12);">
+            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          </span>
+          <div class="sidebar-tool-text">
+            <strong>Compartir APK Android</strong>
+            <small>Instalador v3.7 por WhatsApp</small>
+          </div>
+        </button>
+
+        <!-- DIFUSIÓN INSTITUCIONAL POR WHATSAPP -->
         <button type="button" class="sidebar-tool-btn" id="sidebarBtnWhatsApp" onclick="if (typeof openWhatsAppShareModal === 'function') { if (typeof window.closeSidebar === 'function') window.closeSidebar(); openWhatsAppShareModal('worker'); }">
           <span class="sidebar-tool-icon" style="color: #16a34a; background: rgba(34, 197, 94, 0.12);">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,20 +367,7 @@
           </div>
         </button>
 
-        <a href="/download/sgbt-v3.7.apk" download="sgbt-v3.7.apk" class="sidebar-tool-btn" id="sidebarBtnApk" onclick="if (typeof window.closeSidebar === 'function') window.closeSidebar();">
-          <span class="sidebar-tool-icon" style="color: #0284c7; background: rgba(2, 132, 199, 0.12);">
-            <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-          </span>
-          <div class="sidebar-tool-text">
-            <strong>APK Oficial Android</strong>
-            <small>Instalador v3.7 para Almacén</small>
-          </div>
-        </a>
-
+        <!-- MODO SENIOR / ACCESIBLE -->
         <button type="button" class="sidebar-tool-btn" id="sidebarBtnSeniorMode" onclick="if (typeof window.toggleSeniorMode === 'function') window.toggleSeniorMode();">
           <span class="sidebar-tool-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.12);">
             <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -2398,7 +2423,7 @@
                 </div>
               </div>
 
-              <div class="mobile-app-bar-profile">
+              <div class="mobile-app-bar-profile" id="workerHeaderProfileRow" style="cursor: pointer;" title="Toca para abrir Menú de Seguridad & Dispositivo">
                 <div id="workerHeaderAvatar" class="mobile-avatar-circle">
                   👤
                 </div>
@@ -2409,6 +2434,19 @@
                 </div>
               </div>
             </div>
+
+            <!-- MENÚ DE USUARIO BENEFICIARIO: SEGURIDAD & DISPOSITIVO -->
+            <button type="button" id="btnWorkerCardSecurityMenu" class="btn btn-outline" style="width: 100%; margin-bottom: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #38bdf8; border: 1.5px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.85rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(56, 189, 248, 0.08);" title="Menú de Usuario: Ver estado de validación en celular y candado de dispositivo">
+              <div style="display: flex; align-items: center; gap: 0.55rem;">
+                <span style="font-size: 1.05rem;">🔒</span>
+                <span style="font-weight: 800; color: var(--text-main);">Seguridad &amp; Dispositivo</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span id="workerSecurityStatusIndicator" class="badge" style="font-size: 0.68rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 0.2rem 0.55rem; border-radius: 6px;">
+                  Protegido &rsaquo;
+                </span>
+              </div>
+            </button>
 
             <!-- ACCESO DIRECTO AL HISTORIAL DE RECIBOS DIGITALES -->
             <button type="button" id="btnOpenReceiptsHistoryModal" class="btn btn-outline" style="width: 100%; margin-bottom: 0.65rem; font-size: 0.78rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.45rem 0.75rem; border-radius: 8px;" title="Ver comprobantes oficiales de entregas en cada jornada">
@@ -3469,7 +3507,7 @@ Listo para recibir transacciones de nómina institucional...
 
   <!-- Feature Modules -->
   <script src="/js/modules/auth.js?v=3.3"></script>
-  <script src="/js/modules/beneficiary.js?v=3.8"></script>
+  <script src="/js/modules/beneficiary.js?v=3.9"></script>
   <script src="/js/modules/distributor.js?v=4.0"></script>
   <script src="/js/modules/admin.js?v=3.3"></script>
   <script src="/js/modules/manual_dispatch.js?v=3.7"></script>
@@ -3478,11 +3516,11 @@ Listo para recibir transacciones de nómina institucional...
   <script src="/js/modules/payroll.js?v=3.2"></script>
   <script src="/js/modules/combos.js?v=3.2"></script>
   <script src="/js/modules/notifications.js?v=3.2"></script>
-  <script src="/js/modules/share.js?v=3.2"></script>
+  <script src="/js/modules/share.js?v=3.3"></script>
   <script src="/js/modules/settings.js?v=3.2"></script>
   <script src="/js/modules/log_viewer.js?v=3.2"></script>
 
   <!-- Main Orchestrator -->
-  <script src="/js/app.js?v=3.4"></script>
+  <script src="/js/app.js?v=3.5"></script>
 </body>
 </html>

@@ -204,6 +204,23 @@ window.setupWorkerSimulator = function() {
         }
       }
 
+      const statusIndicator = document.getElementById('workerSecurityStatusIndicator');
+      if (statusIndicator) {
+        if (savedLock && savedLock.claim_key) {
+          statusIndicator.textContent = `Candado: ${savedLock.claim_key} ›`;
+          statusIndicator.style.background = 'rgba(56, 189, 248, 0.25)';
+          statusIndicator.style.color = '#38bdf8';
+        } else if (activePasskey) {
+          statusIndicator.textContent = 'Passkey Activa ›';
+          statusIndicator.style.background = 'rgba(16, 185, 129, 0.2)';
+          statusIndicator.style.color = '#34d399';
+        } else {
+          statusIndicator.textContent = 'Protegido ›';
+          statusIndicator.style.background = 'rgba(56, 189, 248, 0.15)';
+          statusIndicator.style.color = '#38bdf8';
+        }
+      }
+
       if (activePasskey) {
         if (statusText) statusText.textContent = `Activo en ${activePasskey.device_name}`;
         if (statusBox) statusBox.className = 'alert-box alert-info';
@@ -1364,6 +1381,27 @@ window.setupWorkerSimulator = function() {
     if (btnOpenMobile && !btnOpenMobile._hasSecModalSetup) {
       btnOpenMobile._hasSecModalSetup = true;
       btnOpenMobile.addEventListener('click', () => window.openDeviceSecurityModal());
+    }
+
+    const btnWorkerCardMenu = document.getElementById('btnWorkerCardSecurityMenu');
+    if (btnWorkerCardMenu && !btnWorkerCardMenu._hasSecModalSetup) {
+      btnWorkerCardMenu._hasSecModalSetup = true;
+      btnWorkerCardMenu.addEventListener('click', () => window.openDeviceSecurityModal());
+    }
+
+    const workerProfileRow = document.getElementById('workerHeaderProfileRow');
+    if (workerProfileRow && !workerProfileRow._hasSecModalSetup) {
+      workerProfileRow._hasSecModalSetup = true;
+      workerProfileRow.addEventListener('click', () => window.openDeviceSecurityModal());
+    }
+
+    const sidebarToolSec = document.getElementById('sidebarToolBtnSecurity');
+    if (sidebarToolSec && !sidebarToolSec._hasSecModalSetup) {
+      sidebarToolSec._hasSecModalSetup = true;
+      sidebarToolSec.addEventListener('click', () => {
+        if (typeof window.closeSidebar === 'function') window.closeSidebar();
+        window.openDeviceSecurityModal();
+      });
     }
 
     const btnClose = document.getElementById('btnCloseDeviceSecurityModal');

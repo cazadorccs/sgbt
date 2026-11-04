@@ -1110,6 +1110,9 @@ window.applyUserSession = function(user, targetMode) {
     if (typeof window.updateWorkerCard === 'function') {
       window.updateWorkerCard();
     }
+    if (typeof window.applyApkSidebarRestrictions === 'function') {
+      window.applyApkSidebarRestrictions();
+    }
     // Sincronizar barra de navegación inferior móvil
     const bPortal = document.getElementById('bottomNavPortal');
     const bWorker = document.getElementById('bottomNavWorker');

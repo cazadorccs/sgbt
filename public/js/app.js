@@ -165,6 +165,61 @@ function navigateTo(viewId) {
 
 window.navigateTo = navigateTo;
 
+/**
+ * Comparte el enlace oficial de la APK Android por WhatsApp o Web Share API
+ * Enlace Oficial: https://sgbt-bice.vercel.app/download/sgbt-v3.7.apk
+ */
+window.shareApkViaWhatsApp = function() {
+  const apkUrl = 'https://sgbt-bice.vercel.app/download/sgbt-v3.7.apk';
+  const text = `📲 *Sistema SGBT - MIPPCI: APK Oficial Android (v3.7)*\n\nDescarga e instala el aplicativo oficial para terminales de almacén y entrega de beneficios institucionales:\n🔗 ${apkUrl}\n\n_Ministerio del Poder Popular para la Comunicación y la Información_`;
+
+  const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: 'APK Oficial Android v3.7 - SGBT MIPPCI',
+      text: text,
+      url: apkUrl
+    }).catch(() => {
+      window.open(waUrl, '_blank');
+    });
+  } else {
+    window.open(waUrl, '_blank');
+  }
+};
+
+/**
+ * Detecta si la aplicación se ejecuta dentro del aplicativo APK Android o PWA
+ */
+window.isApkEnvironment = function() {
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const isAndroidWv = /wv|Android.*Version\/[\d.]+/i.test(navigator.userAgent) || document.referrer.includes('android-app://');
+  const isApkParam = new URLSearchParams(window.location.search).get('source') === 'apk' || sessionStorage.getItem('sgbt_apk_mode') === 'true';
+  return isStandalone || isAndroidWv || isApkParam;
+};
+
+/**
+ * Aplica restricciones en el Módulo de Gestión (Sidebar Drawer) para la APK:
+ * Oculta "Navegación del Sistema" y expone exclusivamente las "Herramientas Móviles".
+ */
+window.applyApkSidebarRestrictions = function() {
+  const isApk = window.isApkEnvironment();
+  const currentUser = window.STATE?.currentUser || (typeof sessionManager !== 'undefined' ? sessionManager.getUser() : null);
+  const isBeneficiary = currentUser?.role === 'worker' || sessionStorage.getItem('sgbt_session_view_mode') === 'beneficiary';
+
+  const navSystemLabel = document.getElementById('sidebarNavLabelSystem');
+  const masterNav = document.getElementById('masterNav');
+
+  // Si está en el aplicativo APK o en sesión de beneficiario: NO mostrar "Navegación del Sistema"
+  if (isApk || isBeneficiary) {
+    if (navSystemLabel) navSystemLabel.style.display = 'none';
+    if (masterNav) masterNav.style.display = 'none';
+  } else {
+    if (navSystemLabel) navSystemLabel.style.display = '';
+    if (masterNav) masterNav.style.display = 'flex';
+  }
+};
+
 function setupNavigation() {
   const sidebarDrawer = document.getElementById('appSidebarDrawer');
   const sidebarBackdrop = document.getElementById('sidebarBackdrop');
@@ -172,6 +227,9 @@ function setupNavigation() {
   const btnCloseSidebar = document.getElementById('btnCloseSidebar');
 
   function openSidebar() {
+    if (typeof window.applyApkSidebarRestrictions === 'function') {
+      window.applyApkSidebarRestrictions();
+    }
     if (sidebarDrawer) {
       sidebarDrawer.classList.add('open');
       sidebarDrawer.setAttribute('aria-hidden', 'false');
