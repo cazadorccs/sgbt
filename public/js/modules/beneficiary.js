@@ -314,12 +314,6 @@ window.setupWorkerSimulator = function() {
     }
   });
 
-  const btnReceiptFinalExit = document.getElementById('btnReceiptFinalExit');
-  btnReceiptFinalExit?.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.handleCompletedDeliveryLogout();
-  });
-
   // Transmitir Llave Criptográfica por Proximidad NFC (Tap-to-Claim / P2P)
   const btnTransmitNfc = document.getElementById('btnTransmitNfc');
   const nfcTransmitStatus = document.getElementById('nfcTransmitStatus');
@@ -955,11 +949,6 @@ window.setupWorkerSimulator = function() {
         btnGenerate.style.boxShadow = '0 4px 15px rgba(16, 185, 129, 0.4)';
         btnGenerate.style.cursor = 'pointer';
         btnGenerate.innerHTML = '<span>✅ Retiro Totalizado Finalizado (Todos los Bultos Entregados) Salir 🚪</span>';
-      }
-
-      const btnReceiptExit = document.getElementById('btnReceiptFinalExit');
-      if (btnReceiptExit) {
-        btnReceiptExit.style.display = 'flex';
       }
 
       receiptBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
