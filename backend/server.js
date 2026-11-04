@@ -48,6 +48,11 @@ app.get(/^\/coseg(\/.*)?$/, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
+// Ruta para la vista independiente de Registro y Auditoría de Entregas en Vivo (/entregas)
+app.get(/^\/entregas(\/.*)?$/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/entregas.html'));
+});
+
 // Servidor de estáticos (PWA, CSS, JS, Assets)
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));

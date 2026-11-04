@@ -18,6 +18,14 @@
       "destination": "/public/coseg/index.html"
     },
     {
+      "source": "/entregas",
+      "destination": "/public/entregas.html"
+    },
+    {
+      "source": "/entregas/(.*)",
+      "destination": "/public/entregas.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
