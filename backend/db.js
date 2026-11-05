@@ -621,7 +621,12 @@ function initializeDatabase() {
 
   // Inicializar una campaña fija institucional ÚNICAMENTE si la tabla está absolutamente vacía y sin nube
   const totalCampaigns = db.prepare("SELECT count(*) as count FROM delivery_campaigns").get().count;
-  if (totalCampaigns === 0 && !supabase) {
+  let isSbConfigured = false;
+  try {
+    const { isSupabaseConfigured } = require('./supabase');
+    isSbConfigured = isSupabaseConfigured();
+  } catch (e) {}
+  if (totalCampaigns === 0 && !isSbConfigured) {
     const campId = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b';
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -771,18 +776,9 @@ function seedDatabase(force = false) {
     }
   } else {
     const rowCount = db.prepare('SELECT COUNT(*) as count FROM workers').get();
-    if (rowCount && rowCount.count > 0) {
-      return; // Ya existen datos
+    if (rowCount && rowCount.count >= 1000) {
+      return; // Ya existen datos maestros completos
     }
-
-    // Si el sistema fue puesto a cero explícitamente (is_initialized = 0), no regenerar
-    try {
-      const tenant = db.prepare("SELECT is_initialized FROM tenant_settings WHERE id = 'current_tenant'").get();
-      if (tenant && tenant.is_initialized === 0) {
-        console.log('[DB] Sistema pendiente por configuración inicial tras puesta a cero. Omitiendo seeds.');
-        return;
-      }
-    } catch (e) {}
   }
 
   console.log('[DB] Insertando datos maestros iniciales (Seeds Oficiales MIPPCI)...');
@@ -854,8 +850,8 @@ function seedDatabase(force = false) {
   // 4. Beneficiarios y Personal Oficial (16 Funcionarios)
   const insertWorker = db.prepare(`
     INSERT OR REPLACE INTO workers (
-      id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, job_title, hire_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   if (productionSeed && Array.isArray(productionSeed.workers) && productionSeed.workers.length > 0) {
@@ -874,7 +870,9 @@ function seedDatabase(force = false) {
           w.has_smartphone ? 1 : 0,
           w.contingency_reason || null,
           w.phone_number || null,
-          w.avatar_url || null
+          w.avatar_url || null,
+          w.job_title || '',
+          w.hire_date || ''
         );
       }
     });

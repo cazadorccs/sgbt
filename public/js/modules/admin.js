@@ -354,6 +354,26 @@ window.changeWorkerRole = async function(workerId, newRole, workerName) {
   }
 };
 
+window.reloadOfficialCensus = async function() {
+  if (!confirm('¿Desea recargar y restaurar el padrón oficial institucional completo (2,268 funcionarios) desde la base de datos maestra?')) {
+    return;
+  }
+  try {
+    window.showToast('⏳ Restaurando padrón de funcionarios...', 'info');
+    const res = await API.post('/api/v1/admin/workers/reload-census');
+    if (res && res.success) {
+      playAudioFeedback('success');
+      window.showToast(res.message || '✅ Padrón institucional restaurado con éxito.', 'success');
+      await window.loadWorkersDirectory();
+    } else {
+      throw new Error(res?.error || 'No se pudo restaurar el padrón');
+    }
+  } catch (err) {
+    playAudioFeedback('error');
+    window.showToast('❌ Error: ' + err.message, 'error');
+  }
+};
+
 window.loadAuditStats = async function() {
   const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
   try {

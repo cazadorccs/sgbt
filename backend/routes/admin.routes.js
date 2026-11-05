@@ -14,6 +14,7 @@ router.get('/admin/export', requireRole('admin', 'director', 'supervisor', 'audi
 // Directorio y Gestión de Personal
 router.get('/admin/workers', requireRole('admin', 'director', 'supervisor'), adminController.getWorkers);
 router.post('/admin/workers', requireRole('admin', 'director'), adminController.createWorker);
+router.post('/admin/workers/reload-census', requireRole('admin', 'director'), adminController.reloadCensus);
 router.put('/admin/workers/:id', requireRole('admin', 'director'), adminController.updateWorker);
 router.put('/admin/workers/:id/role', requireRole('admin', 'director'), validateWorkerRole(), adminController.updateWorkerRole);
 router.delete('/admin/workers/:id', requireRole('admin', 'director'), adminController.deleteWorker);

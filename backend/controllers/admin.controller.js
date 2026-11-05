@@ -97,6 +97,18 @@ const getWorkers = (req, res) => {
   const today = new Date().toISOString().split('T')[0];
   const deptFilter = (department || department_id || '').trim();
 
+  // Auto-recuperación del padrón: Si la base de datos tiene menos de 1,000 trabajadores, rehidratar de inmediato
+  try {
+    const currentCount = db.prepare('SELECT COUNT(*) as count FROM workers').get()?.count || 0;
+    if (currentCount < 1000) {
+      console.log(`[ADMIN CONTROLLER] Padrón incompleto (${currentCount} trabajadores). Rehidratando desde seedDatabase()...`);
+      const { seedDatabase } = require('../db');
+      seedDatabase();
+    }
+  } catch (e) {
+    console.warn('[ADMIN CONTROLLER] Error en auto-rehidratación:', e.message);
+  }
+
   // Solo conciliar asignaciones pendientes en carga general sin filtros de búsqueda
   if (!search && !role && !worker_type && !shift && !status && !deptFilter) {
     try {
@@ -1421,6 +1433,31 @@ const updateWorkerRole = async (req, res) => {
   }
 };
 
+const reloadCensus = async (req, res) => {
+  try {
+    const { seedDatabase, syncFromSupabase } = require('../db');
+    seedDatabase(true);
+    try {
+      await syncFromSupabase();
+    } catch (sbErr) {
+      console.warn('[RELOAD CENSUS] Advertencia sincronizando con Supabase:', sbErr.message);
+    }
+
+    const totalWorkers = db.prepare('SELECT COUNT(*) as count FROM workers').get()?.count || 0;
+    const totalDepts = db.prepare('SELECT COUNT(*) as count FROM departments').get()?.count || 0;
+
+    res.json({
+      success: true,
+      message: `Padrón institucional recargado con éxito: ${totalWorkers.toLocaleString()} funcionarios y ${totalDepts} departamentos adscritos.`,
+      total_workers: totalWorkers,
+      total_departments: totalDepts
+    });
+  } catch (err) {
+    console.error('[RELOAD CENSUS ERROR]', err);
+    res.status(500).json({ error: 'Error al recargar padrón institucional: ' + err.message });
+  }
+};
+
 module.exports = {
   getKpis,
   getWorkers,
@@ -1428,6 +1465,7 @@ module.exports = {
   updateWorker,
   updateWorkerRole,
   deleteWorker,
+  reloadCensus,
   getWorkerDossier,
   revokeCredential,
   assignNfc,
