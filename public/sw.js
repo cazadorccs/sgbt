@@ -3,10 +3,13 @@
 // Garantiza funcionamiento al 100% en sótanos y almacenes sin señal celular
 // ============================================================================
 
-const CACHE_NAME = 'mippci-bienestar-v3.8-resilience';
+const CACHE_NAME = 'mippci-bienestar-v4.0-single-tab-session';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/coseg',
+  '/entregas',
+  '/entregas/index.html',
   '/templates/modals.html',
   '/css/styles.css',
   '/js/qrcode.js',
@@ -34,6 +37,7 @@ const STATIC_ASSETS = [
   '/js/modules/share.js',
   '/js/modules/settings.js',
   '/js/modules/log_viewer.js',
+  '/js/modules/entregas.js',
   '/js/app.js',
   '/manifest.json',
   '/icons/icon.svg',

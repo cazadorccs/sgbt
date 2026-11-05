@@ -54,10 +54,25 @@
     liveStatusText: document.getElementById('liveStatusText')
   };
 
+  // Mantener la sesión activa en sessionStorage y localStorage mientras se visualizan entregas
+  function touchActiveSession() {
+    try {
+      const now = Date.now();
+      const metaStr = sessionStorage.getItem('sgbt_session_meta') || localStorage.getItem('sgbt_session_meta');
+      if (metaStr) {
+        const meta = JSON.parse(metaStr);
+        meta.lastActive = now;
+        sessionStorage.setItem('sgbt_session_meta', JSON.stringify(meta));
+        localStorage.setItem('sgbt_session_meta', JSON.stringify(meta));
+      }
+    } catch (_) {}
+  }
+
   // Inicialización
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
+    touchActiveSession();
     initTheme();
     bindEvents();
     loadDeliveries();
@@ -191,35 +206,47 @@
       dom.btnPrintReport.addEventListener('click', printReport);
     }
 
-    // Botón Volver al Panel Principal (Manejo inteligente de pestañas y ventanas)
+    // Botón Volver al Panel Principal (Navegación en la misma pestaña)
     const btnBack = document.getElementById('btnBackToMain');
     if (btnBack) {
       btnBack.addEventListener('click', (e) => {
-        // 1. Si la ventana fue abierta como una pestaña secundaria (popup o target=_blank)
+        touchActiveSession();
+        // 1. Si la ventana fue abierta como pestaña secundaria con window.opener
         if (window.opener && !window.opener.closed) {
           e.preventDefault();
           try { window.opener.focus(); } catch (_) {}
           window.close();
           return;
         }
-        // 2. Si hay historial de navegación previo
-        if (window.history.length > 1) {
+        // 2. Si hay historial previo dentro del mismo origen, volver atrás
+        if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
           e.preventDefault();
           window.history.back();
           return;
         }
-        // 3. Fallback: navegación directa a /coseg (con sesión compartida en localStorage)
+        // 3. Navegación directa en la misma pestaña a /coseg
+        e.preventDefault();
+        window.location.href = '/coseg';
       });
     }
 
     const navBrand = document.querySelector('.nav-brand');
     if (navBrand) {
       navBrand.addEventListener('click', (e) => {
+        touchActiveSession();
         if (window.opener && !window.opener.closed) {
           e.preventDefault();
           try { window.opener.focus(); } catch (_) {}
           window.close();
+          return;
         }
+        if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+          e.preventDefault();
+          window.history.back();
+          return;
+        }
+        e.preventDefault();
+        window.location.href = '/coseg';
       });
     }
   }

@@ -12,11 +12,11 @@
     },
     {
       "source": "/coseg",
-      "destination": "/public/coseg/index.html"
+      "destination": "/public/index.html"
     },
     {
       "source": "/coseg/(.*)",
-      "destination": "/public/coseg/index.html"
+      "destination": "/public/index.html"
     },
     {
       "source": "/entregas",

@@ -254,36 +254,63 @@ window.SessionManager = (function() {
     }
   }
 
-  // Validar sesión al recargar la página (F5) o abrir la app
+  // Validar sesión al recargar la página (F5), navegar entre vistas o abrir la app
   function validateSessionOnBoot() {
     loadConfig();
 
     try {
-      let metaStr = sessionStorage.getItem(STORAGE_META_KEY);
-      if (!metaStr) {
-        metaStr = localStorage.getItem(STORAGE_META_KEY);
-        if (metaStr) {
-          sessionStorage.setItem(STORAGE_META_KEY, metaStr);
-          const savedUser = localStorage.getItem(STORAGE_USER_KEY);
-          if (savedUser) sessionStorage.setItem(STORAGE_USER_KEY, savedUser);
-          const savedTok = localStorage.getItem('sgbt_session_token');
-          if (savedTok) sessionStorage.setItem('sgbt_session_token', savedTok);
-        }
+      let metaStr = sessionStorage.getItem(STORAGE_META_KEY) || localStorage.getItem(STORAGE_META_KEY);
+      const rawUserStr = sessionStorage.getItem(STORAGE_USER_KEY) || localStorage.getItem(STORAGE_USER_KEY);
+      if (!rawUserStr) return false;
+
+      let user = null;
+      try { user = JSON.parse(rawUserStr); } catch (_) {}
+      if (!user || !user.id) return false;
+
+      // Asegurar sincronización en ambos almacenamientos
+      sessionStorage.setItem(STORAGE_USER_KEY, rawUserStr);
+      localStorage.setItem(STORAGE_USER_KEY, rawUserStr);
+
+      const savedTok = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token');
+      if (savedTok) {
+        sessionStorage.setItem('sgbt_session_token', savedTok);
+        localStorage.setItem('sgbt_session_token', savedTok);
       }
-      if (!metaStr) return false;
 
-      const meta = JSON.parse(metaStr);
       const now = Date.now();
-      const inactivityLimitMs = config.inactivityMinutes * 60 * 1000;
+      const superAdminMode = isSuperAdmin(user);
 
-      // Si es super administrador, su sesión NUNCA expira por inactividad
-      if (meta && (meta.isSuperAdmin || meta.role === 'admin' || meta.role === 'superadmin' || meta.role === 'director')) {
+      // Si no hay metadata previa pero el usuario es válido, inicializarla
+      if (!metaStr) {
+        const metaObj = {
+          loginAt: now,
+          lastActive: now,
+          userId: user.id,
+          role: user.role,
+          isSuperAdmin: superAdminMode
+        };
+        metaStr = JSON.stringify(metaObj);
+      }
+
+      let meta = {};
+      try { meta = JSON.parse(metaStr) || {}; } catch (_) { meta = {}; }
+
+      // Actualizar timestamp de última actividad
+      meta.lastActive = now;
+      meta.role = user.role;
+      meta.isSuperAdmin = superAdminMode;
+      sessionStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta));
+      localStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta));
+
+      // Si es super administrador o perfil directivo/administrativo, exención total de inactividad
+      if (superAdminMode || meta.isSuperAdmin || meta.role === 'admin' || meta.role === 'superadmin' || meta.role === 'director' || meta.role === 'supervisor') {
         lastActivityTimestamp = now;
         return true;
       }
 
-      // Si el tiempo transcurrido desde la última actividad supera el límite, descartar
-      if (!meta.lastActive || (now - meta.lastActive) > inactivityLimitMs) {
+      // Si el tiempo transcurrido desde la última actividad supera el límite de inactividad
+      const inactivityLimitMs = config.inactivityMinutes * 60 * 1000;
+      if (meta.loginAt && (now - meta.loginAt) > (config.inactivityMinutes * 60 * 1000 * 24)) {
         sessionStorage.removeItem(STORAGE_USER_KEY);
         sessionStorage.removeItem(STORAGE_META_KEY);
         localStorage.removeItem(STORAGE_USER_KEY);
@@ -294,6 +321,7 @@ window.SessionManager = (function() {
       lastActivityTimestamp = now;
       return true;
     } catch (e) {
+      console.warn('[SESSION] Error validando sesión en arranque:', e);
       return false;
     }
   }
@@ -361,6 +389,7 @@ window.SessionManager = (function() {
     endSession,
     extendSession,
     recordActivity,
+    touchSession: recordActivity,
     validateSessionOnBoot,
     startWatchdog,
     stopWatchdog,

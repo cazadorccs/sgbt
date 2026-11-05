@@ -1013,13 +1013,14 @@ window.applyUserSession = function(user, targetMode) {
   const isOperator = (user.role === 'operator' || user.role === 'distributor');
 
   // Determinar la vista destino:
-  let mode = targetMode || sessionStorage.getItem('sgbt_session_view_mode');
+  let mode = targetMode || sessionStorage.getItem('sgbt_session_view_mode') || localStorage.getItem('sgbt_session_view_mode');
   if (isOperator) {
     mode = 'operator';
   } else if (!mode) {
     mode = (user.role === 'worker' ? 'beneficiary' : 'admin');
   }
   sessionStorage.setItem('sgbt_session_view_mode', mode);
+  localStorage.setItem('sgbt_session_view_mode', mode);
 
   const isBeneficiaryView = mode === 'beneficiary' && !isOperator;
 
@@ -1211,9 +1212,11 @@ window.handleLogout = function(reason) {
   try {
     localStorage.removeItem('sgbt_active_qr_payload');
     localStorage.removeItem('sgbt_session_token');
+    localStorage.removeItem('sgbt_session_view_mode');
     localStorage.removeItem('sgbt_user');
     localStorage.removeItem('sgbt_session_meta');
     sessionStorage.removeItem('sgbt_session_token');
+    sessionStorage.removeItem('sgbt_session_view_mode');
     sessionStorage.clear();
   } catch (e) {}
 
@@ -1281,7 +1284,7 @@ window.checkAuthSession = function() {
           STATE.currentUser = user;
           const isOp = (user.role === 'operator' || user.role === 'distributor');
           const urlView = new URLSearchParams(window.location.search).get('view');
-          let savedMode = sessionStorage.getItem('sgbt_session_view_mode');
+          let savedMode = sessionStorage.getItem('sgbt_session_view_mode') || localStorage.getItem('sgbt_session_view_mode');
           if (isOp) {
             savedMode = 'operator';
           } else if (urlView === 'worker') {
@@ -1289,6 +1292,8 @@ window.checkAuthSession = function() {
           } else if (!savedMode) {
             savedMode = (user.role === 'worker' ? 'beneficiary' : 'admin');
           }
+          sessionStorage.setItem('sgbt_session_view_mode', savedMode);
+          localStorage.setItem('sgbt_session_view_mode', savedMode);
           applyUserSession(user, savedMode);
           if (window.SessionManager) {
             window.SessionManager.startWatchdog();
