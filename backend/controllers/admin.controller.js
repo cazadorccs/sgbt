@@ -733,41 +733,30 @@ const createCombo = async (req, res) => {
 const deleteCombo = async (req, res) => {
   const { id } = req.params;
   try {
-    // 1. Verificar si existen entregas efectivas ya ejecutadas para este combo
-    const deliveriesCount = db.prepare(`
-      SELECT COUNT(*) as count 
-      FROM deliveries d
-      JOIN daily_entitlements e ON d.entitlement_id = e.id
-      WHERE e.combo_id = ?
-    `).get(id)?.count || 0;
-
-    if (deliveriesCount > 0) {
-      db.prepare('UPDATE combos SET is_active = 0 WHERE id = ?').run(id);
-      reconcileComboEntitlements(id, false);
-      try {
-        const { supabase, isSupabaseConfigured } = require('../supabase');
-        if (isSupabaseConfigured() && supabase) {
-          await supabase.from('combos').update({ is_active: false }).eq('id', id);
-          await supabase.from('daily_entitlements').delete().eq('combo_id', id).eq('status', 'pending');
-        }
-      } catch (e) {}
-      return res.json({ 
-        success: true, 
-        combos_assigned_today: getActiveAssignedCountToday(),
-        message: 'Combo desactivado (posee entregas físicas auditadas registradas)' 
-      });
-    }
-
-    // 2. Si no tiene entregas efectivas realizadas, eliminar asignaciones pendientes y campañas vinculadas en SQLite
-    db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(id);
-    db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(id);
-    db.prepare('DELETE FROM combos WHERE id = ?').run(id);
-
-    // 3. Eliminar en Supabase: primero las referencias en daily_entitlements para que la foreign key no aborte la eliminación
+    // 1. Sincronización en cascada en Supabase Cloud (eliminar entregas, entitlements y combo)
     try {
       const { supabase, isSupabaseConfigured } = require('../supabase');
       if (isSupabaseConfigured() && supabase) {
-        await supabase.from('daily_entitlements').delete().eq('combo_id', id);
+        // A) Buscar entitlements del combo en Supabase
+        const { data: sbEnts } = await supabase.from('daily_entitlements').select('id').eq('combo_id', id);
+        if (sbEnts && sbEnts.length > 0) {
+          const entIds = sbEnts.map(e => e.id);
+          for (let i = 0; i < entIds.length; i += 50) {
+            const batch = entIds.slice(i, i + 50);
+            await supabase.from('deliveries').delete().in('entitlement_id', batch);
+          }
+          for (let i = 0; i < entIds.length; i += 50) {
+            const batch = entIds.slice(i, i + 50);
+            await supabase.from('daily_entitlements').delete().in('id', batch);
+          }
+        } else {
+          await supabase.from('daily_entitlements').delete().eq('combo_id', id);
+        }
+
+        try {
+          await supabase.from('campaign_combos').delete().eq('combo_id', id);
+        } catch (ccErr) {}
+
         try {
           await supabase.from('delivery_campaigns').delete().eq('combo_id', id);
         } catch (campErr) {}
@@ -783,14 +772,24 @@ const deleteCombo = async (req, res) => {
       console.error('[SUPABASE CASCADE DELETE EXCEPTION]', e.message);
     }
 
+    // 2. Eliminación física completa en SQLite
+    db.prepare(`
+      DELETE FROM deliveries 
+      WHERE entitlement_id IN (SELECT id FROM daily_entitlements WHERE combo_id = ?)
+    `).run(id);
+    db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(id);
+    db.prepare('DELETE FROM campaign_combos WHERE combo_id = ?').run(id);
+    db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(id);
+    db.prepare('DELETE FROM combos WHERE id = ?').run(id);
+
     res.json({
       success: true,
       combos_assigned_today: getActiveAssignedCountToday(),
       message: 'Combo eliminado exitosamente del catálogo y de la base de datos'
     });
   } catch (err) {
-    console.error('[CATALOG DELETE ERROR]', err);
-    res.status(500).json({ error: 'Error al eliminar combo: ' + err.message });
+    console.error('[DELETE COMBO ERROR]', err);
+    res.status(500).json({ error: 'Error eliminando combo: ' + err.message });
   }
 };
 
