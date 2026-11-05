@@ -20081,54 +20081,30 @@
   ],
   "delivery_campaigns": [
     {
-      "id": "b64692f5-8a7b-425e-9211-4a84a4776b3a",
-      "name": "Jornada Integral de Despacho Multi-Mesa MIPPCI",
-      "description": "Distribución organizada por mesas de entrega: Víveres, Higiene, Útiles y Cadena de Frío",
-      "start_date": "2026-10-20",
-      "end_date": "2026-11-03",
-      "combo_id": "30c08422-73da-4256-8d6c-948ff283517a",
+      "id": "camp_20261023_integral",
+      "name": "Gran Jornada Integral de Despacho Institucional (4 Combos) - Octubre 2026",
+      "description": "Jornada institucional efectuada el 23 de octubre de 2026 con entrega y cobertura del 100% de la nómina en los 4 combos asignados (Víveres, Higiene, Limpieza y Charcutería).",
+      "start_date": "2026-10-23",
+      "end_date": "2026-11-05",
+      "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
       "target_group": "all",
       "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
       "status": "en_curso",
       "notification_sent": 1,
-      "created_at": "2026-10-20 15:42:02"
-    },
-    {
-      "id": "b61fafc0-21fe-46d8-bed9-d0c71e1079ea",
-      "name": "Jornada Especial de Víveres y Proteína - Septiembre 2026",
-      "description": "Despacho institucional quincenal culminado en Almacén Central",
-      "start_date": "2026-09-15",
-      "end_date": "2026-09-30",
-      "combo_id": "30c08422-73da-4256-8d6c-948ff283517a",
-      "target_group": "all",
-      "distribution_point_id": "94df5c9d-0eb8-4603-859d-447309a0e9ca",
-      "status": "finalizada",
-      "notification_sent": 1,
-      "created_at": "2026-10-20 16:42:47"
-    },
-    {
-      "id": "camp_20261023_historica",
-      "name": "Jornada Integral de Despacho Institucional - Octubre 2026",
-      "description": "Jornada efectuada el pasado viernes 23/10/2026. Despacho completo y simultáneo de los 4 combos institucionales: Víveres, Higiene, Limpieza y Charcutería a todo el personal convocado.",
-      "start_date": "2026-10-23",
-      "end_date": "2026-10-23",
-      "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
-      "target_group": "all",
-      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
-      "status": "finalizada",
-      "notification_sent": 1
+      "created_at": "2026-10-23 08:00:00"
     },
     {
       "id": "camp_20261127_programada",
-      "name": "Jornada Integral de Despacho Institucional - Noviembre 2026",
-      "description": "Programación de despacho conjunto de los 4 combos institucionales (Víveres, Higiene, Limpieza y Charcutería) para el viernes 27 de noviembre de 2026.",
+      "name": "Jornada Especial de Víveres y Proteína (2 Combos) - Noviembre 2026",
+      "description": "Programación de entrega de 2 combos prioritarios (Bolsa de Víveres Secos y Charcutería) pautada para el viernes 27 de noviembre de 2026.",
       "start_date": "2026-11-27",
       "end_date": "2026-11-27",
       "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
       "target_group": "all",
       "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
       "status": "programada",
-      "notification_sent": 0
+      "notification_sent": 0,
+      "created_at": "2026-11-05 08:00:00"
     }
   ],
   "system_notifications": [
