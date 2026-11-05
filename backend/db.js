@@ -1076,7 +1076,7 @@ async function syncFromSupabase() {
         for (const loc of localCombos) {
           if (!remoteIds.has(loc.id)) {
             try {
-              db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(loc.id);
+              db.prepare("DELETE FROM daily_entitlements WHERE combo_id = ? AND status = 'pending'").run(loc.id);
               db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(loc.id);
               db.prepare('DELETE FROM combos WHERE id = ?').run(loc.id);
             } catch (e) {}

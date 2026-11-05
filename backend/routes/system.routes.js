@@ -27,38 +27,69 @@ router.get('/combos', (req, res) => {
     const { db } = require('../db');
     const { all } = req.query;
 
-    // Si no se solicita el catálogo completo forzado, retornar los combos de la jornada activa
+    // Si no se solicita el catálogo completo forzado (all=true), retornar EXCLUSIVAMENTE los combos de la jornada activa
     if (all !== 'true' && all !== '1') {
-      const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
-      if (activeCamp) {
-        let campCombos = db.prepare(`
-          SELECT cb.id, cb.name, cb.description, cb.category, cb.items_detail, cb.icon, cb.mesa_name, cb.mesa_number, cb.weight_kg, cb.is_active
-          FROM campaign_combos cc
-          JOIN combos cb ON cc.combo_id = cb.id
-          WHERE cc.campaign_id = ? AND cb.is_active = 1
-          ORDER BY cb.created_at ASC, cb.id ASC
-        `).all(activeCamp.id);
-
-        if ((!campCombos || campCombos.length === 0) && activeCamp.combo_id) {
-          const directCombo = db.prepare(`
-            SELECT id, name, description, category, items_detail, icon, mesa_name, mesa_number, weight_kg, is_active
-            FROM combos
-            WHERE id = ? AND is_active = 1
-          `).get(activeCamp.combo_id);
-          if (directCombo) campCombos = [directCombo];
-        }
-
-        if (campCombos && campCombos.length > 0) {
-          return res.json(campCombos);
-        }
+      const activeCamp = db.prepare("SELECT id, combo_id, target_group FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+      if (!activeCamp) {
+        return res.json([]); // Sin jornada activa, no se habilitan combos de entrega
       }
+
+      let campCombos = db.prepare(`
+        SELECT cb.id, cb.name, cb.description, cb.category, cb.items_detail, cb.icon, cb.mesa_name, cb.mesa_number, cb.weight_kg, cb.is_active
+        FROM campaign_combos cc
+        JOIN combos cb ON cc.combo_id = cb.id
+        WHERE cc.campaign_id = ? AND cb.is_active = 1
+        ORDER BY cb.mesa_number ASC, cb.created_at ASC
+      `).all(activeCamp.id);
+
+      if ((!campCombos || campCombos.length === 0) && activeCamp.combo_id) {
+        const directCombo = db.prepare(`
+          SELECT id, name, description, category, items_detail, icon, mesa_name, mesa_number, weight_kg, is_active
+          FROM combos
+          WHERE id = ? AND is_active = 1
+        `).get(activeCamp.combo_id);
+        if (directCombo) campCombos = [directCombo];
+      }
+
+      if (!campCombos || campCombos.length === 0) {
+        return res.json([]);
+      }
+
+      // Calcular cantidad programada, entregada y saldo restante con descuento en tiempo real
+      let workerCondition = "status = 'active'";
+      if (activeCamp.target_group === 'activo') workerCondition += " AND worker_type = 'activo'";
+      else if (activeCamp.target_group === 'jubilado') workerCondition += " AND worker_type IN ('jubilado', 'pensionado')";
+      else if (activeCamp.target_group === 'contratado') workerCondition += " AND worker_type = 'contratado'";
+
+      const totalEligible = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${workerCondition}`).get()?.count || 0;
+
+      const enrichedCombos = campCombos.map(cb => {
+        const deliveredCount = db.prepare(`
+          SELECT COUNT(*) as c
+          FROM deliveries d
+          JOIN daily_entitlements de ON d.entitlement_id = de.id
+          WHERE (d.campaign_id = ? OR de.campaign_id = ?) AND de.combo_id = ?
+        `).get(activeCamp.id, activeCamp.id, cb.id)?.c || 0;
+
+        const remainingQty = Math.max(0, totalEligible - deliveredCount);
+
+        return {
+          ...cb,
+          campaign_id: activeCamp.id,
+          programmed_qty: totalEligible,
+          delivered_qty: deliveredCount,
+          remaining_qty: remainingQty
+        };
+      });
+
+      return res.json(enrichedCombos);
     }
 
     const combos = db.prepare(`
       SELECT id, name, description, category, items_detail, icon, mesa_name, mesa_number, weight_kg, is_active
       FROM combos
       WHERE is_active = 1
-      ORDER BY created_at ASC, id ASC
+      ORDER BY mesa_number ASC, created_at ASC
     `).all();
     res.json(combos);
   } catch (err) {

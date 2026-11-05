@@ -1392,7 +1392,7 @@ window.setupWorkerSimulator = function() {
     }
   }, 45000);
 
-  // Soporte interactivo para desplegar y contraer los combos (vista minimalista de carnet)
+  // Soporte interactivo para agrupar (contraer) los combos en un nuevo botón maestro desplegable
   window.renderWorkerPackagesSection = function(combosList, isDelivered = false) {
     const packagesSection = document.getElementById('workerPackagesSection');
     if (!packagesSection) return;
@@ -1406,7 +1406,10 @@ window.setupWorkerSimulator = function() {
       return;
     }
 
-    packagesSection.innerHTML = combosList.map((c, idx) => {
+    const totalWeight = combosList.reduce((acc, c) => acc + (Number(c.weight_kg) || 0), 0).toFixed(1);
+    const countCombos = combosList.length;
+
+    const cardsHtml = combosList.map((c, idx) => {
       let icon = c.icon || '📦';
       let catClass = 'viveres-card';
       let badgeClass = 'badge-viveres';
@@ -1463,6 +1466,63 @@ window.setupWorkerSimulator = function() {
         </div>
       `;
     }).join('');
+
+    packagesSection.innerHTML = `
+      <div class="packages-master-wrapper" style="margin-bottom: 0.75rem;">
+        <button type="button" id="btnToggleAllBeneficiaryCombos" class="btn-toggle-combos-master" aria-expanded="false" title="Toca para desplegar o contraer los combos y rubros asignados">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <span style="font-size: 1.2rem;">📦</span>
+            <div>
+              <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main); text-align: left;">
+                Combos Asignados (${countCombos})
+              </div>
+              <div style="font-size: 0.68rem; color: var(--text-muted); text-align: left;">
+                ${isDelivered ? '✅ Retiro completado en taquilla' : `Total asignado: ~${totalWeight} kg`}
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <span id="lblMasterCombosToggle" class="badge" style="font-size: 0.7rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.35);">
+              Desplegar ›
+            </span>
+            <svg id="chevronMasterCombos" class="package-chevron" style="width: 17px; height: 17px; transform: rotate(-90deg); transition: transform 0.25s ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </button>
+        <div id="workerCombosCollapsibleContainer" class="combos-collapsible-content is-collapsed" style="margin-top: 0.5rem; display: none;">
+          ${cardsHtml}
+        </div>
+      </div>
+    `;
+
+    // Handler para colapsar/desplegar el grupo entero de combos
+    const masterBtn = document.getElementById('btnToggleAllBeneficiaryCombos');
+    const container = document.getElementById('workerCombosCollapsibleContainer');
+    const lblToggle = document.getElementById('lblMasterCombosToggle');
+    const chevron = document.getElementById('chevronMasterCombos');
+
+    if (masterBtn && container) {
+      masterBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const willShow = container.style.display === 'none' || container.classList.contains('is-collapsed');
+        if (willShow) {
+          container.style.display = 'flex';
+          container.style.flexDirection = 'column';
+          container.style.gap = '0.75rem';
+          container.classList.remove('is-collapsed');
+          masterBtn.setAttribute('aria-expanded', 'true');
+          if (lblToggle) lblToggle.textContent = 'Contraer ‹';
+          if (chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+          container.style.display = 'none';
+          container.classList.add('is-collapsed');
+          masterBtn.setAttribute('aria-expanded', 'false');
+          if (lblToggle) lblToggle.textContent = 'Desplegar ›';
+          if (chevron) chevron.style.transform = 'rotate(-90deg)';
+        }
+      });
+    }
   };
 
   function setupCombosAccordion() {

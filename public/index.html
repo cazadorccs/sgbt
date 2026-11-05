@@ -2440,19 +2440,6 @@
               </div>
             </div>
 
-            <!-- MENÚ DE USUARIO BENEFICIARIO: SEGURIDAD & DISPOSITIVO -->
-            <button type="button" id="btnWorkerCardSecurityMenu" class="btn btn-outline" style="width: 100%; margin-bottom: 0.65rem; font-size: 0.8rem; font-weight: 700; color: #38bdf8; border: 1.5px solid rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.08); display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.85rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(56, 189, 248, 0.08);" title="Menú de Usuario: Ver estado de validación en celular y candado de dispositivo">
-              <div style="display: flex; align-items: center; gap: 0.55rem;">
-                <span style="font-size: 1.05rem;">🔒</span>
-                <span style="font-weight: 800; color: var(--text-main);">Seguridad &amp; Dispositivo</span>
-              </div>
-              <div style="display: flex; align-items: center; gap: 0.4rem;">
-                <span id="workerSecurityStatusIndicator" class="badge" style="font-size: 0.68rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; padding: 0.2rem 0.55rem; border-radius: 6px;">
-                  Protegido &rsaquo;
-                </span>
-              </div>
-            </button>
-
             <!-- ACCESO DIRECTO AL HISTORIAL DE RECIBOS DIGITALES -->
             <button type="button" id="btnOpenReceiptsHistoryModal" class="btn btn-outline" style="width: 100%; margin-bottom: 0.65rem; font-size: 0.78rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.45rem 0.75rem; border-radius: 8px;" title="Ver comprobantes oficiales de entregas en cada jornada">
               <span>📜</span>
@@ -2486,83 +2473,30 @@
 
             <!-- BULTOS A ENTREGAR EN LA JORNADA INSTITUCIONAL (MINIMALISTA / COLAPSABLE) -->
             <div class="packages-container" id="workerPackagesSection">
-              <!-- BULTO 1: VÍVERES SECOS -->
-              <div class="package-card viveres-card is-collapsed" id="cardViveresSecos">
-                <div class="package-card-header" id="headerViveresSecos" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros">
-                  <div class="package-card-title">
-                    <span>📦 Bolsa de Víveres Secos</span>
+              <div class="packages-master-wrapper" style="margin-bottom: 0.75rem;">
+                <button type="button" id="btnToggleAllBeneficiaryCombos" class="btn-toggle-combos-master" aria-expanded="false" title="Toca para desplegar o contraer los combos y rubros asignados">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <span style="font-size: 1.2rem;">📦</span>
+                    <div>
+                      <div style="font-weight: 800; font-size: 0.83rem; color: var(--text-main); text-align: left;">
+                        Combos Asignados
+                      </div>
+                      <div style="font-size: 0.68rem; color: var(--text-muted); text-align: left;">
+                        Beneficios de la Jornada Activa
+                      </div>
+                    </div>
                   </div>
-                  <div class="package-header-right">
-                    <span id="badgeViveresSecos" class="package-card-badge badge-viveres">12 Rubros</span>
-                    <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <div style="display: flex; align-items: center; gap: 0.45rem;">
+                    <span id="lblMasterCombosToggle" class="badge" style="font-size: 0.7rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.35);">
+                      Desplegar ›
+                    </span>
+                    <svg id="chevronMasterCombos" class="package-chevron" style="width: 17px; height: 17px; transform: rotate(-90deg); transition: transform 0.25s ease;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="6 9 12 15 18 9"></polyline>
                     </svg>
                   </div>
-                </div>
-                <div class="package-card-body" id="bodyViveresSecos">
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
-                    Alimentos no perecederos de la cesta básica familiar:
-                  </div>
-                  <ul class="package-rubros-list">
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🌽 Harina de Maíz Precocida</span>
-                      <span class="rubro-qty">4 unids</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🍚 Arroz Blanco Grano Entero</span>
-                      <span class="rubro-qty">2 kg</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🍝 Pasta Alimenticia (Larga/Corta)</span>
-                      <span class="rubro-qty">2 kg</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🫘 Caraotas Negras Seleccionadas</span>
-                      <span class="rubro-qty">1 kg</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🌻 Aceite Vegetal Comestible</span>
-                      <span class="rubro-qty">1 Litro</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🧂 Azúcar Refinada & Leche Polvo</span>
-                      <span class="rubro-qty">2 kg</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <!-- BULTO 2: COMBO PROTEICO -->
-              <div class="package-card proteina-card is-collapsed" id="cardComboProteico">
-                <div class="package-card-header" id="headerComboProteico" role="button" aria-expanded="false" title="Toca para desplegar o contraer los rubros">
-                  <div class="package-card-title">
-                    <span>🍗 Combo Proteico Fresco</span>
-                  </div>
-                  <div class="package-header-right">
-                    <span id="badgeComboProteico" class="package-card-badge badge-proteina">Cadena de Frío</span>
-                    <svg class="package-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="6 9 12 15 18 9"></polyline>
-                    </svg>
-                  </div>
-                </div>
-                <div class="package-card-body" id="bodyComboProteico">
-                  <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 0.4rem;">
-                    Proteínas refrigeradas con despacho inmediato en cavas:
-                  </div>
-                  <ul class="package-rubros-list">
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🍗 Pollo Entero Beneficiado</span>
-                      <span class="rubro-qty">~2.2 kg</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🥩 Carne de Res Molida</span>
-                      <span class="rubro-qty">1.0 kg</span>
-                    </li>
-                    <li class="package-rubro-item">
-                      <span class="rubro-name">🍖 Mortadela Especial</span>
-                      <span class="rubro-qty">1.0 kg</span>
-                    </li>
-                  </ul>
+                </button>
+                <div id="workerCombosCollapsibleContainer" class="combos-collapsible-content is-collapsed" style="margin-top: 0.5rem; display: none;">
+                  <!-- Bultos dinámicos de la jornada activa inyectados por renderWorkerPackagesSection -->
                 </div>
               </div>
             </div>

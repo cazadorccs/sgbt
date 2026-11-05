@@ -1303,11 +1303,12 @@ window.loadCampaigns = async function() {
       const mainPointName = c.point_name || Array.from(distinctPoints)[0] || 'Almacén Central';
 
       const combosPillsHtml = combosList.map(cb => `
-        <span class="badge" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.72rem; padding: 0.2rem 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem;">
+        <span class="badge" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.72rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.35rem; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
           <span>${cb.icon || '📦'}</span>
           <strong>${cb.name.replace(/^(Combo de |Bolsa de )/i, '')}</strong>
           ${!isSinglePoint && cb.point_name ? `<span style="background: #e0f2fe; color: #0369a1; padding: 1px 5px; border-radius: 4px; font-size: 0.68rem; font-weight: 700;">📍 ${cb.point_name}</span>` : ''}
           ${cb.weight_kg ? `<span style="color: #64748b; font-size: 0.68rem;">(${cb.weight_kg}kg)</span>` : ''}
+          ${cb.remaining_qty !== undefined ? `<span style="background: ${cb.remaining_qty === 0 ? 'rgba(5, 150, 105, 0.15)' : 'rgba(2, 132, 199, 0.12)'}; color: ${cb.remaining_qty === 0 ? '#059669' : '#0284c7'}; font-weight: 800; padding: 1px 6px; border-radius: 4px; font-size: 0.68rem;" title="Saldo restante descontado automáticamente con cada entrega aprobada">Saldo: ${Number(cb.remaining_qty).toLocaleString()}</span>` : ''}
         </span>
       `).join('');
 
@@ -1341,8 +1342,8 @@ window.loadCampaigns = async function() {
             </div>
           </div>
 
-          <!-- CUADRO DE MÉTRICAS -->
-          <div class="campaign-stats-grid">
+          <!-- CUADRO DE MÉTRICAS CON DESCUENTO AUTOMÁTICO -->
+          <div class="campaign-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));">
             <div class="campaign-stat-item">
               <div class="stat-num">${Number(c.total_eligible || c.assigned_count || 0).toLocaleString()}</div>
               <div class="stat-lbl">Convocados</div>
@@ -1354,10 +1355,16 @@ window.loadCampaigns = async function() {
               <div class="stat-lbl">${c.status === 'finalizada' ? 'Atendidos (100%)' : 'Despachados'}</div>
             </div>
             <div class="campaign-stat-item">
-              <div class="stat-num" style="color: #475569;">
+              <div class="stat-num" style="color: #059669;">
                 ${Number(c.total_combos_delivered || (c.claimed_count * combosList.length) || 0).toLocaleString()}
               </div>
               <div class="stat-lbl">Combos Entregados</div>
+            </div>
+            <div class="campaign-stat-item">
+              <div class="stat-num" style="color: ${c.total_combos_remaining === 0 ? '#059669' : '#d97706'};">
+                ${Number(c.total_combos_remaining !== undefined ? c.total_combos_remaining : Math.max(0, ((c.total_eligible || c.assigned_count || 0) * combosList.length) - (c.total_combos_delivered || 0))).toLocaleString()}
+              </div>
+              <div class="stat-lbl" title="Saldo restante descontado automáticamente en vivo">Saldo Disponible</div>
             </div>
             <div class="campaign-stat-item">
               <div class="stat-num" style="color: #7c3aed;">
@@ -2018,5 +2025,11 @@ if (typeof window !== 'undefined') {
     if (typeof setupCampaignsManagement === 'function') setupCampaignsManagement();
     if (typeof setupCampaignInlineComboManagement === 'function') setupCampaignInlineComboManagement();
     if (typeof setupDistributionPointsManagement === 'function') setupDistributionPointsManagement();
+  });
+
+  window.addEventListener('delivery:completed', () => {
+    if (typeof window.loadCampaigns === 'function') {
+      window.loadCampaigns().catch(() => {});
+    }
   });
 }

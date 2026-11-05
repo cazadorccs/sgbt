@@ -296,8 +296,8 @@ const login = async (req, res) => {
           }
         }
 
-        if (!activeCombos || activeCombos.length === 0) {
-          activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+        if (!activeCamp) {
+          activeCombos = [];
         }
 
         const campId = activeCamp ? activeCamp.id : null;
@@ -887,8 +887,8 @@ const enrollBeneficiary = async (req, res) => {
         }
       }
 
-      if (!activeCombos || activeCombos.length === 0) {
-        activeCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1").all();
+      if (!activeCamp) {
+        activeCombos = [];
       }
 
       const campId = activeCamp ? activeCamp.id : null;

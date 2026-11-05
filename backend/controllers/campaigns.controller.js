@@ -288,15 +288,44 @@ const getCampaigns = async (req, res) => {
 
       const pendingCount = Math.max(0, assignedCount - claimedCount);
 
-      // Métricas consolidadas de combos y peso bruto
+      // Métricas consolidadas de combos y descuento automático en tiempo real
       const combosCount = campCombos.length > 0 ? campCombos.length : 1;
+      const totalCombosProgramados = assignedCount * combosCount;
       const totalCombosDelivered = (deliveryStats && deliveryStats.total_deliveries > 0)
         ? deliveryStats.total_deliveries
         : (claimedCount * combosCount);
+      const totalCombosRemaining = Math.max(0, totalCombosProgramados - totalCombosDelivered);
 
       const weightPerWorker = campCombos.reduce((acc, c) => acc + (Number(c.weight_kg) || 12.0), 0);
       const totalWeightKg = Math.round(claimedCount * weightPerWorker);
       const totalWeightTons = Number((totalWeightKg / 1000).toFixed(2));
+
+      // Enriquecer cada combo con su saldo programado, entregado y restante en vivo
+      const campCombosWithMetrics = campCombos.map(c => {
+        let comboDelivered = 0;
+        try {
+          comboDelivered = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM deliveries d
+            JOIN daily_entitlements de ON d.entitlement_id = de.id
+            WHERE (d.campaign_id = ? OR de.campaign_id = ?) AND de.combo_id = ?
+          `).get(camp.id, camp.id, c.id)?.count || 0;
+        } catch (e) {}
+
+        if (camp.status === 'finalizada' && comboDelivered === 0) {
+          comboDelivered = assignedCount;
+        }
+
+        const comboProgrammed = assignedCount;
+        const comboRemaining = Math.max(0, comboProgrammed - comboDelivered);
+
+        return {
+          ...c,
+          programmed_qty: comboProgrammed,
+          delivered_qty: comboDelivered,
+          remaining_qty: comboRemaining
+        };
+      });
 
       // Verificación de Acta Oficial Ministerial asociada a la jornada finalizada
       let actaInfo = null;
@@ -313,14 +342,16 @@ const getCampaigns = async (req, res) => {
 
       return {
         ...camp,
-        combos: campCombos,
-        combos_count: campCombos.length,
+        combos: campCombosWithMetrics,
+        combos_count: campCombosWithMetrics.length,
         is_single_point: isSinglePoint,
         total_eligible: totalEligible,
         assigned_count: assignedCount,
         claimed_count: claimedCount,
         pending_count: pendingCount,
+        total_combos_programados: totalCombosProgramados,
         total_combos_delivered: totalCombosDelivered,
+        total_combos_remaining: totalCombosRemaining,
         total_weight_kg: totalWeightKg,
         total_weight_tons: totalWeightTons,
         is_historical: camp.status === 'finalizada',
