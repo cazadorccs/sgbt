@@ -619,9 +619,9 @@ function initializeDatabase() {
     );
   }
 
-  // Inicializar una campaña fija institucional si la tabla está vacía o no existe la activa
-  const activeCampExisting = db.prepare("SELECT id FROM delivery_campaigns WHERE id = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b' OR (status = 'en_curso' AND name LIKE '%Mes en Curso%') LIMIT 1").get();
-  if (!activeCampExisting) {
+  // Inicializar una campaña fija institucional ÚNICAMENTE si la tabla está absolutamente vacía y sin nube
+  const totalCampaigns = db.prepare("SELECT count(*) as count FROM delivery_campaigns").get().count;
+  if (totalCampaigns === 0 && !supabase) {
     const campId = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b';
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
@@ -1018,6 +1018,19 @@ async function syncFromSupabase() {
           try {
             const parsed = JSON.parse(campStore.description);
             if (parsed && Array.isArray(parsed.campaigns)) {
+              // Reconciliar eliminaciones: las jornadas que ya no existan en la nube se eliminan de SQLite
+              const remoteCampIds = new Set(parsed.campaigns.map(c => c.id));
+              const localCamps = db.prepare('SELECT id FROM delivery_campaigns').all();
+              for (const loc of localCamps) {
+                if (!remoteCampIds.has(loc.id)) {
+                  try {
+                    db.prepare("DELETE FROM campaign_combos WHERE campaign_id = ?").run(loc.id);
+                    db.prepare("DELETE FROM system_notifications WHERE campaign_id = ?").run(loc.id);
+                    db.prepare("DELETE FROM delivery_campaigns WHERE id = ?").run(loc.id);
+                  } catch (e) {}
+                }
+              }
+
               const insertCamp = db.prepare(`
                 INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

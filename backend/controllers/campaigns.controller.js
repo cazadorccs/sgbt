@@ -36,7 +36,23 @@ async function syncCampaignsFromCloud() {
     if (error || !data || !data.description) return;
     let parsed;
     try { parsed = JSON.parse(data.description); } catch (e) { return; }
-    if (parsed && Array.isArray(parsed.campaigns) && parsed.campaigns.length > 0) {
+    if (parsed && Array.isArray(parsed.campaigns)) {
+      // Reconciliar eliminaciones remotas hacia la base de datos local
+      const remoteCampIds = new Set(parsed.campaigns.map(c => c.id));
+      const localCamps = db.prepare('SELECT id FROM delivery_campaigns').all();
+      for (const loc of localCamps) {
+        if (!remoteCampIds.has(loc.id)) {
+          try {
+            db.prepare("DELETE FROM daily_entitlements WHERE campaign_id = ? AND status = 'pending'").run(loc.id);
+            db.prepare("UPDATE daily_entitlements SET campaign_id = NULL WHERE campaign_id = ?").run(loc.id);
+            db.prepare("UPDATE deliveries SET campaign_id = NULL WHERE campaign_id = ?").run(loc.id);
+            db.prepare("DELETE FROM campaign_combos WHERE campaign_id = ?").run(loc.id);
+            db.prepare("DELETE FROM system_notifications WHERE campaign_id = ?").run(loc.id);
+            db.prepare("DELETE FROM delivery_campaigns WHERE id = ?").run(loc.id);
+          } catch (e) {}
+        }
+      }
+
       const insertCamp = db.prepare(`
         INSERT INTO delivery_campaigns (id, name, description, start_date, end_date, combo_id, target_group, distribution_point_id, status, notification_sent, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
