@@ -190,6 +190,38 @@
     if (dom.btnPrintReport) {
       dom.btnPrintReport.addEventListener('click', printReport);
     }
+
+    // Botón Volver al Panel Principal (Manejo inteligente de pestañas y ventanas)
+    const btnBack = document.getElementById('btnBackToMain');
+    if (btnBack) {
+      btnBack.addEventListener('click', (e) => {
+        // 1. Si la ventana fue abierta como una pestaña secundaria (popup o target=_blank)
+        if (window.opener && !window.opener.closed) {
+          e.preventDefault();
+          try { window.opener.focus(); } catch (_) {}
+          window.close();
+          return;
+        }
+        // 2. Si hay historial de navegación previo
+        if (window.history.length > 1) {
+          e.preventDefault();
+          window.history.back();
+          return;
+        }
+        // 3. Fallback: navegación directa a /coseg (con sesión compartida en localStorage)
+      });
+    }
+
+    const navBrand = document.querySelector('.nav-brand');
+    if (navBrand) {
+      navBrand.addEventListener('click', (e) => {
+        if (window.opener && !window.opener.closed) {
+          e.preventDefault();
+          try { window.opener.focus(); } catch (_) {}
+          window.close();
+        }
+      });
+    }
   }
 
   // Restablecer filtros

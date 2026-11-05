@@ -81,11 +81,12 @@ window.SessionManager = (function() {
     }
 
     try {
-      const metaStr = sessionStorage.getItem(STORAGE_META_KEY);
+      const metaStr = sessionStorage.getItem(STORAGE_META_KEY) || localStorage.getItem(STORAGE_META_KEY);
       if (metaStr) {
         const meta = JSON.parse(metaStr);
         meta.lastActive = now;
         sessionStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta));
+        localStorage.setItem(STORAGE_META_KEY, JSON.stringify(meta));
       }
     } catch (e) {}
   }
@@ -98,18 +99,21 @@ window.SessionManager = (function() {
     const superAdminMode = isSuperAdmin(user);
 
     try {
-      // 1. Guardar en sessionStorage (se destruye naturalmente al cerrar el navegador/ventana)
-      sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
-      sessionStorage.setItem(STORAGE_META_KEY, JSON.stringify({
+      // 1. Guardar en sessionStorage para la pestaña activa
+      const metaObj = {
         loginAt: now,
         lastActive: now,
         userId: user.id,
         role: user.role,
         isSuperAdmin: superAdminMode
-      }));
+      };
+      sessionStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+      sessionStorage.setItem(STORAGE_META_KEY, JSON.stringify(metaObj));
 
-      // 2. Limpiar cualquier sesión residual en localStorage para evitar persistencia eterna
-      localStorage.removeItem(STORAGE_USER_KEY);
+      // 2. Guardar también en localStorage para permitir que ventanas secundarias (ej: /entregas)
+      // y nuevas pestañas del mismo operador mantengan la sesión activa sin forzar relogin
+      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+      localStorage.setItem(STORAGE_META_KEY, JSON.stringify(metaObj));
     } catch (e) {
       console.warn('[SESSION] Error guardando sesión:', e);
     }
@@ -133,7 +137,10 @@ window.SessionManager = (function() {
     try {
       sessionStorage.removeItem(STORAGE_USER_KEY);
       sessionStorage.removeItem(STORAGE_META_KEY);
+      sessionStorage.removeItem('sgbt_session_token');
       localStorage.removeItem(STORAGE_USER_KEY);
+      localStorage.removeItem(STORAGE_META_KEY);
+      localStorage.removeItem('sgbt_session_token');
     } catch (e) {}
 
     if (typeof window.handleLogout === 'function') {
@@ -252,7 +259,17 @@ window.SessionManager = (function() {
     loadConfig();
 
     try {
-      const metaStr = sessionStorage.getItem(STORAGE_META_KEY);
+      let metaStr = sessionStorage.getItem(STORAGE_META_KEY);
+      if (!metaStr) {
+        metaStr = localStorage.getItem(STORAGE_META_KEY);
+        if (metaStr) {
+          sessionStorage.setItem(STORAGE_META_KEY, metaStr);
+          const savedUser = localStorage.getItem(STORAGE_USER_KEY);
+          if (savedUser) sessionStorage.setItem(STORAGE_USER_KEY, savedUser);
+          const savedTok = localStorage.getItem('sgbt_session_token');
+          if (savedTok) sessionStorage.setItem('sgbt_session_token', savedTok);
+        }
+      }
       if (!metaStr) return false;
 
       const meta = JSON.parse(metaStr);
@@ -269,6 +286,8 @@ window.SessionManager = (function() {
       if (!meta.lastActive || (now - meta.lastActive) > inactivityLimitMs) {
         sessionStorage.removeItem(STORAGE_USER_KEY);
         sessionStorage.removeItem(STORAGE_META_KEY);
+        localStorage.removeItem(STORAGE_USER_KEY);
+        localStorage.removeItem(STORAGE_META_KEY);
         return false;
       }
 

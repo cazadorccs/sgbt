@@ -669,7 +669,7 @@ async function executeLogin(rawDocId) {
     const user = data.user;
     if (data.session_token) {
       sessionStorage.setItem('sgbt_session_token', data.session_token);
-      localStorage.removeItem('sgbt_session_token');
+      localStorage.setItem('sgbt_session_token', data.session_token);
     }
     
     // Guardar candado de dispositivo activo
@@ -774,7 +774,7 @@ async function executeAdminLogin(identifier, secret) {
     const user = data.user;
     if (data.session_token) {
       sessionStorage.setItem('sgbt_session_token', data.session_token);
-      localStorage.removeItem('sgbt_session_token');
+      localStorage.setItem('sgbt_session_token', data.session_token);
     }
 
     console.log(`[CLIENT AUTH] ✅ Sesión de Administración Iniciada: ${user.full_name} | Rol: ${user.role}`);
@@ -1211,6 +1211,8 @@ window.handleLogout = function(reason) {
   try {
     localStorage.removeItem('sgbt_active_qr_payload');
     localStorage.removeItem('sgbt_session_token');
+    localStorage.removeItem('sgbt_user');
+    localStorage.removeItem('sgbt_session_meta');
     sessionStorage.removeItem('sgbt_session_token');
     sessionStorage.clear();
   } catch (e) {}
@@ -1261,9 +1263,16 @@ window.checkAuthSession = function() {
       window.SessionManager.init();
     }
 
-    // En arquitectura bancaria, la sesión activa reside en sessionStorage
-    const saved = sessionStorage.getItem('sgbt_user');
+    // La sesión activa reside en sessionStorage o localStorage (compartida entre pestañas)
+    let saved = sessionStorage.getItem('sgbt_user') || localStorage.getItem('sgbt_user');
     if (saved) {
+      // Replicar en sessionStorage si provenía de localStorage
+      sessionStorage.setItem('sgbt_user', saved);
+      const savedTok = localStorage.getItem('sgbt_session_token');
+      if (savedTok && !sessionStorage.getItem('sgbt_session_token')) {
+        sessionStorage.setItem('sgbt_session_token', savedTok);
+      }
+
       // Validar que la sesión no haya caducado por inactividad
       const isValid = window.SessionManager ? window.SessionManager.validateSessionOnBoot() : true;
       if (isValid) {
@@ -1288,9 +1297,6 @@ window.checkAuthSession = function() {
         }
       }
     }
-
-    // Limpieza proactiva de sesiones persistentes viejas en localStorage
-    localStorage.removeItem('sgbt_user');
   } catch (e) {
     console.warn('Error al leer sesión guardada:', e);
   }
@@ -1660,7 +1666,7 @@ window.setupEnrollmentModalListeners = function() {
 
         if (res.session_token) {
           sessionStorage.setItem('sgbt_session_token', res.session_token);
-          localStorage.removeItem('sgbt_session_token');
+          localStorage.setItem('sgbt_session_token', res.session_token);
         }
 
         playAudioFeedback('success');
@@ -1871,7 +1877,7 @@ async function handleMfaVerificationSubmit() {
     const user = res.user;
     if (res.session_token) {
       sessionStorage.setItem('sgbt_session_token', res.session_token);
-      localStorage.removeItem('sgbt_session_token');
+      localStorage.setItem('sgbt_session_token', res.session_token);
     }
 
     console.log(`[CLIENT AUTH] ✅ MFA Verificado. Sesión iniciada: ${user.full_name}`);

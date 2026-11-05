@@ -55,7 +55,7 @@ window.STATE = {
     if (user) {
       try {
         sessionStorage.setItem('sgbt_user', JSON.stringify(user));
-        localStorage.removeItem('sgbt_user');
+        localStorage.setItem('sgbt_user', JSON.stringify(user));
       } catch (e) {}
       if (window.SessionManager && typeof window.SessionManager.startSession === 'function') {
         window.SessionManager.startSession(user);
@@ -64,7 +64,10 @@ window.STATE = {
       try {
         sessionStorage.removeItem('sgbt_user');
         sessionStorage.removeItem('sgbt_session_meta');
+        sessionStorage.removeItem('sgbt_session_token');
         localStorage.removeItem('sgbt_user');
+        localStorage.removeItem('sgbt_session_meta');
+        localStorage.removeItem('sgbt_session_token');
       } catch (e) {}
       if (window.SessionManager && typeof window.SessionManager.stopWatchdog === 'function') {
         window.SessionManager.stopWatchdog();

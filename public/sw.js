@@ -69,6 +69,16 @@ self.addEventListener('activate', (event) => {
 
 // 3. INTERCEPTOR DE PETICIONES (FETCH)
 self.addEventListener('fetch', (event) => {
+  // Ignorar esquemas no soportados por Cache API (chrome-extension://, moz-extension://, devtools://)
+  if (!event.request.url.startsWith('http://') && !event.request.url.startsWith('https://')) {
+    return;
+  }
+
+  // Cache API sólo admite peticiones con método GET
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(event.request.url);
 
   // A) Rutas de la API (/api/...)
