@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Gradiente de fondo del Escudo Suizo (Capa 1) -->
+    <linearGradient id="swissShieldBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#111c33"/>
+      <stop offset="45%" stop-color="#0a1224"/>
+      <stop offset="100%" stop-color="#040813"/>
+    </linearGradient>
+
+    <!-- Borde exterior del escudo suizo -->
+    <linearGradient id="swissShieldBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#0284c7" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#1e3a8a" stop-opacity="0.85"/>
+    </linearGradient>
+
+    <!-- Gradientes Tricolor Venezolano (Capa 2) -->
+    <!-- Amarillo Patrio / Cara Superior -->
+    <linearGradient id="triYellow" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#d97706"/>
+      <stop offset="35%" stop-color="#eab308"/>
+      <stop offset="70%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#fef08a"/>
+    </linearGradient>
+
+    <!-- Azul Patrio / Cara Lateral Izquierda -->
+    <linearGradient id="triBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="35%" stop-color="#0284c7"/>
+      <stop offset="70%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+
+    <!-- Rojo Patrio / Cara Lateral Derecha -->
+    <linearGradient id="triRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="35%" stop-color="#e11d48"/>
+      <stop offset="70%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#881337"/>
+    </linearGradient>
+
+    <!-- Filtros de Sombra y Profundidad -->
+    <filter id="cubeDropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000000" flood-opacity="0.75"/>
+    </filter>
+
+    <filter id="flatHexShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="letterRelief" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- ========================================================
+       CAPA 1 (FONDO): ESCUDO SUIZO HERÁLDICO AMPLIADO
+       Dimensionado para que el cubo interno flote con holgura sin tocarlo
+       ======================================================== -->
+  <!-- Silueta exterior del Escudo Suizo -->
+  <path d="M 104 88 C 104 66 126 48 160 48 L 352 48 C 386 48 408 66 408 88 L 408 240 C 408 348 328 424 256 464 C 184 424 104 348 104 240 Z"
+        fill="url(#swissShieldBg)"
+        stroke="url(#swissShieldBorder)"
+        stroke-width="5"
+        stroke-linejoin="round"/>
+
+  <!-- Filete interno heráldico con trama tecnológica -->
+  <path d="M 120 98 C 120 80 138 64 168 64 L 344 64 C 374 64 392 80 392 98 L 392 236 C 392 334 320 404 256 440 C 192 404 120 334 120 236 Z"
+        fill="none"
+        stroke="#38bdf8"
+        stroke-width="1.8"
+        stroke-opacity="0.3"
+        stroke-dasharray="8 5"/>
+
+  <!-- ========================================================
+       CAPA 2 (MEDIO): CUBO ISOMÉTRICO TRICOLOR CON BORDE BLANCO
+       Reducido a escala adecuada para no tocar el escudo en ningún punto
+       ======================================================== -->
+  <g filter="url(#cubeDropShadow)">
+    <!-- CARA SUPERIOR: Amarillo Patrio con Borde Blanco Puro -->
+    <path d="M 256 164 L 327 205 L 256 246 L 185 205 Z"
+          fill="url(#triYellow)"
+          stroke="#ffffff"
+          stroke-width="3.2"
+          stroke-linejoin="round"/>
+
+    <!-- CARA IZQUIERDA: Azul Patrio con Borde Blanco Puro -->
+    <path d="M 185 205 L 256 246 L 256 328 L 185 287 Z"
+          fill="url(#triBlue)"
+          stroke="#ffffff"
+          stroke-width="3.2"
+          stroke-linejoin="round"/>
+
+    <!-- CARA DERECHA: Rojo Patrio con Borde Blanco Puro -->
+    <path d="M 256 246 L 327 205 L 327 287 L 256 328 Z"
+          fill="url(#triRed)"
+          stroke="#ffffff"
+          stroke-width="3.2"
+          stroke-linejoin="round"/>
+  </g>
+
+  <!-- ========================================================
+       SIGLAS S - G - T (CON ESPACIO AMPLIO, NO TOCAN EL HEXÁGONO)
+       ======================================================== -->
+  <!-- LETRA 'S': En la cara superior (Amarilla) -->
+  <g transform="translate(256, 194) rotate(-30) skewX(30) scale(0.78, 0.7)">
+    <text x="0" y="14"
+          font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          font-size="42"
+          font-weight="900"
+          fill="#0c1e3d"
+          text-anchor="middle"
+          letter-spacing="-1"
+          filter="url(#letterRelief)">S</text>
+  </g>
+
+  <!-- LETRA 'G': En la cara izquierda (Azul) -->
+  <g transform="translate(210, 276) skewY(30) scale(0.78, 0.78)">
+    <text x="0" y="14"
+          font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          font-size="42"
+          font-weight="900"
+          fill="#ffffff"
+          text-anchor="middle"
+          letter-spacing="-1"
+          filter="url(#letterRelief)">G</text>
+  </g>
+
+  <!-- LETRA 'T': En la cara derecha (Roja) -->
+  <g transform="translate(302, 276) skewY(-30) scale(0.78, 0.78)">
+    <text x="0" y="14"
+          font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          font-size="42"
+          font-weight="900"
+          fill="#ffffff"
+          text-anchor="middle"
+          letter-spacing="-1"
+          filter="url(#letterRelief)">T</text>
+  </g>
+
+  <!-- ========================================================
+       HEXÁGONO CENTRAL PLANO GRIS CON BORDE BLANCO + LETRA 'B'
+       Dimensionado para NO tocar ninguna de las letras S, G, T
+       ======================================================== -->
+  <g filter="url(#flatHexShadow)">
+    <!-- Hexágono Plano Sólido Gris (#475569) con Borde Blanco Puro (#ffffff) -->
+    <path d="M 256 229 L 271 237.5 L 271 254.5 L 256 263 L 241 254.5 L 241 237.5 Z"
+          fill="#475569"
+          stroke="#ffffff"
+          stroke-width="2.2"
+          stroke-linejoin="round"/>
+
+    <!-- LETRA 'B': 2D Plana, Frontal Vertical (Sin Inclinación), Centrada -->
+    <text x="256" y="252"
+          font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif"
+          font-size="16"
+          font-weight="900"
+          fill="#ffffff"
+          text-anchor="middle"
+          dominant-baseline="middle"
+          letter-spacing="0">B</text>
+  </g>
+</svg>

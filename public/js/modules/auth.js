@@ -90,7 +90,7 @@ window.setLoginMode = function(mode) {
     if (adminFields) adminFields.style.display = 'block';
 
     if (iconWrapper) {
-      iconWrapper.style.background = 'linear-gradient(135deg, #0284c7, #0f172a)';
+      iconWrapper.style.background = 'transparent';
     }
     if (badgeStatus) {
       badgeStatus.textContent = '🛡️ Acceso de Administración y Control';
@@ -111,7 +111,7 @@ window.setLoginMode = function(mode) {
     if (adminFields) adminFields.style.display = 'none';
 
     if (iconWrapper) {
-      iconWrapper.style.background = 'linear-gradient(135deg, #d97706, #b45309)';
+      iconWrapper.style.background = 'transparent';
     }
     if (badgeStatus) {
       badgeStatus.textContent = '📦 Mesa de Despacho · Operador de Almacén';
@@ -163,7 +163,7 @@ window.setLoginMode = function(mode) {
     if (adminFields) adminFields.style.display = 'none';
 
     if (iconWrapper) {
-      iconWrapper.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
+      iconWrapper.style.background = 'transparent';
     }
     if (badgeStatus) {
       badgeStatus.textContent = 'Validación Segura · Huella o FaceID';
