@@ -832,6 +832,250 @@ async function releaseScreenWakeLock() {
   }
 }
 
+/**
+ * ============================================================================
+ * TelegramQrFocusTracker
+ * Motor de Enfoque Dinámico y Suavizado Anti-Temblor Tipo Telegram
+ * Diseñado especialmente para adultos mayores y personas con temblor en las manos.
+ * Utiliza Filtro de Suavizado Exponencial (EMA), persistencia de cuadro y
+ * seguimiento háptico/visual para garantizar un escaneo sin frustración.
+ * ============================================================================
+ */
+class TelegramQrFocusTracker {
+  constructor() {
+    this.overlay = null;
+    this.targetBox = null;
+    this.assistPill = null;
+    this.assistText = null;
+    this.assistIcon = null;
+    this.videoEl = null;
+    this.detector = null;
+    this.animId = null;
+    this.checkInterval = null;
+    this.isActive = false;
+
+    // Coordenadas suavizadas con Filtro Exponencial (EMA)
+    this.current = { x: 0, y: 0, w: 240, h: 240 };
+    this.target = { x: 0, y: 0, w: 240, h: 240 };
+    this.hasTarget = false;
+    this.lastSeenTime = 0;
+    this.defaultCenter = { x: 0, y: 0, w: 240, h: 240 };
+    this.hasVibratedOnLock = false;
+
+    this.initDetector();
+  }
+
+  async initDetector() {
+    if (typeof window !== 'undefined' && 'BarcodeDetector' in window) {
+      try {
+        const formats = await window.BarcodeDetector.getSupportedFormats();
+        if (formats && formats.includes('qr_code')) {
+          this.detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+        }
+      } catch (e) {
+        console.info('[TELEGRAM FOCUS] BarcodeDetector no nativo en este navegador, usando retícula guiada:', e);
+      }
+    }
+  }
+
+  start(containerEl) {
+    if (!containerEl) return;
+    this.overlay = containerEl.querySelector('#telegramFinderOverlay');
+    this.targetBox = containerEl.querySelector('#telegramTargetBox');
+    this.assistPill = containerEl.querySelector('#telegramAssistPill');
+    this.assistText = containerEl.querySelector('#telegramAssistText');
+    this.assistIcon = containerEl.querySelector('#telegramAssistIcon');
+
+    if (!this.overlay || !this.targetBox) return;
+
+    this.overlay.style.display = 'flex';
+    this.isActive = true;
+    this.hasVibratedOnLock = false;
+    this.hasTarget = false;
+    this.lastSeenTime = 0;
+
+    // Recalcular el centro por defecto según dimensiones reales del visor
+    this.recalcDefaultCenter(containerEl);
+
+    // Iniciar bucle de renderizado a 60 FPS con EMA smoothing
+    this.renderLoop(containerEl);
+
+    // Iniciar bucle de detección continua para rastreo en tiempo real
+    if (this.checkInterval) clearInterval(this.checkInterval);
+    this.checkInterval = setInterval(() => this.detectFrame(containerEl), 85);
+  }
+
+  recalcDefaultCenter(containerEl) {
+    const reader = containerEl.querySelector('#cameraQrReader');
+    const cw = reader && reader.clientWidth > 0 ? reader.clientWidth : containerEl.clientWidth || 320;
+    const ch = reader && reader.clientHeight > 0 ? reader.clientHeight : Math.max(280, containerEl.clientHeight - 44);
+
+    const boxSize = Math.max(180, Math.min(Math.min(cw, ch) * 0.72, 270));
+    const cx = (cw - boxSize) / 2;
+    const cy = (ch - boxSize) / 2;
+
+    this.defaultCenter = { x: cx, y: cy, w: boxSize, h: boxSize };
+    if (!this.hasTarget) {
+      this.current = { ...this.defaultCenter };
+      this.target = { ...this.defaultCenter };
+      this.applyBoxStyle(this.current);
+    }
+  }
+
+  async detectFrame(containerEl) {
+    if (!this.isActive || !this.detector) return;
+    if (!this.videoEl || !this.videoEl.isConnected) {
+      this.videoEl = containerEl.querySelector('#cameraQrReader video');
+    }
+    if (!this.videoEl || this.videoEl.readyState < 2) return;
+
+    try {
+      const barcodes = await this.detector.detect(this.videoEl);
+      if (barcodes && barcodes.length > 0) {
+        const barcode = barcodes[0];
+        const bbox = barcode.boundingBox;
+        if (bbox && bbox.width > 20 && bbox.height > 20) {
+          const reader = containerEl.querySelector('#cameraQrReader');
+          const cw = reader && reader.clientWidth > 0 ? reader.clientWidth : containerEl.clientWidth;
+          const ch = reader && reader.clientHeight > 0 ? reader.clientHeight : containerEl.clientHeight;
+          const vw = this.videoEl.videoWidth || cw;
+          const vh = this.videoEl.videoHeight || ch;
+
+          // Corrección anamórfica por escala object-fit
+          const scale = Math.max(cw / vw, ch / vh);
+          const offsetX = (cw - vw * scale) / 2;
+          const offsetY = (ch - vh * scale) / 2;
+
+          // Margen ergonómico alrededor del código QR para encuadre cinematográfico (+15%)
+          const pad = Math.max(14, bbox.width * scale * 0.14);
+          const rawW = Math.max(160, bbox.width * scale + pad * 2);
+          const rawH = Math.max(160, bbox.height * scale + pad * 2);
+          const rawX = bbox.x * scale + offsetX - pad;
+          const rawY = bbox.y * scale + offsetY - pad;
+
+          // Confinar dentro del visor para evitar desbordes visuales
+          const clampedX = Math.max(6, Math.min(rawX, cw - rawW - 6));
+          const clampedY = Math.max(6, Math.min(rawY, ch - rawH - 6));
+
+          this.target = { x: clampedX, y: clampedY, w: rawW, h: rawH };
+          this.hasTarget = true;
+          this.lastSeenTime = Date.now();
+
+          // Vibración táctil discreta de enganche (feedback kinestésico para adultos mayores)
+          if (!this.hasVibratedOnLock) {
+            this.hasVibratedOnLock = true;
+            if (typeof navigator !== 'undefined' && navigator.vibrate) {
+              try { navigator.vibrate(35); } catch (_) {}
+            }
+          }
+
+          if (this.targetBox) this.targetBox.classList.add('is-locked');
+          if (this.assistPill) this.assistPill.classList.add('is-locked');
+          if (this.assistIcon) this.assistIcon.textContent = '✨';
+          if (this.assistText) this.assistText.textContent = '¡Código enfocado! Mantenga firme...';
+          return;
+        }
+      }
+
+      // Tolerancia de persistencia anti-temblor (350ms):
+      // Si el temblor de la mano causa desenfoque transitorio, NO soltar el recuadro bruscamente
+      if (Date.now() - this.lastSeenTime > 350) {
+        if (this.hasTarget) {
+          this.hasTarget = false;
+          this.hasVibratedOnLock = false;
+          this.target = { ...this.defaultCenter };
+          if (this.targetBox) this.targetBox.classList.remove('is-locked');
+          if (this.assistPill) this.assistPill.classList.remove('is-locked');
+          if (this.assistIcon) this.assistIcon.textContent = '🎯';
+          if (this.assistText) this.assistText.textContent = 'Centre el código QR en pantalla';
+        }
+      }
+    } catch (_) {
+      // Ignorar fallas puntuales de procesamiento de fotograma
+    }
+  }
+
+  renderLoop(containerEl) {
+    if (!this.isActive) return;
+
+    // Verificar si el visor cambió de tamaño o se montó el video
+    if (this.defaultCenter.w === 240 && containerEl) {
+      this.recalcDefaultCenter(containerEl);
+    }
+
+    // Filtro de Suavizado Exponencial (EMA - Exponential Moving Average)
+    // alpha = 0.35 elimina vibraciones y temblores involuntarios sin retrasar la respuesta
+    const alpha = 0.35;
+    this.current.x += (this.target.x - this.current.x) * alpha;
+    this.current.y += (this.target.y - this.current.y) * alpha;
+    this.current.w += (this.target.w - this.current.w) * alpha;
+    this.current.h += (this.target.h - this.current.h) * alpha;
+
+    this.applyBoxStyle(this.current);
+
+    this.animId = requestAnimationFrame(() => this.renderLoop(containerEl));
+  }
+
+  applyBoxStyle(pos) {
+    if (!this.targetBox) return;
+    this.targetBox.style.transform = 'none';
+    this.targetBox.style.left = `${Math.round(pos.x)}px`;
+    this.targetBox.style.top = `${Math.round(pos.y)}px`;
+    this.targetBox.style.width = `${Math.round(pos.w)}px`;
+    this.targetBox.style.height = `${Math.round(pos.h)}px`;
+  }
+
+  triggerSuccessAnimation() {
+    if (this.targetBox) {
+      this.targetBox.classList.add('is-success');
+    }
+    if (this.assistPill) {
+      this.assistPill.classList.add('is-locked');
+      if (this.assistIcon) this.assistIcon.textContent = '✅';
+      if (this.assistText) this.assistText.textContent = '¡Código QR validado exitosamente!';
+    }
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      try { navigator.vibrate([40, 35, 60]); } catch (_) {}
+    }
+    setTimeout(() => {
+      if (this.targetBox) this.targetBox.classList.remove('is-success');
+    }, 1200);
+  }
+
+  stop() {
+    this.isActive = false;
+    if (this.animId) {
+      cancelAnimationFrame(this.animId);
+      this.animId = null;
+    }
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+    if (this.overlay) {
+      this.overlay.style.display = 'none';
+    }
+    if (this.targetBox) {
+      this.targetBox.classList.remove('is-locked', 'is-success');
+    }
+    if (this.assistPill) {
+      this.assistPill.classList.remove('is-locked');
+    }
+    this.videoEl = null;
+    this.hasTarget = false;
+    this.hasVibratedOnLock = false;
+  }
+}
+
+// Instancia única del rastreador Telegram
+let telegramQrTracker = null;
+function getTelegramQrTracker() {
+  if (!telegramQrTracker) {
+    telegramQrTracker = new TelegramQrFocusTracker();
+  }
+  return telegramQrTracker;
+}
+
 async function startLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
@@ -972,6 +1216,9 @@ async function startLiveCameraScanner() {
           window.AppLogger.scan(cleanText, payload, true, 'Código QR detectado correctamente por cámara');
         }
 
+        // Animación de captura exitosa y vibración háptica estilo Telegram
+        getTelegramQrTracker().triggerSuccessAnimation();
+
         // Modo Ráfaga Continuo: Procesa el QR sin apagar la cámara
         await processQrPayload(payload, true /* isLiveCamera */);
 
@@ -1012,6 +1259,9 @@ async function startLiveCameraScanner() {
       badge.className = 'badge badge-proteina';
     }
 
+    // Iniciar rastreador dinámico de enfoque y anti-temblor estilo Telegram
+    getTelegramQrTracker().start(liveContainer);
+
     // Refrescar lista de cámaras ahora con permisos otorgados
     refreshCameraDevicesList();
 
@@ -1021,6 +1271,7 @@ async function startLiveCameraScanner() {
   } catch (err) {
     console.error('[CAMERA ERROR]', err);
     window.showToast('No se pudo acceder a la cámara: ' + (err.message || err), 'error');
+    getTelegramQrTracker().stop();
     stopLiveCameraScanner();
   }
 }
@@ -1029,6 +1280,9 @@ async function stopLiveCameraScanner() {
   const standbyBox = document.getElementById('cameraStandbyBox');
   const liveContainer = document.getElementById('liveCameraContainer');
   const badge = document.getElementById('cameraStatusBadge');
+
+  // Detener rastreador visual estilo Telegram
+  getTelegramQrTracker().stop();
 
   // Liberar pantalla activa
   await releaseScreenWakeLock();

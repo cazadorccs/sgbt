@@ -4606,5 +4606,200 @@ body.dark-mode .distribution-point-panel {
   margin-left: 2px;
 }
 
+/* ============================================================================
+   TELEGRAM QR FOCUS & ANTI-TREMOR TRACKER (SGBT - MIPPCI)
+   Enfoque Dinámico y Asistencia Visual Accesible para Adultos Mayores
+   ============================================================================ */
+
+/* Suavizar la máscara por defecto de html5-qrcode para dar protagonismo a la retícula */
+#cameraQrReader #qr-shaded-region {
+  border-width: 0 !important;
+  opacity: 0.2 !important;
+}
+
+#cameraQrReader video {
+  border-radius: var(--radius-md);
+  object-fit: cover !important;
+}
+
+.telegram-scanner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 44px;
+  pointer-events: none;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.telegram-target-box {
+  position: absolute;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  will-change: top, left, width, height, transform;
+}
+
+/* 4 Esquinas estilizadas tipo Telegram con bordes curvos y brillo de alta visibilidad */
+.tg-corner {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-color: #38bdf8;
+  border-style: solid;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.85));
+  transition: border-color 0.2s ease, filter 0.2s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-sizing: border-box;
+}
+
+.tg-corner-tl {
+  top: 0;
+  left: 0;
+  border-width: 4px 0 0 4px;
+  border-top-left-radius: 12px;
+}
+
+.tg-corner-tr {
+  top: 0;
+  right: 0;
+  border-width: 4px 4px 0 0;
+  border-top-right-radius: 12px;
+}
+
+.tg-corner-bl {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 4px 4px;
+  border-bottom-left-radius: 12px;
+}
+
+.tg-corner-br {
+  bottom: 0;
+  right: 0;
+  border-width: 0 4px 4px 0;
+  border-bottom-right-radius: 12px;
+}
+
+/* Haz Láser de Barrido Suave Vertical */
+.tg-laser-line {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #38bdf8 20%, #e0f2fe 50%, #38bdf8 80%, transparent);
+  box-shadow: 0 0 16px #38bdf8, 0 0 6px #e0f2fe;
+  animation: tgLaserSweep 2.2s ease-in-out infinite alternate;
+  border-radius: 3px;
+}
+
+@keyframes tgLaserSweep {
+  0% {
+    top: 6%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    opacity: 0.8;
+  }
+}
+
+/* Diana de Centro con Respiración para Orientación de Adultos Mayores */
+.tg-center-crosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
+  border-radius: 50%;
+  animation: tgBreathing 2.2s ease-in-out infinite;
+}
+
+@keyframes tgBreathing {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.35);
+    opacity: 0.85;
+  }
+}
+
+/* Estado Enganchado / Bloqueado en el Código QR (Color Esmeralda Neón) */
+.telegram-target-box.is-locked .tg-corner {
+  border-color: #10b981;
+  filter: drop-shadow(0 0 14px rgba(16, 185, 129, 0.95));
+  transform: scale(1.03);
+}
+
+.telegram-target-box.is-locked .tg-laser-line {
+  background: linear-gradient(90deg, transparent, #10b981 20%, #a7f3d0 50%, #10b981 80%, transparent);
+  box-shadow: 0 0 18px #10b981, 0 0 8px #a7f3d0;
+  animation-duration: 1.2s;
+}
+
+.telegram-target-box.is-locked .tg-center-crosshair {
+  border-color: rgba(16, 185, 129, 0.7);
+  animation-duration: 1.2s;
+}
+
+/* Estado de Éxito al Confirmar Lectura */
+.telegram-target-box.is-success .tg-corner {
+  border-color: #34d399;
+  filter: drop-shadow(0 0 24px rgba(52, 211, 153, 1));
+  transform: scale(0.95);
+}
+
+/* Píldora de Asistencia Accesible para Adultos Mayores (WCAG 2.2 AAA) */
+.telegram-assist-pill {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.95rem;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1.5px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  transition: all 0.25s ease;
+  max-width: 90%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.telegram-assist-pill.is-locked {
+  background: rgba(6, 78, 59, 0.95);
+  border-color: #10b981;
+  color: #ecfdf5;
+  box-shadow: 0 4px 22px rgba(16, 185, 129, 0.45);
+}
+
+.tg-pill-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.tg-pill-text {
+  line-height: 1.2;
+}
+
+
 
 

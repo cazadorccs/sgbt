@@ -2850,6 +2850,22 @@
                 </div>
 
                 <div id="cameraQrReader" style="width: 100%;"></div>
+
+                <!-- Visor Dinámico de Enfoque y Rastreo Anti-Temblor Tipo Telegram -->
+                <div id="telegramFinderOverlay" class="telegram-scanner-overlay" style="display: none;" aria-hidden="true">
+                  <div id="telegramTargetBox" class="telegram-target-box">
+                    <span class="tg-corner tg-corner-tl"></span>
+                    <span class="tg-corner tg-corner-tr"></span>
+                    <span class="tg-corner tg-corner-bl"></span>
+                    <span class="tg-corner tg-corner-br"></span>
+                    <div class="tg-laser-line"></div>
+                    <div class="tg-center-crosshair"></div>
+                  </div>
+                  <div id="telegramAssistPill" class="telegram-assist-pill">
+                    <span id="telegramAssistIcon" class="tg-pill-icon">🎯</span>
+                    <span id="telegramAssistText" class="tg-pill-text">Centre el código QR en pantalla</span>
+                  </div>
+                </div>
                 <div style="padding: 0.5rem; display: flex; gap: 0.5rem; background: rgba(4, 13, 22, 0.95); border-top: 1px solid rgba(153, 230, 255, 0.1);">
                   <button type="button" id="btnFlipCameraLive" class="btn btn-outline" style="flex: 1; font-size: 0.78rem; padding: 0.45rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.35rem; font-weight: 600;">
                     🔄 Cambiar Cámara
