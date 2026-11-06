@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const { db } = require('../db');
 const { generateOfficialActaHtml } = require('../services/audit.service');
+const { hashPassword, generateMagicLinkToken } = require('../crypto-utils');
 
 const getKpis = (req, res) => {
   const today = new Date().toISOString().split('T')[0];
@@ -1458,12 +1459,83 @@ const reloadCensus = async (req, res) => {
   }
 };
 
+const manageWorkerPassword = (req, res) => {
+  const { id } = req.params;
+  const { action, new_password, clear_device_lock } = req.body;
+
+  try {
+    const worker = db.prepare('SELECT * FROM workers WHERE id = ?').get(id);
+    if (!worker) {
+      return res.status(404).json({ error: 'Funcionario no encontrado en el padrón institucional' });
+    }
+
+    if (action === 'set_password') {
+      if (!new_password || String(new_password).trim().length < 4) {
+        return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' });
+      }
+      const hashed = hashPassword(String(new_password).trim());
+      db.prepare(`
+        UPDATE workers 
+        SET password_hash = ?, enrollment_status = 'registrado', updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(hashed, id);
+
+      if (clear_device_lock) {
+        try {
+          db.prepare("UPDATE device_locks SET status = 'released' WHERE worker_id = ?").run(id);
+          db.prepare("UPDATE workers SET bound_device_id = NULL WHERE id = ?").run(id);
+        } catch (e) {}
+      }
+
+      console.log(`[SECURITY AUDIT] Contraseña actualizada para funcionario: ${worker.document_id} por administrador: ${req.user?.document_id || 'admin'}`);
+      return res.json({
+        success: true,
+        message: `Contraseña actualizada exitosamente para ${worker.full_name}.`,
+        enrollment_status: 'registrado'
+      });
+    } else if (action === 'reset_enrollment') {
+      // Revertir a precargado para que el usuario formalice o asigne clave
+      db.prepare(`
+        UPDATE workers 
+        SET password_hash = '', enrollment_status = 'precargado', updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(id);
+
+      if (clear_device_lock) {
+        try {
+          db.prepare("UPDATE device_locks SET status = 'released' WHERE worker_id = ?").run(id);
+          db.prepare("UPDATE workers SET bound_device_id = NULL WHERE id = ?").run(id);
+        } catch (e) {}
+      }
+
+      const onboardingToken = generateMagicLinkToken({
+        workerId: worker.id,
+        documentId: worker.document_id
+      }, 1440); // 24 horas
+
+      console.log(`[SECURITY AUDIT] Funcionario ${worker.document_id} restablecido a estatus PRECARGADO por administrador: ${req.user?.document_id || 'admin'}`);
+      return res.json({
+        success: true,
+        message: `Acceso restablecido para ${worker.full_name}. El funcionario deberá formalizar su clave en su próximo inicio de sesión.`,
+        enrollment_status: 'precargado',
+        onboarding_token: onboardingToken
+      });
+    } else {
+      return res.status(400).json({ error: "Acción no válida. Especifique 'set_password' o 'reset_enrollment'." });
+    }
+  } catch (err) {
+    console.error('[MANAGE WORKER PASSWORD ERROR]', err);
+    return res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getKpis,
   getWorkers,
   createWorker,
   updateWorker,
   updateWorkerRole,
+  manageWorkerPassword,
   deleteWorker,
   reloadCensus,
   getWorkerDossier,

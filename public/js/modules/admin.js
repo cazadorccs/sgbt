@@ -254,6 +254,9 @@ function renderWorkersPage() {
         <td style="text-align: center;">${entitlementBadge}</td>
         <td>
           <div style="display: flex; gap: 0.35rem; justify-content: center; align-items: center;">
+            <button class="btn-table-action" onclick="openManageUserCredentialsModal('${w.id}')" data-tooltip="Gestionar Contraseña y Credenciales" title="Gestionar Contraseña, Credenciales y Rol" aria-label="Gestionar Credenciales">
+              🔑
+            </button>
             <button class="btn-table-action" onclick="openSecurityDossier('${w.id}')" data-tooltip="Expediente de Seguridad" title="Ver Expediente de Seguridad y Dispositivos" aria-label="Expediente de Seguridad">
               🛡️
             </button>
@@ -731,6 +734,9 @@ window.openSecurityDossier = async function(workerId) {
         <button class="btn btn-outline" style="font-size: 0.75rem; width: 100%; border-color: #38bdf8; color: #0284c7; font-weight: 700;" onclick="window.openDeviceReleaseModal('${worker.document_id}')">
           🔓 Liberar Candado de Dispositivo
         </button>
+        <button class="btn btn-primary" style="font-size: 0.75rem; width: 100%; margin-top: 0.5rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0f172a); border: none;" onclick="window.openManageUserCredentialsModal('${worker.id}')">
+          🔑 Administrar Contraseña y Rol del Funcionario
+        </button>
       </div>
     `;
 
@@ -902,5 +908,217 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
     window.open(`/api/v1/admin/export?format=acta&campaign_id=${encodeURIComponent(campaignId)}&session_token=${encodeURIComponent(token)}`, '_blank');
   });
+
+  // ============================================================================
+  // GESTIÓN DE USUARIOS, CREDENCIALES Y CONTRASEÑAS (ADMIN)
+  // ============================================================================
+  document.getElementById('btnCloseManageUserCredentialsModal')?.addEventListener('click', window.closeManageUserCredentialsModal);
+  document.getElementById('btnFooterCloseManageUserModal')?.addEventListener('click', window.closeManageUserCredentialsModal);
+
+  // Ver / Ocultar Contraseña
+  document.getElementById('btnToggleManageNewPassword')?.addEventListener('click', () => {
+    const pwdInput = document.getElementById('inputManageNewPassword');
+    if (!pwdInput) return;
+    pwdInput.type = (pwdInput.type === 'password') ? 'text' : 'password';
+  });
+
+  // Generador de Contraseña Segura
+  document.getElementById('btnGenerateRandomPassword')?.addEventListener('click', () => {
+    const pwdInput = document.getElementById('inputManageNewPassword');
+    if (!pwdInput) return;
+    const randDigits = Math.floor(1000 + Math.random() * 9000);
+    pwdInput.value = `Mippci-${randDigits}`;
+    pwdInput.type = 'text';
+    window.showToast('Contraseña generada: ' + pwdInput.value, 'info');
+  });
+
+  // Guardar Nueva Contraseña
+  document.getElementById('btnSubmitSetPassword')?.addEventListener('click', async () => {
+    if (!currentManageWorkerId) return;
+    const pwdInput = document.getElementById('inputManageNewPassword');
+    const chkLock = document.getElementById('chkClearDeviceLockOnPasswordChange');
+    const alertBox = document.getElementById('manageUserAlertBox');
+    const val = pwdInput?.value.trim();
+
+    if (!val || val.length < 4) {
+      if (alertBox) {
+        alertBox.textContent = 'La nueva contraseña debe tener al menos 4 caracteres.';
+        alertBox.style.display = 'block';
+      }
+      return;
+    }
+
+    try {
+      window.showToast('Guardando contraseña...', 'info');
+      const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
+        action: 'set_password',
+        new_password: val,
+        clear_device_lock: chkLock ? chkLock.checked : true
+      });
+
+      if (res && res.success) {
+        window.showToast(res.message, 'success');
+        playAudioFeedback('success');
+        if (alertBox) alertBox.style.display = 'none';
+        const statusBadge = document.getElementById('manageUserStatusBadge');
+        if (statusBadge) {
+          statusBadge.textContent = 'Formalizado (Registrado)';
+          statusBadge.className = 'badge badge-passkey';
+        }
+        await window.loadWorkersDirectory(true);
+      } else {
+        throw new Error(res?.error || 'No se pudo guardar la contraseña');
+      }
+    } catch (e) {
+      playAudioFeedback('error');
+      if (alertBox) {
+        alertBox.textContent = e.message;
+        alertBox.style.display = 'block';
+      }
+      window.showToast('Error: ' + e.message, 'error');
+    }
+  });
+
+  // Restablecer a Precargado (Auto-Registro)
+  document.getElementById('btnSubmitResetEnrollment')?.addEventListener('click', async () => {
+    if (!currentManageWorkerId) return;
+    const confirmMsg = `¿Desea restablecer a este funcionario a estatus PRECARGADO? Se eliminará la contraseña actual y deberá asignarla al ingresar.`;
+    if (!confirm(confirmMsg)) return;
+
+    const chkLock = document.getElementById('chkClearDeviceLockOnPasswordChange');
+    const alertBox = document.getElementById('manageUserAlertBox');
+    const magicBox = document.getElementById('manageUserMagicLinkBox');
+    const btnCopyMagic = document.getElementById('btnCopyMagicLinkForWorker');
+
+    try {
+      window.showToast('Restableciendo acceso...', 'info');
+      const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
+        action: 'reset_enrollment',
+        clear_device_lock: chkLock ? chkLock.checked : true
+      });
+
+      if (res && res.success) {
+        window.showToast(res.message, 'success');
+        playAudioFeedback('success');
+        if (alertBox) alertBox.style.display = 'none';
+        const statusBadge = document.getElementById('manageUserStatusBadge');
+        if (statusBadge) {
+          statusBadge.textContent = 'Pendiente (Precargado)';
+          statusBadge.className = 'badge badge-override';
+        }
+
+        if (res.onboarding_token) {
+          const magicUrl = `${window.location.origin}/?magic_token=${res.onboarding_token}`;
+          if (magicBox) {
+            magicBox.innerHTML = `<strong>Enlace de formalización directa:</strong><br><a href="${magicUrl}" target="_blank" style="color: #0284c7;">${magicUrl}</a>`;
+            magicBox.style.display = 'block';
+          }
+          if (btnCopyMagic) {
+            btnCopyMagic.style.display = 'inline-flex';
+            btnCopyMagic.onclick = () => {
+              navigator.clipboard.writeText(magicUrl);
+              window.showToast('📋 Enlace copiado al portapapeles', 'success');
+            };
+          }
+        }
+        await window.loadWorkersDirectory(true);
+      } else {
+        throw new Error(res?.error || 'No se pudo restablecer el acceso');
+      }
+    } catch (e) {
+      playAudioFeedback('error');
+      if (alertBox) {
+        alertBox.textContent = e.message;
+        alertBox.style.display = 'block';
+      }
+      window.showToast('Error: ' + e.message, 'error');
+    }
+  });
+
+  // Actualizar Rol
+  document.getElementById('btnSubmitUpdateUserRole')?.addEventListener('click', async () => {
+    if (!currentManageWorkerId) return;
+    const roleSelect = document.getElementById('selectManageUserRole');
+    const newRole = roleSelect?.value;
+    if (!newRole) return;
+
+    try {
+      window.showToast('Actualizando rol...', 'info');
+      const res = await API.put(`/api/v1/admin/workers/${currentManageWorkerId}/role`, { role: newRole });
+      if (res && res.success) {
+        window.showToast('Rol actualizado con éxito', 'success');
+        playAudioFeedback('success');
+        const roleBadge = document.getElementById('manageUserRoleBadge');
+        if (roleBadge) roleBadge.textContent = newRole.toUpperCase();
+        await window.loadWorkersDirectory(true);
+      } else {
+        throw new Error(res?.error || 'No se pudo actualizar el rol');
+      }
+    } catch (e) {
+      window.showToast('Error: ' + e.message, 'error');
+    }
+  });
 });
+
+let currentManageWorkerId = null;
+let currentManageWorkerData = null;
+
+window.openManageUserCredentialsModal = async function(workerId) {
+  try {
+    currentManageWorkerId = workerId;
+    const res = await API.get(`/api/v1/admin/workers/${workerId}/security-dossier`);
+    const worker = res.worker;
+    currentManageWorkerData = worker;
+
+    const modal = document.getElementById('manageUserCredentialsModalBackdrop');
+    if (!modal) return;
+
+    // Poblar datos de identidad
+    const nameEl = document.getElementById('manageUserTargetName');
+    const docEl = document.getElementById('manageUserTargetDoc');
+    const deptEl = document.getElementById('manageUserTargetDept');
+    const roleBadgeEl = document.getElementById('manageUserRoleBadge');
+    const statusBadgeEl = document.getElementById('manageUserStatusBadge');
+    const roleSelectEl = document.getElementById('selectManageUserRole');
+    const pwdInput = document.getElementById('inputManageNewPassword');
+    const alertBox = document.getElementById('manageUserAlertBox');
+    const magicBox = document.getElementById('manageUserMagicLinkBox');
+    const btnCopyMagic = document.getElementById('btnCopyMagicLinkForWorker');
+
+    if (nameEl) nameEl.textContent = worker.full_name || 'Funcionario Institucional';
+    if (docEl) docEl.textContent = worker.document_id || '';
+    if (deptEl) deptEl.textContent = worker.department_name || 'Sin Departamento';
+    if (pwdInput) pwdInput.value = '';
+    if (alertBox) alertBox.style.display = 'none';
+    if (magicBox) { magicBox.style.display = 'none'; magicBox.textContent = ''; }
+    if (btnCopyMagic) btnCopyMagic.style.display = 'none';
+
+    if (roleBadgeEl) {
+      roleBadgeEl.textContent = (worker.role || 'worker').toUpperCase();
+    }
+    if (statusBadgeEl) {
+      const isReg = worker.enrollment_status === 'registrado';
+      statusBadgeEl.textContent = isReg ? 'Formalizado (Registrado)' : 'Pendiente (Precargado)';
+      statusBadgeEl.className = isReg ? 'badge badge-passkey' : 'badge badge-override';
+    }
+    if (roleSelectEl) {
+      roleSelectEl.value = worker.role || 'worker';
+    }
+
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  } catch (err) {
+    window.showToast('Error cargando datos del funcionario: ' + err.message, 'error');
+  }
+};
+
+window.closeManageUserCredentialsModal = function() {
+  const modal = document.getElementById('manageUserCredentialsModalBackdrop');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
+  currentManageWorkerId = null;
+  currentManageWorkerData = null;
+};
 

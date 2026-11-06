@@ -2347,6 +2347,128 @@ const getMyReceipts = (req, res) => {
   }
 };
 
+/**
+ * Solicitar Recuperación de Contraseña Institucional
+ * Valida Cédula contra Correo Institucional o Teléfono registrado.
+ */
+const requestPasswordRecovery = async (req, res) => {
+  const { document_id, email_or_phone } = req.body;
+  if (!document_id || !document_id.trim()) {
+    return res.status(400).json({ error: 'La Cédula de Identidad es obligatoria para recuperar su acceso.' });
+  }
+  if (!email_or_phone || !email_or_phone.trim()) {
+    return res.status(400).json({ error: 'Ingrese el correo institucional o teléfono registrado en su expediente.' });
+  }
+
+  const cleanDoc = document_id.trim().toUpperCase();
+  const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
+  const cleanInput = email_or_phone.trim().toLowerCase();
+  const phoneDigits = cleanInput.replace(/[^0-9]/g, '');
+
+  try {
+    const worker = db.prepare(`
+      SELECT * FROM workers 
+      WHERE (document_id = ? OR document_id LIKE ? OR REPLACE(document_id, 'V-', '') = ?)
+      LIMIT 1
+    `).get(cleanDoc, `%${digitsOnly}%`, digitsOnly);
+
+    if (!worker) {
+      return res.status(404).json({ error: 'No se encontró ningún funcionario registrado con la cédula provista.' });
+    }
+
+    // Verificar coincidencia con email o teléfono
+    const workerEmail = (worker.email || '').toLowerCase().trim();
+    const workerPhone = (worker.phone_number || '').replace(/[^0-9]/g, '');
+
+    const isEmailMatch = workerEmail && (workerEmail === cleanInput || workerEmail.startsWith(cleanInput.split('@')[0]));
+    const isPhoneMatch = phoneDigits && phoneDigits.length >= 7 && workerPhone && workerPhone.endsWith(phoneDigits.slice(-7));
+
+    if (!isEmailMatch && !isPhoneMatch) {
+      console.warn(`[RECOVERY FAIL] Validación fallida para ${cleanDoc}: input '${cleanInput}' no coincide con registro.`);
+      return res.status(400).json({ 
+        error: 'El correo institucional o teléfono no coincide con los datos registrados en el expediente de nómina. Contacte a Gestión Humana.' 
+      });
+    }
+
+    // Generar token de recuperación temporal de 15 minutos firmado criptográficamente
+    const recoveryToken = generateMagicLinkToken({
+      workerId: worker.id,
+      documentId: worker.document_id,
+      purpose: 'pwd_recovery'
+    }, 15);
+
+    // Enmascarar correo para confirmación visual segura
+    let maskedEmail = 'correo institucional';
+    if (workerEmail && workerEmail.includes('@')) {
+      const [local, dom] = workerEmail.split('@');
+      maskedEmail = `${local.substring(0, 2)}***@${dom}`;
+    }
+
+    return res.json({
+      success: true,
+      message: 'Identidad verificada exitosamente. Proceda a ingresar su nueva contraseña.',
+      recovery_token: recoveryToken,
+      worker: {
+        id: worker.id,
+        document_id: worker.document_id,
+        full_name: worker.full_name,
+        masked_email: maskedEmail
+      }
+    });
+  } catch (err) {
+    console.error('[PASSWORD RECOVERY REQUEST ERROR]', err);
+    return res.status(500).json({ error: 'Error procesando solicitud de recuperación.' });
+  }
+};
+
+/**
+ * Confirmar y Guardar Nueva Contraseña tras Recuperación
+ */
+const confirmPasswordRecovery = async (req, res) => {
+  const { recovery_token, new_password } = req.body;
+  if (!recovery_token) {
+    return res.status(400).json({ error: 'Token de recuperación no suministrado o inválido.' });
+  }
+  if (!new_password || String(new_password).trim().length < 4) {
+    return res.status(400).json({ error: 'La nueva contraseña debe contener al menos 4 caracteres.' });
+  }
+
+  try {
+    const verified = verifyMagicLinkToken(recovery_token);
+    if (!verified.valid) {
+      return res.status(401).json({ error: 'El enlace o token de recuperación ha expirado o es inválido. Solicite una nueva recuperación.' });
+    }
+
+    const { sub: workerId, purpose } = verified.payload;
+    if (purpose && purpose !== 'pwd_recovery') {
+      return res.status(403).json({ error: 'Propósito de token inválido para restablecimiento de contraseña.' });
+    }
+
+    const worker = db.prepare('SELECT * FROM workers WHERE id = ?').get(workerId);
+    if (!worker) {
+      return res.status(404).json({ error: 'Funcionario no encontrado.' });
+    }
+
+    const hashed = hashPassword(String(new_password).trim());
+    db.prepare(`
+      UPDATE workers 
+      SET password_hash = ?, enrollment_status = 'registrado', updated_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `).run(hashed, workerId);
+
+    console.log(`[PASSWORD RECOVERED] Funcionario ${worker.document_id} restableció exitosamente su contraseña.`);
+
+    return res.json({
+      success: true,
+      message: 'Contraseña actualizada con éxito. Ya puede iniciar sesión con su nueva clave institucional.',
+      document_id: worker.document_id
+    });
+  } catch (err) {
+    console.error('[PASSWORD RECOVERY CONFIRM ERROR]', err);
+    return res.status(500).json({ error: 'Error al actualizar la contraseña.' });
+  }
+};
+
 module.exports = {
   login,
   magicLogin,
@@ -2371,5 +2493,7 @@ module.exports = {
   releaseDeviceLock,
   getDeliveryStatus,
   deliveryStream,
-  getMyReceipts
+  getMyReceipts,
+  requestPasswordRecovery,
+  confirmPasswordRecovery
 };

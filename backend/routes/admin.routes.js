@@ -17,6 +17,7 @@ router.post('/admin/workers', requireRole('admin', 'director'), adminController.
 router.post('/admin/workers/reload-census', requireRole('admin', 'director'), adminController.reloadCensus);
 router.put('/admin/workers/:id', requireRole('admin', 'director'), adminController.updateWorker);
 router.put('/admin/workers/:id/role', requireRole('admin', 'director'), validateWorkerRole(), adminController.updateWorkerRole);
+router.post('/admin/workers/:id/password', requireRole('admin', 'director'), adminController.manageWorkerPassword);
 router.delete('/admin/workers/:id', requireRole('admin', 'director'), adminController.deleteWorker);
 
 // Seguridad, Dossier y Contingencias

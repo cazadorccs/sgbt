@@ -26,6 +26,10 @@ router.post('/auth/sessions/revoke-others', requireAuth, authController.revokeOt
 router.get('/auth/enrollment-status/:document_id', loginRateLimiter(), authController.checkEnrollmentStatus);
 router.post('/auth/enroll', loginRateLimiter(), validateBody(['document_id', 'password', 'photo_base64']), authController.enrollBeneficiary);
 
+// Recuperación de Contraseña para Beneficiarios y Funcionarios
+router.post('/auth/password-recovery/request', loginRateLimiter(), validateBody(['document_id', 'email_or_phone']), authController.requestPasswordRecovery);
+router.post('/auth/password-recovery/confirm', loginRateLimiter(), validateBody(['recovery_token', 'new_password']), authController.confirmPasswordRecovery);
+
 // Enrolamiento y validación de Passkeys FIDO2
 router.post('/auth/passkey/register-challenge', authController.registerChallenge);
 router.post('/auth/passkey/register-verify', authController.registerVerify);

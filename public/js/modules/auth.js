@@ -379,6 +379,161 @@ window.setupAuth = function() {
     if (typeof openDeviceSessionsModal === 'function') openDeviceSessionsModal();
   });
 
+  // Enlaces para Recuperación de Contraseña
+  document.getElementById('btnForgotBeneficiaryPassword')?.addEventListener('click', openPasswordRecoveryModal);
+  document.getElementById('btnOpenRecoveryModalGlobal')?.addEventListener('click', openPasswordRecoveryModal);
+  document.getElementById('btnOpenRecoveryModalAdmin')?.addEventListener('click', openPasswordRecoveryModal);
+  document.getElementById('btnClosePasswordRecoveryModal')?.addEventListener('click', closePasswordRecoveryModal);
+
+  // Ver / Ocultar Nueva Contraseña en Recuperación
+  document.getElementById('btnToggleRecoveryNewPassword')?.addEventListener('click', () => {
+    const input = document.getElementById('inputRecoveryNewPassword');
+    if (!input) return;
+    input.type = (input.type === 'password') ? 'text' : 'password';
+  });
+
+  // Paso 1: Verificación de Identidad
+  document.getElementById('btnSubmitRecoveryStep1')?.addEventListener('click', async () => {
+    const docInput = document.getElementById('inputRecoveryDoc');
+    const contactInput = document.getElementById('inputRecoveryContact');
+    const alertBox = document.getElementById('recoveryAlertBox');
+    const btnSubmit = document.getElementById('btnSubmitRecoveryStep1');
+
+    const doc = docInput?.value.trim();
+    const contact = contactInput?.value.trim();
+
+    if (!doc || !contact) {
+      if (alertBox) {
+        alertBox.textContent = 'Ingrese tanto su número de Cédula como su Correo o Teléfono registrado.';
+        alertBox.style.display = 'block';
+      }
+      return;
+    }
+
+    try {
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '⏳ Verificando Identidad...';
+      }
+      if (alertBox) alertBox.style.display = 'none';
+
+      const res = await API.post('/api/v1/auth/password-recovery/request', {
+        document_id: doc,
+        email_or_phone: contact
+      });
+
+      if (res && res.success) {
+        currentRecoveryToken = res.recovery_token;
+        const nameEl = document.getElementById('recoveryTargetWorkerName');
+        const contactEl = document.getElementById('recoveryTargetMaskedContact');
+        const step1 = document.getElementById('recoveryStep1');
+        const step2 = document.getElementById('recoveryStep2');
+
+        if (nameEl) nameEl.textContent = res.worker.full_name;
+        if (contactEl) contactEl.textContent = `Cédula: ${res.worker.document_id} · Correo: ${res.worker.masked_email}`;
+        if (step1) step1.style.display = 'none';
+        if (step2) step2.style.display = 'block';
+        window.showToast('Identidad confirmada. Ingrese su nueva clave.', 'info');
+        playAudioFeedback('success');
+      } else {
+        throw new Error(res?.error || 'No se pudo verificar la identidad');
+      }
+    } catch (e) {
+      playAudioFeedback('error');
+      if (alertBox) {
+        alertBox.textContent = e.message;
+        alertBox.style.display = 'block';
+      }
+      window.showToast('Error: ' + e.message, 'error');
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<span>🔍 Verificar Identidad</span>';
+      }
+    }
+  });
+
+  // Paso 2: Establecer Nueva Contraseña
+  document.getElementById('btnSubmitRecoveryStep2')?.addEventListener('click', async () => {
+    if (!currentRecoveryToken) {
+      window.showToast('Sesión de recuperación expirada. Inicie el proceso nuevamente.', 'warning');
+      openPasswordRecoveryModal();
+      return;
+    }
+
+    const newPwdInput = document.getElementById('inputRecoveryNewPassword');
+    const confPwdInput = document.getElementById('inputRecoveryConfirmPassword');
+    const alertBox = document.getElementById('recoveryAlertBox');
+    const btnSubmit = document.getElementById('btnSubmitRecoveryStep2');
+
+    const newPwd = newPwdInput?.value.trim();
+    const confPwd = confPwdInput?.value.trim();
+
+    if (!newPwd || newPwd.length < 4) {
+      if (alertBox) {
+        alertBox.textContent = 'La nueva contraseña debe tener al menos 4 caracteres.';
+        alertBox.style.display = 'block';
+      }
+      return;
+    }
+
+    if (newPwd !== confPwd) {
+      if (alertBox) {
+        alertBox.textContent = 'Las contraseñas no coinciden. Verifique y vuelva a escribir.';
+        alertBox.style.display = 'block';
+      }
+      return;
+    }
+
+    try {
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '💾 Guardando Contraseña...';
+      }
+      if (alertBox) alertBox.style.display = 'none';
+
+      const res = await API.post('/api/v1/auth/password-recovery/confirm', {
+        recovery_token: currentRecoveryToken,
+        new_password: newPwd
+      });
+
+      if (res && res.success) {
+        playAudioFeedback('success');
+        window.showToast('✅ Contraseña restablecida con éxito. Ingrese con su nueva clave.', 'success');
+        closePasswordRecoveryModal();
+
+        // Precargar la cédula en el formulario de inicio de sesión
+        const numInput = document.getElementById('loginDocNumber');
+        const adminInput = document.getElementById('adminDocNumber');
+        const parts = (res.document_id || '').split('-');
+        if (numInput) numInput.value = parts.length === 2 ? parts[1] : res.document_id;
+        if (adminInput) adminInput.value = res.document_id;
+
+        const pwdField = document.getElementById('loginBeneficiaryPassword');
+        if (pwdField) {
+          pwdField.value = newPwd;
+          const pwdContainer = document.getElementById('beneficiaryPasswordContainer');
+          if (pwdContainer) pwdContainer.style.display = 'block';
+          pwdField.focus();
+        }
+      } else {
+        throw new Error(res?.error || 'No se pudo actualizar la contraseña');
+      }
+    } catch (e) {
+      playAudioFeedback('error');
+      if (alertBox) {
+        alertBox.textContent = e.message;
+        alertBox.style.display = 'block';
+      }
+      window.showToast('Error: ' + e.message, 'error');
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = '<span>💾 Establecer Contraseña y Acceder</span>';
+      }
+    }
+  });
+
   // Conmutador de Modo de Demostración vs Producción
   const btnToggleDemo = document.getElementById('btnToggleDemoMode');
   btnToggleDemo?.addEventListener('click', async () => {
