@@ -321,6 +321,24 @@ window.loadWorkersDirectory = async function(preservePage = false) {
     const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&department=${encodeURIComponent(department)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
     const data = await API.get(url);
     allFilteredWorkers = data.workers || [];
+
+    // Actualizar Contador Totalizador del Directorio de Empleados
+    const countBadge = document.getElementById('workersCountBadge');
+    const countText = document.getElementById('workersCountText');
+    const totalCensus = (typeof data.total_census === 'number') ? data.total_census : (allFilteredWorkers.length);
+    const filteredCount = allFilteredWorkers.length;
+
+    if (countText) {
+      const isFiltered = Boolean(search || role || department || workerType || shift || status);
+      if (isFiltered && filteredCount !== totalCensus) {
+        countText.textContent = `${filteredCount.toLocaleString()} de ${totalCensus.toLocaleString()} registros`;
+        if (countBadge) countBadge.title = `${filteredCount.toLocaleString()} funcionarios coincidentes con los filtros aplicados (de ${totalCensus.toLocaleString()} en el padrón)`;
+      } else {
+        countText.textContent = `${totalCensus.toLocaleString()} registros`;
+        if (countBadge) countBadge.title = `Total consolidado: ${totalCensus.toLocaleString()} funcionarios en el padrón institucional`;
+      }
+    }
+
     if (!preservePage) {
       currentWorkersPage = 1;
     } else {
@@ -355,7 +373,7 @@ window.changeWorkerRole = async function(workerId, newRole, workerName) {
 };
 
 window.reloadOfficialCensus = async function() {
-  if (!confirm('¿Desea recargar y restaurar el padrón oficial institucional completo (2,268 funcionarios) desde la base de datos maestra?')) {
+  if (!confirm('¿Desea recargar y restaurar el padrón oficial institucional completo (1,137 funcionarios) desde la base de datos maestra?')) {
     return;
   }
   try {

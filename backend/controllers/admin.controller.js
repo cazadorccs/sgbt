@@ -211,7 +211,8 @@ const getWorkers = (req, res) => {
     };
   });
 
-  res.json({ total: workers.length, workers });
+  const totalCensus = db.prepare("SELECT COUNT(*) as count FROM workers").get()?.count || workers.length;
+  res.json({ total: workers.length, total_census: totalCensus, workers });
 };
 
 const createWorker = (req, res) => {

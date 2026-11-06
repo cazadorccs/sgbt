@@ -1416,8 +1416,14 @@
         <div class="glass-panel">
           <div class="panel-header flex-between" style="flex-wrap: wrap; gap: 0.75rem;">
             <div>
-              <div class="panel-title" id="workersDirectoryTitle">Directorio de Empleados y Padrón Institucional</div>
-              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.2rem;">
+              <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                <div class="panel-title" id="workersDirectoryTitle" style="margin-bottom: 0;">Directorio de Empleados y Padrón Institucional</div>
+                <span id="workersCountBadge" class="badge-directory-count" title="Total de registros en el padrón institucional">
+                  <svg class="icon-svg icon-xs" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  <span id="workersCountText">1,137 registros</span>
+                </span>
+              </div>
+              <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
                 Administre beneficiarios según su modelo de despacho, asigne sedes y cargue nóminas institucionales.
               </div>
             </div>
@@ -1430,7 +1436,7 @@
                 <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 <span>Importar Nómina CSV</span>
               </button>
-              <button id="btnReloadCensusData" onclick="if (typeof reloadOfficialCensus === 'function') reloadOfficialCensus();" class="btn btn-outline" style="font-size: 0.8rem; background: #ffffff; color: #0284c7; border-color: #93c5fd; display: inline-flex; align-items: center; gap: 0.4rem;" title="Recargar y restaurar el padrón oficial institucional completo (2,268 funcionarios)">
+              <button id="btnReloadCensusData" onclick="if (typeof reloadOfficialCensus === 'function') reloadOfficialCensus();" class="btn btn-outline" style="font-size: 0.8rem; background: #ffffff; color: #0284c7; border-color: #93c5fd; display: inline-flex; align-items: center; gap: 0.4rem;" title="Recargar y restaurar el padrón oficial institucional completo (1,137 funcionarios)">
                 <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                 <span>Restaurar Padrón</span>
               </button>
