@@ -1056,8 +1056,12 @@ function triggerOneClickPasskeyOnboarding(user, onboardingToken) {
 
 window.switchSessionView = function(mode) {
   if (!STATE.currentUser) return;
-  if (mode === 'admin' && STATE.currentUser.session_scope !== 'admin' && STATE.currentUser.role !== 'admin') {
-    window.showToast('🔒 Requiere autenticación formal en consola administrativa (/coseg)', 'warning');
+  // Blindaje Trail of Bits: Conmutar a panel administrativo requiere ESTRICTAMENTE alcance de sesión 'admin'
+  if (mode === 'admin' && STATE.currentUser.session_scope !== 'admin') {
+    window.showToast('🔒 Requiere autenticación formal con PIN en consola administrativa (/coseg)', 'warning');
+    if (typeof window.setLoginMode === 'function') {
+      window.setLoginMode('admin');
+    }
     if (typeof navigateTo === 'function') navigateTo('view-login');
     return;
   }
@@ -1171,7 +1175,8 @@ window.applyUserSession = function(user, targetMode) {
     }
   }
 
-  const hasAdminScope = (user.session_scope === 'admin') || (user.role === 'admin' && targetMode === 'admin' && user.session_scope !== 'beneficiary');
+  // Blindaje Trail of Bits: Alcance administrativo estricto según token criptográfico
+  const hasAdminScope = (user.session_scope === 'admin');
   const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor') && hasAdminScope;
   const isOperator = (user.role === 'operator' || user.role === 'distributor');
 

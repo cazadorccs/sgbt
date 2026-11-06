@@ -368,17 +368,16 @@ const login = async (req, res) => {
     const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
     const providedSecret = (admin_secret || req.body.password || '').trim();
 
+    // Blindaje Estricto Trail of Bits: Consola administrativa exige EXCLUSIVAMENTE el PIN / Secreto Administrativo Oficial
+    // Prohibido terminantemente elevar privilegios con contraseñas de beneficiario (ej: 1178)
     const isPinMatch = Boolean(providedSecret && providedSecret === configuredAdminSecret);
-    const isPasswordMatch = Boolean(
-      providedSecret &&
-      worker.password_hash &&
-      verifyPassword(providedSecret, worker.password_hash)
-    );
 
-    if (!isPinMatch && !isPasswordMatch) {
+    if (!isPinMatch) {
       recordFailedLogin(cleanDoc, clientIp);
-      console.warn(`[SECURITY ALERT] Credencial de acceso administrativo incorrecta para: ${cleanDoc}`);
-      return res.status(401).json({ error: 'Clave o PIN de seguridad administrativa incorrecto.' });
+      console.warn(`[SECURITY ALERT] Credencial de acceso administrativo incorrecta para: ${cleanDoc}. Se requiere PIN administrativo oficial.`);
+      return res.status(401).json({ 
+        error: 'Clave o PIN de seguridad administrativa incorrecto. No se permite acceder a la consola administrativa con contraseña de beneficiario.' 
+      });
     }
   } else {
     // Modalidad Beneficiario / Trabajador Titular (incluso para directores/administradores que consultan sus beneficios o formalizan su registro)
@@ -428,10 +427,10 @@ const login = async (req, res) => {
       }
 
       if (password) {
-        const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+        // Blindaje Estricto Trail of Bits: El portal de beneficiario requiere EXCLUSIVAMENTE la contraseña personal de beneficiario
+        // No se permite usar el PIN administrativo como credencial de beneficiario
         const isValid = verifyPassword(password, worker.password_hash);
-        const isAdminPin = isPrivilegedUser && (password.trim() === configuredAdminSecret);
-        if (!isValid && !isAdminPin) {
+        if (!isValid) {
           recordFailedLogin(cleanDoc, clientIp);
           console.warn(`[AUTH] Contraseña incorrecta para beneficiario registrado: ${worker.document_id}`);
           return res.status(401).json({

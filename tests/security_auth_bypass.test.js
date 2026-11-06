@@ -175,6 +175,58 @@ async function runSecurityAuditSuite() {
     console.log('   ✅ [OK] Intentos de elevación ilegítima por parte de usuarios comunes rechazados con 403.');
     passed++;
 
+    // ------------------------------------------------------------------------
+    // PRUEBA TOB-07: Separación Estricta: Super Admin intentando entrar a /coseg con su clave de beneficiario
+    // ------------------------------------------------------------------------
+    console.log('7. Verificando que Super Administrador (13537582) NO pueda acceder a /coseg usando su clave de beneficiario (1178)...');
+    const resAdminWithBeneficiaryPwd = await httpRequest('POST', '/api/v1/auth/login', {
+      document_id: '13537582',
+      admin_secret: '1178',
+      require_admin: true
+    });
+    assert.strictEqual(resAdminWithBeneficiaryPwd.status, 401, 'Debe rechazar con 401 Unauthorized');
+    assert.strictEqual(resAdminWithBeneficiaryPwd.data.error, 'Clave o PIN de seguridad administrativa incorrecto. No se permite acceder a la consola administrativa con contraseña de beneficiario.');
+    console.log('   ✅ [OK] Acceso administrativo denegado al usar clave de beneficiario en consola administrativa.');
+    passed++;
+
+    // ------------------------------------------------------------------------
+    // PRUEBA TOB-08: Separación Estricta: Super Admin intentando entrar a portal de beneficiario usando PIN administrativo
+    // ------------------------------------------------------------------------
+    console.log('8. Verificando que el PIN administrativo (0578) NO sirva como contraseña de beneficiario...');
+    const resBeneficiaryWithAdminPin = await httpRequest('POST', '/api/v1/auth/login', {
+      document_id: '13537582',
+      password: '0578',
+      require_admin: false,
+      login_mode: 'beneficiary'
+    });
+    assert.strictEqual(resBeneficiaryWithAdminPin.status, 401, 'Debe rechazar con 401 Unauthorized');
+    assert.strictEqual(resBeneficiaryWithAdminPin.data.error, 'Contraseña de beneficiario incorrecta. Verifique sus datos o contacte a RRHH.');
+    console.log('   ✅ [OK] PIN administrativo rechazado en portal de beneficiarios.');
+    passed++;
+
+    // ------------------------------------------------------------------------
+    // PRUEBA TOB-09: Aislamiento Criptográfico de Sesión de Beneficiario para Super Admin
+    // ------------------------------------------------------------------------
+    console.log('9. Verificando que login de beneficiario con clave legítima (1178) obtenga scope "beneficiary" y no pueda acceder a /admin/*...');
+    const resAdminAsBeneficiary = await httpRequest('POST', '/api/v1/auth/login', {
+      document_id: '13537582',
+      password: '1178',
+      require_admin: false,
+      login_mode: 'beneficiary'
+    });
+    assert.strictEqual(resAdminAsBeneficiary.status, 200, 'Debe iniciar sesión de beneficiario con éxito');
+    assert.strictEqual(resAdminAsBeneficiary.data.session_scope, 'beneficiary', 'El alcance de la sesión debe ser strictly beneficiary');
+    const adminBeneficiaryToken = resAdminAsBeneficiary.data.session_token;
+
+    // Intentar acceder a ruta administrativa con ese token
+    const resAdminCallBlocked = await httpRequest('GET', '/api/v1/admin/workers', null, {
+      'Authorization': `Bearer ${adminBeneficiaryToken}`
+    });
+    assert.strictEqual(resAdminCallBlocked.status, 403, 'Sesión de beneficiario de un administrador debe recibir 403 en /admin/*');
+    assert.strictEqual(resAdminCallBlocked.data.code, 'ADMIN_SCOPE_REQUIRED');
+    console.log('   ✅ [OK] Sesión de beneficiario no posee acceso administrativo a pesar del rol del usuario.');
+    passed++;
+
     console.log('\n================================================================');
     console.log(`🎉 TODAS LAS PRUEBAS DE BLINDAJE DE SEGURIDAD (${passed}/${passed}) PASARON AL 100%`);
     console.log('================================================================\n');

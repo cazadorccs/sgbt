@@ -98,7 +98,7 @@ function authenticate(req, res, next) {
       req.sessionJti = result.payload?.jti;
       req.sessionDeviceId = result.payload?.dev;
       req.sessionRole = result.payload?.role || 'worker';
-      req.sessionScope = result.payload?.scope || (['admin', 'director', 'supervisor'].includes(result.payload?.role) ? 'admin' : 'beneficiary');
+      req.sessionScope = result.payload?.scope || 'beneficiary';
     } else {
       req.user = null;
     }
@@ -159,7 +159,7 @@ function requireAuth(req, res, next) {
     req.sessionJti = result.payload?.jti;
     req.sessionDeviceId = result.payload?.dev;
     req.sessionRole = result.payload?.role || 'worker';
-    req.sessionScope = result.payload?.scope || (['admin', 'director', 'supervisor'].includes(result.payload?.role) ? 'admin' : 'beneficiary');
+    req.sessionScope = result.payload?.scope || 'beneficiary';
     next();
   } catch (err) {
     console.error('[AUTH MIDDLEWARE ERROR]', err);
@@ -219,7 +219,7 @@ function requireRole(...allowedRoles) {
         req.sessionJti = result.payload?.jti;
         req.sessionDeviceId = result.payload?.dev;
         req.sessionRole = result.payload?.role || 'worker';
-        req.sessionScope = result.payload?.scope || (['admin', 'director', 'supervisor'].includes(result.payload?.role) ? 'admin' : 'beneficiary');
+        req.sessionScope = result.payload?.scope || 'beneficiary';
       } catch (err) {
         return res.status(500).json({ error: 'Error verificando rol de usuario' });
       }
@@ -233,7 +233,7 @@ function requireRole(...allowedRoles) {
     const isAdministrativeTarget = normalizedAllowed.some(r => ['admin', 'director', 'supervisor', 'auditor'].includes(r));
 
     // Blindaje Trail of Bits: Si el endpoint requiere privilegios administrativos, la sesión DEBE poseer alcance administrativo explícito
-    if (isAdministrativeTarget && sessionScope !== 'admin' && !['admin', 'director'].includes(sessionRole)) {
+    if (isAdministrativeTarget && sessionScope !== 'admin') {
       return res.status(403).json({
         error: 'Acceso denegado: Se requiere una sesión institucional con elevación administrativa verificada.',
         code: 'ADMIN_SCOPE_REQUIRED',
