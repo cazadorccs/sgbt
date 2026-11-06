@@ -1171,6 +1171,22 @@ async function syncFromSupabase() {
           // Si hay conflicto de email o document_id con ID distinto, no detener la sincronización
         }
       }
+      // Reconciliar eliminaciones y fusiones remotas en SQLite
+      const remoteIds = new Set(remoteWorkers.map(rw => rw.id));
+      const localWorkers = db.prepare('SELECT id FROM workers').all();
+      for (const loc of localWorkers) {
+        if (!remoteIds.has(loc.id)) {
+          try {
+            db.prepare('DELETE FROM daily_entitlements WHERE worker_id = ?').run(loc.id);
+            db.prepare('DELETE FROM passkey_credentials WHERE worker_id = ?').run(loc.id);
+            db.prepare('DELETE FROM deliveries WHERE worker_id = ?').run(loc.id);
+            db.prepare('DELETE FROM workers WHERE id = ?').run(loc.id);
+          } catch (e) {}
+        }
+      }
+      try {
+        db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_workers_document_id ON workers(document_id)').run();
+      } catch (idxErr) {}
       try {
         db.prepare("UPDATE workers SET email = 'Sfranco@mippci.gob.ve' WHERE document_id = '13537582'").run();
       } catch (e) {}
