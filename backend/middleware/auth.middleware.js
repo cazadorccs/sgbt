@@ -255,6 +255,7 @@ function requireRole(...allowedRoles) {
 }
 
 module.exports = {
+  extractDeviceId,
   extractToken,
   authenticate,
   requireAuth,

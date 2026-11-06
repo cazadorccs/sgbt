@@ -42,6 +42,10 @@ const {
   generateBackupCodes
 } = require('../services/mfa.service');
 const {
+  extractDeviceId,
+  extractToken
+} = require('../middleware/auth.middleware');
+const {
   createDeviceSession,
   setSessionCookie,
   clearSessionCookie,
@@ -447,7 +451,7 @@ const login = async (req, res) => {
     if (worker.role === 'worker' || isBeneficiaryAccess) {
       const deviceId = (req.body.device_id && String(req.body.device_id).trim())
         ? String(req.body.device_id).trim()
-        : null;
+        : extractDeviceId(req);
 
       // Verificar si el trabajador tiene combos pendientes hoy
       const checkDeliv = db.prepare("SELECT id FROM deliveries WHERE worker_id = ? AND entitlement_id = ?");
@@ -563,7 +567,7 @@ const login = async (req, res) => {
 
     const activeDeviceId = (req.body.device_id && String(req.body.device_id).trim())
       ? String(req.body.device_id).trim()
-      : ('dev_' + crypto.randomBytes(6).toString('hex'));
+      : (extractDeviceId(req) || ('dev_' + crypto.randomBytes(6).toString('hex')));
 
     // Generar sesión institucional por dispositivo (Device-Bound)
     const sessionRole = isExplicitAdminLogin ? (worker.role || 'admin') : 'worker';

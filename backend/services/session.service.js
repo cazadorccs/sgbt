@@ -146,8 +146,16 @@ function validateAndUpdateDeviceSession(jti, incomingDeviceId = null) {
 
     // Comprobación de amarre al dispositivo (si el cliente envía su device_id)
     if (incomingDeviceId && session.device_id && session.device_id !== incomingDeviceId) {
-      console.warn(`[SECURITY HIJACK ALERT] Discrepancia de dispositivo detectada. Sesión vinculada a ${session.device_id}, petición recibida desde: ${incomingDeviceId}`);
-      return { valid: false, error: 'Discrepancia de seguridad: la sesión pertenece a otro dispositivo registrado' };
+      if (session.device_id.startsWith('dev_')) {
+        // Enlace resiliente: el servidor generó un identificador temporal preliminar y ahora se amarra al cliente real
+        try {
+          db.prepare('UPDATE user_device_sessions SET device_id = ? WHERE id = ?').run(incomingDeviceId, jti);
+          session.device_id = incomingDeviceId;
+        } catch (e) {}
+      } else {
+        console.warn(`[SECURITY HIJACK ALERT] Discrepancia de dispositivo detectada. Sesión vinculada a ${session.device_id}, petición recibida desde: ${incomingDeviceId}`);
+        return { valid: false, error: 'Discrepancia de seguridad: la sesión pertenece a otro dispositivo registrado' };
+      }
     }
 
     // Actualizar última actividad periódicamente (con throttle)

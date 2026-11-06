@@ -379,6 +379,45 @@ window.setupAuth = function() {
     if (typeof openDeviceSessionsModal === 'function') openDeviceSessionsModal();
   });
 
+  // Funciones de Control de Modal de Recuperación de Contraseña
+  function openPasswordRecoveryModal() {
+    const modal = document.getElementById('passwordRecoveryModalBackdrop');
+    if (!modal) return;
+    currentRecoveryToken = null;
+    const docInput = document.getElementById('inputRecoveryDoc');
+    const contactInput = document.getElementById('inputRecoveryContact');
+    const pwd1 = document.getElementById('inputRecoveryNewPassword');
+    const pwd2 = document.getElementById('inputRecoveryConfirmPassword');
+    const alertBox = document.getElementById('recoveryAlertBox');
+    const step1 = document.getElementById('recoveryStep1');
+    const step2 = document.getElementById('recoveryStep2');
+
+    if (docInput) {
+      const loginDoc = document.getElementById('loginDocNumber')?.value || document.getElementById('adminDocNumber')?.value || '';
+      docInput.value = loginDoc;
+    }
+    if (contactInput) contactInput.value = '';
+    if (pwd1) pwd1.value = '';
+    if (pwd2) pwd2.value = '';
+    if (alertBox) {
+      alertBox.style.display = 'none';
+      alertBox.textContent = '';
+    }
+    if (step1) step1.style.display = 'block';
+    if (step2) step2.style.display = 'none';
+
+    modal.style.display = 'flex';
+  }
+
+  function closePasswordRecoveryModal() {
+    const modal = document.getElementById('passwordRecoveryModalBackdrop');
+    if (modal) modal.style.display = 'none';
+    currentRecoveryToken = null;
+  }
+
+  window.openPasswordRecoveryModal = openPasswordRecoveryModal;
+  window.closePasswordRecoveryModal = closePasswordRecoveryModal;
+
   // Enlaces para Recuperación de Contraseña
   document.getElementById('btnForgotBeneficiaryPassword')?.addEventListener('click', openPasswordRecoveryModal);
   document.getElementById('btnOpenRecoveryModalGlobal')?.addEventListener('click', openPasswordRecoveryModal);
@@ -907,10 +946,15 @@ async function executeAdminLogin(identifier, secret) {
 
   try {
     console.log(`[CLIENT AUTH] 🛡️ Iniciando acceso administrativo para:`, identifier);
+    const activeDeviceId = (typeof getPersistentDeviceId === 'function')
+      ? getPersistentDeviceId()
+      : (localStorage.getItem('sgbt_device_id') || '');
+
     const data = await API.post('/api/v1/auth/login', {
       document_id: identifier,
       admin_secret: secret,
       require_admin: true,
+      device_id: activeDeviceId,
       honeypot
     });
 
