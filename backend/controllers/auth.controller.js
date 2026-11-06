@@ -354,17 +354,24 @@ const login = async (req, res) => {
   const isExplicitAdminLogin = Boolean(require_admin || is_admin_login || login_mode === 'admin');
   const isBeneficiaryAccess = Boolean(as_beneficiary || login_mode === 'beneficiary' || !isExplicitAdminLogin);
 
+  const isPrivilegedUser = worker.role === 'admin' || worker.role === 'director' || worker.role === 'supervisor';
+
   // Validación explícita de Acceso de Administración del Sistema (solo si el usuario ingresó por el módulo de administración)
   if (isExplicitAdminLogin) {
-    const isAdminRole = worker.role === 'admin' || worker.role === 'director' || worker.role === 'supervisor';
-    if (!isAdminRole) {
+    if (!isPrivilegedUser) {
       console.warn(`[SECURITY ALERT] Intento de acceso administrativo denegado para usuario sin privilegios (Rol: ${worker.role}) para: ${cleanDoc}`);
       return res.status(403).json({
         error: 'Acceso denegado: El usuario no cuenta con privilegios administrativos en el sistema.'
       });
     }
 
-    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+    const isProd = process.env.NODE_ENV === 'production';
+    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || (!isProd ? '0578' : '')).trim();
+    if (!configuredAdminSecret) {
+      console.error('[CRITICAL SECURITY ERROR] ADMIN_ACCESS_SECRET no configurada en entorno de producción.');
+      return res.status(500).json({ error: 'Error de configuración de seguridad: Secreto administrativo no disponible.' });
+    }
+
     if (!admin_secret || admin_secret.trim() !== configuredAdminSecret) {
       recordFailedLogin(cleanDoc, clientIp);
       console.warn(`[SECURITY ALERT] Clave de acceso administrativo incorrecta para: ${cleanDoc}`);
@@ -372,63 +379,64 @@ const login = async (req, res) => {
     }
   } else {
     // Modalidad Beneficiario / Trabajador Titular (incluso para directores/administradores que consultan sus beneficios o formalizan su registro)
-    // 3. Validación de Formalización Previa para Beneficiarios Titulares (Campaña 27/11/2026 - Límite 12/11/2026)
+    // 3. Validación de Formalización Previa para Beneficiarios Titulares
     const enrollmentStatus = worker.enrollment_status || 'precargado';
 
-      // 3.1. Si está en estado 'precargado' (ingresado desde nómina Excel/CSV), requiere formalización con clave y fotografía
-      if (enrollmentStatus === 'precargado') {
-        console.log(`ℹ️ [AUTH] Beneficiario precargado ${worker.document_id} requiere formalización obligatoria (plazo 12/11/2026).`);
+    // Blindaje Trail of Bits: Si está en 'precargado' o carece de credencial activa (passkey o contraseña), requiere formalización obligatoria
+    const hasRegisteredCredential = Boolean(passkey) || Boolean(worker.password_hash && worker.password_hash.trim());
+    if (enrollmentStatus === 'precargado' || !hasRegisteredCredential) {
+      console.log(`ℹ️ [AUTH] Beneficiario ${worker.document_id} requiere formalización obligatoria de clave institucional.`);
+      return res.json({
+        success: false,
+        requires_enrollment: true,
+        worker: {
+          id: worker.id,
+          document_id: worker.document_id,
+          full_name: worker.full_name,
+          email: worker.email,
+          department_name: worker.department_name,
+          job_title: worker.job_title,
+          phone_number: worker.phone_number,
+          avatar_url: worker.avatar_url || null,
+          enrollment_status: 'precargado'
+        },
+        onboarding_token: onboardingToken,
+        deadline_date: '2026-11-12',
+        campaign_date: '2026-11-27',
+        message: 'Por motivos de seguridad, debe formalizar su registro y asignar su contraseña de acceso institucional.'
+      });
+    }
+
+    // 3.2. Si ya está 'registrado' y tiene contraseña configurada:
+    if (worker.password_hash && worker.password_hash.trim()) {
+      const { password } = req.body;
+      if (!password && !passkey_proof) {
         return res.json({
           success: false,
-          requires_enrollment: true,
+          requires_password: true,
           worker: {
             id: worker.id,
             document_id: worker.document_id,
             full_name: worker.full_name,
-            email: worker.email,
-            department_name: worker.department_name,
-            job_title: worker.job_title,
-            phone_number: worker.phone_number,
-            avatar_url: worker.avatar_url || null,
-            enrollment_status: 'precargado'
+            avatar_url: worker.avatar_url
           },
-          onboarding_token: onboardingToken,
-          deadline_date: '2026-11-12',
-          campaign_date: '2026-11-27',
-          message: 'Se requiere la formalización del beneficiario (asignación de clave y captura de fotografía) antes del 12 de Noviembre de 2026 para participar en la Gran Jornada del 27/11/2026.'
+          message: 'Ingrese su contraseña de beneficiario para acceder.'
         });
       }
 
-      // 3.2. Si ya está 'registrado' y tiene contraseña configurada:
-      if (enrollmentStatus === 'registrado' && worker.password_hash) {
-        const { password } = req.body;
-        if (!password && !passkey_proof) {
-          return res.json({
+      if (password) {
+        const isValid = verifyPassword(password, worker.password_hash);
+        if (!isValid) {
+          recordFailedLogin(cleanDoc, clientIp);
+          console.warn(`[AUTH] Contraseña incorrecta para beneficiario registrado: ${worker.document_id}`);
+          return res.status(401).json({
             success: false,
-            requires_password: true,
-            worker: {
-              id: worker.id,
-              document_id: worker.document_id,
-              full_name: worker.full_name,
-              avatar_url: worker.avatar_url
-            },
-            message: 'Ingrese su contraseña de beneficiario para acceder.'
+            error: 'Contraseña de beneficiario incorrecta. Verifique sus datos o contacte a RRHH.'
           });
-        }
-
-        if (password) {
-          const isValid = verifyPassword(password, worker.password_hash);
-          if (!isValid) {
-            recordFailedLogin(cleanDoc, clientIp);
-            console.warn(`[AUTH] Contraseña incorrecta para beneficiario registrado: ${worker.document_id}`);
-            return res.status(401).json({
-              success: false,
-              error: 'Contraseña de beneficiario incorrecta. Verifique sus datos o contacte a RRHH.'
-            });
-          }
         }
       }
     }
+  }
 
     // 4. CANDADO ESTRICTO DE DISPOSITIVO (AMARRE HARDWARE & ANTI-PRÉSTAMO)
     let deviceLockInfo = null;
@@ -519,7 +527,8 @@ const login = async (req, res) => {
       const mfaToken = generateMfaChallengeToken({
         workerId: worker.id,
         documentId: worker.document_id,
-        role: isExplicitAdminLogin ? (worker.role || 'admin') : (worker.role || 'worker'),
+        role: isExplicitAdminLogin ? (worker.role || 'admin') : 'worker',
+        scope: isExplicitAdminLogin ? 'admin' : 'beneficiary',
         deviceId: activeDevId
       }, 5);
 
@@ -553,9 +562,13 @@ const login = async (req, res) => {
       : ('dev_' + crypto.randomBytes(6).toString('hex'));
 
     // Generar sesión institucional por dispositivo (Device-Bound)
+    const sessionRole = isExplicitAdminLogin ? (worker.role || 'admin') : 'worker';
+    const sessionScope = isExplicitAdminLogin ? 'admin' : 'beneficiary';
+
     const { sessionToken, jti } = createDeviceSession({
       workerId: worker.id,
-      role: isExplicitAdminLogin ? (worker.role || 'admin') : (worker.role || 'worker'),
+      role: sessionRole,
+      scope: sessionScope,
       documentId: worker.document_id,
       deviceId: activeDeviceId,
       ipAddress: clientIp,
@@ -571,7 +584,7 @@ const login = async (req, res) => {
     console.log(`✅ [AUTH LOGIN SUCCESS]`);
     console.log(`   Funcionario : ${worker.full_name}`);
     console.log(`   Cédula      : ${worker.document_id}`);
-    console.log(`   Rol         : ${worker.role || 'worker'} ${isSuperAdmin ? '🛡️ [SUPER ADMINISTRADOR / DIRECTOR]' : ''}`);
+    console.log(`   Rol Sesión  : ${sessionRole} [Alcance: ${sessionScope}]`);
     console.log(`   Tipo        : ${worker.worker_type}`);
     console.log(`   Departamento: ${worker.department_name || 'N/A'}`);
     console.log(`   Passkeys    : ${Boolean(passkey) ? 'Registrada' : 'Sin passkey'}`);
@@ -587,7 +600,9 @@ const login = async (req, res) => {
         document_id: worker.document_id,
         full_name: worker.full_name,
         email: worker.email,
-        role: worker.role || 'worker',
+        role: sessionRole,
+        actual_role: worker.role || 'worker',
+        session_scope: sessionScope,
         worker_type: worker.worker_type || 'activo',
         department: worker.department_name,
         job_title: worker.job_title || null,
@@ -598,6 +613,7 @@ const login = async (req, res) => {
       },
       session_token: sessionToken,
       token: sessionToken,
+      session_scope: sessionScope,
       entitlement: entitlement || null,
       entitlements: allEntitlements || [],
       device_lock: deviceLockInfo,
@@ -1970,10 +1986,13 @@ const verifyMfa = async (req, res) => {
 
   const cleanDeviceId = device_id || verification.payload.dev || ('dev_' + crypto.randomBytes(6).toString('hex'));
 
+  const sessionScope = verification.payload.scope || (['admin', 'director', 'supervisor'].includes(role) ? 'admin' : 'beneficiary');
+
   // Registrar sesión institucional por dispositivo
   const { sessionToken, jti } = createDeviceSession({
     workerId: worker.id,
     role: role || worker.role || 'worker',
+    scope: sessionScope,
     documentId: worker.document_id,
     deviceId: cleanDeviceId,
     ipAddress: clientIp,

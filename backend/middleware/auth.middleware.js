@@ -97,6 +97,8 @@ function authenticate(req, res, next) {
       req.user = worker;
       req.sessionJti = result.payload?.jti;
       req.sessionDeviceId = result.payload?.dev;
+      req.sessionRole = result.payload?.role || 'worker';
+      req.sessionScope = result.payload?.scope || (['admin', 'director', 'supervisor'].includes(result.payload?.role) ? 'admin' : 'beneficiary');
     } else {
       req.user = null;
     }
@@ -156,6 +158,8 @@ function requireAuth(req, res, next) {
     req.user = worker;
     req.sessionJti = result.payload?.jti;
     req.sessionDeviceId = result.payload?.dev;
+    req.sessionRole = result.payload?.role || 'worker';
+    req.sessionScope = result.payload?.scope || (['admin', 'director', 'supervisor'].includes(result.payload?.role) ? 'admin' : 'beneficiary');
     next();
   } catch (err) {
     console.error('[AUTH MIDDLEWARE ERROR]', err);
@@ -170,7 +174,7 @@ function requireAuth(req, res, next) {
 function requireRole(...allowedRoles) {
   return (req, res, next) => {
     // Si req.user aún no está poblado, intentar resolverlo
-    if (!req.user) {
+    if (!req.user || !req.sessionRole || !req.sessionScope) {
       const token = extractToken(req);
       if (!token) {
         return res.status(401).json({
@@ -191,6 +195,14 @@ function requireRole(...allowedRoles) {
         });
       }
 
+      const incomingDeviceId = extractDeviceId(req);
+      const sessionCheck = validateAndUpdateDeviceSession(result.payload?.jti, incomingDeviceId);
+      if (!sessionCheck.valid) {
+        return res.status(401).json({
+          error: sessionCheck.error || 'La sesión en este dispositivo ha sido revocada o pertenece a otro equipo.'
+        });
+      }
+
       try {
         const worker = db.prepare(`
           SELECT id, document_id, full_name, email, role, status, worker_type
@@ -204,23 +216,40 @@ function requireRole(...allowedRoles) {
           });
         }
         req.user = worker;
+        req.sessionJti = result.payload?.jti;
+        req.sessionDeviceId = result.payload?.dev;
+        req.sessionRole = result.payload?.role || 'worker';
+        req.sessionScope = result.payload?.scope || (['admin', 'director', 'supervisor'].includes(result.payload?.role) ? 'admin' : 'beneficiary');
       } catch (err) {
         return res.status(500).json({ error: 'Error verificando rol de usuario' });
       }
     }
 
-    const currentRole = (req.user.role || '').toLowerCase();
+    const sessionRole = (req.sessionRole || '').toLowerCase();
+    const sessionScope = req.sessionScope || 'beneficiary';
+    const dbRole = (req.user?.role || '').toLowerCase();
     const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
 
-    // Superusuarios y Directores institucionales tienen acceso universal
-    if (currentRole === 'admin' || currentRole === 'director' || normalizedAllowed.includes(currentRole)) {
+    const isAdministrativeTarget = normalizedAllowed.some(r => ['admin', 'director', 'supervisor', 'auditor'].includes(r));
+
+    // Blindaje Trail of Bits: Si el endpoint requiere privilegios administrativos, la sesión DEBE poseer alcance administrativo explícito
+    if (isAdministrativeTarget && sessionScope !== 'admin' && !['admin', 'director'].includes(sessionRole)) {
+      return res.status(403).json({
+        error: 'Acceso denegado: Se requiere una sesión institucional con elevación administrativa verificada.',
+        code: 'ADMIN_SCOPE_REQUIRED',
+        session_scope: sessionScope
+      });
+    }
+
+    // Superusuarios y Directores institucionales con sesión administrativa tienen acceso universal
+    if (sessionRole === 'admin' || sessionRole === 'director' || (normalizedAllowed.includes(dbRole) && normalizedAllowed.includes(sessionRole))) {
       return next();
     }
 
     return res.status(403).json({
       error: 'Acceso denegado: Su perfil no cuenta con permisos suficientes para esta operación administrativa.',
       required_roles: allowedRoles,
-      current_role: currentRole
+      current_role: sessionRole
     });
   };
 }

@@ -334,8 +334,10 @@ window.setupAuth = function() {
         const adminDoc = document.getElementById('adminDocNumber');
         const adminPin = document.getElementById('adminSecretKey');
         if (adminDoc) adminDoc.value = doc;
-        if (adminPin) adminPin.value = '0578';
-        executeAdminLogin(doc, '0578');
+        if (adminPin) {
+          adminPin.value = '';
+          adminPin.focus();
+        }
         return;
       }
 
@@ -899,6 +901,11 @@ function triggerOneClickPasskeyOnboarding(user, onboardingToken) {
 
 window.switchSessionView = function(mode) {
   if (!STATE.currentUser) return;
+  if (mode === 'admin' && STATE.currentUser.session_scope !== 'admin' && STATE.currentUser.role !== 'admin') {
+    window.showToast('🔒 Requiere autenticación formal en consola administrativa (/coseg)', 'warning');
+    if (typeof navigateTo === 'function') navigateTo('view-login');
+    return;
+  }
   sessionStorage.setItem('sgbt_session_view_mode', mode);
 
   if (typeof window.closeUserMenu === 'function') {
@@ -1009,13 +1016,16 @@ window.applyUserSession = function(user, targetMode) {
     }
   }
 
-  const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor');
+  const hasAdminScope = (user.session_scope === 'admin') || (user.role === 'admin' && targetMode === 'admin' && user.session_scope !== 'beneficiary');
+  const isAdmin = (user.role === 'admin' || user.role === 'director' || user.role === 'supervisor') && hasAdminScope;
   const isOperator = (user.role === 'operator' || user.role === 'distributor');
 
   // Determinar la vista destino:
   let mode = targetMode || sessionStorage.getItem('sgbt_session_view_mode') || localStorage.getItem('sgbt_session_view_mode');
   if (isOperator) {
     mode = 'operator';
+  } else if (!hasAdminScope) {
+    mode = 'beneficiary';
   } else if (!mode) {
     mode = (user.role === 'worker' ? 'beneficiary' : 'admin');
   }

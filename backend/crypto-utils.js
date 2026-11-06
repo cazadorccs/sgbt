@@ -204,14 +204,17 @@ const SESSION_SECRET = process.env.SESSION_JWT_SECRET || 'MIPPCI_SGBT_SESSION_SE
  * Genera un token de sesión institucional firmado con HMAC-SHA256 (validez configurable, ej. 12 horas).
  * Incluye amarre de dispositivo si se provee deviceId.
  */
-function generateSessionToken({ userId, role, documentId, deviceId }, expiresInHours = 12) {
+function generateSessionToken({ userId, role, documentId, deviceId, scope }, expiresInHours = 12) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const exp = Math.floor(Date.now() / 1000) + (expiresInHours * 3600);
   const jti = generateNonce(16);
+  const sessionRole = String(role || 'worker');
+  const sessionScope = scope || (['admin', 'director', 'supervisor'].includes(sessionRole) ? 'admin' : 'beneficiary');
   const payloadData = {
     sub: String(userId),
     doc: String(documentId),
-    role: String(role || 'worker'),
+    role: sessionRole,
+    scope: sessionScope,
     typ: 'session_auth',
     exp,
     jti
@@ -227,14 +230,16 @@ function generateSessionToken({ userId, role, documentId, deviceId }, expiresInH
 /**
  * Genera un token temporal de desafío MFA (vigencia corta de 5 minutos).
  */
-function generateMfaChallengeToken({ workerId, documentId, role, deviceId }, expiresInMinutes = 5) {
+function generateMfaChallengeToken({ workerId, documentId, role, deviceId, scope }, expiresInMinutes = 5) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const exp = Math.floor(Date.now() / 1000) + (expiresInMinutes * 60);
   const jti = generateNonce(16);
+  const mfaScope = scope || (['admin', 'director', 'supervisor'].includes(role) ? 'admin' : 'beneficiary');
   const payload = Buffer.from(JSON.stringify({
     sub: String(workerId),
     doc: String(documentId),
     role: String(role || 'worker'),
+    scope: mfaScope,
     dev: deviceId ? String(deviceId) : null,
     typ: 'mfa_challenge',
     exp,

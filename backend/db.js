@@ -495,14 +495,20 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE workers ADD COLUMN bound_device_id TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN enrolled_at TEXT"); } catch (e) {}
 
-  // Actualizar trabajadores con credenciales activas o roles de gestión a 'registrado'
+  // Actualizar trabajadores con credenciales activas o contraseñas configuradas a 'registrado'
   try {
     db.exec(`
       UPDATE workers 
       SET enrollment_status = 'registrado' 
       WHERE (id IN (SELECT worker_id FROM passkey_credentials WHERE status = 'active') 
-         OR role IN ('admin', 'supervisor', 'operator'))
+         OR (password_hash IS NOT NULL AND TRIM(password_hash) != ''))
         AND (enrollment_status IS NULL OR enrollment_status = 'precargado');
+
+      UPDATE workers
+      SET enrollment_status = 'precargado'
+      WHERE id NOT IN (SELECT worker_id FROM passkey_credentials WHERE status = 'active')
+        AND (password_hash IS NULL OR TRIM(password_hash) = '')
+        AND enrollment_status = 'registrado';
     `);
   } catch (e) {}
 

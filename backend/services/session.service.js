@@ -73,16 +73,17 @@ function clearSessionCookie(res, req) {
 /**
  * Registra una nueva sesión vinculada a un dispositivo
  */
-function createDeviceSession({ workerId, role, documentId, deviceId, deviceName, ipAddress, userAgent, expiresInHours = 12 }) {
+function createDeviceSession({ workerId, role, scope, documentId, deviceId, deviceName, ipAddress, userAgent, expiresInHours = 12 }) {
   const cleanDeviceId = String(deviceId || 'dev_unknown_' + crypto.randomBytes(4).toString('hex')).trim();
   const readableName = deviceName || parseDeviceName(userAgent);
   const nowSec = Math.floor(Date.now() / 1000);
   const expiresAtSec = nowSec + (expiresInHours * 3600);
 
-  // Generar el token de sesión con el deviceId incrustado en el payload criptográfico
+  // Generar el token de sesión con el deviceId y scope incrustado en el payload criptográfico
   const sessionToken = generateSessionToken({
     userId: workerId,
     role,
+    scope,
     documentId,
     deviceId: cleanDeviceId
   }, expiresInHours);
