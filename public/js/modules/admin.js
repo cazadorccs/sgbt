@@ -3,6 +3,7 @@
 // ============================================================================
 
 window.refreshPortalData = async function() {
+  if (window.API && !window.API.hasToken()) return;
   try {
     // 1. KPIs
     const kpiData = await API.get('/api/v1/admin/kpis');

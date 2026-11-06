@@ -8,9 +8,10 @@ window.setupWorkerSimulator = function() {
   const btnEnroll = document.getElementById('btnEnrollPasskey');
   const btnBrightness = document.getElementById('btnToggleBrightness');
 
-  // Llenar selector con trabajadores activos
+  // Llenar selector con trabajadores activos (solo si existe sesión activa)
   async function loadWorkerSelect(preserveSelected = true) {
     if (!workerSelect) return;
+    if (window.API && !window.API.hasToken()) return;
     try {
       const data = await API.get('/api/v1/admin/workers?status=active');
       const currentSelected = preserveSelected ? (STATE.selectedWorkerId || workerSelect.value) : null;
@@ -56,6 +57,7 @@ window.setupWorkerSimulator = function() {
       STATE.selectedWorkerId = STATE.currentUser.id;
     }
     if (!STATE.selectedWorkerId) return;
+    if (window.API && !window.API.hasToken()) return;
 
     // Actualización visual inmediata de identidad con el usuario autenticado
     const headerIdEl = document.getElementById('workerHeaderIdentity');

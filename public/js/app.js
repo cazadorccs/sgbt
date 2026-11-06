@@ -337,6 +337,9 @@ function setupNavigation() {
         window.loadCombosCatalog();
       } else if (subtabId === 'subtab-workers' && typeof window.loadWorkersDirectory === 'function') {
         window.loadWorkersDirectory();
+      } else if (subtabId === 'subtab-manual-dispatch' && window.ManualDispatch) {
+        if (typeof window.ManualDispatch.loadTodaySummary === 'function') window.ManualDispatch.loadTodaySummary();
+        if (typeof window.ManualDispatch.loadDepartmentsList === 'function') window.ManualDispatch.loadDepartmentsList();
       }
     });
   });
@@ -599,14 +602,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof setupWhatsAppShareSystem === 'function') setupWhatsAppShareSystem();
   if (typeof setupDelegationModal === 'function') setupDelegationModal();
 
-  // 6. Carga inicial de datos
-  if (typeof loadTenantSettings === 'function') await loadTenantSettings();
-  if (typeof refreshPortalData === 'function') await refreshPortalData();
-  if (typeof downloadDailyPack === 'function') await downloadDailyPack();
-
-  // 7. Restauración de sesión y Deep links
+  // 6. Restauración de sesión y Deep links (Prioritario para definir contexto de autorización)
   if (typeof checkAuthSession === 'function') checkAuthSession();
   if (typeof handleUrlDeepLinks === 'function') handleUrlDeepLinks();
+
+  // 7. Carga de configuración pública y sincronización offline
+  if (typeof loadTenantSettings === 'function') await loadTenantSettings();
+  if (typeof downloadDailyPack === 'function') await downloadDailyPack();
+
+  // 8. Refresco del portal administrativo ÚNICAMENTE si existe sesión administrativa activa
+  if (window.API && window.API.hasToken()) {
+    const user = STATE.currentUser;
+    const viewMode = sessionStorage.getItem('sgbt_session_view_mode') || localStorage.getItem('sgbt_session_view_mode');
+    const isAdmin = user && ['admin', 'director', 'supervisor'].includes(user.role) && viewMode !== 'beneficiary';
+    if (isAdmin && typeof refreshPortalData === 'function') {
+      await refreshPortalData();
+    }
+  }
 
   console.log('✅ [SGBT] Plataforma modularizada y lista para operar.');
 });

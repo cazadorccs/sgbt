@@ -11,8 +11,10 @@ window.ManualDispatch = (function() {
   // Inicialización del módulo
   async function init() {
     setupEventListeners();
-    await loadDepartmentsList();
-    await loadTodaySummary();
+    if (window.API && window.API.hasToken()) {
+      await loadDepartmentsList();
+      await loadTodaySummary();
+    }
   }
 
   // Configurar escuchadores de eventos
@@ -158,13 +160,16 @@ window.ManualDispatch = (function() {
       });
     }
 
-    // Carga inicial proactiva de datos de entregas y departamentos
-    loadTodaySummary();
-    loadDepartmentsList();
+    // Carga inicial proactiva de datos de entregas y departamentos (solo con sesión activa)
+    if (window.API && window.API.hasToken()) {
+      loadTodaySummary();
+      loadDepartmentsList();
+    }
   }
 
   // Cargar lista de departamentos para el select de incorporación
   async function loadDepartmentsList() {
+    if (window.API && !window.API.hasToken()) return;
     try {
       const res = await API.get('/api/v1/admin/workers');
       // Extraer departamentos únicos de los trabajadores existentes
@@ -178,6 +183,7 @@ window.ManualDispatch = (function() {
 
   // Cargar resumen de hoy y despachos recientes
   async function loadTodaySummary() {
+    if (window.API && !window.API.hasToken()) return;
     try {
       const data = await API.get('/api/v1/manual-dispatch/today-summary?_t=' + Date.now());
       if (data && data.stats) {
@@ -963,6 +969,7 @@ window.ManualDispatch = (function() {
   return {
     init,
     searchWorker,
+    loadDepartmentsList,
     loadTodaySummary,
     openRecentDeliveriesModal,
     closeRecentDeliveriesModal

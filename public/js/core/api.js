@@ -3,6 +3,10 @@
 // ============================================================================
 
 window.API = {
+  hasToken() {
+    return Boolean(sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token'));
+  },
+
   async get(url, options = {}) {
     return this.request(url, { ...options, method: 'GET' });
   },

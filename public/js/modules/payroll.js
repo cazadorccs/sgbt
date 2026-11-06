@@ -217,6 +217,7 @@ window.setupPayrollSimulator = function() {
 
   // Función de actualización de Estadísticas de Formalización
   window.refreshEnrollmentStats = async function() {
+    if (window.API && !window.API.hasToken()) return;
     try {
       const stats = await API.get('/api/v1/payroll/enrollment-stats');
       if (stats.success) {
@@ -242,8 +243,10 @@ window.setupPayrollSimulator = function() {
     window.showToast('Estadísticas de formalización actualizadas', 'info');
   });
 
-  // Carga inicial de estadísticas
-  window.refreshEnrollmentStats();
+  // Carga inicial de estadísticas (solo si existe token de sesión administrativa)
+  if (window.API && window.API.hasToken()) {
+    window.refreshEnrollmentStats();
+  }
 
   // 2.2 JSON Batch Import (SFTP Simulator)
   document.getElementById('btnSendBatchImport')?.addEventListener('click', async () => {
@@ -266,6 +269,7 @@ window.setupPayrollSimulator = function() {
   const killSelect = document.getElementById('killSwitchWorkerSelect');
   async function loadKillSwitchSelect() {
     if (!killSelect) return;
+    if (window.API && !window.API.hasToken()) return;
     try {
       const data = await API.get('/api/v1/admin/workers?status=active');
       killSelect.innerHTML = '';
@@ -280,7 +284,10 @@ window.setupPayrollSimulator = function() {
     }
   }
 
-  loadKillSwitchSelect();
+  // Carga inicial de kill-switch (solo si existe token de sesión administrativa)
+  if (window.API && window.API.hasToken()) {
+    loadKillSwitchSelect();
+  }
 
   document.getElementById('btnExecuteKillSwitch')?.addEventListener('click', async () => {
     if (!killSelect) return;
