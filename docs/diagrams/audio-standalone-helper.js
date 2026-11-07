@@ -25,10 +25,10 @@
     }
   };
 
-  const path = window.location.pathname;
+  const path = (window.location.pathname + ' ' + window.location.href).toLowerCase();
   let matchedConfig = null;
   for (const [key, conf] of Object.entries(AUDIO_MAP)) {
-    if (path.includes(key)) {
+    if (path.includes(key.toLowerCase())) {
       matchedConfig = conf;
       break;
     }
