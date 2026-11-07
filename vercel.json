@@ -38,6 +38,18 @@
       "destination": "/public/dossier.html"
     },
     {
+      "source": "/brochure",
+      "destination": "/public/SGBT_Brochure_Institucional.pdf"
+    },
+    {
+      "source": "/brochure.pdf",
+      "destination": "/public/SGBT_Brochure_Institucional.pdf"
+    },
+    {
+      "source": "/SGBT_Brochure_Institucional.pdf",
+      "destination": "/public/SGBT_Brochure_Institucional.pdf"
+    },
+    {
       "source": "/propuesta-comercializacion",
       "destination": "/public/propuesta_comercializacion.html"
     },

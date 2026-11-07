@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Brochure Institucional SGBT · MIPPCI</title>
+
+  <!-- GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 10mm 12mm 12mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ffffff;
+      color: #1e293b;
+      font-size: 8.5pt;
+      line-height: 1.45;
+    }
+
+    .page {
+      width: 100%;
+      height: 275mm;
+      max-height: 275mm;
+      page-break-after: always;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+      padding: 4mm 2mm;
+    }
+
+    .page:last-child {
+      page-break-after: avoid;
+    }
+
+    /* TOP TRICOLOR BAR */
+    .top-tricolor {
+      height: 3.5px;
+      width: 100%;
+      background: linear-gradient(90deg, #facc15 0%, #facc15 33%, #1e40af 33%, #1e40af 66%, #dc2626 66%, #dc2626 100%);
+      margin-bottom: 3mm;
+      border-radius: 2px;
+    }
+
+    /* HEADER MEMBRETE */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 2.5mm;
+      margin-bottom: 4mm;
+    }
+
+    .membrete-text h5 {
+      font-family: 'Outfit', sans-serif;
+      font-size: 7.5pt;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .membrete-text p {
+      font-size: 6.8pt;
+      color: #64748b;
+      font-weight: 600;
+      margin-top: 0.5mm;
+    }
+
+    .header-tag {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      color: #0369a1;
+      font-size: 6.5pt;
+      font-weight: 700;
+      padding: 1.5mm 3mm;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    /* FOOTER */
+    .page-footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 2.5mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 6.8pt;
+      color: #64748b;
+      margin-top: 3mm;
+    }
+
+    .footer-left strong {
+      color: #0f172a;
+    }
+
+    .footer-right {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.5pt;
+      color: #0284c7;
+      font-weight: 600;
+    }
+
+    /* TYPOGRAPHY */
+    h1, h2, h3, h4 {
+      font-family: 'Outfit', sans-serif;
+      color: #0f172a;
+      letter-spacing: -0.015em;
+    }
+
+    .badge-pill {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      font-size: 6.8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 1mm 2.5mm;
+      border-radius: 20px;
+      margin-bottom: 2mm;
+    }
+
+    /* ============================================================
+       PAGE 1: PORTADA & PRESENTACIÓN EJECUTIVA
+       ============================================================ */
+    .hero-banner {
+      background: linear-gradient(135deg, #0b1329 0%, #172554 100%);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 7mm 7mm 6mm;
+      margin-bottom: 4mm;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #1e3a8a;
+    }
+
+    .hero-banner::after {
+      content: '';
+      position: absolute;
+      top: -30%;
+      right: -10%;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.25) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .hero-top-row {
+      display: flex;
+      align-items: center;
+      gap: 4mm;
+      margin-bottom: 3.5mm;
+    }
+
+    .hero-logo-box {
+      width: 52px;
+      height: 52px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px;
+      flex-shrink: 0;
+    }
+
+    .hero-logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .hero-titles h1 {
+      color: #ffffff;
+      font-size: 16pt;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+
+    .hero-titles h1 span {
+      color: #38bdf8;
+    }
+
+    .hero-titles h3 {
+      color: #93c5fd;
+      font-size: 8.5pt;
+      font-weight: 600;
+      margin-top: 0.5mm;
+    }
+
+    .hero-desc {
+      font-size: 8.2pt;
+      line-height: 1.5;
+      color: #e2e8f0;
+      text-align: justify;
+      text-justify: inter-word;
+      margin-top: 2mm;
+    }
+
+    /* KPIS GRID */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2.5mm;
+      margin-bottom: 4.5mm;
+    }
+
+    .kpi-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 3mm 2.5mm;
+      border-top: 3.5px solid #0284c7;
+      text-align: center;
+    }
+
+    .kpi-card.kpi-green {
+      border-top-color: #059669;
+    }
+
+    .kpi-card.kpi-purple {
+      border-top-color: #7c3aed;
+    }
+
+    .kpi-card.kpi-blue {
+      border-top-color: #2563eb;
+    }
+
+    .kpi-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 14pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1;
+    }
+
+    .kpi-card.kpi-green .kpi-val {
+      color: #059669;
+    }
+
+    .kpi-card.kpi-purple .kpi-val {
+      color: #7c3aed;
+    }
+
+    .kpi-lbl {
+      font-size: 7pt;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 1mm;
+    }
+
+    .kpi-sub {
+      font-size: 6.2pt;
+      color: #64748b;
+      margin-top: 0.5mm;
+      line-height: 1.25;
+    }
+
+    /* EXECUTIVE SUMMARY CARD */
+    .summary-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 4mm 4.5mm;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      margin-bottom: 4mm;
+    }
+
+    .summary-card h3 {
+      font-size: 9.5pt;
+      margin-bottom: 2mm;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 2mm;
+    }
+
+    .summary-card p {
+      font-size: 7.8pt;
+      color: #334155;
+      line-height: 1.5;
+      text-align: justify;
+      margin-bottom: 2mm;
+    }
+
+    .summary-card p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* GOVERNANCE TABLE */
+    .gov-specs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2.5mm;
+    }
+
+    .spec-item {
+      background: #f1f5f9;
+      padding: 2.5mm 3mm;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
+      font-size: 7.2pt;
+    }
+
+    .spec-item strong {
+      color: #0f172a;
+      font-size: 7.5pt;
+      display: block;
+      margin-bottom: 0.5mm;
+    }
+
+    .spec-item span {
+      color: #475569;
+    }
+
+    /* ============================================================
+       PAGE 2: PROBLEMA VS SOLUCION & BLINDAJE CRIPTOGRAFICO
+       ============================================================ */
+    .section-title-box {
+      margin-bottom: 3mm;
+    }
+
+    .section-title-box h2 {
+      font-size: 11.5pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .section-title-box p {
+      font-size: 7.5pt;
+      color: #64748b;
+      margin-top: 0.5mm;
+    }
+
+    /* COMPARISON TABLE */
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4mm;
+      font-size: 7.2pt;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+    }
+
+    .comp-table th {
+      padding: 2mm 2.5mm;
+      text-align: left;
+      font-family: 'Outfit', sans-serif;
+      text-transform: uppercase;
+      font-size: 6.8pt;
+      letter-spacing: 0.03em;
+    }
+
+    .comp-table th.th-prob {
+      background: #fee2e2;
+      color: #991b1b;
+      border-right: 1px solid #fecaca;
+      width: 48%;
+    }
+
+    .comp-table th.th-sol {
+      background: #dcfce7;
+      color: #166534;
+      width: 52%;
+    }
+
+    .comp-table td {
+      padding: 2.2mm 2.5mm;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+
+    .comp-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .comp-table td.td-prob {
+      background: #fff5f5;
+      color: #4b5563;
+      border-right: 1px solid #fee2e2;
+    }
+
+    .comp-table td.td-prob strong {
+      color: #b91c1c;
+      display: block;
+      margin-bottom: 0.5mm;
+    }
+
+    .comp-table td.td-sol {
+      background: #f0fdf4;
+      color: #334155;
+    }
+
+    .comp-table td.td-sol strong {
+      color: #15803d;
+      display: block;
+      margin-bottom: 0.5mm;
+    }
+
+    /* SHIELD SECURITY BLOCK */
+    .shield-security-box {
+      display: flex;
+      gap: 3.5mm;
+      background: #0f172a;
+      border-radius: 10px;
+      padding: 3.5mm;
+      color: #ffffff;
+      border: 1px solid #1e293b;
+      align-items: center;
+      margin-bottom: 3.5mm;
+    }
+
+    .shield-img-wrap {
+      width: 140px;
+      height: 95px;
+      border-radius: 6px;
+      overflow: hidden;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .shield-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .shield-content h3 {
+      color: #facc15;
+      font-size: 9.5pt;
+      margin-bottom: 1mm;
+    }
+
+    .shield-content p {
+      font-size: 7.2pt;
+      color: #cbd5e1;
+      line-height: 1.4;
+      text-align: justify;
+      margin-bottom: 1.5mm;
+    }
+
+    .shield-specs-chips {
+      display: flex;
+      gap: 1.5mm;
+      flex-wrap: wrap;
+    }
+
+    .shield-chip {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 6.2pt;
+      font-weight: 700;
+      color: #38bdf8;
+      padding: 0.8mm 2mm;
+      border-radius: 4px;
+    }
+
+    /* THREE PILLARS */
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2.5mm;
+    }
+
+    .pillar-card {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 2.5mm 3mm;
+    }
+
+    .pillar-card h4 {
+      font-size: 7.8pt;
+      color: #0f172a;
+      margin-bottom: 1mm;
+      display: flex;
+      align-items: center;
+      gap: 1.5mm;
+    }
+
+    .pillar-card p {
+      font-size: 6.8pt;
+      color: #475569;
+      line-height: 1.35;
+      text-align: justify;
+    }
+
+    /* ============================================================
+       PAGE 3: INTERFACES & MODULOS OPERATIVOS
+       ============================================================ */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3mm;
+      margin-bottom: 3.5mm;
+    }
+
+    .module-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .module-card-header {
+      padding: 2mm 3mm;
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .module-card-header h4 {
+      font-size: 7.8pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .module-badge {
+      font-size: 5.8pt;
+      font-weight: 700;
+      padding: 0.6mm 2mm;
+      border-radius: 3px;
+      text-transform: uppercase;
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #bae6fd;
+    }
+
+    .module-img-box {
+      width: 100%;
+      height: 82px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .module-img-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .module-desc {
+      padding: 2mm 3mm;
+      font-size: 6.8pt;
+      color: #475569;
+      line-height: 1.35;
+      text-align: justify;
+    }
+
+    /* ARCHITECTURE HIGHLIGHT */
+    .arch-highlight {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 3mm 3.5mm;
+    }
+
+    .arch-highlight h4 {
+      font-size: 8pt;
+      color: #166534;
+      margin-bottom: 1mm;
+      display: flex;
+      align-items: center;
+      gap: 1.5mm;
+    }
+
+    .arch-highlight p {
+      font-size: 7pt;
+      color: #334155;
+      line-height: 1.4;
+      text-align: justify;
+    }
+
+    .arch-badges {
+      display: flex;
+      gap: 1.5mm;
+      margin-top: 1.5mm;
+      flex-wrap: wrap;
+    }
+
+    .arch-pill {
+      background: #ffffff;
+      border: 1px solid #86efac;
+      color: #15803d;
+      font-size: 6pt;
+      font-weight: 700;
+      padding: 0.8mm 2mm;
+      border-radius: 4px;
+    }
+
+    /* ============================================================
+       PAGE 4: ACTA OFICIAL, BALANCE Y FIRMA MINISTERIAL
+       ============================================================ */
+    .acta-wrapper {
+      background: #ffffff;
+      border: 1.5px solid #0f172a;
+      border-radius: 8px;
+      padding: 4mm 5mm;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      margin-bottom: 3.5mm;
+    }
+
+    .acta-header-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #0f172a;
+      padding-bottom: 2.5mm;
+      margin-bottom: 3mm;
+    }
+
+    .acta-titles h3 {
+      font-size: 8.5pt;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .acta-titles h4 {
+      font-size: 7.2pt;
+      color: #0369a1;
+      font-weight: 700;
+    }
+
+    .acta-titles p {
+      font-size: 6.2pt;
+      color: #64748b;
+    }
+
+    .acta-num-badge {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 1.5mm 3.5mm;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    .acta-date-sub {
+      font-size: 5.8pt;
+      color: #64748b;
+      margin-top: 0.8mm;
+      text-align: right;
+    }
+
+    /* ACTA METRICS MINI-TILES */
+    .acta-mini-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2mm;
+      margin-bottom: 3mm;
+    }
+
+    .acta-mini-tile {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      padding: 1.5mm 2mm;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .acta-mini-tile .t-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 10.5pt;
+      font-weight: 800;
+      color: #0284c7;
+      line-height: 1;
+    }
+
+    .acta-mini-tile .t-lbl {
+      font-size: 5.8pt;
+      color: #475569;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-top: 0.5mm;
+    }
+
+    /* ACTA TABLE */
+    .acta-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 6.8pt;
+      margin-bottom: 3mm;
+    }
+
+    .acta-table th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 1.5mm 2mm;
+      border: 1px solid #cbd5e1;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .acta-table td {
+      padding: 1.5mm 2mm;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    .acta-table tr.total-row td {
+      background: #f8fafc;
+      font-weight: 700;
+      border-top: 2px solid #0f172a;
+      color: #0f172a;
+    }
+
+    /* SHA-256 SEAL */
+    .sha-seal-box {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      border-radius: 6px;
+      padding: 2mm 3mm;
+      margin-bottom: 3.5mm;
+    }
+
+    .sha-title {
+      font-size: 6.8pt;
+      font-weight: 700;
+      color: #166534;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.8mm;
+    }
+
+    .sha-hash {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 6.2pt;
+      color: #14532d;
+      background: #ffffff;
+      padding: 1mm 2mm;
+      border-radius: 4px;
+      border: 1px solid #bbf7d0;
+      display: block;
+      word-break: break-all;
+    }
+
+    /* SIGNATURES */
+    .signatures-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 3mm;
+      margin-top: 3mm;
+      padding-top: 1mm;
+    }
+
+    .sig-box {
+      border-top: 1.5px solid #0f172a;
+      padding-top: 1.5mm;
+      text-align: center;
+    }
+
+    .sig-name {
+      font-size: 7.2pt;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .sig-role {
+      font-size: 5.8pt;
+      color: #475569;
+      line-height: 1.25;
+      margin-top: 0.5mm;
+    }
+
+    .sig-meta {
+      font-size: 5.2pt;
+      color: #059669;
+      font-weight: 700;
+      margin-top: 0.5mm;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       PÁGINA 1: PORTADA & PRESENTACIÓN INSTITUCIONAL
+       ============================================================ -->
+  <div class="page">
+    <div>
+      <div class="top-tricolor"></div>
+
+      <div class="page-header">
+        <div class="membrete-text">
+          <h5>República Bolivariana de Venezuela &bull; Gobierno Central</h5>
+          <p>Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI) &bull; OTIC</p>
+        </div>
+        <div class="header-tag">Dossier Ejecutivo Oficial</div>
+      </div>
+
+      <!-- HERO BANNER -->
+      <div class="hero-banner">
+        <div class="hero-top-row">
+          <div class="hero-logo-box">
+            <img src="docs/logo_sgbt_512x512.png" alt="Logo SGBT">
+          </div>
+          <div class="hero-titles">
+            <h1>Sistema de Gestión de Beneficios a Trabajadores · <span>SGBT</span></h1>
+            <h3>Plataforma Gubernamental de Grado Bancario para Despacho y Fiscalización</h3>
+          </div>
+        </div>
+        <p class="hero-desc">
+          Plataforma gubernamental de grado bancario para la gestión, fiscalización y despacho de beneficios alimenticios a trabajadores. Integra autenticación biométrica FIDO2 en el hardware del beneficiario de manera segura, mediante verificación óptica y proximidad NFC en menos de 200 ms, persistencia transaccional sin conexión SQLite WAL, sincronizacion de datos en el servidor y actas de auditoría con sello criptográfico SHA-256.
+        </p>
+      </div>
+
+      <!-- 4 KPIS CLAVE -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-val">&lt; 200ms</div>
+          <div class="kpi-lbl">Validación Criptográfica</div>
+          <div class="kpi-sub">Lectura óptica QR y Tap NFC con verificación ECDSA P-256</div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-val">100%</div>
+          <div class="kpi-lbl">Resiliencia Offline-First</div>
+          <div class="kpi-sub">Operación continua en sótanos y almacenes sin internet</div>
+        </div>
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-val">0.00%</div>
+          <div class="kpi-lbl">Duplicidad de Entregas</div>
+          <div class="kpi-sub">Garantía matemática con índice <code>idx_unique_daily_claim</code></div>
+        </div>
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-val">16.47 t</div>
+          <div class="kpi-lbl">Masa Total Auditada</div>
+          <div class="kpi-sub">1,136 beneficiarios atendidos con 100% de conciliación</div>
+        </div>
+      </div>
+
+      <!-- RESUMEN EJECUTIVO -->
+      <div class="summary-card">
+        <h3>📌 Resumen Ejecutivo y Misión Tecnológica</h3>
+        <p>
+          El SGBT surge para erradicar las vulnerabilidades históricas de las planillas en papel, colas excesivas y descontrol en la entrega de dotaciones alimenticias institucionales. Combina biometría soberana FIDO2 descentralizada (el teléfono del beneficiario resguarda la llave privada de firma asimétrica), un motor de despacho ultrarrápido y almacenamiento persistente SQLite WAL local capaz de atender a más de 1,000 personas en menos de 3 horas continuas.
+        </p>
+        <p>
+          Al concluir cada operativo, el sistema consolida automáticamente el balance de masa total entregada clasificada por dependencia administrativa, cerrando con un acta oficial inmutable rubricada con función hash SHA-256 lista para inspección por parte de la Contraloría Interna.
+        </p>
+      </div>
+
+      <!-- FICHA TÉCNICA DE GOBERNANZA -->
+      <div class="gov-specs">
+        <div class="spec-item">
+          <strong>Ente Rector y Custodio Tecnológico:</strong>
+          <span>Oficina de Tecnologías de la Información y la Comunicación (OTIC) - MIPPCI</span>
+        </div>
+        <div class="spec-item">
+          <strong>Arquitectura & Motores Criptográficos:</strong>
+          <span>ECDSA P-256 (ES256), WebAuthn FIDO2, SQLite WAL local y réplica Cloud</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIE DE PÁGINA 1 -->
+    <div class="page-footer">
+      <div class="footer-left">
+        <strong>SGBT MIPPCI</strong> &bull; Sistema de Gestión de Beneficios a Trabajadores &bull; Gobierno Bolivariano de Venezuela
+      </div>
+      <div class="footer-right">Página 1 de 4</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PÁGINA 2: EL PROBLEMA VS LA SOLUCIÓN & SEGURIDAD FIDO2
+       ============================================================ -->
+  <div class="page">
+    <div>
+      <div class="top-tricolor"></div>
+
+      <div class="page-header">
+        <div class="membrete-text">
+          <h5>Diagnóstico Operativo &middot; Transformación Digital</h5>
+          <p>Comparativa de Vulnerabilidades Tradicionales vs Blindaje Tecnológico SGBT</p>
+        </div>
+        <div class="header-tag">Seguridad y Resiliencia</div>
+      </div>
+
+      <div class="section-title-box">
+        <h2>El Desafío Operativo y el Problema que Resuelve</h2>
+        <p>De la vulnerabilidad y lentitud de los métodos manuales en papel a la certeza matemática y trazabilidad digital.</p>
+      </div>
+
+      <!-- TABLA COMPARATIVA -->
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th class="th-prob">Operativa Manual Tradicional (Vulnerable)</th>
+            <th class="th-sol">Solución Tecnológica SGBT (Grado Bancario)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-prob">
+              <strong>Planillas Físicas y Firmas en Papel:</strong>
+              Listados expuestos a pérdida o adulteración en almacenes; firmas manuscritas imposibles de auditar en tiempo real.
+            </td>
+            <td class="td-sol">
+              <strong>Identidad Soberana con Passkeys FIDO2:</strong>
+              El funcionario firma con su biometría en el chip de hardware de su teléfono (TouchID, FaceID o sensor Android).
+            </td>
+          </tr>
+          <tr>
+            <td class="td-prob">
+              <strong>Riesgo de Duplicidad y Doble Retiro:</strong>
+              Imposibilidad de conciliar en el acto cuando una persona o intermediario intenta retirar en varias mesas.
+            </td>
+            <td class="td-sol">
+              <strong>Garantía Matemática Anti-Duplicados:</strong>
+              Índice relacional <code>idx_unique_daily_claim</code> e Idempotency-Key que imposibilitan retiros dobles al milisegundo.
+            </td>
+          </tr>
+          <tr>
+            <td class="td-prob">
+              <strong>Parálisis Operativa por Falta de Internet:</strong>
+              Los depósitos y sótanos carecen de cobertura; los sistemas web estándar colapsan y detienen la atención.
+            </td>
+            <td class="td-sol">
+              <strong>Arquitectura Offline-First de Almacén:</strong>
+              Base de datos local SQLite WAL que despacha con total autonomía sin red y sincroniza por lotes a la nube.
+            </td>
+          </tr>
+          <tr>
+            <td class="td-prob">
+              <strong>Suplantación por Cédulas Prestadas:</strong>
+              El uso de fotocopias o carnets físicos facilita el desvío indebido de beneficios sin conocimiento del titular.
+            </td>
+            <td class="td-sol">
+              <strong>QR Dinámico (180s) y Tap NFC P2P:</strong>
+              El token de retiro expira en 3 minutos impidiendo capturas de pantalla; o se valida por proximidad de hardware.
+            </td>
+          </tr>
+          <tr>
+            <td class="td-prob">
+              <strong>Semanas para Conciliar y Emitir Actas:</strong>
+              El cierre administrativo requería días de conteo manual de hojas para totalizar kilos entregados y cuadrar sobrantes.
+            </td>
+            <td class="td-sol">
+              <strong>Acta Ministerial Inmutable con SHA-256:</strong>
+              Al concluir, el sistema genera de inmediato el acta oficial con sello digital, tonelaje total y balance por dirección.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- ESCUDO DE SEGURIDAD -->
+      <div class="shield-security-box">
+        <div class="shield-img-wrap">
+          <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo de Seguridad Criptográfica SGBT">
+        </div>
+        <div class="shield-content">
+          <h3>Validación de Identidad con Claves Criptográficas</h3>
+          <p>
+            Generación de pares de claves asimétricas en el dispositivo del usuario para comprobación de identidad en cada retiro. El protocolo implementa WebAuthn de nivel FIDO2 con curva elíptica ECDSA P-256, protegiendo las credenciales en el elemento seguro de hardware del dispositivo móvil.
+          </p>
+          <div class="shield-specs-chips">
+            <span class="shield-chip">ECDSA P-256</span>
+            <span class="shield-chip">Hardware Secure Enclave</span>
+            <span class="shield-chip">Zero-Knowledge Proof</span>
+            <span class="shield-chip">Sello SHA-256</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRES PILARES -->
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <h4>🔐 Biometría Descentralizada</h4>
+          <p>
+            El servidor nunca almacena huellas dactilares ni rostros; únicamente valida firmas asimétricas generadas por el enclave criptográfico del teléfono del usuario.
+          </p>
+        </div>
+        <div class="pillar-card">
+          <h4>⚡ Resiliencia SQLite WAL</h4>
+          <p>
+            El motor transaccional local permite escritura concurrente de despachos a una velocidad inferior a 15 ms por registro, garantizando cero atascos operativos.
+          </p>
+        </div>
+        <div class="pillar-card">
+          <h4>📜 Trazabilidad Ministerial</h4>
+          <p>
+            Cada retiro genera un hash encadenado con cédula, hora exacta, número de combo y código de mesa, sellando el registro contra modificaciones posteriores.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIE DE PÁGINA 2 -->
+    <div class="page-footer">
+      <div class="footer-left">
+        <strong>SGBT MIPPCI</strong> &bull; Diagnóstico Operativo y Blindaje Criptográfico &bull; Grado Bancario
+      </div>
+      <div class="footer-right">Página 2 de 4</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PÁGINA 3: INTERFACES & MÓDULOS OPERATIVOS
+       ============================================================ -->
+  <div class="page">
+    <div>
+      <div class="top-tricolor"></div>
+
+      <div class="page-header">
+        <div class="membrete-text">
+          <h5>Ecosistema de Aplicaciones SGBT &middot; MIPPCI</h5>
+          <p>Módulos de Usuario, Estaciones de Despacho y Consola de Control de Inventario</p>
+        </div>
+        <div class="header-tag">Interfaces Operativas</div>
+      </div>
+
+      <div class="section-title-box">
+        <h2>Interfaces y Módulos de la Plataforma</h2>
+        <p>Entorno adaptado tanto para dispositivos móviles como para estaciones de escritorio en almacenes.</p>
+      </div>
+
+      <!-- GRILLA DE MÓDULOS CON IMÁGENES REALES -->
+      <div class="modules-grid">
+        <!-- MODULO 1: ADMIN DASHBOARD -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <h4>Módulo de Administración Central</h4>
+            <span class="module-badge">Perfil: Administrador</span>
+          </div>
+          <div class="module-img-box">
+            <img src="docs/admin_dashboard.png" alt="Portal Administrativo SGBT">
+          </div>
+          <div class="module-desc">
+            Panel de indicadores operativos en vivo, registro y auditoría de eventos, importación masiva de nómina de personal (1,137 funcionarios) y exportación de reportes de rendición.
+          </div>
+        </div>
+
+        <!-- MODULO 2: LOGÍSTICA DE COMBOS -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <h4>Organización y Despacho de Combos</h4>
+            <span class="module-badge" style="background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t Registradas</span>
+          </div>
+          <div class="module-img-box">
+            <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas de Alimentos SGBT">
+          </div>
+          <div class="module-desc">
+            Control de inventario clasificado por rubro: víveres secos, combos proteicos en cadena de frío, productos de aseo y dotaciones especiales para trabajadores activos y jubilados.
+          </div>
+        </div>
+
+        <!-- MODULO 3: APP BENEFICIARIO -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <h4>Módulo del Beneficiario</h4>
+            <span class="module-badge" style="background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">Acceso Móvil PWA</span>
+          </div>
+          <div class="module-img-box">
+            <img src="docs/app_beneficiario.png" alt="App Beneficiario SGBT">
+          </div>
+          <div class="module-desc">
+            Consulta del beneficio asignado, desglose detallado de productos y generación de credencial biométrica con código QR dinámico de 180 segundos para retiro en mesa.
+          </div>
+        </div>
+
+        <!-- MODULO 4: MESA DE DESPACHO -->
+        <div class="module-card">
+          <div class="module-card-header">
+            <h4>Módulo de Mesa de Despacho</h4>
+            <span class="module-badge" style="background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">Estación de Almacén</span>
+          </div>
+          <div class="module-img-box">
+            <img src="docs/mesa_despacho.png" alt="Mesa de Despacho SGBT">
+          </div>
+          <div class="module-desc">
+            Registro de entregas en estación de almacén con lectura óptica y proximidad NFC, verificación de credencial en menos de 200 ms y almacenamiento transaccional local sin conexión.
+          </div>
+        </div>
+      </div>
+
+      <!-- ARQUITECTURA C4 Y DISTRIBUCION TWA -->
+      <div class="arch-highlight">
+        <h4>🏗️ Arquitectura Técnica y Distribución Móvil Dual</h4>
+        <p>
+          El SGBT implementa una arquitectura desacoplada documentada bajo el modelo C4 (Nivel 2). La distribución móvil es dual: los trabajadores acceden mediante una Progressive Web App (PWA) de instalación instantánea con soporte Edge-to-Edge, mientras que los terminales de almacén operan mediante un paquete APK nativo compilado con Trusted Web Activities (TWA) con modo Kiosco y bloqueo de suspensión de pantalla (Wake Lock).
+        </p>
+        <div class="arch-badges">
+          <span class="arch-pill">PWA Offline Edge-to-Edge</span>
+          <span class="arch-pill">APK Kiosco TWA</span>
+          <span class="arch-pill">IndexedDB + SW v2.6</span>
+          <span class="arch-pill">Server-Sent Events (SSE)</span>
+          <span class="arch-pill">OpenAPI 3.1 Certified</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIE DE PÁGINA 3 -->
+    <div class="page-footer">
+      <div class="footer-left">
+        <strong>SGBT MIPPCI</strong> &bull; Ecosistema Tecnológico de Aplicaciones &bull; Interfaces Móviles y Escritorio
+      </div>
+      <div class="footer-right">Página 3 de 4</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       PÁGINA 4: ACTA OFICIAL, BALANCE Y FIRMA MINISTERIAL
+       ============================================================ -->
+  <div class="page">
+    <div>
+      <div class="top-tricolor"></div>
+
+      <div class="page-header">
+        <div class="membrete-text">
+          <h5>Acta Oficial de Cierre y Rendición &middot; Jornada de Despacho</h5>
+          <p>Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)</p>
+        </div>
+        <div class="header-tag">Auditoría Criptográfica</div>
+      </div>
+
+      <!-- ACTA OFICIAL COMPLETA -->
+      <div class="acta-wrapper">
+        <div class="acta-header-box">
+          <div class="acta-titles">
+            <h3>MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN</h3>
+            <h4>SGBT &bull; Acta Oficial de Despacho, Rendición y Auditoría Logística</h4>
+            <p>Gobierno Bolivariano de Venezuela &bull; Módulo de Control Criptográfico &bull; Sede Central</p>
+          </div>
+          <div>
+            <div class="acta-num-badge">ACTA-20261025-FD4DF29E</div>
+            <div class="acta-date-sub">Emisión: 25 Octubre 2026 &bull; 07:25 PM</div>
+          </div>
+        </div>
+
+        <!-- 4 TILES DE RESUMEN CONSOLIDADO -->
+        <div class="acta-mini-metrics">
+          <div class="acta-mini-tile">
+            <div class="t-val">1,136</div>
+            <div class="t-lbl">Beneficiarios</div>
+          </div>
+          <div class="acta-mini-tile">
+            <div class="t-val" style="color:#059669;">1,136</div>
+            <div class="t-lbl">Combos Entregados</div>
+          </div>
+          <div class="acta-mini-tile">
+            <div class="t-val" style="color:#7c3aed;">16.47 t</div>
+            <div class="t-lbl">Tonelaje Métrico</div>
+          </div>
+          <div class="acta-mini-tile">
+            <div class="t-val" style="color:#0f172a;">0.00%</div>
+            <div class="t-lbl">Mermas / Duplicados</div>
+          </div>
+        </div>
+
+        <!-- TABLA DE DEPENDENCIAS ADMINISTRATIVAS -->
+        <table class="acta-table">
+          <thead>
+            <tr>
+              <th>Dependencia Administrativa / Dirección</th>
+              <th style="text-align: right; width: 15%;">Beneficiarios</th>
+              <th style="text-align: right; width: 14%;">Combos</th>
+              <th style="text-align: right; width: 16%;">Masa Neta</th>
+              <th style="text-align: right; width: 14%;">Tonelaje</th>
+              <th style="text-align: center; width: 18%;">Auditoría</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Dirección General de Comunicación Presidencial</td>
+              <td style="text-align: right;">248</td>
+              <td style="text-align: right; font-weight: 700;">248</td>
+              <td style="text-align: right;">3,596 kg</td>
+              <td style="text-align: right; font-weight: 700;">3.60 t</td>
+              <td style="text-align: center; color: #16a34a; font-weight: 700;">✓ Conciliado 100%</td>
+            </tr>
+            <tr>
+              <td>Dirección General de Gestión Humana</td>
+              <td style="text-align: right;">192</td>
+              <td style="text-align: right; font-weight: 700;">192</td>
+              <td style="text-align: right;">2,784 kg</td>
+              <td style="text-align: right; font-weight: 700;">2.78 t</td>
+              <td style="text-align: center; color: #16a34a; font-weight: 700;">✓ Conciliado 100%</td>
+            </tr>
+            <tr>
+              <td>Oficina de Tecnologías de la Información y la Comunicación (OTIC)</td>
+              <td style="text-align: right;">165</td>
+              <td style="text-align: right; font-weight: 700;">165</td>
+              <td style="text-align: right;">2,392 kg</td>
+              <td style="text-align: right; font-weight: 700;">2.39 t</td>
+              <td style="text-align: center; color: #16a34a; font-weight: 700;">✓ Conciliado 100%</td>
+            </tr>
+            <tr>
+              <td>Dirección General de Servicios Informativos y Radio</td>
+              <td style="text-align: right;">142</td>
+              <td style="text-align: right; font-weight: 700;">142</td>
+              <td style="text-align: right;">2,059 kg</td>
+              <td style="text-align: right; font-weight: 700;">2.06 t</td>
+              <td style="text-align: center; color: #16a34a; font-weight: 700;">✓ Conciliado 100%</td>
+            </tr>
+            <tr>
+              <td>Dirección General de Planificación y Presupuesto</td>
+              <td style="text-align: right;">114</td>
+              <td style="text-align: right; font-weight: 700;">114</td>
+              <td style="text-align: right;">1,653 kg</td>
+              <td style="text-align: right; font-weight: 700;">1.65 t</td>
+              <td style="text-align: center; color: #16a34a; font-weight: 700;">✓ Conciliado 100%</td>
+            </tr>
+            <tr>
+              <td>Despacho Ministerial y Áreas Operativas Centrales</td>
+              <td style="text-align: right;">275</td>
+              <td style="text-align: right; font-weight: 700;">275</td>
+              <td style="text-align: right;">3,986 kg</td>
+              <td style="text-align: right; font-weight: 700;">3.99 t</td>
+              <td style="text-align: center; color: #16a34a; font-weight: 700;">✓ Conciliado 100%</td>
+            </tr>
+            <tr class="total-row">
+              <td><strong>TOTAL GENERAL DE JORNADA</strong></td>
+              <td style="text-align: right; font-weight: 800;">1,136</td>
+              <td style="text-align: right; font-weight: 800;">1,136</td>
+              <td style="text-align: right; font-weight: 800;">16,470 kg</td>
+              <td style="text-align: right; font-weight: 800; color: #0284c7;">16.47 t</td>
+              <td style="text-align: center; color: #166534; font-weight: 800;">100% AUDITADO</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- SELLO CRIPTOGRÁFICO SHA-256 -->
+        <div class="sha-seal-box">
+          <div class="sha-title">
+            <span>🔒 Código de Integridad Criptográfica del Acta (SHA-256)</span>
+            <span style="color:#16a34a;">Validación Matemática OK</span>
+          </div>
+          <code class="sha-hash">fd4df29e4b6025d5d94c313667a1779145c42167bdda360747855dde45e59156</code>
+        </div>
+
+        <!-- FIRMAS OFICIALES -->
+        <div class="signatures-row">
+          <div class="sig-box">
+            <div class="sig-name">Msc. Sahib A Franco</div>
+            <div class="sig-role">Director General de la Oficina de Tecnologías de la Información y la Comunicación (OTIC)</div>
+            <div class="sig-meta">Firmado Digitalmente &bull; ID: 13537582</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-name">Lic. Claudia Patricia Vega</div>
+            <div class="sig-role">Supervisora General de Mesa de Despacho</div>
+            <div class="sig-meta">Autorizado con QR Diario &bull; C.I. V-13222333</div>
+          </div>
+          <div class="sig-box">
+            <div class="sig-name">Auditoría Interna Ministerial</div>
+            <div class="sig-role">Cuerpo de Contraloría Institucional (MIPPCI)</div>
+            <div class="sig-meta">Sello SHA-256 OK &bull; Cero Observaciones</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NOTA DE ACCESO Y VERIFICACION ONLINE -->
+      <div style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 2mm 3mm; display: flex; justify-content: space-between; align-items: center; font-size: 6.8pt; color: #475569;">
+        <div>
+          <strong>Verificación y Acceso en Línea:</strong> El expediente completo y diagramas interactivos se encuentran auditables en producción en Vercel.
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #0284c7;">
+          https://sgbt-bice.vercel.app/dossier
+        </div>
+      </div>
+    </div>
+
+    <!-- PIE DE PÁGINA 4 -->
+    <div class="page-footer">
+      <div class="footer-left">
+        <strong>SGBT MIPPCI</strong> &bull; Documento Oficial de Cierre y Rendición de Cuentas &bull; Acta Oficial Certificada
+      </div>
+      <div class="footer-right">Página 4 de 4</div>
+    </div>
+  </div>
+
+</body>
+
+</html>
