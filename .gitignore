@@ -24,6 +24,10 @@ yarn-error.log*
 *.sqlite-*
 data/
 
+# Python
+__pycache__/
+*.pyc
+
 # IDEs y SO
 .vscode/
 .idea/

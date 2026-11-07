@@ -274,6 +274,98 @@
       background: #090d16;
     }
 
+    /* NARRATION AUDIO HUD */
+    .audio-hud {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.65rem;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(8px);
+    }
+    .audio-play-btn {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.45);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .audio-play-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 18px rgba(2, 132, 199, 0.7);
+    }
+    .audio-waves {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      height: 16px;
+    }
+    .audio-bar {
+      width: 3px;
+      height: 5px;
+      background: #38bdf8;
+      border-radius: 2px;
+      transition: height 0.2s ease;
+    }
+    .audio-hud.playing .audio-bar {
+      animation: soundWave 1.2s infinite ease-in-out;
+    }
+    .audio-hud.playing .audio-bar:nth-child(1) { animation-delay: 0.0s; }
+    .audio-hud.playing .audio-bar:nth-child(2) { animation-delay: 0.2s; }
+    .audio-hud.playing .audio-bar:nth-child(3) { animation-delay: 0.4s; }
+    .audio-hud.playing .audio-bar:nth-child(4) { animation-delay: 0.1s; }
+    .audio-hud.playing .audio-bar:nth-child(5) { animation-delay: 0.3s; }
+    @keyframes soundWave {
+      0%, 100% { height: 4px; }
+      50% { height: 16px; }
+    }
+    .audio-meta-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #94a3b8;
+      font-family: var(--font-display);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .audio-meta-label strong {
+      color: #f8fafc;
+    }
+    .audio-time-badge {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+    }
+    .audio-rate-btn {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-family: var(--font-mono);
+      padding: 0.15rem 0.35rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .audio-rate-btn:hover {
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
     /* ARCHITECTURE HIGHLIGHTS */
     .specs-grid {
       display: grid;
@@ -399,6 +491,26 @@
           </span>
         </div>
 
+        <!-- REPRODUCTOR DE VOZ NEURONAL -->
+        <div class="audio-hud" id="audio-hud">
+          <button id="audio-play-btn" class="audio-play-btn" title="Reproducir / Pausar Narración Institucional" onclick="toggleAudioNarration()">
+            <svg id="play-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            <svg id="pause-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+          </button>
+          <div class="audio-waves" id="audio-waves">
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+            <span class="audio-bar"></span>
+          </div>
+          <div class="audio-meta-label">
+            <span id="audio-track-label">Voz Neuronal: <strong>C4 Arquitectura</strong></span>
+          </div>
+          <span id="audio-time-badge" class="audio-time-badge">0:00 / 0:00</span>
+          <button id="audio-rate-btn" class="audio-rate-btn" onclick="cycleAudioRate()" title="Velocidad de locución">1.0x</button>
+        </div>
+
         <div style="display: flex; gap: 0.6rem; align-items: center;">
           <a id="btn-fullscreen" href="c4-containers.html" target="_blank" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
@@ -411,6 +523,7 @@
         </div>
       </div>
 
+      <audio id="diagram-audio" preload="metadata"></audio>
       <iframe id="diagram-frame" class="viewport-frame" src="c4-containers.html" title="Visor de Arquitectura Archify"></iframe>
     </div>
 
@@ -442,26 +555,118 @@
       c4: {
         title: 'Arquitectura de Contenedores C4 (Nivel 2) · SGBT MIPPCI',
         html: 'c4-containers.html',
-        json: 'c4-containers.json'
+        json: 'c4-containers.json',
+        audio: 'audio/c4-containers.mp3',
+        label: 'C4 Arquitectura'
       },
       sequence: {
         title: 'Flujo de Secuencia Criptográfica Passkeys FIDO2 y NFC P2P · SGBT MIPPCI',
         html: 'user-journey-sequence.html',
-        json: 'user-journey-sequence.json'
+        json: 'user-journey-sequence.json',
+        audio: 'audio/user-journey-sequence.mp3',
+        label: 'Handshake Cripto'
       },
       erd: {
         title: 'Modelo de Datos Entidad-Relación (ERD) · SGBT MIPPCI',
         html: 'modelo-datos-erd.html',
-        json: 'modelo-datos-erd.json'
+        json: 'modelo-datos-erd.json',
+        audio: 'audio/modelo-datos-erd.mp3',
+        label: 'Modelo ERD'
       },
       twa: {
         title: 'Distribución Móvil Dual: PWA Beneficiarios vs APK TWA Almacén · SGBT MIPPCI',
         html: 'distribucion-movil-twa.html',
-        json: 'distribucion-movil-twa.json'
+        json: 'distribucion-movil-twa.json',
+        audio: 'audio/distribucion-movil-twa.mp3',
+        label: 'Móvil TWA & PWA'
       }
     };
 
+    let currentDiagramKey = 'c4';
+    const audioElement = document.getElementById('diagram-audio');
+    const audioHud = document.getElementById('audio-hud');
+    const playIcon = document.getElementById('play-icon');
+    const pauseIcon = document.getElementById('pause-icon');
+    const timeBadge = document.getElementById('audio-time-badge');
+    const trackLabel = document.getElementById('audio-track-label');
+    const rateBtn = document.getElementById('audio-rate-btn');
+    const playbackRates = [1.0, 1.25, 1.5];
+    let currentRateIdx = 0;
+
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00';
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    function setAudioUIState(isPlaying) {
+      if (isPlaying) {
+        audioHud.classList.add('playing');
+        playIcon.style.display = 'none';
+        pauseIcon.style.display = 'block';
+      } else {
+        audioHud.classList.remove('playing');
+        playIcon.style.display = 'block';
+        pauseIcon.style.display = 'none';
+      }
+    }
+
+    function loadAudioForCurrentDiagram(autoplay = false) {
+      const config = diagrams[currentDiagramKey];
+      if (!config) return;
+      audioElement.src = config.audio;
+      audioElement.playbackRate = playbackRates[currentRateIdx];
+      trackLabel.innerHTML = `Voz Neuronal: <strong>${config.label}</strong>`;
+      timeBadge.textContent = '0:00 / 0:00';
+
+      if (autoplay) {
+        audioElement.play().then(() => setAudioUIState(true)).catch(() => setAudioUIState(false));
+      } else {
+        setAudioUIState(false);
+      }
+    }
+
+    function toggleAudioNarration() {
+      if (audioElement.paused) {
+        if (!audioElement.src || !audioElement.src.includes(diagrams[currentDiagramKey].audio)) {
+          loadAudioForCurrentDiagram(true);
+        } else {
+          audioElement.play().then(() => setAudioUIState(true)).catch(() => setAudioUIState(false));
+        }
+      } else {
+        audioElement.pause();
+        setAudioUIState(false);
+      }
+    }
+
+    function cycleAudioRate() {
+      currentRateIdx = (currentRateIdx + 1) % playbackRates.length;
+      const rate = playbackRates[currentRateIdx];
+      audioElement.playbackRate = rate;
+      rateBtn.textContent = `${rate.toFixed(1).replace('.0', '')}x`;
+    }
+
+    audioElement.addEventListener('timeupdate', () => {
+      timeBadge.textContent = `${formatTime(audioElement.currentTime)} / ${formatTime(audioElement.duration)}`;
+    });
+
+    audioElement.addEventListener('ended', () => {
+      setAudioUIState(false);
+      timeBadge.textContent = `0:00 / ${formatTime(audioElement.duration)}`;
+    });
+
+    audioElement.addEventListener('loadedmetadata', () => {
+      timeBadge.textContent = `0:00 / ${formatTime(audioElement.duration)}`;
+    });
+
+    // Inicializar pista de audio por defecto
+    loadAudioForCurrentDiagram(false);
+
     function switchDiagram(type) {
+      const wasPlaying = !audioElement.paused;
+      currentDiagramKey = type;
+
       document.querySelectorAll('.tab-card').forEach(tab => tab.classList.remove('active'));
       const activeTab = document.getElementById('tab-' + type);
       if (activeTab) activeTab.classList.add('active');
@@ -472,6 +677,7 @@
         document.getElementById('active-diagram-title').textContent = config.title;
         document.getElementById('btn-fullscreen').href = config.html;
         document.getElementById('btn-json').href = config.json;
+        loadAudioForCurrentDiagram(wasPlaying);
       }
     }
   </script>
