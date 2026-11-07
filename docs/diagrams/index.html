@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Centro de Arquitectura e Ingeniería Documentada - SGBT MIPPCI</title>
+  <script>
+    // Asegurar resolución canónica en Vercel para rutas relativas de diagramas y audios
+    if (window.location.protocol.startsWith('http')) {
+      var base = document.createElement('base');
+      base.href = '/diagrams/';
+      document.head.appendChild(base);
+      if (window.location.pathname === '/diagrams') {
+        try { window.history.replaceState(null, '', '/diagrams/' + window.location.search); } catch(_) {}
+      }
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">

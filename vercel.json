@@ -1,6 +1,13 @@
 {
   "version": 2,
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/diagrams",
+      "destination": "/diagrams/",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api",
@@ -31,12 +38,32 @@
       "destination": "/public/dossier.html"
     },
     {
-      "source": "/diagrams",
+      "source": "/diagrams/",
       "destination": "/public/diagrams/index.html"
     },
     {
-      "source": "/diagrams/",
+      "source": "/diagrams/index.html",
       "destination": "/public/diagrams/index.html"
+    },
+    {
+      "source": "/diagrams/c4-containers",
+      "destination": "/public/diagrams/c4-containers.html"
+    },
+    {
+      "source": "/diagrams/user-journey-sequence",
+      "destination": "/public/diagrams/user-journey-sequence.html"
+    },
+    {
+      "source": "/diagrams/modelo-datos-erd",
+      "destination": "/public/diagrams/modelo-datos-erd.html"
+    },
+    {
+      "source": "/diagrams/distribucion-movil-twa",
+      "destination": "/public/diagrams/distribucion-movil-twa.html"
+    },
+    {
+      "source": "/diagrams/audio/(.*)",
+      "destination": "/public/diagrams/audio/$1"
     },
     {
       "source": "/diagrams/(.*)",

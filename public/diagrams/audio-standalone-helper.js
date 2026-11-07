@@ -166,14 +166,15 @@
     </div>
     <span id="sa-time-badge" class="archify-time-badge">0:00 / 0:00</span>
     <button id="sa-rate-btn" class="archify-rate-btn" title="Velocidad">1.0x</button>
-    <a href="index.html" class="archify-back-btn" title="Volver al Centro de Diagramas">
+    <a href="${window.location.protocol.startsWith('http') ? '/diagrams/' : 'index.html'}" class="archify-back-btn" title="Volver al Centro de Diagramas">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       Centro Hub
     </a>
   `;
 
   const audio = document.createElement('audio');
-  audio.src = matchedConfig.audio;
+  const basePath = window.location.protocol.startsWith('http') ? '/diagrams/' : '';
+  audio.src = basePath + matchedConfig.audio;
   audio.preload = 'metadata';
 
   document.body.appendChild(hud);
