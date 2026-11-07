@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta de Comercialización y Modelos de Negocio · SGBT MIPPCI</title>
+  <link rel="icon" type="image/png" href="docs/logo_sgbt_512x512.png">
+
+  <!-- GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --surface: #eef2f6;
+      --surface-card: #f8fafc;
+      --dark: #0f172a;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      --emerald: #059669;
+      --emerald-dark: #047857;
+      --text: #1e293b;
+      --text-muted: #475569;
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.9);
+      --neu-flat: 8px 8px 18px rgba(166, 180, 200, 0.45), -8px -8px 18px rgba(255, 255, 255, 0.95);
+      --neu-pressed: inset 3px 3px 6px rgba(166, 180, 200, 0.4), inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--surface);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    p {
+      text-align: left;
+      text-wrap: pretty;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    h1, h2, h3, h4, .brand-title {
+      font-family: 'Outfit', sans-serif;
+      color: var(--dark);
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* HEADER */
+    header {
+      background: rgba(238, 242, 246, 0.92);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 4px 14px rgba(166, 180, 200, 0.25);
+    }
+
+    .header-nav {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      text-decoration: none;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--surface);
+      box-shadow: var(--neu-flat);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      flex-shrink: 0;
+    }
+
+    .brand-logo img {
+      width: 32px;
+      height: 32px;
+      object-fit: contain;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .brand-subtitle {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 0.65rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.15rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.25s var(--ease-lux);
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: 3px 3px 8px rgba(166, 180, 200, 0.4), -3px -3px 8px rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-outline:hover {
+      box-shadow: var(--neu-pressed);
+      color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    /* BADGE PILL */
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: 1px solid #bae6fd;
+      margin-bottom: 1rem;
+    }
+
+    /* HERO */
+    .hero {
+      padding: 3.5rem 0 2.5rem;
+      background: radial-gradient(circle at 80% 20%, rgba(2, 132, 199, 0.12) 0%, transparent 65%);
+    }
+
+    .hero-title {
+      font-size: 2.45rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+      color: var(--dark);
+    }
+
+    .hero-title span {
+      background: var(--primary-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+    }
+
+    /* CONTENT CARDS */
+    .doc-card {
+      background: var(--surface);
+      border: var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 2.2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--neu-flat);
+    }
+
+    .card-title {
+      font-size: 1.45rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--dark);
+      border-bottom: 2px solid rgba(2, 132, 199, 0.15);
+      padding-bottom: 0.6rem;
+    }
+
+    .card-subtitle {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin: 1.5rem 0 0.75rem;
+      color: #0f172a;
+    }
+
+    /* TABLES */
+    .table-container {
+      overflow-x: auto;
+      border-radius: var(--radius-md);
+      box-shadow: var(--neu-pressed);
+      background: #ffffff;
+      padding: 0.5rem;
+      margin: 1.5rem 0;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-weight: 700;
+      padding: 0.9rem 1.1rem;
+      border-bottom: 2px solid #cbd5e1;
+      font-family: 'Outfit', sans-serif;
+      text-transform: uppercase;
+      font-size: 0.76rem;
+      letter-spacing: 0.04em;
+    }
+
+    td {
+      padding: 0.95rem 1.1rem;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
+      color: #334155;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
+
+    /* LISTS */
+    .styled-list {
+      list-style: none;
+      margin: 1rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .styled-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      font-size: 0.92rem;
+      color: #334155;
+      line-height: 1.55;
+    }
+
+    .list-bullet {
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
+      min-height: 24px;
+      max-width: 24px;
+      max-height: 24px;
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      line-height: 1;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      margin-top: 0.15rem;
+      background: rgba(2, 132, 199, 0.15);
+      color: #0284c7;
+      border: 1px solid rgba(2, 132, 199, 0.35);
+    }
+
+    .styled-list li strong {
+      color: #0f172a;
+    }
+
+    /* FOOTER */
+    footer {
+      background: #0b1329;
+      color: #94a3b8;
+      padding: 2.5rem 0;
+      margin-top: 4rem;
+      font-size: 0.85rem;
+      border-top: 1px solid #1e293b;
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+    }
+
+    .footer-brand {
+      color: #f8fafc;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    /* PRINT STYLES */
+    @media print {
+      header, .header-actions, .btn, footer {
+        display: none !important;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+
+      .container {
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+
+      .doc-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        background: #ffffff !important;
+        page-break-inside: avoid;
+        margin-bottom: 1.5rem !important;
+        padding: 1.5rem !important;
+      }
+
+      .table-container {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="container header-nav">
+      <a href="dossier.html" class="brand">
+        <div class="brand-logo">
+          <img src="docs/logo_sgbt_512x512.png" alt="SGBT">
+        </div>
+        <div>
+          <div class="brand-title">SGBT · Documento Técnico Comercial</div>
+          <div class="brand-subtitle">Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)</div>
+        </div>
+      </a>
+      <div class="header-actions">
+        <button type="button" onclick="window.print()" class="btn btn-outline" title="Imprimir o Descargar PDF">
+          🖨️ Imprimir / PDF
+        </button>
+        <a href="Propuesta de Comercialización.md" target="_blank" class="btn btn-outline" title="Ver archivo Markdown sin procesar">
+          📄 Archivo .MD
+        </a>
+        <a href="diagrams/index.html" class="btn btn-outline" title="Ver Arquitectura Técnica">
+          🗺️ Diagramas
+        </a>
+        <a href="dossier.html" class="btn btn-primary">⬅ Volver al Dossier</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <span class="badge-pill">Documento Técnico y Comercial · Versión Oficial 2026</span>
+      <h1 class="hero-title">Propuesta de Comercialización y <span>Modelos de Negocio</span></h1>
+      <p class="hero-subtitle">
+        Plataforma gubernamental y corporativa para la gestión de bienestar y transferencias institucionales con autenticación biométrica Passkeys FIDO2 y motor de persistencia transaccional Offline-First.
+      </p>
+    </div>
+  </section>
+
+  <!-- CUERPO PRINCIPAL -->
+  <main class="container">
+
+    <!-- RESUMEN EJECUTIVO -->
+    <div class="doc-card">
+      <h2 class="card-title">📌 Resumen Ejecutivo (Executive Summary)</h2>
+      <p>
+        El <strong>Sistema de Gestión de Bienestar y Transferencias (SGBT)</strong> es una solución tecnológica de clase empresarial diseñada para resolver una de las mayores ineficiencias en la entrega de beneficios, combos alimenticios y dotaciones corporativas/institucionales: <strong>la pérdida de control, las colas interminables, la duplicidad de entregas y el colapso operativo en zonas sin conectividad a Internet (sótanos, almacenes, depósitos o sedes remotas)</strong>.
+      </p>
+      <p>
+        A diferencia de las soluciones web tradicionales o el registro manual en hojas de cálculo, SGBT combina <strong>arquitectura estricta Offline-First</strong>, <strong>autenticación biométrica de última generación mediante hardware seguro (Passkeys FIDO2 / WebAuthn)</strong>, <strong>garantía matemática de idempotencia (RFC 7807)</strong> y <strong>generación automática de actas de auditoría oficial</strong>.
+      </p>
+    </div>
+
+    <!-- PROPUESTA DE VALOR -->
+    <div class="doc-card">
+      <h2 class="card-title">1. Propuesta de Valor Diferencial</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 28%;">Reto Habitual en Almacén / Entrega</th>
+              <th style="width: 34%;">Solución Tradicional</th>
+              <th style="width: 38%; color: #0369a1;">Solución SGBT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Falta de cobertura en sótanos/almacenes</strong></td>
+              <td>El sistema se cae; se recurre al papel manual que genera extravíos y descontrol.</td>
+              <td><strong style="color: #059669;">Motor Offline-First:</strong> Terminales operan 100% desconectados vía SQLite WAL local, IndexedDB y Service Workers.</td>
+            </tr>
+            <tr>
+              <td><strong>Fraude por suplantación y capturas de pantalla</strong></td>
+              <td>Carnets en PDF o códigos QR estáticos que se comparten por mensajería.</td>
+              <td><strong style="color: #059669;">Passkeys FIDO2 + QR Dinámico:</strong> Firma biométrica local con expiración forzada a 180 segundos o proximidad NFC P2P.</td>
+            </tr>
+            <tr>
+              <td><strong>Doble entrega por reintentos de red</strong></td>
+              <td>Peticiones duplicadas causan descuento doble de inventario.</td>
+              <td><strong style="color: #059669;">Middleware de Idempotencia:</strong> Detección de claves duplicadas (<code>HIT-IDEMPOTENT</code>) e índice único <code>idx_unique_daily_claim</code>.</td>
+            </tr>
+            <tr>
+              <td><strong>Tiempos de espera y cuellos de botella</strong></td>
+              <td>Búsqueda manual por nombre o cédula (&gt;45 seg/persona).</td>
+              <td><strong style="color: #059669;">Lectura óptica y validación en &lt; 200 ms</strong>, confirmada con retroalimentación háptica y acústica inmediata.</td>
+            </tr>
+            <tr>
+              <td><strong>Auditoría y conciliación lenta</strong></td>
+              <td>Días o semanas consolidando listas físicas firmadas.</td>
+              <td><strong style="color: #059669;">Actas oficiales con firma SHA-256</strong>, desglose por dependencia administrativa y KPIs en tiempo real (SSE).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SEGMENTOS OBJETIVO -->
+    <div class="doc-card">
+      <h2 class="card-title">2. Segmentos de Clientes Objetivo (Target Market)</h2>
+
+      <h3 class="card-subtitle">A. Sector Público / Entes Gubernamentales (B2G)</h3>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">🏛️</div>
+          <div><strong>Clientes Potenciales:</strong> Ministerios, Gobernaciones, Alcaldías, Institutos Autónomos, Corporaciones Públicas, Empresas del Estado y Cajas de Ahorro.</div>
+        </li>
+        <li>
+          <div class="list-bullet">📦</div>
+          <div><strong>Caso de Uso:</strong> Entrega controlada de bolsas de alimentos secos, combos proteicos en cadena de frío, juguetes navideños, combos escolares y dotación de uniformes a empleados públicos y jubilados.</div>
+        </li>
+      </ul>
+
+      <h3 class="card-subtitle">B. Sector Corporativo Privado e Industrial (B2B)</h3>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">🏭</div>
+          <div><strong>Clientes Potenciales:</strong> Empresas agroindustriales, petroleras, manufactureras, empresas de logística, centros de distribución y minería con personal masivo en plantas.</div>
+        </li>
+        <li>
+          <div class="list-bullet">🛡️</div>
+          <div><strong>Caso de Uso:</strong> Asignación de beneficios alimenticios contractuales, control de acceso a comedores de planta y entrega de kits de seguridad industrial (EPP).</div>
+        </li>
+      </ul>
+
+      <h3 class="card-subtitle">C. Organizaciones No Gubernamentales y Programas Humanitarios (NGOs)</h3>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">🤝</div>
+          <div><strong>Clientes Potenciales:</strong> Agencias de cooperación, fundaciones y bancos de alimentos.</div>
+        </li>
+        <li>
+          <div class="list-bullet">🔍</div>
+          <div><strong>Caso de Uso:</strong> Distribución controlada de víveres e insumos médicos en operativos de campo, garantizando a los donantes auditoría forense inmutable de que cada beneficio llegó a su titular real.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- MODELOS DE COMERCIALIZACION -->
+    <div class="doc-card">
+      <h2 class="card-title">3. Modelos de Comercialización</h2>
+
+      <h3 class="card-subtitle">Modelo 1: B2G / GovTech — Licenciamiento On-Premise + Mantenimiento Anual</h3>
+      <p><em>Recomendado para ministerios y entes públicos que requieren soberanía de datos y almacenamiento en centros de datos propios.</em></p>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">1</div>
+          <div>
+            <strong>Licencia de Despliegue e Implantación (Fee Único Inicial):</strong>
+            Instalación en servidores dedicados (Docker / Linux On-Premise), personalización institucional (*White-Label* con membrete y logotipo), carga y saneamiento del padrón de trabajadores y configuración de sedes. Rango sugerido: <strong>$4,500 – $12,000 USD</strong>.
+          </div>
+        </li>
+        <li>
+          <div class="list-bullet">2</div>
+          <div>
+            <strong>Contrato Anual de Soporte y Actualizaciones (20% – 25% del valor de la licencia):</strong>
+            Parches periódicos de seguridad, soporte técnico durante jornadas de despacho masivo, respaldo programado de bases de datos y monitoreo de integridad. Rango sugerido: <strong>$1,200 – $3,000 USD / año</strong>.
+          </div>
+        </li>
+      </ul>
+
+      <h3 class="card-subtitle">Modelo 2: Software como Servicio (SaaS Multitenant en la Nube)</h3>
+      <p><em>Ideal para empresas privadas, contratistas medianas y organizaciones con múltiples sedes que desean rapidez de adopción sin gestionar servidores.</em></p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nivel de Plan</th>
+              <th>Capacidad de Beneficiarios</th>
+              <th>Sedes y Funcionalidades</th>
+              <th>Precio Mensual</th>
+              <th>Precio Anual (Ahorro 15%)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong style="color: #0284c7;">Starter</strong></td>
+              <td>Hasta 300 beneficiarios</td>
+              <td>1 Punto de Despacho, PWA Offline, Exportación Excel/PDF</td>
+              <td><strong>$89 USD / mes</strong></td>
+              <td><strong>$900 USD / año</strong></td>
+            </tr>
+            <tr>
+              <td><strong style="color: #059669;">Profesional</strong></td>
+              <td>Hasta 1,500 beneficiarios</td>
+              <td>3 Puntos de Despacho, Passkeys FIDO2, SSE en Vivo, Soporte WhatsApp</td>
+              <td><strong>$249 USD / mes</strong></td>
+              <td><strong>$2,500 USD / año</strong></td>
+            </tr>
+            <tr>
+              <td><strong style="color: #7c3aed;">Enterprise</strong></td>
+              <td>Ilimitados (&gt; 1,500)</td>
+              <td>Multi-Sede Ilimitada, API REST para sincronización con SAP/Nómina, SLAs 99.9%</td>
+              <td><strong>$499 USD / mes</strong></td>
+              <td><strong>$5,000 USD / año</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="card-subtitle">Modelo 3: Pago por Operativo / Despacho (Pay-per-Claim)</h3>
+      <p><em>Orientado a clientes con entregas estacionales o trimestrales (operativos navideños, dotaciones bianuales o programas especiales).</em></p>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">✓</div>
+          <div><strong>Esquema:</strong> Sin costos fijos recurrentes mensuales.</div>
+        </li>
+        <li>
+          <div class="list-bullet">✓</div>
+          <div><strong>Tarifa Transaccional:</strong> <strong>$0.08 a $0.18 USD</strong> por entrega efectivamente verificada y registrada en el acta final.</div>
+        </li>
+        <li>
+          <div class="list-bullet">✓</div>
+          <div><strong>Incluye:</strong> Activación temporal durante los 15 días previos y posteriores a la jornada, soporte en vivo y emisión del Acta Ministerial Criptográfica consolidada.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- SERVICIOS DE VALOR AGREGADO -->
+    <div class="doc-card">
+      <h2 class="card-title">4. Servicios de Valor Agregado y Módulos Adicionales</h2>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">📱</div>
+          <div><strong>Kit de Hardware "Almacén Seguro":</strong> Venta o alquiler de tablets/smartphones industriales pre-configurados en modo "Kiosco" (aplicación bloqueada a pantalla completa) con fundas anticaídas y cámaras de enfoque rápido optimizadas para lectura en poca luz.</div>
+        </li>
+        <li>
+          <div class="list-bullet">💳</div>
+          <div><strong>Módulo de Inclusión para Adultos Mayores (Tarjetas NFC / Mifare):</strong> Solución orientada a jubilados o personas sin teléfonos inteligentes. Permite enrolar una tarjeta plástica de proximidad segura vinculada a su cédula.</div>
+        </li>
+        <li>
+          <div class="list-bullet">🔌</div>
+          <div><strong>Conector Personalizado con Sistemas de Nómina y ERP:</strong> Integración automática con SAP, Oracle, SIGECOF o archivos de texto bancario para altas, bajas y cambios de estatus sin intervención manual.</div>
+        </li>
+        <li>
+          <div class="list-bullet">👨‍🏫</div>
+          <div><strong>Capacitación y Acompañamiento en Sitio:</strong> Jornadas de formación para operadores de almacén, supervisores de mesa y personal de auditoría interna.</div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ESTRATEGIA DE DEMOSTRACIÓN -->
+    <div class="doc-card">
+      <h2 class="card-title">5. Estrategia de Demostración y Pitch Operativo</h2>
+      <ul class="styled-list">
+        <li>
+          <div class="list-bullet">⚡</div>
+          <div><strong>Demostración de Resiliencia Offline (Efecto "Wow"):</strong> El presentador abre la PWA del operador, apaga intencionalmente el WiFi / datos móviles del equipo y escanea la credencial del beneficiario. El sistema valida la firma criptográfica en menos de 200 ms, emite retroalimentación háptica y almacena la entrega localmente. Al restablecer la red, sincroniza automáticamente sin duplicados.</div>
+        </li>
+        <li>
+          <div class="list-bullet">👤</div>
+          <div><strong>Perfiles Pre-cargados para Validación Inmediata:</strong>
+            <br>• <strong>Super Administrador:</strong> Msc. Sahib Franco (C.I. <code>13537582</code>) — Monitoreo de KPIs, nómina y exportación de Actas.
+            <br>• <strong>Beneficiario Activo:</strong> Carlos Eduardo Mendoza (C.I. <code>V-18456123</code>) — Generación de QR con Passkey.
+            <br>• <strong>Operador de Mesa:</strong> Miguel Ángel Torres (C.I. <code>V-14111222</code>) — Escaneo de alta velocidad en terminal.
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- ENLACES A DIAGRAMAS TECNICOS -->
+    <div class="doc-card" style="border: 2px solid #bae6fd; background: linear-gradient(180deg, #f0f9ff 0%, var(--surface) 100%);">
+      <h2 class="card-title">6. Documentación y Diagramas de Soporte para Licitaciones</h2>
+      <p>Para respaldar técnicamente pliegos de contratación o propuestas formales, el sistema dispone de arquitectura auditable:</p>
+      <div style="display: flex; gap: 0.85rem; flex-wrap: wrap; margin-top: 1rem;">
+        <a href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline">🏗️ Arquitectura C4 Nivel 2 ↗</a>
+        <a href="diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline">⚡ Secuencia y Criptografía ↗</a>
+        <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline">🗄️ Modelo de Datos (ERD) ↗</a>
+        <a href="diagrams/distribucion-movil-twa.html" target="_blank" class="btn btn-outline">📱 Distribución Dual PWA/APK ↗</a>
+        <a href="diagrams/index.html" target="_blank" class="btn btn-primary">🗺️ Centro de Diagramas ↗</a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-content">
+      <div>
+        <div class="footer-brand">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
+        <div style="margin-top: 0.35rem;">Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)</div>
+      </div>
+      <div>
+        Grado Bancario · Autenticación FIDO2 · Offline-First SQLite WAL · Sello SHA-256
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
+

@@ -38,6 +38,26 @@
       "destination": "/public/dossier.html"
     },
     {
+      "source": "/propuesta-comercializacion",
+      "destination": "/public/propuesta_comercializacion.html"
+    },
+    {
+      "source": "/propuesta_comercializacion",
+      "destination": "/public/propuesta_comercializacion.html"
+    },
+    {
+      "source": "/documento-tecnico",
+      "destination": "/public/propuesta_comercializacion.html"
+    },
+    {
+      "source": "/Propuesta de Comercialización.md",
+      "destination": "/public/Propuesta de Comercialización.md"
+    },
+    {
+      "source": "/Propuesta%20de%20Comercializaci%C3%B3n.md",
+      "destination": "/public/Propuesta de Comercialización.md"
+    },
+    {
       "source": "/diagrams/",
       "destination": "/public/diagrams/index.html"
     },
