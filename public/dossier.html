@@ -62,9 +62,8 @@
     }
 
     p {
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     h1,
@@ -75,6 +74,7 @@
       font-family: 'Outfit', sans-serif;
       color: var(--dark);
       letter-spacing: -0.02em;
+      text-wrap: balance;
     }
 
     .container {
@@ -246,6 +246,7 @@
       line-height: 1.15;
       margin-bottom: 1.25rem;
       color: var(--dark);
+      text-wrap: balance;
     }
 
     .hero-title span {
@@ -257,12 +258,12 @@
     .hero-subtitle {
       font-size: 1.15rem;
       color: var(--text-muted);
-      max-width: 820px;
+      width: 100%;
+      max-width: 100%;
       margin-bottom: 2.5rem;
-      line-height: 1.6;
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      line-height: 1.65;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     /* NEUMORPHIC STATS / KPIS */
@@ -320,9 +321,8 @@
       font-size: 0.76rem;
       color: var(--text-muted);
       line-height: 1.45;
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     /* SECTION */
@@ -338,15 +338,17 @@
       font-size: 1.95rem;
       font-weight: 700;
       margin-bottom: 0.5rem;
+      text-wrap: balance;
     }
 
     .section-subtitle {
-      font-size: 0.96rem;
+      font-size: 0.98rem;
       color: var(--text-muted);
-      max-width: 680px;
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      width: 100%;
+      max-width: 100%;
+      line-height: 1.6;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     /* NEUMORPHIC FEATURE CARDS */
@@ -394,15 +396,15 @@
       font-size: 1.22rem;
       font-weight: 700;
       margin-bottom: 0.65rem;
+      text-wrap: balance;
     }
 
     .feature-text {
       font-size: 0.88rem;
       color: var(--text-muted);
       line-height: 1.6;
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     /* NEUMORPHIC SHOWCASE & MEDIA */
@@ -432,14 +434,16 @@
     .showcase-title {
       font-size: 1.3rem;
       font-weight: 700;
+      text-wrap: balance;
     }
 
     .showcase-desc {
       font-size: 0.85rem;
       color: var(--text-muted);
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      width: 100%;
+      max-width: 100%;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     .showcase-media {
@@ -927,9 +931,8 @@
       font-size: 0.74rem;
       color: #15803d;
       line-height: 1.4;
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     /* BLOQUE DE FIRMAS MINISTERIALES */
@@ -1078,6 +1081,7 @@
       font-weight: 700;
       color: #0f172a;
       letter-spacing: -0.01em;
+      text-wrap: balance;
     }
 
     .comparison-list {
@@ -1100,9 +1104,8 @@
 
     .comparison-list li div {
       flex: 1;
-      text-align: justify;
-      text-justify: inter-word;
-      hyphens: auto;
+      text-align: left;
+      text-wrap: pretty;
     }
 
     .comparison-list li strong {
@@ -1774,10 +1777,10 @@
 
   <!-- DEMOSTRACIÓN OPERATIVA -->
   <section class="section" style="text-align: center;">
-    <div class="container reveal" style="max-width: 800px;">
+    <div class="container reveal">
       <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Evaluación Funcional</span>
-      <h2 class="section-title" style="font-size: 2rem; margin-top: 0.5rem;">Demostración del Sistema</h2>
-      <p class="section-subtitle" style="margin: 1rem auto 2rem; font-size: 1.05rem; text-align: justify; text-justify: inter-word; hyphens: auto;">
+      <h2 class="section-title" style="font-size: 2rem; margin-top: 0.5rem; text-wrap: balance;">Demostración del Sistema</h2>
+      <p class="section-subtitle" style="margin: 1rem auto 2rem; font-size: 1.05rem; text-align: center; text-wrap: balance;">
         Entorno disponible para comprobar tiempos de procesamiento en entrega, registro de beneficiarios y emisión del acta de cierre de jornada.
       </p>
       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
