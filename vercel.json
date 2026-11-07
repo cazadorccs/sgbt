@@ -54,6 +54,18 @@
       "destination": "/public/propuesta_comercializacion.html"
     },
     {
+      "source": "/plan-financiamiento",
+      "destination": "/public/plan_financiamiento.html"
+    },
+    {
+      "source": "/plan_financiamiento",
+      "destination": "/public/plan_financiamiento.html"
+    },
+    {
+      "source": "/Plan_de_Financiamiento_SGBT.md",
+      "destination": "/public/Plan_de_Financiamiento_SGBT.md"
+    },
+    {
       "source": "/propuesta_comercializacion",
       "destination": "/public/propuesta_comercializacion.html"
     },

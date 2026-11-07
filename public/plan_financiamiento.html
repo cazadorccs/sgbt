@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plan de Financiamiento y Presupuesto de Inversión · SGBT</title>
+  <link rel="icon" type="image/png" href="docs/logo_sgbt_512x512.png">
+
+  <!-- GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap"
+    rel="stylesheet">
+
+  <style>
+    :root {
+      --surface: #eef2f6;
+      --surface-card: #ffffff;
+      --dark: #0f172a;
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --primary-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      --emerald: #059669;
+      --emerald-dark: #047857;
+      --text: #1e293b;
+      --text-muted: #475569;
+      --border-subtle: 1px solid rgba(255, 255, 255, 0.9);
+      --neu-flat: 8px 8px 18px rgba(166, 180, 200, 0.45), -8px -8px 18px rgba(255, 255, 255, 0.95);
+      --neu-pressed: inset 3px 3px 6px rgba(166, 180, 200, 0.4), inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 8px;
+      --ease-lux: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--surface);
+      color: var(--text);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    p {
+      text-align: left;
+      text-wrap: pretty;
+      margin-bottom: 1rem;
+      color: var(--text-muted);
+    }
+
+    h1, h2, h3, h4, .brand-title {
+      font-family: 'Outfit', sans-serif;
+      color: var(--dark);
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    .container {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* HEADER */
+    header {
+      background: rgba(238, 242, 246, 0.92);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    }
+
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      text-decoration: none;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1.5px solid #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--neu-flat);
+      overflow: hidden;
+      padding: 2px;
+    }
+
+    .brand-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--dark);
+      line-height: 1.2;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.25s var(--ease-lux);
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+
+    .btn-outline {
+      background: var(--surface);
+      color: var(--text);
+      box-shadow: var(--neu-flat);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .btn-outline:hover {
+      box-shadow: var(--neu-pressed);
+      color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary-gradient);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.45);
+    }
+
+    /* HERO SECTION */
+    .hero {
+      padding: 3rem 0 2.5rem;
+      position: relative;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      padding: 0.35rem 0.95rem;
+      border-radius: 30px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.2rem;
+    }
+
+    .hero-title {
+      font-size: 2.35rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1.2rem;
+      color: var(--dark);
+    }
+
+    .hero-title span {
+      color: var(--primary);
+    }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      max-width: 900px;
+      margin-bottom: 2rem;
+      color: var(--text-muted);
+    }
+
+    /* KEY STATS BAR */
+    .ask-card {
+      background: linear-gradient(135deg, #091a36 0%, #0f2b57 100%);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      padding: 2.2rem;
+      box-shadow: 0 10px 30px rgba(9, 26, 54, 0.25);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      margin-bottom: 3rem;
+    }
+
+    .ask-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.8rem;
+      align-items: center;
+    }
+
+    .ask-stat-box {
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      padding-right: 1.5rem;
+    }
+
+    .ask-stat-box:last-child {
+      border-right: none;
+      padding-right: 0;
+    }
+
+    .ask-kicker {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #93c5fd;
+      font-weight: 700;
+    }
+
+    .ask-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.1;
+      margin: 0.35rem 0;
+    }
+
+    .ask-val span {
+      color: #38bdf8;
+    }
+
+    .ask-desc {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      line-height: 1.4;
+      margin-bottom: 0;
+    }
+
+    /* SECTIONS */
+    .section-block {
+      background: var(--surface-card);
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      margin-bottom: 2.5rem;
+      box-shadow: var(--neu-flat);
+    }
+
+    .section-title {
+      font-size: 1.55rem;
+      font-weight: 800;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .section-desc {
+      font-size: 0.95rem;
+      margin-bottom: 1.8rem;
+      color: var(--text-muted);
+    }
+
+    /* TABLES */
+    .data-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.88rem;
+      border: 1px solid #cbd5e1;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .data-table th {
+      background: #f1f5f9;
+      color: var(--dark);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1.5px solid #cbd5e1;
+      text-align: left;
+    }
+
+    .data-table td {
+      padding: 0.9rem 1.1rem;
+      border-bottom: 1px solid #e2e8f0;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tr:hover td {
+      background: #f8fafc;
+    }
+
+    .total-row td {
+      background: #f8fafc !important;
+      font-weight: 800;
+      color: var(--dark);
+      border-top: 2px solid var(--dark);
+      font-size: 0.95rem;
+    }
+
+    /* CARDS GRID */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .mini-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 4px solid var(--primary);
+      border-radius: var(--radius-md);
+      padding: 1.4rem;
+    }
+
+    .mini-card h4 {
+      font-size: 1.05rem;
+      font-weight: 800;
+      margin-bottom: 0.4rem;
+      color: var(--dark);
+    }
+
+    .mini-card p {
+      font-size: 0.85rem;
+      line-height: 1.55;
+      margin-bottom: 0.8rem;
+    }
+
+    .mini-card .card-metric {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* ROI BANNER */
+    .roi-box {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: var(--radius-md);
+      padding: 1.8rem;
+      margin: 1.5rem 0;
+    }
+
+    .roi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .roi-stat {
+      text-align: center;
+    }
+
+    .roi-stat .val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      color: var(--emerald-dark);
+      line-height: 1;
+    }
+
+    .roi-stat .lbl {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--emerald-dark);
+      text-transform: uppercase;
+      margin-top: 0.4rem;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid #cbd5e1;
+      padding: 2.5rem 0;
+      background: #ffffff;
+      margin-top: 4rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    @media print {
+      header, .header-actions, footer {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+      }
+      .section-block {
+        box-shadow: none;
+        border: 1px solid #cbd5e1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="container header-nav">
+      <a href="/dossier" class="brand">
+        <div class="brand-logo">
+          <img src="docs/logo_sgbt_512x512.png" alt="Logo SGBT">
+        </div>
+        <div>
+          <div class="brand-title">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
+          <div class="brand-subtitle">Plan Integral de Financiamiento & Presupuesto de Inversión</div>
+        </div>
+      </a>
+      <div class="header-actions">
+        <button type="button" onclick="window.print()" class="btn btn-outline" title="Imprimir o Exportar PDF">
+          🖨️ Imprimir Plan
+        </button>
+        <a href="Plan_de_Financiamiento_SGBT.md" target="_blank" class="btn btn-outline" title="Ver archivo Markdown fuente">
+          📋 Documento .MD
+        </a>
+        <a href="brochure.pdf" target="_blank" class="btn btn-outline" title="Ver Brochure Oficial">
+          📄 Brochure PDF
+        </a>
+        <a href="/dossier" class="btn btn-primary">
+          ⬅ Volver al Dossier
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="container">
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <span class="badge-pill">Convocatoria a Financiamiento &middot; Innovación Tecnológica GovTech</span>
+      <h1 class="hero-title">
+        Plan Integral de Financiamiento: <span>Escalamiento Nacional y Soberanía Criptográfica</span>
+      </h1>
+      <p class="hero-subtitle">
+        Presupuesto auditado y plan de inversión para la transición tecnológica del SGBT desde su validación operativa demostrada (TRL 7 en sede central MIPPCI) hacia el despliegue federado en 10 instituciones públicas (TRL 9), atendiendo a más de 35,000 beneficiarios directos con cero fraude y trazabilidad matemática.
+      </p>
+
+      <!-- ASK CARD METRICS -->
+      <div class="ask-card">
+        <div class="ask-grid">
+          <div class="ask-stat-box">
+            <div class="ask-kicker">Monto Total Solicitado</div>
+            <div class="ask-val">$68,500 <span>USD</span></div>
+            <div class="ask-desc">Inversión única en 6 meses de ejecución técnica estructurada.</div>
+          </div>
+          <div class="ask-stat-box">
+            <div class="ask-kicker">Madurez del Proyecto</div>
+            <div class="ask-val">TRL 7 <span>➔ 9</span></div>
+            <div class="ask-desc">De caso de éxito probado en MIPPCI a escala multi-ente.</div>
+          </div>
+          <div class="ask-stat-box">
+            <div class="ask-kicker">Población Objetivo</div>
+            <div class="ask-val">35,000+</div>
+            <div class="ask-desc">Trabajadores y familias atendidas en 10 instituciones.</div>
+          </div>
+          <div class="ask-stat-box">
+            <div class="ask-kicker">Retorno de Inversión (Año 1)</div>
+            <div class="ask-val">+298% <span>ROI</span></div>
+            <div class="ask-desc">Amortización total en menos de 3.2 meses de operación.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BENCHMARK TECNOLOGICO -->
+    <section class="section-block">
+      <h2 class="section-title">📊 1. Justificación del Monto y Benchmark Tecnológico</h2>
+      <p class="section-desc">
+        Comparativa de costos reales de mercado para una solución de logística y trazabilidad de beneficios institucionales de grado bancario:
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Alternativa de Desarrollo / Adquisición</th>
+            <th>Tiempo Estimado</th>
+            <th>Costo Total</th>
+            <th>Riesgo Tecnológico</th>
+            <th>Soberanía / Offline</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Agencia Externa / Software House a la Medida</strong></td>
+            <td>14 a 18 meses</td>
+            <td>$150,000 USD</td>
+            <td>Alto (Desarrollo desde cero)</td>
+            <td>Dependencia de terceros</td>
+          </tr>
+          <tr>
+            <td><strong>ERP Propietario Privativo (SAP / Oracle WMS)</strong></td>
+            <td>9 a 12 meses</td>
+            <td>$130,000 USD</td>
+            <td>Medio (Licencias extranjeras)</td>
+            <td>Requiere internet continuo</td>
+          </tr>
+          <tr style="background: #f0fdf4;">
+            <td><strong style="color: #15803d;">SGBT: Escalamiento del Prototipo Validado (Postulación)</strong></td>
+            <td><strong>6 meses</strong></td>
+            <td><strong style="color: #0284c7;">$68,500 USD</strong></td>
+            <td><strong style="color: #15803d;">Mínimo (&lt;5%, ya probado en campo)</strong></td>
+            <td><strong>100% Soberano &amp; Offline-First</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size: 0.85rem; color: #15803d; font-weight: 700; background: #ecfdf5; padding: 0.75rem 1.2rem; border-radius: 8px; border: 1px solid #a7f3d0;">
+        💡 El financiamiento solicitado genera un ahorro directo del 54.3% respecto a los precios de mercado, al apalancarse sobre un sistema ya operativo y probado con más de 1,100 beneficiarios reales.
+      </div>
+    </section>
+
+    <!-- DESGLOSE PRESUPUESTARIO -->
+    <section class="section-block">
+      <h2 class="section-title">💰 2. Presupuesto Detallado por Partidas de Inversión</h2>
+      <p class="section-desc">
+        Estructura quirúrgica de costos sin gastos suntuarios, orientada en un 73.7% a desarrollo de ingeniería, equipamiento de almacén y ciberseguridad:
+      </p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Partida Presupuestaria</th>
+            <th>Descripción / Alcance</th>
+            <th style="text-align: right;">Monto (USD)</th>
+            <th style="text-align: right;">Porcentaje</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Partida 1: Talento Humano e Ingeniería de Software</strong></td>
+            <td>Arquitecto Lead Criptógrafo, Desarrollador PWA/TWA, Backend/DevSecOps y QA Automation (6 meses).</td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">$26,500.00</td>
+            <td style="text-align: right; font-weight: 700;">38.7%</td>
+          </tr>
+          <tr>
+            <td><strong>Partida 2: Equipamiento de Almacén y Hardware Seguro</strong></td>
+            <td>10 tablets industriales rugerizadas, 10 lectores ópticos 2D, 2,500 tarjetas NFC y 5 UPS portátiles de litio.</td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">$14,000.00</td>
+            <td style="text-align: right; font-weight: 700;">20.4%</td>
+          </tr>
+          <tr>
+            <td><strong>Partida 3: Ciberseguridad, Auditoría Forense &amp; Certificación</strong></td>
+            <td>Auditoría estática/dinámica (Trail of Bits), Pen-testing de APIs y certificación de Habeas Data FIDO2.</td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">$10,000.00</td>
+            <td style="text-align: right; font-weight: 700;">14.6%</td>
+          </tr>
+          <tr>
+            <td><strong>Partida 4: Infraestructura Cloud, Servidores &amp; Redes</strong></td>
+            <td>Bases de datos PostgreSQL dedicadas, Vercel Enterprise, pruebas de estrés con K6 y SIMs M2M (12 meses).</td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">$8,500.00</td>
+            <td style="text-align: right; font-weight: 700;">12.4%</td>
+          </tr>
+          <tr>
+            <td><strong>Partida 5: Despliegue Piloto, Capacitación &amp; Transferencia</strong></td>
+            <td>10 talleres de formación a operadores, material audiovisual interactivo y acompañamiento presencial en 5 operativos.</td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">$6,200.00</td>
+            <td style="text-align: right; font-weight: 700;">9.1%</td>
+          </tr>
+          <tr>
+            <td><strong>Partida 6: Fondo de Reserva y Mitigación de Riesgos</strong></td>
+            <td>Reserva técnica reglamentaria para contingencias de importación de hardware y fluctuaciones de insumos (4.8%).</td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 700;">$3,300.00</td>
+            <td style="text-align: right; font-weight: 700;">4.8%</td>
+          </tr>
+          <tr class="total-row">
+            <td><strong>TOTAL GENERAL SOLICITADO</strong></td>
+            <td><strong>Inversión Total del Proyecto SGBT (6 meses de ejecución)</strong></td>
+            <td style="text-align: right; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #0284c7; font-size: 1.15rem;">$68,500.00</td>
+            <td style="text-align: right; font-weight: 800;">100.0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- HITOS Y DESEMBOLSOS -->
+    <section class="section-block">
+      <h2 class="section-title">📅 3. Cronograma de Hitos y Desembolsos Condicionados</h2>
+      <p class="section-desc">
+        El esquema de financiamiento se liquida en cuatro (4) tramos auditables vinculados a la entrega de resultados técnicos verificables:
+      </p>
+
+      <div class="cards-grid">
+        <div class="mini-card" style="border-left-color: #0284c7;">
+          <h4>Hito 1 · Mes 1 (35%)</h4>
+          <p>Arranque de ingeniería, arquitectura multi-tenant y especificación OpenAPI 3.1 certificada.</p>
+          <div class="card-metric">$23,975.00 USD</div>
+        </div>
+        <div class="mini-card" style="border-left-color: #7c3aed;">
+          <h4>Hito 2 · Mes 2-3 (30%)</h4>
+          <p>Adquisición de hardware rugerizado, 2,500 tarjetas NFC y auditoría estática de seguridad de código.</p>
+          <div class="card-metric" style="color: #7c3aed;">$20,550.00 USD</div>
+        </div>
+        <div class="mini-card" style="border-left-color: #059669;">
+          <h4>Hito 3 · Mes 4-5 (25%)</h4>
+          <p>Plan Piloto en 3 instituciones (5,000 trabajadores), Pen-test sin hallazgos y emisión de actas SHA-256.</p>
+          <div class="card-metric" style="color: #059669;">$17,125.00 USD</div>
+        </div>
+        <div class="mini-card" style="border-left-color: #0f172a;">
+          <h4>Hito 4 · Mes 6 (10%)</h4>
+          <p>Informe final de impacto, transferencia tecnológica completa, liquidación financiera y cierre de fondo.</p>
+          <div class="card-metric" style="color: #0f172a;">$6,850.00 USD</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RETORNO DE INVERSION SOCIAL Y ECONOMICO -->
+    <section class="section-block">
+      <h2 class="section-title">📈 4. Retorno de Inversión (ROI) y Sostenibilidad</h2>
+      <p class="section-desc">
+        Estimación de retorno financiero y ahorro real considerando un despliegue institucional moderado en 3 entes públicos con 10,000 trabajadores:
+      </p>
+
+      <div class="roi-box">
+        <div class="roi-grid">
+          <div class="roi-stat">
+            <div class="val">$255,000</div>
+            <div class="lbl">Ahorro Anual por Merma 0%</div>
+          </div>
+          <div class="roi-stat">
+            <div class="val">$18,000</div>
+            <div class="lbl">Ahorro en Horas-Hombre</div>
+          </div>
+          <div class="roi-stat">
+            <div class="val">+298.5%</div>
+            <div class="lbl">Retorno de Inversión (Año 1)</div>
+          </div>
+          <div class="roi-stat">
+            <div class="val">3.2 Meses</div>
+            <div class="lbl">Tiempo de Amortización</div>
+          </div>
+        </div>
+      </div>
+
+      <p style="margin-top: 1.2rem; font-size: 0.9rem;">
+        <strong>Sostenibilidad Post-Financiamiento:</strong> Culminados los 6 meses de ejecución, la plataforma mantiene su operación autónoma mediante contratos de soporte y licenciamiento B2G ($6,000 a $12,000 USD/institución) y suscripciones SaaS para contratistas privadas, alcanzando su punto de equilibrio financiero en el <strong>Mes 8</strong>.
+      </p>
+    </section>
+
+    <!-- CTA FOOTER -->
+    <div style="text-align: center; margin: 3rem 0 1rem;">
+      <a href="Plan_de_Financiamiento_SGBT.md" target="_blank" class="btn btn-primary" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">
+        📥 Descargar Documento Markdown Completo (.MD)
+      </a>
+      <a href="/dossier" class="btn btn-outline" style="padding: 0.85rem 1.8rem; font-size: 0.95rem; margin-left: 0.8rem;">
+        🗺️ Explorar Dossier y Diagramas de Arquitectura
+      </a>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container footer-content">
+      <div>
+        <strong>Sistema de Gestión de Beneficios a Trabajadores (SGBT)</strong><br>
+        Oficina de Tecnologías de la Información y la Comunicación (OTIC) &middot; MIPPCI
+      </div>
+      <div>
+        Documento Preparado para Fondos de Financiamiento e Innovación Tecnológica &middot; Caracas, 2026
+      </div>
+    </div>
+  </footer>
+
+</body>
+
+</html>
+
