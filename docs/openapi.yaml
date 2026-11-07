@@ -1,11 +1,12 @@
 openapi: 3.1.0
 info:
   title: API Plataforma Combos Alimenticios con Passkeys & Offline-First (SGBT / MIPPCI)
-  version: 2.1.0
+  version: 4.2.0
   description: >
     Especificación OpenAPI 3.1 del API RESTful para la gestión y despacho seguro
     de combos alimenticios con autenticación biométrica FIDO2 / WebAuthn,
-    criptografía asimétrica ECDSA P-256 y arquitectura de sincronización offline-first.
+    criptografía asimétrica ECDSA P-256, segregación estricta de credenciales,
+    autoservicio de recuperación de contraseñas y arquitectura offline-first.
   contact:
     name: Dirección de Tecnología de la Información - MIPPCI
     email: ti@mippci.gob.ve
@@ -321,6 +322,133 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
+
+  /auth/password-recovery/request:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Solicitar recuperación de contraseña (Paso 1)
+      description: Valida la Cédula de Identidad contra el correo o teléfono registrado en nómina y emite un token de recuperación HMAC de 15 minutos.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - document_id
+                - email_or_phone
+              properties:
+                document_id:
+                  type: string
+                  example: "V-18456123"
+                email_or_phone:
+                  type: string
+                  example: "usuario@mippci.gob.ve"
+      responses:
+        '200':
+          description: Identidad verificada y token emitido exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  recovery_token:
+                    type: string
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  worker:
+                    type: object
+                    properties:
+                      full_name:
+                        type: string
+                        example: "Carlos Eduardo Mendoza"
+                      document_id:
+                        type: string
+                        example: "V-18456123"
+                      masked_email:
+                        type: string
+                        example: "c***a@mippci.gob.ve"
+        '400':
+          description: Datos de contacto no coinciden con el registro de nómina
+        '404':
+          description: Cédula no encontrada en el padrón institucional
+
+  /auth/password-recovery/confirm:
+    post:
+      tags:
+        - Autenticación & Passkeys
+      summary: Confirmar nueva contraseña de beneficiario (Paso 2)
+      description: Valida el token temporal y asigna la nueva contraseña encriptada en la base de datos y Supabase Cloud.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - recovery_token
+                - new_password
+              properties:
+                recovery_token:
+                  type: string
+                new_password:
+                  type: string
+                  example: "claveSegura2026"
+      responses:
+        '200':
+          description: Contraseña restablecida exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Contraseña restablecida exitosamente."
+                  document_id:
+                    type: string
+                    example: "V-18456123"
+        '400':
+          description: Token expirado o contraseña inválida
+
+  /admin/workers/{id}/password:
+    post:
+      tags:
+        - Nómina & Beneficiarios
+      summary: Asignar contraseña manual o restablecer a precargado (Administración)
+      description: Exclusivo para administradores. Permite asignar una contraseña personalizada o restablecer el estatus del funcionario a precargado para forzar auto-registro.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  example: "clave1234"
+                reset_to_precargado:
+                  type: boolean
+                  example: false
+      responses:
+        '200':
+          description: Contraseña o estatus actualizado correctamente
+        '401':
+          description: No autorizado
+        '403':
+          description: Privilegios insuficientes (requiere admin o director)
 
   /auth/passkey/register-challenge:
     post:

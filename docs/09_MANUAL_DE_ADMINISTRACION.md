@@ -3,16 +3,17 @@
 
 ---
 
-### 1. Perfil del Administrador y Acceso a la Consola
+### 1. Perfil del Administrador y Acceso a la Consola Segura (`/coseg`)
 
 El perfil de **Administrador** está reservado para el personal autorizado de la Dirección General de Gestión Humana y la Dirección General de Tecnologías de la Información y la Comunicación (DGTIC). 
 
-- **URL de Acceso:** `http://localhost:3000` (o `https://sgbt-bice.vercel.app/` en producción).
-- **Mecanismo de Ingreso:** 
-  1. En la pantalla inicial de bienvenida, presione el botón **Acceso Administrativo**.
-  2. Ingrese su **Cédula de Identidad** (ej. `13537582`) o su **Correo Electrónico Institucional** (ej. `Sfranco@mippci.gob.ve`).
-  3. Ingrese la **Clave / PIN de Acceso Administrativo** (`ADMIN_ACCESS_SECRET`).
-  4. El sistema valida los privilegios del rol `admin`, genera la cookie de sesión protegida `HttpOnly` y redirige a la consola de gobernanza. Si se ingresa una cédula de rol ordinario (`worker`), el sistema bloquea el acceso con código HTTP 403.
+- **URL de Acceso Directo:** `https://sgbt-bice.vercel.app/coseg` (o `http://localhost:3000/coseg`).
+- **Mecanismo de Ingreso y Segregación Estricta:** 
+  1. En la pantalla inicial o en `/coseg`, seleccione la modalidad **Administrar Sistema**.
+  2. Ingrese su **Cédula de Identidad** (ej. `13537582`) o su **Correo Electrónico Institucional**.
+  3. Ingrese el **PIN de Seguridad Administrativo Oficial** (`ADMIN_ACCESS_SECRET`).
+  4. **Segregación Trail of Bits:** El sistema **rechaza terminantemente el uso de contraseñas de beneficiario** para ingresar al panel de administración. Solo se concederá acceso y alcance administrativo (`session_scope: 'admin'`) si se valida el PIN oficial.
+  5. Si un usuario con rol administrativo ingresa mediante el portal público de beneficiarios (con su clave personal de 4 dígitos), se le otorgará alcance de beneficiario y tendrá restringidas todas las rutas y operaciones de gestión hasta que ingrese por la consola formal con su PIN.
 
 ---
 
@@ -40,6 +41,21 @@ El sistema ahora persiste automáticamente cada cambio en la nube. Para auditar 
 npm run verify:cloud
 ```
 El script evaluará las 7 tablas maestras, credenciales formalizadas, passkeys WebAuthn, entregas y tarjetas NFC, arrojando un reporte de conformidad en tiempo real.
+
+#### 2.3 Directorio de Empleados y Padrón con Contadores en Tiempo Real
+1. En la pestaña **Directorio de Empleados**, el sistema presenta una barra superior de métricas consolidadas:
+   - **Total Padrón:** Cantidad neta de funcionarios registrados (ej. 1,138+ funcionarios).
+   - **Personal Activo:** Total de funcionarios activos y contratados.
+   - **Personal Jubilado:** Total de jubilados y pensionados.
+   - **Formalizados:** Cantidad y porcentaje de funcionarios que ya completaron su auto-registro fotográfico y asignaron contraseña institucional.
+2. Dispone de un buscador en tiempo real por Cédula, Nombres, Departamento o Correo, así como filtros por estatus de formalización (`precargado` vs. `registrado`).
+
+#### 2.4 Módulo de Gestión de Credenciales y Contraseñas
+1. Al hacer clic en cualquier trabajador dentro del Directorio o presionar el botón **Gestionar Credenciales**, se despliega el modal administrativo de contraseñas.
+2. **Acciones Disponibles para Administradores:**
+   - **Asignación Manual de Contraseña:** Permite definir directamente una contraseña temporal segura para el funcionario en caso de contingencia.
+   - **Restablecer a Estatus Precargado (Auto-Registro):** Elimina la contraseña previa y regresa al funcionario al estatus `precargado`, forzando que en su próximo ingreso deba realizar el flujo de auto-enrolamiento con captura fotográfica.
+   - **Revocación Inmediata de Passkeys:** Botón de emergencia para desvincular celulares extraviados o cambiados.
 
 ---
 

@@ -40,6 +40,17 @@ Si el beneficiario aún no ha completado su expediente digital en el sistema:
    - Muestre la pantalla de su teléfono al operador del punto de despacho.
    - Una vez escaneado y confirmado el retiro, el código cambiará de color a verde y la pantalla confirmará que su beneficio fue entregado con éxito.
 
+#### 1.6 Recuperación de Contraseña Olvidada (Autoservicio)
+En caso de olvidar o extraviar su contraseña institucional asignada durante la formalización:
+1. En la pantalla de inicio de sesión de beneficiarios, presione el enlace **"¿Olvidó su contraseña? Recupérela aquí"**.
+2. En la ventana emergente, ingrese:
+   - Su número de **Cédula de Identidad** (ej. `V-18456123`).
+   - Su **Correo Electrónico Institucional** o su **Número Telefónico** registrado en nómina.
+3. Presione el botón **Verificar Identidad**. El sistema corroborará sus datos contra el padrón oficial en menos de 1 segundo.
+4. Al confirmar su identidad, ingrese su **Nueva Contraseña** (mínimo 4 caracteres) y escríbala nuevamente en el campo de confirmación.
+5. Presione **Guardar Nueva Contraseña**.
+6. Recibirá una confirmación exitosa y podrá ingresar de inmediato a su carnet de beneficiario utilizando su nueva clave.
+
 ---
 
 ### 2. Guía para el Operador de Almacén (Punto de Despacho)

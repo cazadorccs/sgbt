@@ -3,11 +3,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
-[![Architecture](https://img.shields.io/badge/Architecture-Modular%20v3.2-brightgreen.svg)]()
-[![E2E Tests](https://img.shields.io/badge/E2E%20Tests-41%2F41%20Passed-success.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Modular%20v4.2-brightgreen.svg)]()
+[![E2E Tests](https://img.shields.io/badge/Test%20Suites-9%2F9%20Passed%20(100%25)-success.svg)]()
 [![Cloud Audit](https://img.shields.io/badge/Cloud%20Persistence-6%2F6%20Verified-blue.svg)]()
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-v3.1.0-orange.svg)](http://localhost:3000/docs)
-[![Security](https://img.shields.io/badge/Security-FIDO2%20%2F%20ECDSA%20P--256-blueviolet.svg)]()
+[![Security](https://img.shields.io/badge/Security-Trail%20of%20Bits%20%7C%20FIDO2%20Passkeys-blueviolet.svg)]()
 
 ---
 
@@ -48,14 +48,15 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
    - 8 Decisiones de Arquitectura Formales (ADRs) documentadas en `docs/adr/`.
    - Explorador interactivo visual Swagger UI integrado en `/docs` y especificación OpenAPI 3.1 descargable en `/api/v1/docs/openapi.yaml`.
 
-7. **Doble Modalidad de Login y Control de Acceso RBAC Estricto:**
-   - Acceso conmutado en interfaz: **Beneficiarios / Almacén** (ingreso directo a su carnet de beneficiario mediante Cédula) vs. **Administrar Sistema** (exige validación de rol de administración y verificación de clave/PIN de seguridad institucional `ADMIN_ACCESS_SECRET`).
-   - Previene que beneficiarios con cédulas registradas en el padrón visualicen el panel de gobernanza sin previa autenticación administrativa secundaria.
+7. **Doble Modalidad de Login y Segregación Criptográfica Estricta (ADR-0010):**
+   - Acceso conmutado en interfaz y backend: **Beneficiarios / Almacén** (ingreso mediante Cédula y contraseña de beneficiario / Passkey FIDO2) vs. **Consola Administrativa Segura (`/coseg`)** (exige validación estricta de rol administrativo y verificación exclusiva del PIN oficial `ADMIN_ACCESS_SECRET`).
+   - Principio de Menor Privilegio: Un beneficiario no puede elevar privilegios a la consola de administración usando su clave de 4 dígitos, y el PIN administrativo no puede ser usado para usurpar el retiro de combos de un beneficiario.
+   - Las sesiones emiten alcance explícito (`session_scope: 'admin' | 'beneficiary'`). Las rutas `/api/v1/admin/*` exigen elevación administrativa confirmada.
 
 8. **Diseño Responsivo, Contención de Modales y Ergonomía de Scroll (ADR-0008):**
    - Contención estricta en 15 ventanas modales con `max-width: min(calc(100vw - 1rem), ...)` y `max-height: min(92vh, 92dvh)`.
    - Cabeceras fijas (`position: sticky; top: -1rem; z-index: 30;`) en modales para que el botón de cerrar y título permanezcan permanentemente visibles al hacer scroll.
-   - Contenedores con altura delimitada `.table-scroll-container` (`max-height: clamp(380px, 58vh, 620px)`) y encabezados fijos (`thead th` sticky) para tablas masivas de nómina (1,136 trabajadores) y auditoría, erradicando el scroll vertical global infinito.
+   - Contenedores con altura delimitada `.table-scroll-container` (`max-height: clamp(380px, 58vh, 620px)`) y encabezados fijos (`thead th` sticky) para tablas masivas de nómina (1,138+ trabajadores) y auditoría, erradicando el scroll vertical global infinito.
    - Barra de subpestañas móviles con deslizamiento horizontal táctil nativo sin desborde ni amontonamiento de filas.
 
 9. **Persistencia Criptográfica Garantizada en la Nube y Auditoría DevSecOps (ADR-0009):**
@@ -63,38 +64,62 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
    - **Persistencia de 5 Procesos Críticos:** Formalización de beneficiario y credenciales (`passkey_credentials`), llaves públicas FIDO2 WebAuthn, entregas físicas y liquidaciones con resolución de llaves foráneas (`deliveries` / `daily_entitlements`), y vinculación / revocación de tarjetas NFC (`nfc_cards`).
    - **Herramienta de Auditoría en Vivo:** Script automatizado (`npm run verify:cloud`) que ejecuta una inspección integral de los 6 procesos de integridad contra la nube en menos de 6 segundos.
 
-10. **Formalización Multi-Dispositivo de Beneficiarios:**
+10. **Formalización Multi-Dispositivo de Beneficiarios y Recuperación de Contraseñas:**
     - Carga de fotografía del beneficiario con compatibilidad total en múltiples teléfonos: selección desde cámara web en vivo (`capture="user"`) o carga de archivo desde la galería de fotos del dispositivo.
-    - Asignación de contraseña institucional con hashing seguro y vinculación criptográfica del dispositivo (`bound_device_id`), garantizando que al reingresar al sistema el usuario mantenga su sesión formalizada sin volver a solicitar el proceso.
+    - Asignación de contraseña institucional con hashing seguro (`scrypt`/PBKDF2) y vinculación criptográfica del dispositivo (`bound_device_id`).
+    - **Autoservicio de Recuperación:** Flujo en dos pasos con verificación de Cédula y datos de nómina (correo o teléfono institucional), emisión de token HMAC temporal y reasignación de contraseña sin intervención manual de soporte técnico.
+    - **Gestión Administrativa:** Panel para directores que permite cambiar contraseñas manualmente o restablecer funcionarios al estatus `precargado` para forzar su enrolamiento inicial.
+
+11. **Blindaje de Ciberseguridad y Directivas de APIs (Trail of Bits & OWASP API Top 10):**
+    - **CORS Restrictivo:** Lista blanca estricta (`https://sgbt-bice.vercel.app`, dominios Vercel institucionales autorizados y localhost en dev).
+    - **Prevención de DoS:** Límite estándar de 2MB para JSON general, y 50MB exclusivo para importación masiva de nómina y subida de fotografías.
+    - **Prevención BOLA/IDOR:** Asociación automática de credenciales al ID de sesión autenticado (`req.user.id`) en el enrolamiento de Passkeys FIDO2 y protección RBAC en logs de auditoría (`/api/v1/system/logs/*`).
+    - **Secretos Dinámicos:** Generación criptográfica aleatoria de 256 bits en memoria para contingencias en producción, erradicando claves predeterminadas hardcodeadas.
+    - **Cumplimiento RFC 6585 & RFC 7807:** Cabecera `Retry-After` ante bloqueos `HTTP 429` y ofuscación de mensajes de error internos 500 en producción.
 
 ---
 
-## 🧱 Estructura del Proyecto (Arquitectura Modular v3.2)
+## 🧱 Estructura del Proyecto (Arquitectura Modular v4.2)
 
 ```text
 ├── backend/
 │   ├── controllers/            # Controladores desacoplados por dominio
-│   ├── middleware/             # Middleware (Seguridad, Idempotencia, RFC 7807, Auth)
-│   │   ├── auth.middleware.js
-│   │   ├── error.middleware.js
-│   │   ├── idempotency.middleware.js
-│   │   ├── security.middleware.js
-│   │   └── validator.middleware.js
-│   ├── routes/                 # Rutas RESTful bajo prefijo /api/v1/
+│   │   ├── admin.controller.js
+│   │   ├── auth.controller.js  # Login, formalización, passkeys, recuperación de claves
+│   │   ├── campaigns.controller.js
+│   │   ├── deliveries_report.controller.js
+│   │   ├── department_batch.controller.js
+│   │   ├── dispatch.controller.js
+│   │   ├── manual_dispatch.controller.js
+│   │   ├── ministerial_audit.controller.js
+│   │   ├── payroll.controller.js
+│   │   ├── sync.controller.js
+│   │   ├── system.controller.js
+│   │   └── tenant.controller.js
+│   ├── middleware/             # Middleware (Seguridad, Idempotencia, RFC 7807, Auth, Auditoría)
+│   │   ├── audit_logger.middleware.js # Registro universal de actividad y trazas
+│   │   ├── auth.middleware.js         # Verificación criptográfica JWT, RBAC y Device-Bound
+│   │   ├── error.middleware.js        # Formato Problem Details RFC 7807 y ofuscación 500
+│   │   ├── idempotency.middleware.js  # Control de duplicados por Idempotency-Key
+│   │   ├── security.middleware.js     # HSTS, CSP, XSS Sanitizer, Rate Limiting y Lockout
+│   │   └── validator.middleware.js    # Validación estricta de esquemas y DTOs
+│   ├── routes/                 # Rutas RESTful bajo prefijo canónico /api/v1/
 │   ├── services/               # Capa de Servicios Especializados
 │   │   ├── cloud_sync.service.js # Sincronización criptográfica garantizada hacia Supabase Cloud
+│   │   ├── logger.service.js     # Bitácora relacional de auditoría y Server-Sent Events
+│   │   ├── mfa.service.js        # Autenticación Multifactor TOTP RFC 6238 y Backup Codes
 │   │   ├── passkey.service.js    # Criptografía FIDO2 / WebAuthn ECDSA P-256
+│   │   ├── session.service.js    # Gestión de sesiones persistentes y amarre de dispositivo
 │   │   ├── sse.service.js        # Server-Sent Events en tiempo real
 │   │   └── supervisor.service.js # Firmas HMAC-SHA256 y QR diario de fiscalización
-│   ├── crypto-utils.js         # Utilidades ECDSA P-256, Nonce y WebAuthn
+│   ├── crypto-utils.js         # Utilidades ECDSA P-256, Nonce, Tokens HMAC y WebAuthn
 │   ├── db.js                   # Abstracción híbrida SQLite / Supabase Cloud con hidratación
 │   ├── migrator.js             # Motor declarativo de migraciones versionadas
-│   ├── server.js               # Bootstrap modular del servidor Express
-│   ├── test_e2e_suite.js       # Suite E2E de arquitectura (26/26 pruebas)
-│   └── verify_cloud_persistence.js # Script de auditoría DevSecOps de persistencia en la nube
+│   ├── server.js               # Bootstrap modular del servidor Express con CORS y HTTPS
+│   └── test_e2e_suite.js       # Suite E2E de arquitectura (26/26 pruebas)
 │
 ├── docs/
-│   ├── adr/                    # Architecture Decision Records (0001 - 0009)
+│   ├── adr/                    # Architecture Decision Records (0001 - 0010)
 │   │   ├── 0001-fido2-passkeys-como-factor-de-identidad.md
 │   │   ├── 0002-arquitectura-dual-sqlite-wasm-supabase.md
 │   │   ├── 0003-estrategia-revocacion-jwt-cookies-httponly.md
@@ -104,6 +129,7 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   │   ├── 0007-sistema-declarativo-migraciones-versionadas.md
 │   │   ├── 0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md
 │   │   ├── 0009-persistencia-criptografica-en-la-nube-supabase.md
+│   │   ├── 0010-segregacion-estricta-credenciales-y-blindaje-api-gateway.md
 │   │   ├── README.md
 │   │   └── template.md
 │   └── openapi.yaml            # Contrato OpenAPI 3.1 oficial de la API REST
@@ -113,11 +139,26 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   ├── 002_add_extended_combo_fields.sql
 │   └── 003_add_idempotency_keys.sql
 │
-├── tests/
-│   ├── e2e_offline_flow.test.js     # Suite E2E Offline, Idempotencia y RFC 7807 (9/9)
-│   └── security_hardening_mfa.test.js # Suite DevSecOps, OWASP, TOTP y Lockout (6/6)
+├── tests/                      # Batería de 9 suites automatizadas (100% Pasadas)
+│   ├── contract_openapi.test.js        # Validación contra contrato OpenAPI 3.1 (9/9)
+│   ├── e2e_offline_flow.test.js        # Flujo Offline, Idempotencia y RFC 7807 (9/9)
+│   ├── edge_cases_dispatch.test.js     # Casos límite y resiliencia en almacén (10/10)
+│   ├── sdd_remediation_spec.test.js    # Especificación de remediación SDD (8/8)
+│   ├── security_auth_bypass.test.js    # Suite Trail of Bits: Auth Bypass y Segregación (9/9)
+│   ├── security_hardening_mfa.test.js  # DevSecOps, OWASP, TOTP y Lockout (6/6)
+│   ├── user_password_management.test.js# Gestión y recuperación de contraseñas (8/8)
+│   └── wcag_dark_mode_contrast.test.js # Accesibilidad WCAG 2.2 AA y contraste UI (8/8)
 │
 ├── public/
+│   ├── css/styles.css          # Design System responsivo sin transition: all, contención modal y sticky tables
+│   ├── js/core/                # Motor de audio/háptica, estado reactivo, API y toast
+│   ├── js/modules/             # Módulos de beneficiario, despacho, admin, nómina y auditoría
+│   ├── templates/modals.html   # 15 ventanas modales accesibles (.modal-close-btn) y responsivas
+│   ├── sw.js                   # Service Worker Offline-First (Caché PWA)
+│   └── manifest.json           # Manifiesto PWA instalable
+│
+├── DOCUMENTACION_CAMBIOS_ARQUITECTURA_V3.md
+└── package.json
 │   ├── css/styles.css          # Design System responsivo sin transition: all, contención modal y sticky tables
 │   ├── js/core/                # Motor de audio/háptica, estado reactivo, API y toast
 │   ├── js/modules/             # Módulos de beneficiario, despacho, admin y nómina
