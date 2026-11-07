@@ -39,11 +39,11 @@
     },
     {
       "source": "/brochure",
-      "destination": "/public/SGBT_Brochure_Institucional.pdf"
+      "destination": "/public/brochure.pdf"
     },
     {
       "source": "/brochure.pdf",
-      "destination": "/public/SGBT_Brochure_Institucional.pdf"
+      "destination": "/public/brochure.pdf"
     },
     {
       "source": "/SGBT_Brochure_Institucional.pdf",

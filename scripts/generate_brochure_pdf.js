@@ -29,6 +29,12 @@ try {
   // Copiar también a docs/
   fs.copyFileSync(outPublic, outDocs);
   console.log(`Copia sincronizada en: ${outDocs}`);
+
+  const publicBrochurePdf = path.resolve(__dirname, '..', 'public', 'brochure.pdf');
+  const docsBrochurePdf = path.resolve(__dirname, '..', 'docs', 'brochure.pdf');
+  fs.copyFileSync(outPublic, publicBrochurePdf);
+  fs.copyFileSync(outPublic, docsBrochurePdf);
+  console.log(`Copias brochure.pdf sincronizadas.`);
 } catch (err) {
   console.error('Error generando PDF:', err);
   process.exit(1);
