@@ -32,7 +32,7 @@
     }
 
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: 'Plus Jakarta Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
       background: #ffffff;
       color: #1e293b;
       font-size: 8.5pt;
@@ -135,7 +135,7 @@
 
     /* TYPOGRAPHY RULES */
     h1, h2, h3, h4 {
-      font-family: 'Outfit', sans-serif;
+      font-family: 'Outfit', 'Segoe UI', -apple-system, Roboto, Helvetica, Arial, sans-serif;
       color: #0f172a;
       letter-spacing: -0.015em;
       text-wrap: balance;
@@ -172,27 +172,13 @@
        PAGE 1: PORTADA & PRESENTACIÓN INSTITUCIONAL
        ============================================================ */
     .hero-banner {
-      background: linear-gradient(135deg, #070d1e 0%, #0c1836 50%, #0f2752 100%);
+      background: #091a36;
       color: #ffffff;
-      border-radius: 10px;
-      padding: 6.5mm 6.5mm 5.5mm;
+      border-radius: 8px;
+      padding: 5.5mm 6mm 4.8mm;
       margin-bottom: 3.5mm;
       position: relative;
-      overflow: hidden;
-      border: 1px solid rgba(56, 189, 248, 0.28);
-      box-shadow: 0 4px 14px rgba(11, 19, 41, 0.18);
-    }
-
-    .hero-banner::after {
-      content: '';
-      position: absolute;
-      top: -30%;
-      right: -8%;
-      width: 220px;
-      height: 220px;
-      background: radial-gradient(circle, rgba(56, 189, 248, 0.22) 0%, transparent 70%);
-      border-radius: 50%;
-      pointer-events: none;
+      border: 1.5px solid #0284c7;
     }
 
     .hero-top-row {
@@ -213,7 +199,6 @@
       justify-content: center;
       padding: 3.5px;
       flex-shrink: 0;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .hero-logo-box img {
@@ -268,7 +253,6 @@
       padding: 3mm 2.2mm;
       border-top: 3.5px solid #0284c7;
       text-align: center;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
 
     .kpi-card.kpi-green {
@@ -323,7 +307,6 @@
       border-left: 3.5px solid #0284c7;
       border-radius: 8px;
       padding: 3.5mm 4mm;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       margin-bottom: 3.5mm;
     }
 
@@ -476,7 +459,6 @@
       border: 1px solid rgba(234, 179, 8, 0.35);
       align-items: center;
       margin-bottom: 3.2mm;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
     }
 
     .shield-img-wrap {
@@ -574,7 +556,6 @@
       border: 1px solid #cbd5e1;
       border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
       display: flex;
       flex-direction: column;
     }
@@ -682,7 +663,6 @@
       border-radius: 8px;
       padding: 3mm 3.5mm;
       margin-bottom: 2.8mm;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
 
     .acta-header-box {
@@ -890,11 +870,11 @@
           </div>
           <div class="hero-titles">
             <h1>Sistema de Gestión de Beneficios a Trabajadores · <span>SGBT</span></h1>
-            <h3>Plataforma Gubernamental de Grado Bancario para Despacho y Fiscalización</h3>
+            <h3>Control Criptográfico de Despacho Institucional y Resiliencia Offline-First</h3>
           </div>
         </div>
         <p class="hero-desc">
-          Plataforma gubernamental de grado bancario para la gestión, fiscalización y despacho de beneficios alimenticios a trabajadores. Integra autenticación biométrica FIDO2 en el hardware del beneficiario de manera segura, mediante verificación óptica y proximidad NFC en menos de 200 ms, persistencia transaccional sin conexión SQLite WAL, sincronizacion de datos en el servidor y actas de auditoría con sello criptográfico SHA-256.
+          Plataforma de grado bancario para la gestión, fiscalización y despacho de beneficios alimenticios a trabajadores. Integra autenticación biométrica FIDO2 en el hardware del beneficiario de manera segura, verificación óptica y proximidad NFC en menos de 200 ms, persistencia transaccional local con SQLite WAL y actas de auditoría con sello criptográfico SHA-256.
         </p>
       </div>
 

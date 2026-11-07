@@ -17,6 +17,9 @@ const args = [
   '--headless=new',
   '--disable-gpu',
   '--no-pdf-header-footer',
+  '--virtual-time-budget=5000',
+  '--run-all-compositor-stages-before-draw',
+  '--font-render-hinting=none',
   `--print-to-pdf=${outPublic}`,
   fileUrl
 ];
