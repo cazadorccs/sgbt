@@ -274,6 +274,48 @@
       background: #090d16;
     }
 
+    /* FULLSCREEN VIEWPORT STYLES (PRESERVA TOOLBAR Y CONTROLES DE AUDIO) */
+    .viewport-panel:fullscreen,
+    .viewport-panel:-webkit-full-screen,
+    .viewport-panel.is-fullscreen {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      border-radius: 0 !important;
+      border: none !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #090d16 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      z-index: 99999 !important;
+    }
+
+    .viewport-panel:fullscreen .viewport-toolbar,
+    .viewport-panel:-webkit-full-screen .viewport-toolbar,
+    .viewport-panel.is-fullscreen .viewport-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 100000;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+      border-bottom: 1px solid rgba(56, 189, 248, 0.35);
+      padding: 0.85rem 1.5rem;
+    }
+
+    .viewport-panel:fullscreen .viewport-frame,
+    .viewport-panel:-webkit-full-screen .viewport-frame,
+    .viewport-panel.is-fullscreen .viewport-frame {
+      flex: 1 !important;
+      height: calc(100vh - 66px) !important;
+      min-height: 0 !important;
+    }
+
     /* NARRATION AUDIO HUD */
     .audio-hud {
       display: inline-flex;
@@ -482,7 +524,7 @@
     </div>
 
     <!-- VIEWPORT CENTRALIZADO -->
-    <div class="viewport-panel">
+    <div class="viewport-panel" id="viewport-panel">
       <div class="viewport-toolbar">
         <div class="diagram-meta-active">
           <span class="active-dot"></span>
@@ -512,9 +554,14 @@
         </div>
 
         <div style="display: flex; gap: 0.6rem; align-items: center;">
-          <a id="btn-fullscreen" href="c4-containers.html" target="_blank" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-            Pantalla Completa ↗
+          <button id="btn-fullscreen" onclick="toggleFullscreen()" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;" title="Alternar Pantalla Completa con Barra de Audio">
+            <svg id="fullscreen-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+            <svg id="fullscreen-exit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M10 14l-7 7"/></svg>
+            <span id="fullscreen-btn-text">Pantalla Completa</span>
+          </button>
+          <a id="btn-new-tab" href="c4-containers.html" target="_blank" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;" title="Abrir archivo en nueva pestaña">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            Nueva Pestaña ↗
           </a>
           <a id="btn-json" href="c4-containers.json" target="_blank" class="btn btn-neu" style="padding: 0.45rem 0.9rem; font-size: 0.8rem;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
@@ -592,6 +639,60 @@
     const rateBtn = document.getElementById('audio-rate-btn');
     const playbackRates = [1.0, 1.25, 1.5];
     let currentRateIdx = 0;
+
+    // Fullscreen Controls
+    const viewportPanel = document.getElementById('viewport-panel');
+    const fullscreenBtnText = document.getElementById('fullscreen-btn-text');
+    const fullscreenIcon = document.getElementById('fullscreen-icon');
+    const fullscreenExitIcon = document.getElementById('fullscreen-exit-icon');
+
+    function toggleFullscreen() {
+      const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement || viewportPanel.classList.contains('is-fullscreen'));
+      if (!isFull) {
+        if (viewportPanel.requestFullscreen) {
+          viewportPanel.requestFullscreen().catch(() => {
+            viewportPanel.classList.add('is-fullscreen');
+            updateFullscreenUI(true);
+          });
+        } else if (viewportPanel.webkitRequestFullscreen) {
+          viewportPanel.webkitRequestFullscreen();
+        } else {
+          viewportPanel.classList.add('is-fullscreen');
+          updateFullscreenUI(true);
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        viewportPanel.classList.remove('is-fullscreen');
+        updateFullscreenUI(false);
+      }
+    }
+
+    function updateFullscreenUI(isFullscreen) {
+      if (isFullscreen) {
+        fullscreenBtnText.textContent = 'Salir Pantalla Completa';
+        fullscreenIcon.style.display = 'none';
+        fullscreenExitIcon.style.display = 'inline-block';
+      } else {
+        fullscreenBtnText.textContent = 'Pantalla Completa';
+        fullscreenIcon.style.display = 'inline-block';
+        fullscreenExitIcon.style.display = 'none';
+      }
+    }
+
+    document.addEventListener('fullscreenchange', () => {
+      const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFull) viewportPanel.classList.remove('is-fullscreen');
+      updateFullscreenUI(isFull);
+    });
+    document.addEventListener('webkitfullscreenchange', () => {
+      const isFull = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFull) viewportPanel.classList.remove('is-fullscreen');
+      updateFullscreenUI(isFull);
+    });
 
     function formatTime(seconds) {
       if (!seconds || isNaN(seconds)) return '0:00';
@@ -675,7 +776,7 @@
       if (config) {
         document.getElementById('diagram-frame').src = config.html;
         document.getElementById('active-diagram-title').textContent = config.title;
-        document.getElementById('btn-fullscreen').href = config.html;
+        document.getElementById('btn-new-tab').href = config.html;
         document.getElementById('btn-json').href = config.json;
         loadAudioForCurrentDiagram(wasPlaying);
       }
