@@ -993,6 +993,147 @@
       }
     }
 
+    /* COMPARISON GRID STYLES (EL PROBLEMA HISTORICO VS LA SOLUCION SGBT) */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+      gap: 1.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .comparison-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 1.85rem;
+      box-shadow: var(--neu-flat);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      transition: all 0.3s var(--ease-lux);
+    }
+    .comparison-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--neu-lift);
+    }
+
+    .comparison-card.legacy {
+      border-top: 5px solid #ef4444;
+      background: linear-gradient(180deg, rgba(254, 242, 242, 0.4) 0%, var(--surface) 100%);
+    }
+    .comparison-card.modern {
+      border-top: 5px solid #10b981;
+      background: linear-gradient(180deg, rgba(236, 253, 245, 0.4) 0%, var(--surface) 100%);
+    }
+
+    .comparison-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      margin-bottom: 0.25rem;
+    }
+    .legacy-badge {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .modern-badge {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+
+    .comparison-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.01em;
+    }
+
+    .comparison-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.15rem;
+      padding: 0;
+      margin: 0;
+    }
+
+    .comparison-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      font-size: 0.88rem;
+      line-height: 1.48;
+      color: #334155;
+    }
+
+    .comparison-list li strong {
+      display: block;
+      color: #0f172a;
+      font-size: 0.94rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .list-bullet {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .list-bullet.error {
+      background: rgba(239, 68, 68, 0.15);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .list-bullet.success {
+      background: rgba(16, 185, 129, 0.15);
+      color: #059669;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
+    /* PRINT STYLES FOR PDF BROCHURE EXPORT */
+    @media print {
+      header, .header-actions, .btn, .diagram-viewer-header a, footer {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+      }
+      .container {
+        max-width: 100% !important;
+        padding: 0 !important;
+      }
+      .section {
+        padding: 1.5rem 0 !important;
+        page-break-inside: avoid;
+      }
+      .hero {
+        padding: 1.5rem 0 !important;
+      }
+      .kpi-card, .feature-card, .comparison-card, .showcase-block, .acta-sheet {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        background: #ffffff !important;
+      }
+      .diagram-viewer-shell {
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+
     @media (max-width: 768px) {
       .hero-title {
         font-size: 2rem;
@@ -1020,16 +1161,21 @@
     <div class="container header-nav">
       <div class="brand">
         <div class="brand-logo" style="padding: 2px; overflow: hidden; background: white; border: 1.5px solid #0284c7;">
-          <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo SGBT"
+          <img src="docs/logo_sgbt_512x512.png" alt="Escudo SGBT"
             style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
         </div>
         <div>
           <div class="brand-title">Sistema de Gestión de Beneficios a Trabajadores (SGBT)</div>
-          <div class="brand-subtitle">Despacho Institucional y Verificación Biométrica FIDO2 &middot; MIPPCI</div>
+          <div class="brand-subtitle">Dossier Institucional & Brochure Tecnológico &middot; MIPPCI v4.2</div>
         </div>
       </div>
       <div class="header-actions">
-        <a href="diagrams/index.html" class="btn btn-outline">Ver Diagramas</a>
+        <button type="button" onclick="window.print()" class="btn btn-outline" title="Descargar o Imprimir Brochure en PDF">
+          🖨️ Imprimir / PDF
+        </button>
+        <a href="diagrams/index.html" class="btn btn-outline" title="Ver Arquitectura Interactiva con Voz Neuronal">
+          🗺️ Diagramas con Voz
+        </a>
         <a href="/coseg" class="btn btn-primary">⬅ Panel Principal</a>
       </div>
     </div>
@@ -1038,33 +1184,145 @@
   <!-- HERO SECTION -->
   <section class="hero">
     <div class="container">
-      <span class="badge-pill reveal">Informe Técnico y Operativo de Despacho</span>
-      <h1 class="hero-title reveal delay-1">Control de Despacho Institucional de Beneficios y Registro Local <span>Sin Conexión</span></h1>
+      <span class="badge-pill reveal">Dossier Digital de Arquitectura y Gobernanza &middot; MIPPCI</span>
+      <h1 class="hero-title reveal delay-1">Control Criptográfico de Despacho Institucional y Resiliencia <span>Offline-First</span></h1>
       <p class="hero-subtitle reveal delay-2">
-        Sistema para el registro, deducción de inventario y entrega de combos institucionales en almacén. Ejecuta verificación biométrica FIDO2 en menos de 2 segundos, control relacional de entrega única por beneficiario y actas de auditoría con sello criptográfico SHA-256.
+        Plataforma gubernamental de grado bancario para la gestión, fiscalización y despacho de beneficios alimenticios. Integra autenticación biométrica FIDO2 en hardware seguro, verificación óptica y proximidad NFC en menos de 200 ms, persistencia transaccional sin conexión SQLite WAL y actas de auditoría con sello criptográfico SHA-256.
       </p>
 
       <!-- METRICAS / KPIS CLAVE -->
       <div class="kpi-grid">
         <div class="kpi-card reveal delay-1">
-          <div class="kpi-num">&lt; 2s</div>
-          <div class="kpi-label">Tiempo de Verificación</div>
-          <div class="kpi-desc">Lectura óptica de código y deducción en mesa de entrega.</div>
+          <div class="kpi-num">&lt; 200ms</div>
+          <div class="kpi-label">Validación Criptográfica</div>
+          <div class="kpi-desc">Lectura óptica de QR dinámico y Tap NFC P2P con comprobación asimétrica ECDSA P-256.</div>
         </div>
         <div class="kpi-card reveal delay-2">
           <div class="kpi-num">100%</div>
-          <div class="kpi-label">Operación Local sin Red</div>
-          <div class="kpi-desc">Registro en base de datos local SQLite y almacenamiento de navegador.</div>
+          <div class="kpi-label">Resiliencia Offline-First</div>
+          <div class="kpi-desc">Operación continua en sótanos y almacenes sin internet mediante SQLite WAL local.</div>
         </div>
         <div class="kpi-card reveal delay-3">
           <div class="kpi-num">0%</div>
           <div class="kpi-label">Duplicidad de Entregas</div>
-          <div class="kpi-desc">Restricción relacional de entrega única e identificación por Idempotency-Key.</div>
+          <div class="kpi-desc">Garantía matemática con índice <code>idx_unique_daily_claim</code> y cabecera de Idempotencia.</div>
         </div>
         <div class="kpi-card reveal delay-4">
-          <div class="kpi-num">1,136+</div>
+          <div class="kpi-num">1,137+</div>
           <div class="kpi-label">Padrón de Beneficiarios</div>
-          <div class="kpi-desc">Personal activo, contratado y jubilado registrado en nómina ministerial.</div>
+          <div class="kpi-desc">Personal activo, contratado y jubilado registrado en nómina ministerial oficial.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       SECCION: EL PROBLEMA QUE RESUELVE Y TRANSFORMACION DIGITAL
+       ====================================================================== -->
+  <section class="section" id="problema-solucion"
+    style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="badge-pill" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">Diagnóstico y Valor Público</span>
+        <h2 class="section-title">El Desafío Operativo y el Problema que Resuelve</h2>
+        <p class="section-subtitle">
+          De la vulnerabilidad y lentitud de los métodos manuales en papel a la certeza matemática y trazabilidad digital del SGBT.
+        </p>
+      </div>
+
+      <div class="comparison-grid reveal delay-1">
+        <!-- TARJETA: EL PROBLEMA HISTORICO -->
+        <div class="comparison-card legacy">
+          <div class="comparison-header">
+            <div class="comparison-badge legacy-badge">
+              <span>⚠️ Proceso Analógico Tradicional (El Problema)</span>
+            </div>
+            <h3 class="comparison-title">Fugas, Retrasos y Falta de Trazabilidad</h3>
+          </div>
+          <ul class="comparison-list">
+            <li>
+              <div class="list-bullet error">✕</div>
+              <div>
+                <strong>Planillas Físicas y Firmas en Papel:</strong>
+                Listados impresos expuestos a daño, pérdida, adulteración en almacenes y firmas manuscritas imposibles de auditar en tiempo real.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet error">✕</div>
+              <div>
+                <strong>Riesgo de Duplicidad y Doble Retiro:</strong>
+                Imposibilidad de conciliar en el acto cuando una misma persona o intermediario intenta retirar en diferentes mesas o jornadas.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet error">✕</div>
+              <div>
+                <strong>Parálisis Operativa por Falta de Internet:</strong>
+                Los depósitos y sótanos carecen de cobertura estable; los sistemas web estándar colapsan y detienen la atención de cientos de funcionarios.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet error">✕</div>
+              <div>
+                <strong>Suplantación de Identidad por Cédulas Prestadas:</strong>
+                El uso de fotocopias o carnets físicos facilita el desvío indebido de beneficios sin conocimiento ni consentimiento del titular.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet error">✕</div>
+              <div>
+                <strong>Semanas para Conciliar Nóminas y Emitir Actas:</strong>
+                El cierre administrativo requería días de conteo manual de planillas para totalizar kilos entregados y cuadrar sobrantes.
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- TARJETA: LA SOLUCION SGBT -->
+        <div class="comparison-card modern">
+          <div class="comparison-header">
+            <div class="comparison-badge modern-badge">
+              <span>🛡️ Solución Tecnológica SGBT (La Respuesta)</span>
+            </div>
+            <h3 class="comparison-title">Certeza Criptográfica, Rapidez e Inmutabilidad</h3>
+          </div>
+          <ul class="comparison-list">
+            <li>
+              <div class="list-bullet success">✓</div>
+              <div>
+                <strong>Identidad Soberana con Passkeys FIDO2:</strong>
+                El funcionario firma con su biometría en el chip de hardware seguro de su propio teléfono (TouchID, FaceID o sensor Android).
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet success">✓</div>
+              <div>
+                <strong>Garantía Matemática Anti-Duplicados:</strong>
+                Índice relacional estricto <code>idx_unique_daily_claim</code> y token de Idempotencia que imposibilitan retiros dobles al milisegundo.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet success">✓</div>
+              <div>
+                <strong>Arquitectura Offline-First de Almacén:</strong>
+                Base de datos transaccional local SQLite WAL que despacha con total autonomía sin red y sincroniza por lotes hacia Supabase Cloud.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet success">✓</div>
+              <div>
+                <strong>QR Dinámico (180s) y Tap NFC P2P:</strong>
+                El token de retiro expira en 3 minutos imposibilitando capturas de pantalla o reenvíos; o se entrega por contacto de proximidad.
+              </div>
+            </li>
+            <li>
+              <div class="list-bullet success">✓</div>
+              <div>
+                <strong>Acta Ministerial Inmutable con SHA-256:</strong>
+                Al concluir el despacho, el sistema genera de inmediato el acta oficial con sello digital, tonelaje total métrico y balance por dirección.
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -1509,6 +1767,11 @@
             <span class="tab-title">🗄️ Modelo de Datos (ERD)</span>
             <span class="tab-sub">Identidad de trabajadores, cuotas de jornada, despachos y restricción de entrega única</span>
           </button>
+          <button type="button" class="diagram-tab" onclick="selectDossierDiagram('twa', this)">
+            <span class="tab-kicker" style="color: #d97706;">Móvil & TWA Kiosco</span>
+            <span class="tab-title">📱 Distribución Dual PWA/APK</span>
+            <span class="tab-sub">Despliegue PWA Beneficiarios vs APK Bubblewrap para Almacén con Wake Lock</span>
+          </button>
         </div>
 
         <div class="diagram-viewer-shell">
@@ -1574,6 +1837,16 @@
           <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Modelo ERD ↗</a>
         </div>
+
+        <div class="diagram-card reveal delay-4">
+          <div>
+            <span class="diagram-badge" style="background:#fffbeb; color:#d97706; border-color:#fde68a;">Móvil & TWA Kiosco</span>
+            <h4>Distribución Móvil Dual: PWA vs APK</h4>
+            <p>Estrategia de despliegue diferenciada: PWA Edge-to-Edge para los trabajadores vs APK nativo Bubblewrap para operadores con modo Kiosco y Wake Lock.</p>
+          </div>
+          <a href="diagrams/distribucion-movil-twa.html" target="_blank" class="btn btn-outline"
+            style="justify-content:center;">Abrir Distribución Móvil ↗</a>
+        </div>
       </div>
     </div>
   </section>
@@ -1627,6 +1900,11 @@
         title: 'Modelo de Datos Relacional (ERD) · SQLite WAL + Supabase Cloud · SGBT MIPPCI',
         url: 'diagrams/modelo-datos-erd.html',
         json: 'diagrams/modelo-datos-erd.json'
+      },
+      twa: {
+        title: 'Distribución Móvil Dual: PWA Beneficiarios vs APK TWA Almacén · SGBT MIPPCI',
+        url: 'diagrams/distribucion-movil-twa.html',
+        json: 'diagrams/distribucion-movil-twa.json'
       }
     };
 
