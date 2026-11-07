@@ -1012,6 +1012,7 @@
       gap: 1.25rem;
       transition: all 0.3s var(--ease-lux);
     }
+
     .comparison-card:hover {
       transform: translateY(-3px);
       box-shadow: var(--neu-lift);
@@ -1021,6 +1022,7 @@
       border-top: 5px solid #ef4444;
       background: linear-gradient(180deg, rgba(254, 242, 242, 0.4) 0%, var(--surface) 100%);
     }
+
     .comparison-card.modern {
       border-top: 5px solid #10b981;
       background: linear-gradient(180deg, rgba(236, 253, 245, 0.4) 0%, var(--surface) 100%);
@@ -1038,11 +1040,13 @@
       border-radius: 9999px;
       margin-bottom: 0.25rem;
     }
+
     .legacy-badge {
       background: #fef2f2;
       color: #b91c1c;
       border: 1px solid #fecaca;
     }
+
     .modern-badge {
       background: #ecfdf5;
       color: #047857;
@@ -1093,11 +1097,13 @@
       flex-shrink: 0;
       margin-top: 0.1rem;
     }
+
     .list-bullet.error {
       background: rgba(239, 68, 68, 0.15);
       color: #dc2626;
       border: 1px solid rgba(239, 68, 68, 0.35);
     }
+
     .list-bullet.success {
       background: rgba(16, 185, 129, 0.15);
       color: #059669;
@@ -1106,29 +1112,44 @@
 
     /* PRINT STYLES FOR PDF BROCHURE EXPORT */
     @media print {
-      header, .header-actions, .btn, .diagram-viewer-header a, footer {
+
+      header,
+      .header-actions,
+      .btn,
+      .diagram-viewer-header a,
+      footer {
         display: none !important;
       }
+
       body {
         background: #ffffff !important;
         color: #000000 !important;
       }
+
       .container {
         max-width: 100% !important;
         padding: 0 !important;
       }
+
       .section {
         padding: 1.5rem 0 !important;
         page-break-inside: avoid;
       }
+
       .hero {
         padding: 1.5rem 0 !important;
       }
-      .kpi-card, .feature-card, .comparison-card, .showcase-block, .acta-sheet {
+
+      .kpi-card,
+      .feature-card,
+      .comparison-card,
+      .showcase-block,
+      .acta-sheet {
         box-shadow: none !important;
         border: 1px solid #cbd5e1 !important;
         background: #ffffff !important;
       }
+
       .diagram-viewer-shell {
         border: 1px solid #cbd5e1 !important;
       }
@@ -1170,11 +1191,12 @@
         </div>
       </div>
       <div class="header-actions">
-        <button type="button" onclick="window.print()" class="btn btn-outline" title="Descargar o Imprimir Brochure en PDF">
+        <button type="button" onclick="window.print()" class="btn btn-outline"
+          title="Descargar o Imprimir Brochure en PDF">
           🖨️ Imprimir / PDF
         </button>
-        <a href="diagrams/index.html" class="btn btn-outline" title="Ver Arquitectura Interactiva con Voz Neuronal">
-          🗺️ Diagramas con Voz
+        <a href="diagrams/index.html" class="btn btn-outline" title="Ver Arquitectura Interactiva">
+          🗺️ Diagramas
         </a>
         <a href="/coseg" class="btn btn-primary">⬅ Panel Principal</a>
       </div>
@@ -1185,9 +1207,13 @@
   <section class="hero">
     <div class="container">
       <span class="badge-pill reveal">Dossier Digital de Arquitectura y Gobernanza &middot; MIPPCI</span>
-      <h1 class="hero-title reveal delay-1">Control Criptográfico de Despacho Institucional y Resiliencia <span>Offline-First</span></h1>
+      <h1 class="hero-title reveal delay-1">Control Criptográfico de Despacho Institucional y Resiliencia
+        <span>Offline-First</span></h1>
       <p class="hero-subtitle reveal delay-2">
-        Plataforma gubernamental de grado bancario para la gestión, fiscalización y despacho de beneficios alimenticios a trabajadores. Integra autenticación biométrica FIDO2 en el hardware del beneficiario de manera segura, mediante verificación óptica y proximidad NFC en menos de 200 ms, persistencia transaccional sin conexión SQLite WAL, sincronizacion de datos en el servidor y actas de auditoría con sello criptográfico SHA-256.
+        Plataforma gubernamental de grado bancario para la gestión, fiscalización y despacho de beneficios alimenticios
+        a trabajadores. Integra autenticación biométrica FIDO2 en el hardware del beneficiario de manera segura,
+        mediante verificación óptica y proximidad NFC en menos de 200 ms, persistencia transaccional sin conexión SQLite
+        WAL, sincronizacion de datos en el servidor y actas de auditoría con sello criptográfico SHA-256.
       </p>
 
       <!-- METRICAS / KPIS CLAVE -->
@@ -1195,7 +1221,8 @@
         <div class="kpi-card reveal delay-1">
           <div class="kpi-num">&lt; 200ms</div>
           <div class="kpi-label">Validación Criptográfica</div>
-          <div class="kpi-desc">Lectura óptica de QR dinámico y Tap NFC P2P con comprobación asimétrica ECDSA P-256.</div>
+          <div class="kpi-desc">Lectura óptica de QR dinámico y Tap NFC P2P con comprobación asimétrica ECDSA P-256.
+          </div>
         </div>
         <div class="kpi-card reveal delay-2">
           <div class="kpi-num">100%</div>
@@ -1205,7 +1232,8 @@
         <div class="kpi-card reveal delay-3">
           <div class="kpi-num">0%</div>
           <div class="kpi-label">Duplicidad de Entregas</div>
-          <div class="kpi-desc">Garantía matemática con índice <code>idx_unique_daily_claim</code> y cabecera de Idempotencia.</div>
+          <div class="kpi-desc">Garantía matemática con índice <code>idx_unique_daily_claim</code> y cabecera de
+            Idempotencia.</div>
         </div>
         <div class="kpi-card reveal delay-4">
           <div class="kpi-num">1,137+</div>
@@ -1223,10 +1251,12 @@
     style="background: var(--surface); border-top: 1px solid rgba(255, 255, 255, 0.8); border-bottom: 1px solid rgba(166, 180, 200, 0.35); box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);">
     <div class="container">
       <div class="section-header reveal">
-        <span class="badge-pill" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">Diagnóstico y Valor Público</span>
+        <span class="badge-pill" style="background: #fef2f2; color: #dc2626; border-color: #fecaca;">Diagnóstico y Valor
+          Público</span>
         <h2 class="section-title">El Desafío Operativo y el Problema que Resuelve</h2>
         <p class="section-subtitle">
-          De la vulnerabilidad y lentitud de los métodos manuales en papel a la certeza matemática y trazabilidad digital del SGBT.
+          De la vulnerabilidad y lentitud de los métodos manuales en papel a la certeza matemática y trazabilidad
+          digital del SGBT.
         </p>
       </div>
 
@@ -1244,35 +1274,40 @@
               <div class="list-bullet error">✕</div>
               <div>
                 <strong>Planillas Físicas y Firmas en Papel:</strong>
-                Listados impresos expuestos a daño, pérdida, adulteración en almacenes y firmas manuscritas imposibles de auditar en tiempo real.
+                Listados impresos expuestos a daño, pérdida, adulteración en almacenes y firmas manuscritas imposibles
+                de auditar en tiempo real.
               </div>
             </li>
             <li>
               <div class="list-bullet error">✕</div>
               <div>
                 <strong>Riesgo de Duplicidad y Doble Retiro:</strong>
-                Imposibilidad de conciliar en el acto cuando una misma persona o intermediario intenta retirar en diferentes mesas o jornadas.
+                Imposibilidad de conciliar en el acto cuando una misma persona o intermediario intenta retirar en
+                diferentes mesas o jornadas.
               </div>
             </li>
             <li>
               <div class="list-bullet error">✕</div>
               <div>
                 <strong>Parálisis Operativa por Falta de Internet:</strong>
-                Los depósitos y sótanos carecen de cobertura estable; los sistemas web estándar colapsan y detienen la atención de cientos de funcionarios.
+                Los depósitos y sótanos carecen de cobertura estable; los sistemas web estándar colapsan y detienen la
+                atención de cientos de funcionarios.
               </div>
             </li>
             <li>
               <div class="list-bullet error">✕</div>
               <div>
                 <strong>Suplantación de Identidad por Cédulas Prestadas:</strong>
-                El uso de fotocopias o carnets físicos facilita el desvío indebido de beneficios sin conocimiento ni consentimiento del titular.
+                El uso de fotocopias o carnets físicos facilita el desvío indebido de beneficios sin conocimiento ni
+                consentimiento del titular.
               </div>
             </li>
             <li>
               <div class="list-bullet error">✕</div>
               <div>
                 <strong>Semanas para Conciliar Nóminas y Emitir Actas:</strong>
-                El cierre administrativo requería días de conteo manual de planillas para totalizar kilos entregados y cuadrar sobrantes.
+                El cierre administrativo requería días de conteo manual de planillas para totalizar kilos entregados y
+                cuadrar sobrantes.
               </div>
             </li>
           </ul>
@@ -1291,35 +1326,40 @@
               <div class="list-bullet success">✓</div>
               <div>
                 <strong>Identidad Soberana con Passkeys FIDO2:</strong>
-                El funcionario firma con su biometría en el chip de hardware seguro de su propio teléfono (TouchID, FaceID o sensor Android).
+                El funcionario firma con su biometría en el chip de hardware seguro de su propio teléfono (TouchID,
+                FaceID o sensor Android).
               </div>
             </li>
             <li>
               <div class="list-bullet success">✓</div>
               <div>
                 <strong>Garantía Matemática Anti-Duplicados:</strong>
-                Índice relacional estricto <code>idx_unique_daily_claim</code> y token de Idempotencia que imposibilitan retiros dobles al milisegundo.
+                Índice relacional estricto <code>idx_unique_daily_claim</code> y token de Idempotencia que imposibilitan
+                retiros dobles al milisegundo.
               </div>
             </li>
             <li>
               <div class="list-bullet success">✓</div>
               <div>
                 <strong>Arquitectura Offline-First de Almacén:</strong>
-                Base de datos transaccional local SQLite WAL que despacha con total autonomía sin red y sincroniza por lotes hacia Supabase Cloud.
+                Base de datos transaccional local SQLite WAL que despacha con total autonomía sin red y sincroniza por
+                lotes hacia Supabase Cloud.
               </div>
             </li>
             <li>
               <div class="list-bullet success">✓</div>
               <div>
                 <strong>QR Dinámico (180s) y Tap NFC P2P:</strong>
-                El token de retiro expira en 3 minutos imposibilitando capturas de pantalla o reenvíos; o se entrega por contacto de proximidad.
+                El token de retiro expira en 3 minutos imposibilitando capturas de pantalla o reenvíos; o se entrega por
+                contacto de proximidad.
               </div>
             </li>
             <li>
               <div class="list-bullet success">✓</div>
               <div>
                 <strong>Acta Ministerial Inmutable con SHA-256:</strong>
-                Al concluir el despacho, el sistema genera de inmediato el acta oficial con sello digital, tonelaje total métrico y balance por dirección.
+                Al concluir el despacho, el sistema genera de inmediato el acta oficial con sello digital, tonelaje
+                total métrico y balance por dirección.
               </div>
             </li>
           </ul>
@@ -1334,24 +1374,30 @@
     <div class="container">
       <div class="section-header reveal">
         <h2 class="section-title">Especificaciones Técnicas del Sistema</h2>
-        <p class="section-subtitle">Mecanismos de autenticación, almacenamiento local y control de auditoría para entrega de beneficios.</p>
+        <p class="section-subtitle">Mecanismos de autenticación, almacenamiento local y control de auditoría para
+          entrega de beneficios.</p>
       </div>
 
       <div class="features-grid">
         <div class="feature-card reveal delay-1">
           <div class="feature-icon">🔐</div>
           <h3 class="feature-title">Autenticación FIDO2 con Claves Asimétricas P-256</h3>
-          <p class="feature-text">Verificación biométrica en el módulo de seguridad del dispositivo móvil. Validación en mesa de despacho mediante lectura de código QR temporal (vigencia de 180 segundos) o comunicación por proximidad NFC, con comprobación de firma digital en servidor local.</p>
+          <p class="feature-text">Verificación biométrica en el módulo de seguridad del dispositivo móvil. Validación en
+            mesa de despacho mediante lectura de código QR temporal (vigencia de 180 segundos) o comunicación por
+            proximidad NFC, con comprobación de firma digital en servidor local.</p>
         </div>
         <div class="feature-card reveal delay-2">
           <div class="feature-icon">⚡</div>
           <h3 class="feature-title">Operación sin Red y Control de Idempotencia</h3>
-          <p class="feature-text">Persistencia local en el navegador mediante IndexedDB y caché de Service Worker. Cada solicitud de entrega incluye una cabecera Idempotency-Key para evitar duplicidad de registros si se interrumpe la conexión.</p>
+          <p class="feature-text">Persistencia local en el navegador mediante IndexedDB y caché de Service Worker. Cada
+            solicitud de entrega incluye una cabecera Idempotency-Key para evitar duplicidad de registros si se
+            interrumpe la conexión.</p>
         </div>
         <div class="feature-card reveal delay-3">
           <div class="feature-icon">📑</div>
           <h3 class="feature-title">Actas de Entrega y Registro de Auditoría</h3>
-          <p class="feature-text">Emisión de actas de recepción con firma digital y reportes de cierre de jornada con desglose por dirección administrativa, masa total en kilogramos y tipo de combo.</p>
+          <p class="feature-text">Emisión de actas de recepción con firma digital y reportes de cierre de jornada con
+            desglose por dirección administrativa, masa total en kilogramos y tipo de combo.</p>
         </div>
       </div>
     </div>
@@ -1362,7 +1408,8 @@
     <div class="container">
       <div class="section-header reveal">
         <h2 class="section-title">Módulos del Sistema</h2>
-        <p class="section-subtitle">Interfaces adaptadas para terminales móviles y estaciones de escritorio en almacén y áreas administrativas.</p>
+        <p class="section-subtitle">Interfaces adaptadas para terminales móviles y estaciones de escritorio en almacén y
+          áreas administrativas.</p>
       </div>
 
       <!-- PORTAL ADMINISTRATIVO -->
@@ -1370,7 +1417,8 @@
         <div class="showcase-header">
           <div>
             <h3 class="showcase-title">Módulo de Administración</h3>
-            <p class="showcase-desc">Panel de indicadores operativos, registro de eventos, importación de nómina de personal y exportación de reportes.</p>
+            <p class="showcase-desc">Panel de indicadores operativos, registro de eventos, importación de nómina de
+              personal y exportación de reportes.</p>
           </div>
           <span class="badge-pill" style="margin-bottom:0;">Perfil: Administrador</span>
         </div>
@@ -1386,14 +1434,16 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Validación de Identidad con Claves Criptográficas</h3>
-              <p class="showcase-desc">Generación de pares de claves asimétricas en el dispositivo del usuario para comprobación de identidad en cada retiro.</p>
+              <p class="showcase-desc">Generación de pares de claves asimétricas en el dispositivo del usuario para
+                comprobación de identidad en cada retiro.</p>
             </div>
             <span class="badge-pill"
-              style="margin-bottom:0; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;">Verificación Digital</span>
+              style="margin-bottom:0; background:#f0f9ff; color:#0369a1; border-color:#bae6fd;">Verificación
+              Digital</span>
           </div>
           <div class="showcase-media" style="max-height: 340px;">
-            <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo de Seguridad SGBT"
-              loading="lazy" style="width: 100%; height: 340px; object-fit: cover;">
+            <img src="docs/escudo_dorado_seguridad.jpg" alt="Escudo de Seguridad SGBT" loading="lazy"
+              style="width: 100%; height: 340px; object-fit: cover;">
           </div>
         </div>
 
@@ -1401,10 +1451,12 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Organización y Despacho de Combos</h3>
-              <p class="showcase-desc">Control de inventario por rubro: víveres secos, proteínas, productos de higiene y limpieza.</p>
+              <p class="showcase-desc">Control de inventario por rubro: víveres secos, proteínas, productos de higiene y
+                limpieza.</p>
             </div>
             <span class="badge-pill"
-              style="margin-bottom:0; background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t Registradas</span>
+              style="margin-bottom:0; background:#fdf4ff; color:#7e22ce; border-color:#f5d0fe;">16.47 t
+              Registradas</span>
           </div>
           <div class="showcase-media" style="max-height: 340px;">
             <img src="docs/cajas_combos_alimentos.jpg" alt="Cajas con combos alimenticios SGBT" loading="lazy"
@@ -1419,7 +1471,8 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Módulo del Beneficiario</h3>
-              <p class="showcase-desc">Consulta de beneficio asignado, desglose de rubros y credencial digital para retiro.</p>
+              <p class="showcase-desc">Consulta de beneficio asignado, desglose de rubros y credencial digital para
+                retiro.</p>
             </div>
             <span class="badge-pill"
               style="margin-bottom:0; background:#f0fdf4; color:#15803d; border-color:#bbf7d0;">Acceso Móvil</span>
@@ -1433,7 +1486,8 @@
           <div class="showcase-header">
             <div>
               <h3 class="showcase-title">Módulo de Mesa de Despacho</h3>
-              <p class="showcase-desc">Registro de entrega en estación de almacén con verificación de credencial y almacenamiento local.</p>
+              <p class="showcase-desc">Registro de entrega en estación de almacén con verificación de credencial y
+                almacenamiento local.</p>
             </div>
             <span class="badge-pill"
               style="margin-bottom:0; background:#eff6ff; color:#1d4ed8; border-color:#bfdbfe;">Estación de
@@ -1456,10 +1510,12 @@
       <div class="section-header reveal"
         style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">Documento de Cierre de Jornada</span>
+          <span class="badge-pill" style="background: #ecfdf5; color: #047857; border-color: #a7f3d0;">Documento de
+            Cierre de Jornada</span>
           <h2 class="section-title">Acta de Despacho y Balance de Jornada</h2>
           <p class="section-subtitle">
-            Informe de cierre con código de verificación SHA-256, cálculo de masa total despachada y balance clasificado por dependencia administrativa.
+            Informe de cierre con código de verificación SHA-256, cálculo de masa total despachada y balance clasificado
+            por dependencia administrativa.
           </p>
         </div>
         <div>
@@ -1714,7 +1770,9 @@
             <div class="seal-title">Código de Integridad Criptográfica del Acta (SHA-256)</div>
             <code class="seal-hash">fd4df29e4b6025d5d94c313667a1779145c42167bdda360747855dde45e59156</code>
             <div class="seal-note">
-              El código se calcula mediante la concatenación ordenada de cada registro de entrega, número de documento de identidad y marca de tiempo. Cualquier modificación posterior en los registros altera el resultado de la función hash.
+              El código se calcula mediante la concatenación ordenada de cada registro de entrega, número de documento
+              de identidad y marca de tiempo. Cualquier modificación posterior en los registros altera el resultado de
+              la función hash.
             </div>
           </div>
         </div>
@@ -1723,7 +1781,8 @@
         <div class="ministerial-signatures reveal delay-3">
           <div class="sig-block">
             <div class="sig-name">Msc. Sahib A Franco</div>
-            <div class="sig-role">Director General de la Oficina de Tecnologías de la Información y la Comunicación (OTIC)</div>
+            <div class="sig-role">Director General de la Oficina de Tecnologías de la Información y la Comunicación
+              (OTIC)</div>
             <div class="sig-digital-mark">Firmado Digitalmente &bull; Token ID: 13537582</div>
           </div>
           <div class="sig-block">
@@ -1746,7 +1805,8 @@
     <div class="container">
       <div class="section-header reveal">
         <h2 class="section-title">Diagramas de Arquitectura del Sistema</h2>
-        <p class="section-subtitle">Modelos técnicos de componentes, flujos de autenticación y estructura de base de datos.</p>
+        <p class="section-subtitle">Modelos técnicos de componentes, flujos de autenticación y estructura de base de
+          datos.</p>
       </div>
 
       <!-- VISOR INTERACTIVO CENTRALIZADO -->
@@ -1765,7 +1825,8 @@
           <button type="button" class="diagram-tab" onclick="selectDossierDiagram('erd', this)">
             <span class="tab-kicker" style="color: #047857;">Modelo Relacional</span>
             <span class="tab-title">🗄️ Modelo de Datos (ERD)</span>
-            <span class="tab-sub">Identidad de trabajadores, cuotas de jornada, despachos y restricción de entrega única</span>
+            <span class="tab-sub">Identidad de trabajadores, cuotas de jornada, despachos y restricción de entrega
+              única</span>
           </button>
           <button type="button" class="diagram-tab" onclick="selectDossierDiagram('twa', this)">
             <span class="tab-kicker" style="color: #d97706;">Móvil & TWA Kiosco</span>
@@ -1811,7 +1872,8 @@
           <div>
             <span class="diagram-badge">Modelo C4 &middot; Nivel 2</span>
             <h4>Arquitectura General de Contenedores</h4>
-            <p>Estructura de actores (Beneficiario, Operador de Almacén, Administrador), interfaces de usuario, servicios backend y almacenamiento local con SQLite WAL.</p>
+            <p>Estructura de actores (Beneficiario, Operador de Almacén, Administrador), interfaces de usuario,
+              servicios backend y almacenamiento local con SQLite WAL.</p>
           </div>
           <a href="diagrams/c4-containers.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Diagrama C4 ↗</a>
@@ -1819,9 +1881,11 @@
 
         <div class="diagram-card reveal delay-2">
           <div>
-            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia de Entrega</span>
+            <span class="diagram-badge" style="background:#fdf2f8; color:#be185d; border-color:#fbcfe8;">Secuencia de
+              Entrega</span>
             <h4>Flujo de Validación y Entrega</h4>
-            <p>Registro cronológico del retiro: lectura de código QR temporal o proximidad NFC, comprobación de firma digital, envío con Idempotency-Key y confirmación en terminal.</p>
+            <p>Registro cronológico del retiro: lectura de código QR temporal o proximidad NFC, comprobación de firma
+              digital, envío con Idempotency-Key y confirmación en terminal.</p>
           </div>
           <a href="diagrams/user-journey-sequence.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Diagrama de Secuencia ↗</a>
@@ -1832,7 +1896,8 @@
             <span class="diagram-badge" style="background:#ecfdf5; color:#047857; border-color:#a7f3d0;">Modelo
               Relacional</span>
             <h4>Modelo de Datos (ERD)</h4>
-            <p>Estructura de tablas para identidad de personal, asignación de beneficios, registro de despachos y auditoría de eventos con claves únicas.</p>
+            <p>Estructura de tablas para identidad de personal, asignación de beneficios, registro de despachos y
+              auditoría de eventos con claves únicas.</p>
           </div>
           <a href="diagrams/modelo-datos-erd.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Modelo ERD ↗</a>
@@ -1840,9 +1905,11 @@
 
         <div class="diagram-card reveal delay-4">
           <div>
-            <span class="diagram-badge" style="background:#fffbeb; color:#d97706; border-color:#fde68a;">Móvil & TWA Kiosco</span>
+            <span class="diagram-badge" style="background:#fffbeb; color:#d97706; border-color:#fde68a;">Móvil & TWA
+              Kiosco</span>
             <h4>Distribución Móvil Dual: PWA vs APK</h4>
-            <p>Estrategia de despliegue diferenciada: PWA Edge-to-Edge para los trabajadores vs APK nativo Bubblewrap para operadores con modo Kiosco y Wake Lock.</p>
+            <p>Estrategia de despliegue diferenciada: PWA Edge-to-Edge para los trabajadores vs APK nativo Bubblewrap
+              para operadores con modo Kiosco y Wake Lock.</p>
           </div>
           <a href="diagrams/distribucion-movil-twa.html" target="_blank" class="btn btn-outline"
             style="justify-content:center;">Abrir Distribución Móvil ↗</a>
@@ -1854,14 +1921,16 @@
   <!-- DEMOSTRACIÓN OPERATIVA -->
   <section class="section" style="text-align: center;">
     <div class="container reveal" style="max-width: 800px;">
-      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Evaluación Funcional</span>
+      <span class="badge-pill" style="background: #ecfdf5; color: #065f46; border-color: #a7f3d0;">Evaluación
+        Funcional</span>
       <h2 class="section-title" style="font-size: 2rem; margin-top: 0.5rem;">Demostración del Sistema</h2>
       <p class="section-subtitle" style="margin: 1rem auto 2rem; font-size: 1.05rem;">
-        Entorno disponible para comprobar tiempos de procesamiento en entrega, registro de beneficiarios y emisión del acta de cierre de jornada.
+        Entorno disponible para comprobar tiempos de procesamiento en entrega, registro de beneficiarios y emisión del
+        acta de cierre de jornada.
       </p>
       <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-        <a href="/coseg" class="btn btn-primary"
-          style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">⬅ Volver al Panel Principal</a>
+        <a href="/coseg" class="btn btn-primary" style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">⬅ Volver al Panel
+          Principal</a>
         <a href="../Propuesta de Comercialización.md" target="_blank" class="btn btn-outline"
           style="padding: 0.85rem 1.8rem; font-size: 0.95rem;">Consultar Documento Técnico</a>
       </div>
