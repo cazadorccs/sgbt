@@ -171,10 +171,12 @@ function loginRateLimiter(windowMs = 60000, maxAttempts = 30) {
     ipAttemptsMap.set(clientIp, record);
 
     if (record.count > maxAttempts) {
+      const retryAfterSec = Math.ceil((record.resetTime - now) / 1000);
+      res.setHeader('Retry-After', String(retryAfterSec));
       return res.status(429).json({
         error: 'Demasiadas solicitudes de autenticación desde esta dirección IP. Intente de nuevo en 1 minuto.',
         code: 'RATE_LIMIT_EXCEEDED',
-        retry_after_seconds: Math.ceil((record.resetTime - now) / 1000)
+        retry_after_seconds: retryAfterSec
       });
     }
 

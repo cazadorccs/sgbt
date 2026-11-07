@@ -95,19 +95,25 @@ function errorHandler(err, req, res, next) {
 
   console.error('[SERVER UNHANDLED ERROR]', err);
   const statusCode = err.status || 500;
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Blindaje contra fuga de información: En producción, ofuscar mensajes de error 500
+  const safeMessage = (statusCode < 500 || !isProduction)
+    ? (err.message || 'Error interno del servidor')
+    : 'Ha ocurrido un error interno en el servidor. El incidente ha sido registrado.';
   
   if (acceptsProblemJson) {
     return res.problem({
       status: statusCode,
-      title: 'Error Interno del Servidor',
-      detail: err.message || 'Error interno del servidor'
+      title: statusCode >= 500 ? 'Error Interno del Servidor' : 'Error en la Solicitud',
+      detail: safeMessage
     });
   }
 
   res.status(statusCode).json({
-    error: err.message || 'Error interno del servidor',
+    error: safeMessage,
     type: 'https://sgbt-combos.gob.ve/problems/internal-server-error',
-    title: 'Error Interno',
+    title: statusCode >= 500 ? 'Error Interno del Servidor' : 'Error en la Solicitud',
     status: statusCode,
     instance: req.originalUrl
   });

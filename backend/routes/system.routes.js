@@ -7,10 +7,10 @@ const { requireRole } = require('../middleware/auth.middleware');
 router.get('/system/status', systemController.getStatus);
 router.post('/system/demo-mode', requireRole('admin', 'director'), systemController.toggleDemoMode);
 
-// Rutas de Auditoría, Logs en Vivo y Diagnóstico Forense
-router.get('/system/logs', systemController.getLogs);
-router.get('/system/logs/stream', systemController.streamLogs);
-router.get('/system/logs/download', systemController.downloadLogs);
+// Rutas de Auditoría, Logs en Vivo y Diagnóstico Forense (Protegidas por RBAC y Alcance Administrativo)
+router.get('/system/logs', requireRole('admin', 'director'), systemController.getLogs);
+router.get('/system/logs/stream', requireRole('admin', 'director'), systemController.streamLogs);
+router.get('/system/logs/download', requireRole('admin', 'director'), systemController.downloadLogs);
 router.post('/system/client-logs', systemController.receiveClientLog);
 router.delete('/system/logs/clear', requireRole('admin', 'director'), systemController.clearSystemLogs);
 

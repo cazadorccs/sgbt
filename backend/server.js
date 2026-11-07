@@ -25,20 +25,65 @@ app.use(cookieParserMiddleware);
 // Middleware de seguridad y mitigación de ataques de compresión (CVE-2026-111497) y CSP
 app.use(securityHardening);
 
-// Middlewares base
+// Redirección forzada a HTTPS en entornos de producción (Mitigación MitM / SSL Stripping)
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    if (!isHttps) {
+      const host = req.headers.host || 'sgbt-bice.vercel.app';
+      return res.redirect(301, `https://${host}${req.originalUrl}`);
+    }
+    next();
+  });
+}
+
+// Configuración de CORS segura con lista blanca y credenciales (Mitigación CWE-942)
+const allowedOrigins = [
+  'https://sgbt-bice.vercel.app',
+  process.env.APP_URL
+].filter(Boolean);
+
+if (process.env.NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000', 'http://127.0.0.1:3000');
+}
+
 app.use(cors({
   credentials: true,
-  origin: true
+  origin: (origin, callback) => {
+    // Permitir llamadas sin origen (Apps nativas, PWA, curl, scripts o tests)
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'test') {
+      return callback(null, true);
+    }
+    // Permitir dominios de despliegue en Vercel del proyecto
+    if (typeof origin === 'string' && (origin.endsWith('.vercel.app') || origin.endsWith('mippci.gob.ve'))) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Bloqueado por política CORS: El origen ${origin} no está autorizado.`));
+  }
 }));
 
-// Raw body retention para verificación HMAC en Webhooks con límite de 50MB
-app.use(express.json({
+// Límite de carga para rutas específicas que requieren envío de fotos o ingesta masiva (50MB)
+const largePayloadPaths = [
+  '/api/v1/payroll/batch-import',
+  '/api/v1/admin/workers/batch',
+  '/api/v1/auth/enroll'
+];
+app.use(largePayloadPaths, express.json({
   limit: '50mb',
   verify: (req, res, buf) => {
     req.rawBody = buf.toString();
   }
 }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(largePayloadPaths, express.urlencoded({ limit: '50mb', extended: true }));
+
+// Límite seguro predeterminado de 2MB para el resto de endpoints de la API (Mitigación DoS)
+app.use(express.json({
+  limit: '2mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
 
 // Sanitización activa contra Cross-Site Scripting (XSS) en payloads JSON y formularios
 app.use(xssSanitizerMiddleware);
@@ -82,7 +127,12 @@ app.use(async (req, res, next) => {
     next();
   } catch (err) {
     console.error('[DB WAIT ERROR]', err);
-    res.status(500).json({ error: 'La base de datos se está inicializando: ' + err.message });
+    const isProd = process.env.NODE_ENV === 'production';
+    res.status(500).json({
+      error: isProd
+        ? 'La base de datos se está inicializando o no está disponible temporalmente. Intente nuevamente en unos instantes.'
+        : ('La base de datos se está inicializando: ' + err.message)
+    });
   }
 });
 

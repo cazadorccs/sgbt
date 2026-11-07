@@ -369,7 +369,11 @@ const login = async (req, res) => {
       });
     }
 
-    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || (process.env.NODE_ENV !== 'production' ? '0578' : '')).trim();
+    if (!configuredAdminSecret) {
+      console.error('[CRITICAL SECURITY CONFIG ERROR] ADMIN_ACCESS_SECRET no está configurado en producción.');
+      return res.status(500).json({ error: 'Error de configuración de seguridad: Secreto administrativo no disponible.' });
+    }
     const providedSecret = (admin_secret || req.body.password || '').trim();
 
     // Blindaje Estricto Trail of Bits: Consola administrativa exige EXCLUSIVAMENTE el PIN / Secreto Administrativo Oficial
@@ -994,7 +998,19 @@ const enrollBeneficiary = async (req, res) => {
 };
 
 const registerChallenge = (req, res) => {
-  const { worker_id, hostname } = req.body;
+  let { worker_id, hostname } = req.body;
+
+  // Blindaje BOLA/IDOR: Si el usuario tiene sesión activa y no es admin, fijar estrictamente su propio id
+  if (req.user) {
+    const isPrivileged = ['admin', 'director', 'supervisor'].includes(req.user.role);
+    if (!isPrivileged && worker_id && worker_id !== req.user.id) {
+      return res.status(403).json({ error: 'Acceso no autorizado: No tiene permisos para solicitar desafíos de otros funcionarios.' });
+    }
+    if (!worker_id) {
+      worker_id = req.user.id;
+    }
+  }
+
   if (!worker_id) {
     return res.status(400).json({ error: 'worker_id es requerido' });
   }
@@ -1010,7 +1026,21 @@ const registerChallenge = (req, res) => {
 };
 
 const registerVerify = async (req, res) => {
-  const { worker_id, credential, device_name } = req.body;
+  let { worker_id, credential, device_name } = req.body;
+
+  // Blindaje BOLA/IDOR: Si el usuario tiene sesión activa y no es admin, forzar su propio ID
+  if (req.user) {
+    const isPrivileged = ['admin', 'director', 'supervisor'].includes(req.user.role);
+    if (!isPrivileged && worker_id && worker_id !== req.user.id) {
+      return res.status(403).json({ error: 'Acceso denegado: Violación de autorización BOLA/IDOR detectada.' });
+    }
+    if (!worker_id) {
+      worker_id = req.user.id;
+    }
+  } else if (process.env.NODE_ENV === 'production' && !req.body.onboarding_token) {
+    return res.status(401).json({ error: 'Acceso no autorizado: Se requiere sesión institucional o token de formalización válido.' });
+  }
+
   if (!worker_id || !credential) {
     return res.status(400).json({ error: 'worker_id y credential son requeridos' });
   }

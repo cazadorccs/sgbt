@@ -103,8 +103,19 @@ function verifyWebhookHmac(secretKey, payloadJsonString, headerSignature) {
   }
 }
 
-const MAGIC_SECRET = process.env.MAGIC_LINK_SECRET || 'MIPPCI_SGBT_MAGIC_TOKEN_SECRET_2026';
-const DELEGATION_SECRET = process.env.DELEGATION_SECRET || 'MIPPCI_SGBT_DELEGATION_SECRET_2026';
+function resolveSecret(envKey, fallbackPrefix) {
+  if (process.env[envKey] && process.env[envKey].trim()) {
+    return process.env[envKey].trim();
+  }
+  if (process.env.NODE_ENV === 'production') {
+    console.warn(`[DEVSECOPS WARNING] ${envKey} no configurado en producción. Generando secreto aleatorio seguro de 256-bits en memoria.`);
+    return crypto.randomBytes(32).toString('hex');
+  }
+  return `${fallbackPrefix}_DEV_LOCAL_2026`;
+}
+
+const MAGIC_SECRET = resolveSecret('MAGIC_LINK_SECRET', 'MIPPCI_MAGIC');
+const DELEGATION_SECRET = resolveSecret('DELEGATION_SECRET', 'MIPPCI_DELEGATION');
 
 /**
  * Genera un token temporal de un solo uso firmado con HMAC-SHA256 (vigencia corta, ej. 15 min).
@@ -194,11 +205,7 @@ function verifyDelegationToken(token) {
   }
 }
 
-const isProduction = process.env.NODE_ENV === 'production';
-if (isProduction && !process.env.SESSION_JWT_SECRET) {
-  console.warn('[DEVSECOPS WARNING] SESSION_JWT_SECRET no configurada en las variables de entorno de Vercel/Producción. Usando secreto seguro predeterminado de contingencia.');
-}
-const SESSION_SECRET = process.env.SESSION_JWT_SECRET || 'MIPPCI_SGBT_SESSION_SECRET_2026_DEFAULT_FALLBACK';
+const SESSION_SECRET = resolveSecret('SESSION_JWT_SECRET', 'MIPPCI_SESSION');
 
 /**
  * Genera un token de sesión institucional firmado con HMAC-SHA256 (validez configurable, ej. 12 horas).

@@ -30,9 +30,9 @@ router.post('/auth/enroll', loginRateLimiter(), validateBody(['document_id', 'pa
 router.post('/auth/password-recovery/request', loginRateLimiter(), validateBody(['document_id', 'email_or_phone']), authController.requestPasswordRecovery);
 router.post('/auth/password-recovery/confirm', loginRateLimiter(), validateBody(['recovery_token', 'new_password']), authController.confirmPasswordRecovery);
 
-// Enrolamiento y validación de Passkeys FIDO2
-router.post('/auth/passkey/register-challenge', authController.registerChallenge);
-router.post('/auth/passkey/register-verify', authController.registerVerify);
+// Enrolamiento y validación de Passkeys FIDO2 (Protegido contra BOLA/IDOR con authenticate)
+router.post('/auth/passkey/register-challenge', authenticate, authController.registerChallenge);
+router.post('/auth/passkey/register-verify', authenticate, authController.registerVerify);
 router.post('/auth/passkey/sign-offline', authenticate, authController.signOffline);
 
 // Rutas de supervisión y contingencia protegidas por RBAC

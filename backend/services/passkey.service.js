@@ -61,8 +61,11 @@ async function registerPasskeyCredential({ worker_id, credential, device_name })
   let credentialId = credential.credential_id;
   let publicKeyPem = credential.public_key_pem;
 
-  // Si el cliente no envió llave pública nativa, generar par P-256 institucional en Enclave Seguro
+  // Si el cliente no envió llave pública nativa, verificar política de seguridad FIDO2
   if (!publicKeyPem) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Credencial biométrica FIDO2 inválida: Se requiere la llave pública ECDSA P-256 generada por el autenticador.');
+    }
     const keyPair = generateP256KeyPair();
     publicKeyPem = keyPair.publicKey;
     credentialId = 'Passkey_SEC_' + crypto.randomBytes(12).toString('base64url');
