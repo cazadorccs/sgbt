@@ -27,6 +27,22 @@
       "destination": "/public/entregas/index.html"
     },
     {
+      "source": "/dossier",
+      "destination": "/public/dossier.html"
+    },
+    {
+      "source": "/diagrams",
+      "destination": "/public/diagrams/index.html"
+    },
+    {
+      "source": "/diagrams/",
+      "destination": "/public/diagrams/index.html"
+    },
+    {
+      "source": "/diagrams/(.*)",
+      "destination": "/public/diagrams/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/public/$1"
     }
