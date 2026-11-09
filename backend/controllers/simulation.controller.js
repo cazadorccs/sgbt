@@ -90,7 +90,8 @@ const dispatchStep = async (req, res) => {
 
   const todayUtc = new Date().toISOString().split('T')[0];
   const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-  const method = verification_method || 'passkey_qr';
+  const isSupervisorMethod = (verification_method === 'supervisor_override') || Boolean(req.body.is_contingency);
+  const method = isSupervisorMethod ? 'supervisor_override' : (verification_method || 'passkey_qr');
   const targetStation = station || 'all';
 
   try {
@@ -158,13 +159,17 @@ const dispatchStep = async (req, res) => {
       .update(`${deliveryId}:${worker.document_id}:${combo.id}:${nowIso}:${nonce}`)
       .digest('hex');
 
+    const overrideReason = isSupervisorMethod
+      ? 'Contingencia Supervisor MIPPCI (Excepción 1 de 10)'
+      : 'Simulador Dual P2P (Beneficiario / Mesa)';
+
     // Registrar despacho en transacción atómica
     const tx = db.transaction(() => {
       db.prepare(`
         INSERT INTO deliveries (
           id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
           verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id, override_reason
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'Simulador Dual P2P (Beneficiario / Mesa)')
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
       `).run(
         deliveryId,
         entitlement.id,
@@ -175,7 +180,8 @@ const dispatchStep = async (req, res) => {
         signatureProof,
         nonce,
         nowIso,
-        campaignId
+        campaignId,
+        overrideReason
       );
 
       db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(entitlement.id);
@@ -234,6 +240,7 @@ const resetSimulation100 = (req, res) => {
             AND (
               date(delivered_at) IN (?, ?)
               OR override_reason LIKE '%Simulador Dual%'
+              OR override_reason LIKE '%Contingencia Supervisor%'
             )
         `).run(wId, todayUtc, todayVzla);
 

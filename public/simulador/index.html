@@ -349,7 +349,7 @@
         </div>
       </div>
 
-      <!-- 4 KPIs -->
+      <!-- 5 KPIs -->
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-icon" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">📦</div>
@@ -372,6 +372,14 @@
           <div>
             <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Latencia Criptográfica</div>
             <div id="kpiLatency" style="font-size: 1.4rem; font-weight: 800; color: #ffffff;">0 ms</div>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">🔑</div>
+          <div>
+            <div style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Contingencia Supervisor</div>
+            <div id="kpiSupervisorCount" style="font-size: 1.4rem; font-weight: 800; color: #fbbf24;">0 (0%)</div>
           </div>
         </div>
 
@@ -776,6 +784,7 @@
       const kpiDeliveredCount = document.getElementById('kpiDeliveredCount');
       const kpiTonnage = document.getElementById('kpiTonnage');
       const kpiLatency = document.getElementById('kpiLatency');
+      const kpiSupervisorCount = document.getElementById('kpiSupervisorCount');
       const kpiRate = document.getElementById('kpiRate');
       const turnLabelBeneficiary = document.getElementById('turnLabelBeneficiary');
       const distributorDeliveriesHeaderCount = document.getElementById('distributorDeliveriesHeaderCount');
@@ -798,6 +807,10 @@
       const telegramAssistText = document.getElementById('telegramAssistText');
       const telegramAssistIcon = document.getElementById('telegramAssistIcon');
       const distributorFeedbackOverlay = document.getElementById('distributorFeedbackOverlay');
+      const feedbackIcon = document.getElementById('feedbackIcon');
+      const feedbackTitle = document.getElementById('feedbackTitle');
+      const feedbackSubtitle = document.getElementById('feedbackSubtitle');
+      const feedbackDetails = document.getElementById('feedbackDetails');
       const overlayWorkerName = document.getElementById('overlayWorkerName');
       const overlayWorkerDoc = document.getElementById('overlayWorkerDoc');
       const overlayHash = document.getElementById('overlayHash');
@@ -851,9 +864,12 @@
           workerDirectSelect.innerHTML = '';
 
           workersList.forEach((w, idx) => {
+            const isSupervisor = ((idx + 1) % 10 === 0);
+            w.is_supervisor_delivery = isSupervisor;
             const opt = document.createElement('option');
             opt.value = idx;
-            opt.textContent = `${idx + 1}. V-${w.document_id} — ${w.full_name} (${w.is_already_delivered ? '✅ Despachado' : '⏳ Pendiente'})`;
+            const supTag = isSupervisor ? ' [🔑 Contingencia Supervisor]' : '';
+            opt.textContent = `${idx + 1}. V-${w.document_id} — ${w.full_name}${supTag} (${w.is_already_delivered ? '✅ Despachado' : '⏳ Pendiente'})`;
             workerDirectSelect.appendChild(opt);
           });
 
@@ -884,6 +900,8 @@
         distributorFeedbackOverlay.classList.remove('active');
         distributorFeedbackOverlay.style.display = 'none';
 
+        const isSupervisor = (worker.order_index % 10 === 0);
+
         // Actualizar datos del beneficiario en el Carnet (Teléfono Izquierdo)
         const nameParts = worker.full_name.trim().split(/\s+/);
         const initials = nameParts.length >= 2
@@ -893,56 +911,78 @@
         workerHeaderAvatar.textContent = initials;
         workerHeaderIdentity.textContent = `${worker.full_name} (${worker.document_id})`;
         lblCarnetComboTitle.textContent = worker.combo?.name || 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)';
-        turnLabelBeneficiary.textContent = `Funcionario en Turno: #${worker.order_index} de 100 · C.I. V-${worker.document_id}`;
+        turnLabelBeneficiary.innerHTML = `Funcionario en Turno: #${worker.order_index} de 100 · C.I. V-${worker.document_id}${isSupervisor ? ' <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.65rem; padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 700; margin-left: 0.4rem;">🔑 Contingencia Supervisor</span>' : ''}`;
         workerDirectSelect.value = currentIndex;
 
         // Reset visual de comprobantes
         workerDeliveryReceiptBox.style.display = 'none';
         workerQrContainer.style.display = 'flex';
 
-        telegramAssistText.textContent = 'Enfocando código QR del carnet...';
-        telegramAssistIcon.textContent = '🎯';
+        telegramAssistText.textContent = isSupervisor ? '🔑 Enfocando QR de Contingencia de Supervisor...' : 'Enfocando código QR del carnet...';
+        telegramAssistIcon.textContent = isSupervisor ? '🛡️' : '🎯';
 
-        // Obtener la firma criptográfica real offline (P-256 ECDSA)
         let signData = null;
-        try {
-          const signRes = await fetch('/api/v1/auth/passkey/sign-offline', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              worker_id: worker.id,
-              entitlement_id: worker.combo?.id || 'c1a2b3c4-1111-2222-3333-444455556666',
-              station: 'all'
-            })
-          });
-          signData = await signRes.json();
-        } catch (e) {
-          console.warn('[SIGN ERROR]', e);
-        }
 
-        // Fallback criptográfico compatible
-        if (!signData || !signData.qr_raw_string) {
-          const nonce = Math.random().toString(36).substring(2, 10);
-          const fbPayload = {
-            wid: worker.id,
-            ent: worker.combo?.id || 'c1a2b3c4-1111-2222-3333-444455556666',
+        if (isSupervisor) {
+          // Generar QR de Contingencia Supervisor oficial (SGBT_SUPERVISOR_CONTINGENCY_V1)
+          const contingencyPayload = {
+            protocol: 'SGBT_SUPERVISOR_CONTINGENCY_V1',
+            worker_document_id: worker.document_id,
+            worker_id: worker.id,
+            reason: 'adulto_mayor_sin_smartphone',
+            supervisor_name: 'Ing. Carlos Mendoza (TI MIPPCI)',
             station: 'all',
-            mode: 'total',
-            ts: Math.floor(Date.now() / 1000),
-            nonce,
-            sig: 'MEYCIQDxTEST' + nonce
+            timestamp: Math.floor(Date.now() / 1000),
+            nonce: Math.random().toString(36).substring(2, 10)
           };
           signData = {
-            qr_payload: fbPayload,
-            qr_raw_string: JSON.stringify(fbPayload)
+            qr_payload: contingencyPayload,
+            qr_raw_string: JSON.stringify(contingencyPayload)
           };
+          qrNonceLabel.innerHTML = '🔑 <strong style="color: #fbbf24;">QR Diario / Contingencia Supervisor</strong> · SGBT-V1';
+          qrTimerLabel.textContent = 'Autorizado por Supervisor';
+        } else {
+          // Obtener la firma criptográfica real offline (P-256 ECDSA)
+          try {
+            const signRes = await fetch('/api/v1/auth/passkey/sign-offline', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                worker_id: worker.id,
+                entitlement_id: worker.combo?.id || 'c1a2b3c4-1111-2222-3333-444455556666',
+                station: 'all'
+              })
+            });
+            signData = await signRes.json();
+          } catch (e) {
+            console.warn('[SIGN ERROR]', e);
+          }
+
+          // Fallback criptográfico compatible
+          if (!signData || !signData.qr_raw_string) {
+            const nonce = Math.random().toString(36).substring(2, 10);
+            const fbPayload = {
+              wid: worker.id,
+              ent: worker.combo?.id || 'c1a2b3c4-1111-2222-3333-444455556666',
+              station: 'all',
+              mode: 'total',
+              ts: Math.floor(Date.now() / 1000),
+              nonce,
+              sig: 'MEYCIQDxTEST' + nonce
+            };
+            signData = {
+              qr_payload: fbPayload,
+              qr_raw_string: JSON.stringify(fbPayload)
+            };
+          }
+
+          qrNonceLabel.textContent = `Firma ES256 · Nonce: ${signData.qr_payload.nonce?.substring(0, 8)}...`;
+          qrTimerLabel.textContent = 'Expira en: 180s';
         }
 
         worker.activeQrPayload = signData.qr_payload;
         worker.activeQrRaw = signData.qr_raw_string;
-
-        qrNonceLabel.textContent = `Firma ES256 · Nonce: ${signData.qr_payload.nonce?.substring(0, 8)}...`;
-        qrTimerLabel.textContent = 'Expira en: 180s';
+        worker.is_supervisor_delivery = isSupervisor;
 
         // 1. RENDERIZAR CÓDIGO QR REAL EN EL CARNET (TELÉFONO IZQUIERDO)
         qrCodeTarget.innerHTML = '';
@@ -973,6 +1013,7 @@
         const worker = workersList[workerIndex];
         if (!worker) return;
 
+        const isSupervisor = (worker.order_index % 10 === 0);
         const startTime = Date.now();
 
         // 1. Asegurar que el carnet y el QR están dibujados
@@ -983,8 +1024,13 @@
 
         // 3. Detección óptica y pitido "BEEP" de escáner industrial
         playScannerBeep();
-        telegramAssistText.textContent = `✅ QR DETECTADO: ${worker.full_name.substring(0, 22)}`;
-        telegramAssistIcon.textContent = '⚡';
+        if (isSupervisor) {
+          telegramAssistText.textContent = `🔑 CONTINGENCIA SUPERVISOR AVALADA: ${worker.full_name.substring(0, 18)}`;
+          telegramAssistIcon.textContent = '🛡️';
+        } else {
+          telegramAssistText.textContent = `✅ QR DETECTADO: ${worker.full_name.substring(0, 22)}`;
+          telegramAssistIcon.textContent = '⚡';
+        }
 
         // 4. Llamada REAL a la API de Despacho y Verificación (/api/v1/verify/qr)
         let verifyResult = null;
@@ -1011,6 +1057,8 @@
               body: JSON.stringify({
                 worker_id: worker.id,
                 combo_id: worker.combo?.id,
+                verification_method: isSupervisor ? 'supervisor_override' : 'passkey_qr',
+                is_contingency: isSupervisor,
                 station: 'all'
               })
             });
@@ -1019,25 +1067,89 @@
               valid: true,
               worker_name: worker.full_name,
               document_id: worker.document_id,
-              signature_proof: sData.signature_proof || ('SHA256-OK-' + Math.random().toString(36).substring(2, 8))
+              signature_proof: sData.signature_proof || ((isSupervisor ? 'SUP-MERKLE-' : 'SHA256-OK-') + Math.random().toString(36).substring(2, 8))
             };
           } catch (err) {}
         }
 
         const elapsedMs = Date.now() - startTime;
-        const finalProof = verifyResult?.signature_proof || verifyResult?.delivery_id || ('SHA256-' + Math.random().toString(36).substring(2, 10));
+        const finalProof = verifyResult?.signature_proof || verifyResult?.delivery_id || ((isSupervisor ? 'SUP-MERKLE-' : 'SHA256-') + Math.random().toString(36).substring(2, 10));
 
         // 5. TELÉFONO DERECHO: DESPLEGAR EL OVERLAY REAL DE FEEDBACK (distributorFeedbackOverlay)
-        overlayWorkerName.textContent = worker.full_name;
-        overlayWorkerDoc.textContent = `C.I. V-${worker.document_id}`;
-        overlayHash.textContent = `SELLO MERKLE: ${finalProof}`;
+        if (isSupervisor) {
+          feedbackIcon.textContent = '🛡️';
+          feedbackTitle.textContent = 'ENTREGA POR CONTINGENCIA';
+          feedbackTitle.style.color = '#b45309';
+          feedbackSubtitle.textContent = 'Liberación de excepción autorizada por Supervisor de Mesa (Sin Smartphone)';
+          feedbackSubtitle.style.color = '#d97706';
+          distributorFeedbackOverlay.style.borderColor = '#f59e0b';
+          btnCloseFeedbackOverlay.style.background = '#d97706';
+
+          feedbackDetails.innerHTML = `
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Funcionario:</span> 
+              <strong id="overlayWorkerName" style="color: #0f172a; display: block; font-size: 0.85rem; font-weight: 800;">${worker.full_name}</strong>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Cédula:</span> 
+              <strong id="overlayWorkerDoc" style="color: #0284c7; font-weight: 700;">C.I. V-${worker.document_id}</strong>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Modalidad de Entrega:</span> 
+              <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid rgba(245, 158, 11, 0.4); font-weight: 800; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 4px; display: inline-block;">🔑 Contingencia Supervisor</span>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Supervisor Responsable:</span> 
+              <strong style="color: #0284c7; font-size: 0.8rem;">Ing. Carlos Mendoza (TI MIPPCI)</strong>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Combo Retirado:</span> 
+              <strong style="color: #059669; display: block; font-weight: 700;">🌾 ${worker.combo?.name || 'Bolsa de Víveres Secos'} (14.50 kg)</strong>
+            </div>
+            <div id="overlayHash" style="font-size: 0.65rem; color: #64748b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.35rem;">
+              SELLO MERKLE (SUP): ${finalProof}
+            </div>
+          `;
+        } else {
+          feedbackIcon.textContent = '✅';
+          feedbackTitle.textContent = 'ENTREGA AUTORIZADA';
+          feedbackTitle.style.color = '#065f46';
+          feedbackSubtitle.textContent = 'Beneficiario verificado correctamente con firma digital FIDO2';
+          feedbackSubtitle.style.color = '#047857';
+          distributorFeedbackOverlay.style.borderColor = '#10b981';
+          btnCloseFeedbackOverlay.style.background = '#10b981';
+
+          feedbackDetails.innerHTML = `
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Funcionario:</span> 
+              <strong id="overlayWorkerName" style="color: #0f172a; display: block; font-size: 0.85rem; font-weight: 800;">${worker.full_name}</strong>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Cédula:</span> 
+              <strong id="overlayWorkerDoc" style="color: #0284c7; font-weight: 700;">C.I. V-${worker.document_id}</strong>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Modalidad de Entrega:</span> 
+              <span class="badge" style="background: rgba(2, 132, 199, 0.12); color: #0284c7; font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 4px; display: inline-block;">📱 Passkey FIDO2</span>
+            </div>
+            <div style="margin-bottom: 0.35rem;">
+              <span style="color: #64748b;">Combo Retirado:</span> 
+              <strong style="color: #059669; display: block; font-weight: 700;">🌾 ${worker.combo?.name || 'Bolsa de Víveres Secos'} (14.50 kg)</strong>
+            </div>
+            <div id="overlayHash" style="font-size: 0.65rem; color: #64748b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.35rem;">
+              SELLO MERKLE: ${finalProof}
+            </div>
+          `;
+        }
 
         distributorFeedbackOverlay.classList.add('active');
         distributorFeedbackOverlay.style.display = 'flex';
 
         // 6. TELÉFONO IZQUIERDO: ACTUALIZAR EL CARNET CON EL COMPROBANTE OFICIAL
         workerDeliveryReceiptBox.style.display = 'block';
-        receiptTimestamp.textContent = `Entregado a las: ${new Date().toLocaleTimeString()}`;
+        receiptTimestamp.innerHTML = isSupervisor
+          ? `Entregado a las: ${new Date().toLocaleTimeString()} <br><span style="color: #fbbf24; font-weight: 700; font-size: 0.72rem;">🔑 Modalidad: Contingencia Supervisor</span>`
+          : `Entregado a las: ${new Date().toLocaleTimeString()} (Firma FIDO2)`;
         receiptComboText.textContent = `${worker.combo?.name || 'Bolsa de Víveres Secos'} (14.50 kg)`;
 
         // 7. ACTUALIZACIÓN DE CONTADORES, KPIS Y AUDITORÍA
@@ -1048,7 +1160,7 @@
         }
 
         updateDashboardKpis(elapsedMs);
-        addAuditTableRow(worker, finalProof);
+        addAuditTableRow(worker, finalProof, isSupervisor);
 
         // 8. ESPERAR Y PASAR AL SIGUIENTE SI ESTÁ EN MODO CONTINUO
         await new Promise(r => setTimeout(r, activeDelay > 1500 ? 900 : (activeDelay > 700 ? 450 : 180)));
@@ -1072,6 +1184,14 @@
         kpiLatency.textContent = `${lastLatency} ms`;
         distributorDeliveriesHeaderCount.textContent = deliveredCount;
 
+        // Calcular contingencias de supervisor acumuladas
+        const deliveredWorkers = workersList.slice(0, deliveredCount);
+        const supervisorDeliveries = deliveredWorkers.filter(w => w.order_index % 10 === 0).length;
+        const supervisorPct = deliveredCount > 0 ? Math.round((supervisorDeliveries / deliveredCount) * 100) : 0;
+        if (kpiSupervisorCount) {
+          kpiSupervisorCount.textContent = `${supervisorDeliveries} (${supervisorPct}%)`;
+        }
+
         const total = workersList.length || 100;
         const pct = Math.round((deliveredCount / total) * 100);
         progressCountLabel.textContent = `[ ${deliveredCount} / ${total} ]`;
@@ -1079,13 +1199,20 @@
         simProgressBar.style.width = `${pct}%`;
       }
 
-      function addAuditTableRow(worker, proofHash) {
+      function addAuditTableRow(worker, proofHash, isSupervisor = false) {
         if (realAuditTableBody.querySelector('td[colspan]')) {
           realAuditTableBody.innerHTML = '';
         }
 
         const now = new Date();
         const tr = document.createElement('tr');
+        if (isSupervisor) {
+          tr.style.background = 'rgba(245, 158, 11, 0.06)';
+        }
+
+        const methodBadge = isSupervisor
+          ? '<span class="badge" style="background: rgba(245, 158, 11, 0.18); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.45); font-weight: 800; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px;">🔑 Contingencia Supervisor</span>'
+          : '<span class="badge" style="background: rgba(2, 132, 199, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.35); font-weight: 700; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 4px;">📱 Passkey FIDO2</span>';
 
         tr.innerHTML = `
           <td><strong>#${worker.order_index}</strong></td>
@@ -1094,7 +1221,7 @@
           <td style="color: #38bdf8; font-weight: 700;">V-${worker.document_id}</td>
           <td style="font-size: 0.75rem; color: #cbd5e1;">${worker.department_name || 'Nómina Central MIPPCI'}</td>
           <td><span style="color: #34d399; font-weight: 700;">🌾 Bolsa de Víveres Secos</span> <small style="color: #94a3b8;">(14.5 kg)</small></td>
-          <td><span class="badge" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">Passkey FIDO2</span></td>
+          <td>${methodBadge}</td>
           <td style="font-family: monospace; font-size: 0.7rem; color: #94a3b8;" title="${proofHash}">${proofHash.substring(0, 16)}...</td>
           <td><span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✅ Entregado</span></td>
         `;
