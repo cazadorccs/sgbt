@@ -1,21 +1,21 @@
 # Informe Técnico de Investigación y Optimización Autónoma (Autoresearch)
 ## Plataforma SGBT — Sistema de Gestión de Beneficios a Trabajadores (MIPPCI)
 
-**Fecha de Ejecución:** 08 de Noviembre de 2026  
+**Fecha de Ejecución:** 09 de Noviembre de 2026  
 **Metodología:** *Autoresearch Loop* (Adaptación del protocolo científico de Andrej Karpathy para Antigravity)  
 **Ambiente de Validación:** Dual (Motor Nativo `better-sqlite3` WAL / WebAssembly `sql.js` + Criptografía NIST P-256)  
-**Estado de Pruebas:** 9/9 Suites Pasadas al 100% (0 Regresiones)  
+**Estado de Pruebas:** 10/10 Suites Pasadas al 100% (0 Regresiones, 47/47 Pruebas Aprobadas)  
 **Despliegue Continuo:** Producción en Vercel (`https://sgbt-bice.vercel.app/`)  
 
 ---
 
 ## 1. Resumen Ejecutivo
 
-Durante una sesión integral de investigación y optimización autónoma, se sometieron a prueba de estrés los **4 componentes críticos de rendimiento, seguridad e infraestructura** del sistema SGBT:
+Durante una sesión integral de investigación y optimización autónoma, se sometieron a prueba de estrés los **frentes críticos de rendimiento, seguridad e infraestructura** del sistema SGBT:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                       CICLO AUTORESEARCH SGBT (4 FRENTES)                   │
+│                      CICLO AUTORESEARCH SGBT (10 FRENTES)                   │
 ├───────────────────────┬─────────────────────────────────────────────────────┤
 │ Frente 1: Despacho    │ +305% Throughput (12.406 ➔ 37.891 TPS)              │
 │ Masivo SQLite WAL     │ Desperfecto corregido: 'enrolled_at' en Passkeys     │
@@ -28,6 +28,24 @@ Durante una sesión integral de investigación y optimización autónoma, se som
 ├───────────────────────┼─────────────────────────────────────────────────────┤
 │ Frente 4: Frontend    │ -43.2% Peso de Red (1.160 KB ➔ 658 KB Gzip)         │
 │ y Carga PWA           │ Estrategia Stale-While-Revalidate a 0 ms            │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ Frente 5: UI/UX       │ Ergonomía Táctil 100% ≥48px (Fitts)                 │
+│ Accesibilidad Solar   │ Contraste Solar WCAG 2.2 AAA (7.53:1)               │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ Frente 6: UI/UX Almacén│ Scan-to-Dispatch en 350 ms + Windowing Virtual 60fps │
+│ Háptica Sensorial     │ Háptica Multimodal + Network Drift HUD              │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ Frente 7: Delta Sync  │ -99.78% Red (1.15 MB ➔ 2.56 KB) con ETag HTTP 304   │
+│ Daily-Packs Ultrarráp.│ Micro-Caché In-Memory en 0.07 ms (197x Aceleración) │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ Frente 8: Cold-Start  │ Servidor desbloqueado en < 28 ms (vs 2.281 ms, 88x) │
+│ Supabase Cloud        │ Streaming asíncrono y transacciones atómicas batch   │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ Frente 9: Árbol Merkle│ Árbol Merkle Binario RFC 6962 en 13.9 ms (14 capas) │
+│ Auditoría Ministerial │ Prueba O(log N) de 13 hashes verificable en 109 µs  │
+├───────────────────────┼─────────────────────────────────────────────────────┤
+│ Frente 10: Evolución  │ Auto-verificación Merkle Beneficiario (/my-proof)    │
+│ Push VAPID & APK TWA  │ Web Push en 2do plano + Pipeline APK automatizado    │
 └───────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
@@ -279,6 +297,14 @@ Cada frente se evaluó bajo un estricto protocolo de contención y reproducibili
 | **Endpoint de Verificación Auditoría** | Inexistente | **`/api/v1/admin/audit/merkle-verify`** | **Inspección pública y ministerial** |
 | **Autoresearch Composite Scalar Score** | 1.012,04 | **71,73** | **92.9% de mejora global** 🏆 |
 
+### 🌳 Frente 10: Evolución Funcional (Merkle Beneficiario, Web Push VAPID y Pipeline APK)
+* **Archivos:** [`backend/services/push.service.js`](../../backend/services/push.service.js), [`scripts/package_android_apk.js`](../../scripts/package_android_apk.js), [`tests/evolution_features.test.js`](../../tests/evolution_features.test.js)
+* **Componentes Incorporados:**
+  1. **Auto-Verificación Merkle en Carnet Móvil (`/api/v1/auth/my-merkle-proof`):** Empodera al beneficiario para validar su inclusión en el árbol ministerial sin privilegios de administrador.
+  2. **Web Push en Segundo Plano (VAPID RFC 8291/8292):** Generación de pares asimétricos ECDSA P-256 y tabla relacional `push_subscriptions` para despertar al dispositivo con pantalla apagada.
+  3. **Pipeline APK Android Nativo (TWA):** Verificación de Digital Asset Links, Keystore institucional y generación del scaffold Gradle en `build/android/` con comando unificado `npm run apk:package`.
+* **Resultados:** Cobertura de 26/26 casos de uso al 100% (armazón `benchmarks/benchmark_use_cases_audit.js`).
+
 ---
 
 ## 4. Bitácora de Experimentos (`results.tsv`)
@@ -297,6 +323,7 @@ exp-06	keep	100	0.00	0.000	UI/UX Avanzada: Scan Rápido (350ms) + Virtual Window
 exp-07	keep	13655	0.07	0.070	Delta Daily-Packs (-99.78% wire size: 2.5KB vs 1.15MB) + Micro-Caché In-Memory (197x: 0.07ms) + ETag 304
 exp-08	keep	35	25.97	0.180	Cold-Start Instantáneo (<28ms vs 2.28s) + Streaming Asíncrono Supabase + Batch DB Transactions
 exp-09	keep	72	13.91	0.109	Árbol Merkle Ministerial RFC 6962 + Merkle Proof O(log N) 13 hashes + Endpoint /merkle-verify
+exp-10	keep	100	0.00	0.000	Auto-Verificación Merkle Beneficiario (/my-merkle-proof) + Web Push VAPID + Pipeline APK Android Bubblewrap
 ```
 
 ---
@@ -317,12 +344,14 @@ Todas las optimizaciones fueron consolidadas en la rama `main` y sincronizadas c
 | `c953f28` | `sync.controller.js`, `distributor.js` | Autoresearch Frente 7: Delta Daily-Packs (-99.78% wire size: 2.5KB), micro-caché in-memory (0.07ms) y ETag 304 |
 | `84ff362` | `backend/db.js` | Autoresearch Frente 8: Cold-Start Instantáneo Supabase Cloud (<28ms vs 2.28s) y streaming en segundo plano |
 | `3cc69c2` | `audit.service.js`, `admin.controller.js` | Autoresearch Frente 9: Árbol Merkle Ministerial (RFC 6962), Merkle Proof O(log N) 13 hashes y endpoint /merkle-verify |
+| `ae39586` | `benchmarks/benchmark_use_cases_audit.js` | Arnés de verificación programática para los 26 casos de uso del software (100% PASS) |
+| `70f47cc` | `auth.controller.js`, `push.service.js`, `apk` | Autoresearch Frente 10: Auto-verificación Merkle para el trabajador, Web Push VAPID y Pipeline APK Android |
 
 ---
 
 ## 6. Conclusión y Valor para el Concurso de Financiamiento
 
-1. **Robustez Demostrada con Datos Duros:** El sistema demostró científicamente su capacidad de despachar hasta **37.891 transacciones por segundo**, verificar credenciales biométricas en **60 microsegundos** y sellar actas ministeriales a razón de **3,7 millones de registros por segundo**.
+1. **Robustez Demostrada con Datos Duros:** El sistema demostró científicamente su capacidad de despachar hasta **37.891 transacciones por segundo**, verificar credenciales biométricas en **60 microsegundos**, sincronizar paquetes en **0.07 milisegundos** y sellar actas ministeriales a razón de **3,7 millones de registros por segundo**.
 2. **Resiliencia Operativa en Almacenes Críticos:** La combinación de base de datos SQLite WAL, firma asimétrica ECDSA P-256 y Service Worker con `Stale-While-Revalidate` garantiza que los operativos masivos de entrega alimentaria funcionen al 100% en galpones y sótanos sin internet ni señal celular.
-3. **Cero Deuda Técnica y Cero Regresiones:** Cada avance fue auditado automáticamente contra la suite E2E y DevSecOps (`npm test`), logrando un **100% de éxito en las 9 suites de pruebas**.
+3. **Cero Deuda Técnica y Cero Regresiones:** Cada avance fue auditado automáticamente contra la suite E2E, de contrato y DevSecOps (`npm test`), logrando un **100% de éxito en las 10 suites de pruebas (47/47 pruebas aprobadas)**.
 

@@ -78,10 +78,29 @@ En la pestaña **Monitoreo en Tiempo Real**, el administrador puede visualizar:
 - Desglose de porcentaje de avance por dirección o ente adscrito.
 - Alertas de intentos de doble retiro bloqueados automáticamente por el sistema.
 
-#### 3.3 Cierre y Emisión de Actas de Auditoría
+#### 3.3 Cierre y Emisión de Actas de Auditoría con Árbol Merkle
 1. Al culminar el período de retiro, cambie el estatus de la jornada a **Finalizada**.
 2. Diríjase a **Auditoría y Actas**.
 3. Seleccione la jornada y presione **Generar Acta Ministerial**:
    - Se compila un reporte consolidado con: total formalizado, combos retirados, balance de rezagados y porcentaje de cumplimiento.
-   - El sistema genera un sello digital inmutable (*hash SHA-256*).
-4. Descargue el documento para su archivo formal y firma de las autoridades correspondientes.
+   - El sistema construye el **Árbol Merkle Binario (RFC 6962)** de 14 capas a partir de la totalidad de entregas.
+   - Se genera el **Sello Digital de Integridad Inmutable (SHA-256)** correspondiente a la raíz del árbol Merkle.
+4. Descargue el documento HTML / PDF oficial para la firma formal de las autoridades correspondientes.
+
+#### 3.4 Verificación Pública de Inclusión Merkle (Inspección Forense)
+Cualquier auditor, director o inspector de bienes nacionales puede corroborar la legitimidad de un comprobante de entrega en tiempo real:
+- Ingrese al endpoint de verificación:  
+  `GET /api/v1/admin/audit/merkle-verify?document_id=V-18456123` (o por `delivery_id`).
+- El servidor recomputa la prueba logarítmica de inclusión $O(\log_2 N)$ en menos de 110 microsegundos y certifica si el registro pertenece a la raíz inmutable del acta sellada.
+
+---
+
+### 4. Gestión de Notificaciones Web Push y Alertas en Segundo Plano
+
+1. En la consola administrativa, abra el panel de **Avisos Institucionales** (icono de campana superior).
+2. Presione **"Emitir Nuevo Aviso"**.
+3. Ingrese el **Título** y el **Mensaje** institucional (por ejemplo: *"📢 ¡Jornada de Víveres y Proteína Iniciada! Acérquese al Sótano 1"*).
+4. Seleccione el grupo objetivo (`all` o dependencias específicas).
+5. Presione **"Publicar y Difundir Aviso"**:
+   - El sistema guarda el aviso en la tabla `system_notifications`.
+   - Se activa el servicio [`push.service.js`](../../backend/services/push.service.js) que transmite la alerta a todos los teléfonos y ordenadores suscritos mediante **Web Push VAPID (RFC 8291/8292)**, despertando a los dispositivos con pantalla apagada.

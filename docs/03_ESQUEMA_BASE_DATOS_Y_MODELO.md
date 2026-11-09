@@ -87,7 +87,7 @@ La persistencia del sistema está modelada bajo tercera forma normal (3FN) con i
    - **Restricción de unicidad:** `UNIQUE (worker_id, valid_date, combo_id)` para garantizar exactamente una asignación por tipo de combo por jornada.
 
 #### Dominio 3: Despacho, Idempotencia y Auditoría
-8. **`deliveries` (Registro Transaccional de Entregas Físicas):**
+9. **`deliveries` (Registro Transaccional de Entregas Físicas):**
    - `id` (TEXT, PK): Identificador UUID del evento.
    - `entitlement_id` (TEXT, FK): Cuota consumida en `daily_entitlements(id)`.
    - `worker_id` (TEXT, FK): Beneficiario que retiró.
@@ -97,6 +97,15 @@ La persistencia del sistema está modelada bajo tercera forma normal (3FN) con i
    - `signature_proof` (TEXT): Firma criptográfica verificada.
    - `challenge_nonce` (TEXT): Reto de un solo uso que previene repetición.
    - `delivered_at` (TEXT): Estampa de tiempo certificada.
+
+10. **`push_subscriptions` (Suscripciones Web Push en Segundo Plano):**
+   - `id` (TEXT, PK): Identificador UUID de la suscripción.
+   - `worker_id` (TEXT, FK): Enlace a `workers(id)` con eliminación en cascada.
+   - `endpoint` (TEXT, UNIQUE): URL única del Push Service del navegador (FCM / Mozilla Push Service).
+   - `p256dh` (TEXT): Clave pública ECDSA P-256 del cliente para cifrado de mensajes (RFC 8291).
+   - `auth` (TEXT): Secreto de autenticación compartido de 16 bytes.
+   - `user_agent` (TEXT): Navegador o modelo de teléfono registrado.
+   - `created_at` (TEXT) y `updated_at` (TEXT): Marcas de tiempo de creación y actualización.
 
 ---
 

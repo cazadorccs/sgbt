@@ -32,6 +32,10 @@ El sistema implementa una arquitectura híbrida desacoplada, diseñada para oper
 5. **Generación de Comprobante de Retiro:**
    - Al pulsar "Generar Comprobante de Retiro", el sistema firma un reto criptográfico (`nonce`) mediante la Passkey.
    - Se despliega un código QR temporal dinámico con una cuenta regresiva de 180 segundos para evitar clonaciones.
+6. **Historial de Recibos y Auto-Verificación Merkle:**
+   - El usuario puede presionar "📜 Mis Recibos" para auditar en cualquier momento sus entregas pasadas.
+   - Mediante el botón "🛡️ Auditar en Árbol Merkle Ministerial (RFC 6962)", el carnet verifica en tiempo real su inclusión matemática en la raíz del acta ministerial oficial (`/api/v1/auth/my-merkle-proof`).
+   - Recibe alertas push automáticas en segundo plano (VAPID) con pantalla apagada al confirmarse su retiro o convocarse nuevas jornadas.
 
 #### 2.2 Flujo del Operador de Almacén (Mesa de Despacho)
 1. **Apertura de Estación:** El operador ingresa con credencial autorizada (`role: operator`) a la pantalla limpia y ergonómica de la Mesa de Despacho.
@@ -68,7 +72,7 @@ El sistema implementa una arquitectura híbrida desacoplada, diseñada para oper
 5. **Auditoría DevSecOps y Monitoreo en Vivo:**
    - Supervisión de la curva de despacho en tiempo real mediante el canal de eventos en vivo (SSE).
    - Verificación de la consistencia de persistencia en la nube mediante `npm run verify:cloud`.
-   - Emisión del Acta Digital Ministerial con sello criptográfico SHA-256.
+   - Emisión del Acta Digital Ministerial con sello criptográfico SHA-256 basado en el Árbol Merkle Binario (RFC 6962) e inspección forense mediante `/api/v1/admin/audit/merkle-verify`.
 
 > **Diagrama de Secuencia Interactivo:**  
 > Para revisar el intercambio cronológico detallado de mensajes, firma y despacho en almacén:  

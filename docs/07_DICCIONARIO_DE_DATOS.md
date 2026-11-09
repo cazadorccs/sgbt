@@ -130,3 +130,16 @@ El sistema gestiona diecisiete (17) tablas relacionales estructuradas para garan
 | `delivered_at` | TEXT | No | Estampa de tiempo exacta de la entrega física. |
 | `synced_at` | TEXT | No | Estampa de tiempo de sincronización con la base de datos central. |
 | **Índice Anti-Fraude**| — | — | `CREATE UNIQUE INDEX idx_unique_daily_claim ON deliveries(worker_id, entitlement_id)` |
+
+#### Tabla: `push_subscriptions`
+| Columna | Tipo SQL | Nulo | Descripción y Reglas de Negocio |
+| :--- | :--- | :---: | :--- |
+| `id` | TEXT | No | Identificador UUID v4 de la suscripción del dispositivo. |
+| `worker_id` | TEXT | Sí | Clave foránea referenciando `workers.id` (ON DELETE CASCADE). |
+| `endpoint` | TEXT | No | URL única del Push Service (FCM, Mozilla, Apple Push). Restricción `UNIQUE`. |
+| `p256dh` | TEXT | No | Clave pública de curva elíptica P-256 en Base64URL para cifrado de carga (RFC 8291). |
+| `auth` | TEXT | No | Secreto de autenticación compartido de 16 bytes para la sesión push. |
+| `user_agent` | TEXT | Sí | Información de navegador y plataforma cliente. |
+| `created_at` | TEXT | No | Estampa de tiempo UTC de suscripción inicial. |
+| `updated_at` | TEXT | No | Estampa de tiempo UTC de renovación del canal push. |
+| **Índice de Búsqueda**| — | — | `CREATE INDEX idx_push_sub_worker ON push_subscriptions(worker_id)` |

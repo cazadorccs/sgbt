@@ -661,6 +661,208 @@ paths:
                 type: string
                 example: "event: delivery\ndata: {\"id\":102,\"cedula\":\"V-12345678\",\"combo_name\":\"Bolsa Familiar\"}\n\n"
 
+  /auth/my-receipts:
+    get:
+      tags:
+        - Autenticación & Passkeys
+      summary: Consultar historial de recibos digitales del beneficiario
+      description: Retorna la lista de entregas históricas liquidadas para el usuario autenticado, agrupadas por jornada institucional con peso bruto y combos.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Historial de recibos digitales obtenido con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  receipts:
+                    type: array
+                    items:
+                      type: object
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /auth/my-merkle-proof:
+    get:
+      tags:
+        - Auditoría & Árbol Merkle
+      summary: Auto-verificación de inclusión en Árbol Merkle Ministerial (RFC 6962)
+      description: Permite al beneficiario autenticado auditar matemáticamente su entrega contra la raíz Merkle de la jornada, obteniendo la ruta logarítmica de inclusión O(log N).
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      parameters:
+        - name: delivery_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ID específico de entrega a verificar (por defecto la más reciente del usuario)
+      responses:
+        '200':
+          description: Prueba de inclusión Merkle generada y matemáticamente válida
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  verified:
+                    type: boolean
+                    example: true
+                  merkle_root:
+                    type: string
+                    example: "4a5e1e...b8f1"
+                  leaf_hash:
+                    type: string
+                    example: "9b3c10...c12a"
+                  tree_depth:
+                    type: integer
+                    example: 14
+                  proof_length:
+                    type: integer
+                    example: 13
+                  standard:
+                    type: string
+                    example: "RFC 6962 / SHA-256 Binary Merkle Tree"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: No se encontró registro de entrega sellada
+
+  /admin/audit/merkle-verify:
+    get:
+      tags:
+        - Auditoría & Árbol Merkle
+      summary: Verificación pública e individual de comprobante Merkle
+      description: Endpoint administrativo y de auditoría pública para verificar cualquier entrega por Cédula o Delivery ID contra el árbol Merkle sellado.
+      parameters:
+        - name: document_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Cédula de identidad del beneficiario
+        - name: delivery_id
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Identificador de la entrega
+      responses:
+        '200':
+          description: Resultado de la verificación Merkle
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  verified:
+                    type: boolean
+                    example: true
+                  merkle_root:
+                    type: string
+                  total_deliveries_in_tree:
+                    type: integer
+
+  /notifications/vapid-public-key:
+    get:
+      tags:
+        - Notificaciones & Web Push
+      summary: Obtener clave pública VAPID (RFC 8291/8292)
+      description: Retorna la clave pública ECDSA P-256 en formato base64url requerida por el PushManager del Service Worker.
+      responses:
+        '200':
+          description: Clave pública VAPID entregada con éxito
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  publicKey:
+                    type: string
+
+  /notifications/subscribe:
+    post:
+      tags:
+        - Notificaciones & Web Push
+      summary: Registrar suscripción Web Push de dispositivo
+      description: Almacena el endpoint y las claves criptográficas P-256 del dispositivo en la tabla push_subscriptions para alertas en segundo plano.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subscription
+              properties:
+                subscription:
+                  type: object
+                  properties:
+                    endpoint:
+                      type: string
+                    keys:
+                      type: object
+                      properties:
+                        p256dh:
+                          type: string
+                        auth:
+                          type: string
+      responses:
+        '200':
+          description: Dispositivo suscrito exitosamente
+
+  /notifications/unsubscribe:
+    post:
+      tags:
+        - Notificaciones & Web Push
+      summary: Cancelar suscripción Web Push
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - endpoint
+              properties:
+                endpoint:
+                  type: string
+      responses:
+        '200':
+          description: Suscripción cancelada
+
+  /notifications/test-push:
+    post:
+      tags:
+        - Notificaciones & Web Push
+      summary: Enviar notificación push de prueba
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Resultado del despacho push
+
   /manual-dispatch/combos:
     get:
       tags:

@@ -257,3 +257,4 @@ console.log('  3. El APK generado usará automáticamente la firma android.keyst
 console.log('================================================================\n');
 
 process.exit(0);
+

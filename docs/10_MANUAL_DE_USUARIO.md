@@ -51,6 +51,23 @@ En caso de olvidar o extraviar su contraseña institucional asignada durante la 
 5. Presione **Guardar Nueva Contraseña**.
 6. Recibirá una confirmación exitosa y podrá ingresar de inmediato a su carnet de beneficiario utilizando su nueva clave.
 
+#### 1.7 Historial de Recibos y Auto-Verificación Merkle en el Carnet Móvil
+Cada funcionario cuenta con respaldo inalterable de todos sus retiros pasados:
+1. En la esquina superior de su carnet de beneficiario, presione **"📜 Mis Recibos"**.
+2. Podrá visualizar todas las jornadas en las que ha retirado combos, con detalle de fecha, rubros recibidos, peso bruto (~28.5 kg) y firma digital.
+3. Presione **"Ver Comprobante Oficial Detallado"** para abrir el comprobante consolidado.
+4. Presione **"🛡️ Auditar en Árbol Merkle Ministerial (RFC 6962)"**:
+   - El sistema validará matemáticamente en tiempo real la inclusión de su recibo contra la raíz del árbol ministerial sellado.
+   - Observará el hash SHA-256 de su entrega, la raíz de la jornada y los niveles logarítmicos de la prueba de inclusión.
+   - Puede presionar **"📋 Copiar Prueba SHA-256"** para respaldar su comprobante ante cualquier ente de control.
+
+#### 1.8 Notificaciones Web Push en Segundo Plano
+1. Al acceder a la plataforma, el sistema solicitará autorización para enviarle avisos push institucionales.
+2. Presione **"Permitir"**. Su dispositivo quedará registrado de forma segura mediante un canal cifrado ECDSA P-256 (VAPID).
+3. Recibirá alertas instantáneas con la pantalla apagada o la aplicación cerrada cuando:
+   - Inicie una nueva jornada de distribución para su departamento.
+   - Su combo sea escaneado y retirado en las mesas de despacho, garantizando protección anti-suplantación en tiempo real.
+
 ---
 
 ### 2. Guía para el Operador de Almacén (Punto de Despacho)

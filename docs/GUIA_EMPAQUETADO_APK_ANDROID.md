@@ -34,16 +34,23 @@ El repositorio cuenta con todos los artefactos requeridos por los estándares de
 | [`public/.well-known/assetlinks.json`](../public/.well-known/assetlinks.json) | Contrato Digital Asset Links que acredita ante Android que el dominio `sgbt-bice.vercel.app` es propietario de la app `gob.ve.mippci.sgbt`. |
 | [`twa-manifest.json`](../twa-manifest.json) | Configuración del empaquetador oficial de Google (Bubblewrap) con soporte de notificaciones, pantalla completa y splash screen. |
 | [`scripts/validate_twa.js`](../scripts/validate_twa.js) | Script de diagnóstico y validación previa de artefactos TWA. |
+| [`scripts/package_android_apk.js`](../scripts/package_android_apk.js) | Pipeline automatizado de validación, generación de scaffold Gradle en `build/android/` y empaquetado APK. |
 
 ---
 
-### 3. Validación y Diagnóstico Previo
+### 3. Pipeline Automatizado de Empaquetado (`npm run apk:package`)
 
-Antes de compilar el paquete APK, ejecute:
+Para verificar artefactos y generar automáticamente la estructura Gradle nativa para compilación local:
 ```bash
-npm run twa:validate
+npm run apk:package
 ```
-El script comprobará la sintaxis y coherencia de los manifiestos, firmas e iconos físicos requeridos.
+Este pipeline ejecuta:
+1. Comprobación de los 6 artefactos obligatorios (`manifest.json`, `assetlinks.json`, `twa-manifest.json`, `android.keystore` e iconos 192/512px).
+2. Generación automática del andamiaje Android Gradle en `build/android/`:
+   - `AndroidManifest.xml` con permisos de Cámara, NFC, Internet y Vibrate.
+   - `app/build.gradle` con dependencia oficial `com.google.androidbrowserhelper:androidbrowserhelper:2.5.0`.
+   - Scripts de compilación unificados: `build_apk.bat` (Windows) y `build_apk.sh` (Linux/macOS).
+3. Detección automática del entorno de compilación (Bubblewrap CLI y OpenJDK).
 
 ---
 

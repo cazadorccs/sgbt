@@ -3,9 +3,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v20%20%7C%20v22-green.svg)](https://nodejs.org/)
-[![Architecture](https://img.shields.io/badge/Architecture-Modular%20v4.2-brightgreen.svg)]()
-[![E2E Tests](https://img.shields.io/badge/Test%20Suites-9%2F9%20Passed%20(100%25)-success.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Modular%20v5.0-brightgreen.svg)]()
+[![E2E Tests](https://img.shields.io/badge/Test%20Suites-10%2F10%20Passed%20(100%25)-success.svg)]()
 [![Cloud Audit](https://img.shields.io/badge/Cloud%20Persistence-6%2F6%20Verified-blue.svg)]()
+[![Merkle Audit](https://img.shields.io/badge/Merkle%20Audit-RFC%206962%20SHA--256-blueviolet.svg)]()
+[![Web Push](https://img.shields.io/badge/Web%20Push-VAPID%20RFC%208291%2F8292-teal.svg)]()
+[![Android APK](https://img.shields.io/badge/Android%20APK-TWA%20Bubblewrap%20Ready-green.svg)]()
 [![OpenAPI](https://img.shields.io/badge/OpenAPI-v3.1.0-orange.svg)](http://localhost:3000/docs)
 [![Security](https://img.shields.io/badge/Security-Trail%20of%20Bits%20%7C%20FIDO2%20Passkeys-blueviolet.svg)]()
 
@@ -77,9 +80,32 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
     - **Secretos Dinámicos:** Generación criptográfica aleatoria de 256 bits en memoria para contingencias en producción, erradicando claves predeterminadas hardcodeadas.
     - **Cumplimiento RFC 6585 & RFC 7807:** Cabecera `Retry-After` ante bloqueos `HTTP 429` y ofuscación de mensajes de error internos 500 en producción.
 
+12. **Árbol Merkle Criptográfico de Auditoría Ministerial (RFC 6962 / SHA-256):**
+    - Sellado inmutable de toda la jornada mediante un Árbol Merkle binario balanceado de 14 capas.
+    - Pruebas de inclusión logarítmicas $O(\log_2 N)$ de 13 hashes (~416 bytes) verificables en menos de 110 µs.
+    - Verificación pública e individual mediante `/api/v1/admin/audit/merkle-verify` y emisión de Acta Oficial de Despacho con sello digital SHA-256.
+
+13. **Auto-Verificación Criptográfica para el Beneficiario:**
+    - Endpoint autenticado `GET /api/v1/auth/my-merkle-proof` para que cualquier funcionario o jubilado verifique la inmutabilidad de su entrega desde su teléfono móvil.
+    - Ventana modal con certificado criptográfico, comprobación de integridad y copia de la prueba matemática al portapapeles.
+
+14. **Web Push Notifications en Segundo Plano con VAPID (RFC 8291 / RFC 8292):**
+    - Alertas push directas al dispositivo mediante el Service Worker (`public/sw.js`), operativas con la pantalla apagada o el navegador cerrado.
+    - Subscripciones persistentes en tabla relacional `push_subscriptions` y generación asimétrica de claves ECDSA P-256 (prime256v1).
+    - Endpoints de suscripción `/api/v1/notifications/vapid-public-key` y `/api/v1/notifications/subscribe`.
+
+15. **Pipeline Automatizado de Empaquetado APK Android Nativo (TWA):**
+    - Comando CLI automatizado `npm run apk:package` (`scripts/package_android_apk.js`).
+    - Validación pre-flight de los 6 artefactos obligatorios (Manifest, AssetLinks, TWA Manifest, Keystore, Iconos).
+    - Generación automática del andamiaje nativo Android Gradle en `build/android/` con scripts de compilación para Windows y Linux.
+
+16. **Optimizaciones de Rendimiento Extremo con Autoresearch:**
+    - **Delta Daily-Packs:** Reducción de transferencia en red de 1.15 MB a 2.56 KB (-99.78%) con micro-caché in-memory a 0.07 ms (197x de aceleración) y soporte de cabecera `ETag` (HTTP 304).
+    - **Cold-Start Instantáneo de Supabase Cloud:** Desacoplamiento del arranque local en SQLite (< 28 ms vs 2,281 ms, 88x de mejora) con hidratación streaming en segundo plano y transacciones atómicas batch.
+
 ---
 
-## 🧱 Estructura del Proyecto (Arquitectura Modular v4.2)
+## 🧱 Estructura del Proyecto (Arquitectura Modular v5.0)
 
 ```text
 ├── backend/
@@ -105,10 +131,12 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   │   └── validator.middleware.js    # Validación estricta de esquemas y DTOs
 │   ├── routes/                 # Rutas RESTful bajo prefijo canónico /api/v1/
 │   ├── services/               # Capa de Servicios Especializados
+│   │   ├── audit.service.js      # Árbol Merkle RFC 6962, pruebas de inclusión O(log N) y Actas
 │   │   ├── cloud_sync.service.js # Sincronización criptográfica garantizada hacia Supabase Cloud
 │   │   ├── logger.service.js     # Bitácora relacional de auditoría y Server-Sent Events
 │   │   ├── mfa.service.js        # Autenticación Multifactor TOTP RFC 6238 y Backup Codes
 │   │   ├── passkey.service.js    # Criptografía FIDO2 / WebAuthn ECDSA P-256
+│   │   ├── push.service.js       # Notificaciones Web Push VAPID RFC 8291/8292 en segundo plano
 │   │   ├── session.service.js    # Gestión de sesiones persistentes y amarre de dispositivo
 │   │   ├── sse.service.js        # Server-Sent Events en tiempo real
 │   │   └── supervisor.service.js # Firmas HMAC-SHA256 y QR diario de fiscalización
@@ -118,31 +146,33 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   ├── server.js               # Bootstrap modular del servidor Express con CORS y HTTPS
 │   └── test_e2e_suite.js       # Suite E2E de arquitectura (26/26 pruebas)
 │
+├── benchmarks/                 # Arnés de Optimización Continua (Autoresearch)
+│   ├── benchmark_daily_pack_sync.js     # Delta Daily-Packs y micro-caché in-memory
+│   ├── benchmark_merkle_audit.js        # Árbol Merkle RFC 6962 y pruebas O(log N)
+│   ├── benchmark_offline_dispatch.js    # Rendimiento de despacho local offline
+│   ├── benchmark_supabase_cold_start.js # Cold-start instantáneo (<28ms)
+│   └── benchmark_use_cases_audit.js     # Auditoría de 26/26 casos de uso (100% PASS)
+│
+├── scripts/                    # Scripts de Mantenimiento y Empaquetado
+│   ├── package_android_apk.js  # Pipeline automatizado de empaquetado APK Android (TWA)
+│   ├── validate_twa.js         # Validador de artefactos y conformidad TWA
+│   └── seed_jornadas_historico.js # Semillero institucional de jornadas
+│
 ├── docs/
 │   ├── adr/                    # Architecture Decision Records (0001 - 0010)
-│   │   ├── 0001-fido2-passkeys-como-factor-de-identidad.md
-│   │   ├── 0002-arquitectura-dual-sqlite-wasm-supabase.md
-│   │   ├── 0003-estrategia-revocacion-jwt-cookies-httponly.md
-│   │   ├── 0004-feedback-haptico-y-ergonomia-de-almacen.md
-│   │   ├── 0005-modularizacion-servicios-backend.md
-│   │   ├── 0006-idempotencia-http-y-estandar-rfc-7807.md
-│   │   ├── 0007-sistema-declarativo-migraciones-versionadas.md
-│   │   ├── 0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md
-│   │   ├── 0009-persistencia-criptografica-en-la-nube-supabase.md
-│   │   ├── 0010-segregacion-estricta-credenciales-y-blindaje-api-gateway.md
-│   │   ├── README.md
-│   │   └── template.md
-│   └── openapi.yaml            # Contrato OpenAPI 3.1 oficial de la API REST
+│   ├── openapi.yaml            # Contrato OpenAPI 3.1 oficial de la API REST
+│   └── INFORME_AUTORESEARCH_OPTIMIZACIONES.md # Informe técnico maestro de optimizaciones
 │
 ├── migrations/                 # Scripts SQL de migración declarativa
 │   ├── 001_initial_schema.sql
 │   ├── 002_add_extended_combo_fields.sql
 │   └── 003_add_idempotency_keys.sql
 │
-├── tests/                      # Batería de 9 suites automatizadas (100% Pasadas)
+├── tests/                      # Batería de 10 suites automatizadas (100% Pasadas)
 │   ├── contract_openapi.test.js        # Validación contra contrato OpenAPI 3.1 (9/9)
 │   ├── e2e_offline_flow.test.js        # Flujo Offline, Idempotencia y RFC 7807 (9/9)
 │   ├── edge_cases_dispatch.test.js     # Casos límite y resiliencia en almacén (10/10)
+│   ├── evolution_features.test.js      # Merkle Beneficiario, Web Push VAPID y Pipeline APK (6/6)
 │   ├── sdd_remediation_spec.test.js    # Especificación de remediación SDD (8/8)
 │   ├── security_auth_bypass.test.js    # Suite Trail of Bits: Auth Bypass y Segregación (9/9)
 │   ├── security_hardening_mfa.test.js  # DevSecOps, OWASP, TOTP y Lockout (6/6)
@@ -153,20 +183,11 @@ La plataforma resuelve el desafío crítico de la **operación en sótanos, alma
 │   ├── css/styles.css          # Design System responsivo sin transition: all, contención modal y sticky tables
 │   ├── js/core/                # Motor de audio/háptica, estado reactivo, API y toast
 │   ├── js/modules/             # Módulos de beneficiario, despacho, admin, nómina y auditoría
-│   ├── templates/modals.html   # 15 ventanas modales accesibles (.modal-close-btn) y responsivas
-│   ├── sw.js                   # Service Worker Offline-First (Caché PWA)
+│   ├── templates/modals.html   # 16 ventanas modales accesibles (.modal-close-btn) y responsivas
+│   ├── sw.js                   # Service Worker Offline-First & Web Push Listener (Caché PWA)
 │   └── manifest.json           # Manifiesto PWA instalable
 │
-├── DOCUMENTACION_CAMBIOS_ARQUITECTURA_V3.md
-└── package.json
-│   ├── css/styles.css          # Design System responsivo sin transition: all, contención modal y sticky tables
-│   ├── js/core/                # Motor de audio/háptica, estado reactivo, API y toast
-│   ├── js/modules/             # Módulos de beneficiario, despacho, admin y nómina
-│   ├── templates/modals.html   # 15 ventanas modales accesibles (.modal-close-btn) y responsivas
-│   ├── sw.js                   # Service Worker Offline-First (Caché PWA)
-│   └── manifest.json           # Manifiesto PWA instalable
-│
-├── DOCUMENTACION_CAMBIOS_ARQUITECTURA_V3.md # Informe técnico maestro de cambios v3.0 y v3.1
+├── DOCUMENTACION_CAMBIOS_ARQUITECTURA_V3.md # Informe técnico maestro de cambios
 └── package.json
 ```
 
@@ -214,20 +235,23 @@ El proyecto incluye diagramas visuales e interactivos elaborados bajo el estánd
 El proyecto cuenta con suites de pruebas automatizadas y auditoría de persistencia que verifican el 100% de la funcionalidad del sistema:
 
 ```bash
-# 1. Ejecutar todas las suites de pruebas (41/41 pruebas en verde - 100% éxito)
+# 1. Ejecutar las 10 suites completas de pruebas (47/47 pruebas en verde - 100% éxito)
 npm test
 
 # 2. Auditar en vivo la persistencia criptográfica en Supabase Cloud (6/6 procesos)
 npm run verify:cloud
 
-# 3. Ejecutar únicamente la suite de arquitectura y RBAC (26 pruebas)
-node backend/test_e2e_suite.js
+# 3. Validar y empaquetar el proyecto APK Android Nativo (TWA)
+npm run apk:package
 
-# 4. Ejecutar la suite de flujo offline, idempotencia y migraciones (9 pruebas)
+# 4. Ejecutar la suite de nuevas funcionalidades (Merkle, Web Push, APK)
+npm run test:evolution
+
+# 5. Ejecutar la suite de flujo offline, idempotencia y migraciones (9 pruebas)
 npm run test:offline
 
-# 5. Ejecutar la suite de blindaje de seguridad, TOTP y mitigación OWASP (6 pruebas)
-node tests/security_hardening_mfa.test.js
+# 6. Ejecutar la auditoría programática exhaustiva de Casos de Uso (26/26 PASS)
+node benchmarks/benchmark_use_cases_audit.js
 ```
 
 ---
