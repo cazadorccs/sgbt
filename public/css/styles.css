@@ -2076,7 +2076,10 @@ body.dark-mode .sidebar-tool-text small {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
   animation: scaleIn 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -2090,14 +2093,59 @@ body.dark-mode .sidebar-tool-text small {
 }
 
 .overlay-success {
-  background: radial-gradient(circle, rgba(0, 77, 102, 0.98) 0%, rgba(2, 33, 44, 0.98) 100%);
-  border: 4px solid var(--sea-malibu);
-  box-shadow: 0 0 40px rgba(0, 153, 204, 0.5);
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 4px solid #10b981 !important;
+  box-shadow: 0 14px 40px rgba(16, 185, 129, 0.22) !important;
+}
+
+.overlay-success .feedback-title {
+  color: #065f46 !important;
+}
+
+.overlay-success .feedback-subtitle {
+  color: #047857 !important;
+}
+
+.overlay-success #feedbackDetails {
+  background: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.overlay-success #btnCloseFeedbackOverlay {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
 }
 
 .overlay-error {
-  background: radial-gradient(circle, rgba(136, 19, 55, 0.98) 0%, rgba(76, 5, 25, 0.98) 100%);
-  border: 4px solid #f43f5e;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 4px solid #f43f5e !important;
+  box-shadow: 0 14px 40px rgba(244, 63, 94, 0.22) !important;
+}
+
+.overlay-error .feedback-title {
+  color: #991b1b !important;
+}
+
+.overlay-error .feedback-subtitle {
+  color: #b91c1c !important;
+}
+
+.overlay-error #feedbackDetails {
+  background: #fef2f2 !important;
+  border: 1.5px solid #fecaca !important;
+  color: #991b1b !important;
+}
+
+.overlay-error #btnCloseFeedbackOverlay {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
 }
 
 .feedback-icon {

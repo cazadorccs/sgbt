@@ -2607,14 +2607,14 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
 
     d.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 0.65rem; text-align: left;">
-        <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 0.5rem;">
-          <span style="font-size: 0.85rem; color: #cbd5e1;">Condición Institucional:</span>
+        <div class="flex-between" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+          <span style="font-size: 0.85rem; color: #64748b;">Condición Institucional:</span>
           ${badgeHtml}
         </div>
-        <div style="font-size: 0.85rem; font-weight: 700; color: #34d399;">
+        <div style="font-size: 0.85rem; font-weight: 700; color: #059669;">
           📦 Combos Entregados en Mesa de Despacho:
         </div>
-        <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.8rem; color: #f8fafc; background: rgba(0,0,0,0.35); padding: 0.65rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.8rem; color: #0f172a; background: #ffffff; padding: 0.65rem; border-radius: 6px; border: 1px solid #e2e8f0;">
           ${(() => {
         const list = (extraData && extraData.delivered_combos) || STATE.distributorCombos || [];
         if (list.length > 0) {
@@ -2622,19 +2622,19 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
                 <div style="display: flex; align-items: flex-start; gap: 0.4rem;">
                   <span style="font-size: 1rem;">${c.icon || '✅'}</span>
                   <div>
-                    <strong>${c.name}</strong> <span style="font-size: 0.7rem; color: #38bdf8;">(${c.mesa_name || 'Mesa de Entrega'})</span>
-                    ${c.items_detail ? `<div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.1rem;">${c.items_detail}</div>` : ''}
+                    <strong style="color: #0f172a;">${c.name}</strong> <span style="font-size: 0.7rem; color: #0284c7;">(${c.mesa_name || 'Mesa de Entrega'})</span>
+                    ${c.items_detail ? `<div style="font-size: 0.72rem; color: #64748b; margin-top: 0.1rem;">${c.items_detail}</div>` : ''}
                   </div>
                 </div>
               `).join('');
         }
         return `
-              <div>✅ <strong>Bolsa de Víveres Secos</strong> (Canasta Básica MIPPCI)</div>
-              <div>✅ <strong>Combo Proteico Fresco / Charcutería</strong> (Cadena de Frío)</div>
+              <div>✅ <strong style="color: #0f172a;">Bolsa de Víveres Secos</strong> (Canasta Básica MIPPCI)</div>
+              <div>✅ <strong style="color: #0f172a;">Combo Proteico Fresco / Charcutería</strong> (Cadena de Frío)</div>
             `;
       })()}
         </div>
-        <div class="text-mono" style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.2rem;">
+        <div class="text-mono" style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">
           ID Transacción: ${crypto.randomUUID()} &middot; Punto: Almacén Sótano 1
         </div>
       </div>
@@ -2643,13 +2643,13 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
     const errCode = `ERR_${Date.now().toString().slice(-6)}`;
     d.innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 0.35rem; text-align: left;">
-        <div style="color: #f87171; font-weight: 700; font-size: 0.85rem;">
+        <div style="color: #dc2626; font-weight: 700; font-size: 0.85rem;">
           ⚠️ ${title || 'Acceso No Autorizado'}
         </div>
-        <div style="color: #f1f5f9; font-size: 0.8rem; line-height: 1.4;">
+        <div style="color: #334155; font-size: 0.8rem; line-height: 1.4;">
           ${subtitle || 'El beneficio no pudo ser procesado. Verifique la condición del beneficiario.'}
         </div>
-        <div class="text-mono" style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.25rem;">
+        <div class="text-mono" style="font-size: 0.7rem; color: #64748b; margin-top: 0.25rem;">
           Código de Anomalía: ${errCode} &middot; Revisión Requerida
         </div>
       </div>
