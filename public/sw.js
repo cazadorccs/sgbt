@@ -3,13 +3,11 @@
 // Garantiza funcionamiento al 100% en sótanos y almacenes sin señal celular
 // ============================================================================
 
-const CACHE_NAME = 'mippci-bienestar-v4.0-single-tab-session';
+const CACHE_NAME = 'mippci-bienestar-v4.1-stale-while-revalidate';
 const STATIC_ASSETS = [
   '/',
-  '/index.html',
   '/coseg',
   '/entregas',
-  '/entregas/index.html',
   '/templates/modals.html',
   '/css/styles.css',
   '/js/qrcode.js',
@@ -45,12 +43,21 @@ const STATIC_ASSETS = [
   '/icons/icon-512.png'
 ];
 
-// 1. INSTALACIÓN: Precarga de assets del shell de la aplicación
+// 1. INSTALACIÓN: Precarga de assets del shell de la aplicación (sin duplicados)
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Precargando shell de la aplicación para modo Offline (v2.6 Background Sync)...');
-      return cache.addAll(STATIC_ASSETS);
+    caches.open(CACHE_NAME).then(async (cache) => {
+      console.log('[SW] Precargando shell de la aplicación para modo Offline (v4.1 Stale-While-Revalidate)...');
+      await cache.addAll(STATIC_ASSETS);
+      // Vincular alias '/' e '/index.html' sin descarga doble en red
+      const rootRes = await cache.match('/');
+      if (rootRes) {
+        await cache.put('/index.html', rootRes.clone());
+      }
+      const entregasRes = await cache.match('/entregas');
+      if (entregasRes) {
+        await cache.put('/entregas/index.html', entregasRes.clone());
+      }
     }).then(() => self.skipWaiting())
   );
 });
@@ -109,24 +116,32 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // B) Recursos estáticos (HTML, CSS, JS, Iconos): Estrategia Network-First con fallback a Caché
+  // B) Recursos estáticos (HTML, CSS, JS, Iconos): Estrategia Stale-While-Revalidate
+  // Respuesta instantánea desde caché (0ms) con revalidación y actualización silenciosa en segundo plano
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const clone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return networkResponse;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) return cachedResponse;
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
+    caches.match(event.request).then((cachedResponse) => {
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
           }
-        });
-      })
+          return networkResponse;
+        })
+        .catch(() => null);
+
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetchPromise.then((netRes) => {
+        if (netRes) return netRes;
+        if (event.request.mode === 'navigate') {
+          return caches.match('/index.html') || caches.match('/');
+        }
+        return new Response('Recurso no disponible sin conexión', { status: 503, statusText: 'Service Unavailable' });
+      });
+    })
   );
 });
 
