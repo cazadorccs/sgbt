@@ -2566,6 +2566,40 @@ const confirmPasswordRecovery = async (req, res) => {
       WHERE id = ?
     `).run(hashed, workerId);
 
+    const credId = `formalized_pwd_${worker.id}`;
+    try {
+      db.prepare(`
+        INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status, aaguid, enrolled_at)
+        VALUES (?, ?, ?, ?, 1, ?, 'active', 'beneficiary_formalization', CURRENT_TIMESTAMP)
+        ON CONFLICT(credential_id) DO UPDATE SET
+          public_key = excluded.public_key,
+          status = 'active',
+          device_name = excluded.device_name
+      `).run(crypto.randomUUID(), worker.id, credId, hashed, 'Contraseña Recuperada por Usuario');
+    } catch (passErr) {
+      console.warn('[RECOVERY PASSKEY SQLITE WARNING]', passErr.message);
+    }
+
+    try {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        await supabase.from('passkey_credentials').upsert({
+          id: crypto.randomUUID(),
+          worker_id: worker.id,
+          credential_id: credId,
+          public_key: hashed,
+          sign_count: 1,
+          device_name: 'Contraseña Recuperada por Usuario',
+          status: 'active',
+          aaguid: 'beneficiary_formalization',
+          enrolled_at: new Date().toISOString()
+        }, { onConflict: 'credential_id' });
+        console.log(`[SUPABASE SYNC] ✅ Contraseña recuperada sincronizada en Supabase Cloud para ${worker.document_id}`);
+      }
+    } catch (sbErr) {
+      console.warn('[SUPABASE SYNC RECOVERY PWD ERROR]', sbErr.message);
+    }
+
     console.log(`[PASSWORD RECOVERED] Funcionario ${worker.document_id} restableció exitosamente su contraseña.`);
 
     return res.json({

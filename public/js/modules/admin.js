@@ -925,152 +925,197 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================================================
   // GESTIÓN DE USUARIOS, CREDENCIALES Y CONTRASEÑAS (ADMIN)
   // ============================================================================
-  document.getElementById('btnCloseManageUserCredentialsModal')?.addEventListener('click', window.closeManageUserCredentialsModal);
-  document.getElementById('btnFooterCloseManageUserModal')?.addEventListener('click', window.closeManageUserCredentialsModal);
+  // Handlers robustos con delegación global de eventos para templates/modals.html dinámicos
+});
 
-  // Ver / Ocultar Contraseña
-  document.getElementById('btnToggleManageNewPassword')?.addEventListener('click', () => {
-    const pwdInput = document.getElementById('inputManageNewPassword');
-    if (!pwdInput) return;
-    pwdInput.type = (pwdInput.type === 'password') ? 'text' : 'password';
-  });
+// Funciones operativas de Gestión de Credenciales y Contraseñas
+async function handleAdminSetWorkerPassword() {
+  if (!currentManageWorkerId) {
+    window.showToast('No se ha seleccionado ningún funcionario.', 'error');
+    return;
+  }
+  const pwdInput = document.getElementById('inputManageNewPassword');
+  const chkLock = document.getElementById('chkClearDeviceLockOnPasswordChange');
+  const alertBox = document.getElementById('manageUserAlertBox');
+  const val = pwdInput?.value.trim();
 
-  // Generador de Contraseña Segura
-  document.getElementById('btnGenerateRandomPassword')?.addEventListener('click', () => {
-    const pwdInput = document.getElementById('inputManageNewPassword');
-    if (!pwdInput) return;
-    const randDigits = Math.floor(1000 + Math.random() * 9000);
-    pwdInput.value = `Mippci-${randDigits}`;
-    pwdInput.type = 'text';
-    window.showToast('Contraseña generada: ' + pwdInput.value, 'info');
-  });
-
-  // Guardar Nueva Contraseña
-  document.getElementById('btnSubmitSetPassword')?.addEventListener('click', async () => {
-    if (!currentManageWorkerId) return;
-    const pwdInput = document.getElementById('inputManageNewPassword');
-    const chkLock = document.getElementById('chkClearDeviceLockOnPasswordChange');
-    const alertBox = document.getElementById('manageUserAlertBox');
-    const val = pwdInput?.value.trim();
-
-    if (!val || val.length < 4) {
-      if (alertBox) {
-        alertBox.textContent = 'La nueva contraseña debe tener al menos 4 caracteres.';
-        alertBox.style.display = 'block';
-      }
-      return;
+  if (!val || val.length < 4) {
+    if (alertBox) {
+      alertBox.textContent = 'La nueva contraseña debe tener al menos 4 caracteres.';
+      alertBox.style.display = 'block';
     }
+    return;
+  }
 
-    try {
-      window.showToast('Guardando contraseña...', 'info');
-      const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
-        action: 'set_password',
-        new_password: val,
-        clear_device_lock: chkLock ? chkLock.checked : true
-      });
+  try {
+    window.showToast('Guardando contraseña y sincronizando con Supabase Cloud...', 'info');
+    const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
+      action: 'set_password',
+      new_password: val,
+      clear_device_lock: chkLock ? chkLock.checked : true
+    });
 
-      if (res && res.success) {
-        window.showToast(res.message, 'success');
-        playAudioFeedback('success');
-        if (alertBox) alertBox.style.display = 'none';
-        const statusBadge = document.getElementById('manageUserStatusBadge');
-        if (statusBadge) {
-          statusBadge.textContent = 'Formalizado (Registrado)';
-          statusBadge.className = 'badge badge-passkey';
+    if (res && res.success) {
+      window.showToast(res.message, 'success');
+      playAudioFeedback('success');
+      if (alertBox) alertBox.style.display = 'none';
+      const statusBadge = document.getElementById('manageUserStatusBadge');
+      if (statusBadge) {
+        statusBadge.textContent = 'Formalizado (Registrado)';
+        statusBadge.className = 'badge badge-passkey';
+      }
+      if (pwdInput) pwdInput.value = '';
+      await window.loadWorkersDirectory(true);
+    } else {
+      throw new Error(res?.error || 'No se pudo guardar la contraseña');
+    }
+  } catch (e) {
+    playAudioFeedback('error');
+    if (alertBox) {
+      alertBox.textContent = e.message;
+      alertBox.style.display = 'block';
+    }
+    window.showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function handleAdminResetWorkerEnrollment() {
+  if (!currentManageWorkerId) return;
+  const confirmMsg = '¿Desea restablecer a este funcionario a estatus PRECARGADO? Se eliminará la contraseña actual y deberá formalizarla al ingresar.';
+  if (!confirm(confirmMsg)) return;
+
+  const chkLock = document.getElementById('chkClearDeviceLockOnPasswordChange');
+  const alertBox = document.getElementById('manageUserAlertBox');
+  const magicBox = document.getElementById('manageUserMagicLinkBox');
+  const btnCopyMagic = document.getElementById('btnCopyMagicLinkForWorker');
+
+  try {
+    window.showToast('Restableciendo acceso...', 'info');
+    const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
+      action: 'reset_enrollment',
+      clear_device_lock: chkLock ? chkLock.checked : true
+    });
+
+    if (res && res.success) {
+      window.showToast(res.message, 'success');
+      playAudioFeedback('success');
+      if (alertBox) alertBox.style.display = 'none';
+      const statusBadge = document.getElementById('manageUserStatusBadge');
+      if (statusBadge) {
+        statusBadge.textContent = 'Pendiente (Precargado)';
+        statusBadge.className = 'badge badge-override';
+      }
+
+      if (res.onboarding_token) {
+        const magicUrl = `${window.location.origin}/?magic_token=${res.onboarding_token}`;
+        if (magicBox) {
+          magicBox.innerHTML = `<strong>Enlace de formalización directa:</strong><br><a href="${magicUrl}" target="_blank" style="color: #0284c7;">${magicUrl}</a>`;
+          magicBox.style.display = 'block';
         }
-        await window.loadWorkersDirectory(true);
-      } else {
-        throw new Error(res?.error || 'No se pudo guardar la contraseña');
-      }
-    } catch (e) {
-      playAudioFeedback('error');
-      if (alertBox) {
-        alertBox.textContent = e.message;
-        alertBox.style.display = 'block';
-      }
-      window.showToast('Error: ' + e.message, 'error');
-    }
-  });
-
-  // Restablecer a Precargado (Auto-Registro)
-  document.getElementById('btnSubmitResetEnrollment')?.addEventListener('click', async () => {
-    if (!currentManageWorkerId) return;
-    const confirmMsg = `¿Desea restablecer a este funcionario a estatus PRECARGADO? Se eliminará la contraseña actual y deberá asignarla al ingresar.`;
-    if (!confirm(confirmMsg)) return;
-
-    const chkLock = document.getElementById('chkClearDeviceLockOnPasswordChange');
-    const alertBox = document.getElementById('manageUserAlertBox');
-    const magicBox = document.getElementById('manageUserMagicLinkBox');
-    const btnCopyMagic = document.getElementById('btnCopyMagicLinkForWorker');
-
-    try {
-      window.showToast('Restableciendo acceso...', 'info');
-      const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
-        action: 'reset_enrollment',
-        clear_device_lock: chkLock ? chkLock.checked : true
-      });
-
-      if (res && res.success) {
-        window.showToast(res.message, 'success');
-        playAudioFeedback('success');
-        if (alertBox) alertBox.style.display = 'none';
-        const statusBadge = document.getElementById('manageUserStatusBadge');
-        if (statusBadge) {
-          statusBadge.textContent = 'Pendiente (Precargado)';
-          statusBadge.className = 'badge badge-override';
+        if (btnCopyMagic) {
+          btnCopyMagic.style.display = 'inline-flex';
+          btnCopyMagic.onclick = () => {
+            navigator.clipboard.writeText(magicUrl);
+            window.showToast('📋 Enlace copiado al portapapeles', 'success');
+          };
         }
-
-        if (res.onboarding_token) {
-          const magicUrl = `${window.location.origin}/?magic_token=${res.onboarding_token}`;
-          if (magicBox) {
-            magicBox.innerHTML = `<strong>Enlace de formalización directa:</strong><br><a href="${magicUrl}" target="_blank" style="color: #0284c7;">${magicUrl}</a>`;
-            magicBox.style.display = 'block';
-          }
-          if (btnCopyMagic) {
-            btnCopyMagic.style.display = 'inline-flex';
-            btnCopyMagic.onclick = () => {
-              navigator.clipboard.writeText(magicUrl);
-              window.showToast('📋 Enlace copiado al portapapeles', 'success');
-            };
-          }
-        }
-        await window.loadWorkersDirectory(true);
-      } else {
-        throw new Error(res?.error || 'No se pudo restablecer el acceso');
       }
-    } catch (e) {
-      playAudioFeedback('error');
-      if (alertBox) {
-        alertBox.textContent = e.message;
-        alertBox.style.display = 'block';
-      }
-      window.showToast('Error: ' + e.message, 'error');
+      await window.loadWorkersDirectory(true);
+    } else {
+      throw new Error(res?.error || 'No se pudo restablecer el acceso');
     }
-  });
-
-  // Actualizar Rol
-  document.getElementById('btnSubmitUpdateUserRole')?.addEventListener('click', async () => {
-    if (!currentManageWorkerId) return;
-    const roleSelect = document.getElementById('selectManageUserRole');
-    const newRole = roleSelect?.value;
-    if (!newRole) return;
-
-    try {
-      window.showToast('Actualizando rol...', 'info');
-      const res = await API.put(`/api/v1/admin/workers/${currentManageWorkerId}/role`, { role: newRole });
-      if (res && res.success) {
-        window.showToast('Rol actualizado con éxito', 'success');
-        playAudioFeedback('success');
-        const roleBadge = document.getElementById('manageUserRoleBadge');
-        if (roleBadge) roleBadge.textContent = newRole.toUpperCase();
-        await window.loadWorkersDirectory(true);
-      } else {
-        throw new Error(res?.error || 'No se pudo actualizar el rol');
-      }
-    } catch (e) {
-      window.showToast('Error: ' + e.message, 'error');
+  } catch (e) {
+    playAudioFeedback('error');
+    if (alertBox) {
+      alertBox.textContent = e.message;
+      alertBox.style.display = 'block';
     }
-  });
+    window.showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function handleAdminUpdateWorkerRole() {
+  if (!currentManageWorkerId) return;
+  const roleSelect = document.getElementById('selectManageUserRole');
+  const newRole = roleSelect?.value;
+  if (!newRole) return;
+
+  try {
+    window.showToast('Actualizando rol institucional...', 'info');
+    const res = await API.put(`/api/v1/admin/workers/${currentManageWorkerId}/role`, { role: newRole });
+    if (res && res.success) {
+      window.showToast('Rol actualizado con éxito', 'success');
+      playAudioFeedback('success');
+      const roleBadge = document.getElementById('manageUserRoleBadge');
+      if (roleBadge) roleBadge.textContent = newRole.toUpperCase();
+      await window.loadWorkersDirectory(true);
+    } else {
+      throw new Error(res?.error || 'No se pudo actualizar el rol');
+    }
+  } catch (e) {
+    window.showToast('Error: ' + e.message, 'error');
+  }
+}
+
+function handleAdminGeneratePassword() {
+  const pwdInput = document.getElementById('inputManageNewPassword');
+  if (!pwdInput) return;
+  const randDigits = Math.floor(1000 + Math.random() * 9000);
+  pwdInput.value = `Mippci-${randDigits}`;
+  pwdInput.type = 'text';
+  window.showToast('Contraseña generada: ' + pwdInput.value, 'info');
+}
+
+// DELEGACIÓN GLOBAL DE EVENTOS (Resistente a inyección asíncrona de modals.html)
+document.addEventListener('click', async (e) => {
+  // 1. Guardar Contraseña
+  if (e.target.closest('#btnSubmitSetPassword')) {
+    e.preventDefault();
+    await handleAdminSetWorkerPassword();
+    return;
+  }
+
+  // 2. Restablecer a Precargado
+  if (e.target.closest('#btnSubmitResetEnrollment')) {
+    e.preventDefault();
+    await handleAdminResetWorkerEnrollment();
+    return;
+  }
+
+  // 3. Actualizar Rol
+  if (e.target.closest('#btnSubmitUpdateUserRole')) {
+    e.preventDefault();
+    await handleAdminUpdateWorkerRole();
+    return;
+  }
+
+  // 4. Generar Contraseña Aleatoria
+  if (e.target.closest('#btnGenerateRandomPassword')) {
+    e.preventDefault();
+    handleAdminGeneratePassword();
+    return;
+  }
+
+  // 5. Ver / Ocultar Contraseña
+  if (e.target.closest('#btnToggleManageNewPassword')) {
+    e.preventDefault();
+    const pwdInput = document.getElementById('inputManageNewPassword');
+    if (pwdInput) pwdInput.type = (pwdInput.type === 'password') ? 'text' : 'password';
+    return;
+  }
+
+  // 6. Cerrar Modal
+  if (e.target.closest('#btnCloseManageUserCredentialsModal') || e.target.closest('#btnFooterCloseManageUserModal')) {
+    e.preventDefault();
+    window.closeManageUserCredentialsModal();
+    return;
+  }
+
+  // 7. Clic fuera del diálogo (backdrop)
+  if (e.target && e.target.id === 'manageUserCredentialsModalBackdrop') {
+    window.closeManageUserCredentialsModal();
+    return;
+  }
 });
 
 let currentManageWorkerId = null;

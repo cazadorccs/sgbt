@@ -1459,7 +1459,7 @@ const reloadCensus = async (req, res) => {
   }
 };
 
-const manageWorkerPassword = (req, res) => {
+const manageWorkerPassword = async (req, res) => {
   const { id } = req.params;
   const { action, new_password, clear_device_lock } = req.body;
 
@@ -1469,22 +1469,62 @@ const manageWorkerPassword = (req, res) => {
       return res.status(404).json({ error: 'Funcionario no encontrado en el padrón institucional' });
     }
 
+    const credId = `formalized_pwd_${worker.id}`;
+
     if (action === 'set_password') {
       if (!new_password || String(new_password).trim().length < 4) {
         return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' });
       }
       const hashed = hashPassword(String(new_password).trim());
+      
+      // 1. Actualizar tabla workers local
       db.prepare(`
         UPDATE workers 
         SET password_hash = ?, enrollment_status = 'registrado', updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
       `).run(hashed, id);
 
+      // 2. Persistir credencial en passkey_credentials local
+      try {
+        db.prepare(`
+          INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status, aaguid, enrolled_at)
+          VALUES (?, ?, ?, ?, 1, ?, 'active', 'beneficiary_formalization', CURRENT_TIMESTAMP)
+          ON CONFLICT(credential_id) DO UPDATE SET
+            public_key = excluded.public_key,
+            status = 'active',
+            device_name = excluded.device_name
+        `).run(crypto.randomUUID(), worker.id, credId, hashed, 'Credencial Asignada por Administrador');
+      } catch (passSqliteErr) {
+        console.warn('[ADMIN PASSKEY SQLITE WARNING]', passSqliteErr.message);
+      }
+
+      // 3. Liberar candados si fue solicitado
       if (clear_device_lock) {
         try {
           db.prepare("UPDATE device_locks SET status = 'released' WHERE worker_id = ?").run(id);
           db.prepare("UPDATE workers SET bound_device_id = NULL WHERE id = ?").run(id);
         } catch (e) {}
+      }
+
+      // 4. Sincronización inmediata con Supabase Cloud
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          await supabase.from('passkey_credentials').upsert({
+            id: crypto.randomUUID(),
+            worker_id: worker.id,
+            credential_id: credId,
+            public_key: hashed,
+            sign_count: 1,
+            device_name: 'Credencial Asignada por Administrador',
+            status: 'active',
+            aaguid: 'beneficiary_formalization',
+            enrolled_at: new Date().toISOString()
+          }, { onConflict: 'credential_id' });
+          console.log(`[SUPABASE SYNC] ✅ Contraseña administrativa sincronizada en Supabase Cloud para ${worker.document_id}`);
+        }
+      } catch (sbErr) {
+        console.warn('[SUPABASE SYNC PWD ERROR]', sbErr.message);
       }
 
       console.log(`[SECURITY AUDIT] Contraseña actualizada para funcionario: ${worker.document_id} por administrador: ${req.user?.document_id || 'admin'}`);
@@ -1501,12 +1541,27 @@ const manageWorkerPassword = (req, res) => {
         WHERE id = ?
       `).run(id);
 
+      try {
+        db.prepare("UPDATE passkey_credentials SET status = 'revoked' WHERE worker_id = ? AND (aaguid = 'beneficiary_formalization' OR credential_id LIKE 'formalized_pwd_%')").run(id);
+      } catch (e) {}
+
       if (clear_device_lock) {
         try {
           db.prepare("UPDATE device_locks SET status = 'released' WHERE worker_id = ?").run(id);
           db.prepare("UPDATE workers SET bound_device_id = NULL WHERE id = ?").run(id);
         } catch (e) {}
       }
+
+      // Sincronizar revocación con Supabase Cloud
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          await supabase.from('passkey_credentials')
+            .update({ status: 'revoked' })
+            .eq('worker_id', worker.id)
+            .or('aaguid.eq.beneficiary_formalization,credential_id.like.formalized_pwd_%');
+        }
+      } catch (sbErr) {}
 
       const onboardingToken = generateMagicLinkToken({
         workerId: worker.id,
