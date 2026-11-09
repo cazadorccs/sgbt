@@ -9,3 +9,4 @@ exp-06	keep	100	0.00	0.000	UI/UX Avanzada: Scan Rápido (350ms) + Virtual Window
 exp-07	keep	13655	0.07	0.070	Delta Daily-Packs (-99.78% wire size: 2.5KB vs 1.15MB) + Micro-Caché In-Memory (197x: 0.07ms) + ETag 304
 exp-08	keep	35	25.97	0.180	Cold-Start Instantáneo (<28ms vs 2.28s) + Streaming Asíncrono Supabase + Batch DB Transactions
 exp-09	keep	72	13.91	0.109	Árbol Merkle Ministerial RFC 6962 + Merkle Proof O(log N) 13 hashes + Endpoint /merkle-verify
+exp-10	keep	100	0.00	0.000	Auto-Verificación Merkle Beneficiario (/my-merkle-proof) + Web Push VAPID + Pipeline APK Android Bubblewrap

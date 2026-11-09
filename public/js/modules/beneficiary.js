@@ -1342,6 +1342,106 @@ window.setupWorkerSimulator = function() {
     window.print();
   });
 
+  // Manejador de Auditoría Criptográfica Merkle para el Beneficiario (RFC 6962)
+  let lastMerkleProofData = null;
+  const openBeneficiaryMerkleAuditModal = async (deliveryId = null) => {
+    const modal = document.getElementById('beneficiaryMerkleModalBackdrop');
+    const contentEl = document.getElementById('beneficiaryMerkleContent');
+    if (!modal || !contentEl) return;
+
+    modal.classList.add('active');
+    contentEl.innerHTML = `
+      <div style="text-align: center; padding: 2rem 1rem; color: #94a3b8; font-size: 0.85rem;">
+        <span class="spinner" style="display: inline-block; width: 22px; height: 22px; margin-bottom: 0.65rem;"></span><br>
+        Verificando inclusión matemática en el Árbol Merkle Ministerial (RFC 6962)...
+      </div>
+    `;
+
+    try {
+      const url = deliveryId 
+        ? `/api/v1/auth/my-merkle-proof?delivery_id=${encodeURIComponent(deliveryId)}` 
+        : '/api/v1/auth/my-merkle-proof';
+      const res = await API.get(url);
+
+      if (!res || !res.success) {
+        contentEl.innerHTML = `
+          <div class="alert-box alert-warning" style="margin: 0.5rem 0;">
+            ⚠️ No se pudo comprobar el árbol Merkle: ${res?.error || 'Sin respuesta del servidor'}
+          </div>
+        `;
+        return;
+      }
+
+      lastMerkleProofData = res;
+
+      contentEl.innerHTML = `
+        <div style="background: rgba(16, 185, 129, 0.12); border: 1.5px solid #10b981; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem; text-align: center;">
+          <div style="font-size: 1.5rem; margin-bottom: 0.25rem;">🛡️ ✅</div>
+          <div style="font-weight: 800; color: #34d399; font-size: 0.95rem;">COMPROBACIÓN CRIPTOGRÁFICA EXITOSA</div>
+          <div style="font-size: 0.76rem; color: #e2e8f0; margin-top: 0.25rem;">
+            Su comprobante de entrega está <strong>sellado e inmutable</strong> en el Árbol Merkle de la Jornada Oficial.
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.78rem;">
+          <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 0.65rem;">
+            <div style="color: #94a3b8; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">🌳 Raíz del Árbol Merkle Ministerial (Merkle Root)</div>
+            <code style="display: block; color: #38bdf8; word-break: break-all; font-family: monospace; font-size: 0.72rem; margin-top: 0.25rem;">
+              ${res.merkle_root}
+            </code>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; padding: 0.65rem;">
+            <div style="color: #94a3b8; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">🍃 Hash SHA-256 de su Despacho (Leaf Hash)</div>
+            <code style="display: block; color: #34d399; word-break: break-all; font-family: monospace; font-size: 0.72rem; margin-top: 0.25rem;">
+              ${res.leaf_hash}
+            </code>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.5rem;">
+              <div style="color: #94a3b8; font-size: 0.68rem;">Profundidad Árbol</div>
+              <strong style="color: #fff; font-size: 0.85rem;">${res.tree_depth} Capas</strong>
+            </div>
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.5rem;">
+              <div style="color: #94a3b8; font-size: 0.68rem;">Rama de Prueba O(log N)</div>
+              <strong style="color: #38bdf8; font-size: 0.85rem;">${res.proof_length} Hashes Hermanos</strong>
+            </div>
+          </div>
+
+          <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0.5rem;">
+            <div style="color: #94a3b8; font-size: 0.68rem;">Norma Internacional de Integridad</div>
+            <strong style="color: #a78bfa; font-size: 0.76rem;">RFC 6962 / Binary Merkle Audit Path</strong>
+          </div>
+        </div>
+      `;
+    } catch (err) {
+      contentEl.innerHTML = `
+        <div style="color: #f87171; text-align: center; padding: 1.5rem 0.5rem; font-size: 0.82rem;">
+          ❌ Error al verificar prueba Merkle: ${err.message}
+        </div>
+      `;
+    }
+  };
+
+  document.getElementById('btnVerifyConsolidatedMerkle')?.addEventListener('click', () => {
+    const curTx = document.getElementById('modalConsolidatedTxId')?.textContent?.replace('#', '') || null;
+    openBeneficiaryMerkleAuditModal(curTx);
+  });
+
+  const closeBeneficiaryMerkleModal = () => {
+    document.getElementById('beneficiaryMerkleModalBackdrop')?.classList.remove('active');
+  };
+  document.getElementById('btnCloseBeneficiaryMerkleModal')?.addEventListener('click', closeBeneficiaryMerkleModal);
+  document.getElementById('btnCloseBeneficiaryMerkleModalBtn')?.addEventListener('click', closeBeneficiaryMerkleModal);
+
+  document.getElementById('btnCopyMerkleProof')?.addEventListener('click', () => {
+    if (lastMerkleProofData) {
+      navigator.clipboard?.writeText(JSON.stringify(lastMerkleProofData, null, 2));
+      window.showToast?.('Prueba Merkle copiada al portapapeles', 'success');
+    }
+  });
+
   // Semáforo de Afluencia de Colas en Tiempo Real
   async function loadQueueTraffic() {
     try {

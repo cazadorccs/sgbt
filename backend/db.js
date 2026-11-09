@@ -353,6 +353,20 @@ function initializeDatabase() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- 12B. SUSCRIPCIONES WEB PUSH (VAPID / SERVICE WORKER EN SEGUNDO PLANO)
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      worker_id TEXT REFERENCES workers(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      user_agent TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_push_sub_worker ON push_subscriptions(worker_id);
+    CREATE INDEX IF NOT EXISTS idx_push_sub_endpoint ON push_subscriptions(endpoint);
+
     -- 13. LISTA NEGRA / REVOCACIÓN DE SESIONES (TOKEN BLACKLIST / LOGOUT)
     CREATE TABLE IF NOT EXISTS revoked_tokens (
       jti TEXT PRIMARY KEY,

@@ -2386,6 +2386,78 @@ const getMyReceipts = (req, res) => {
 };
 
 /**
+ * Auto-verificación de Despacho en el Árbol Merkle Criptográfico Ministerial (RFC 6962)
+ * Permite a cualquier beneficiario autenticado verificar la autenticidad e inmutabilidad de su entrega.
+ */
+const getMyMerkleProof = (req, res) => {
+  try {
+    const workerId = req.user?.id;
+    const documentId = req.user?.document_id;
+    if (!workerId && !documentId) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+
+    const { delivery_id } = req.query;
+    const { generateMerkleTree, generateMerkleProof, verifyMerkleProof, hashDeliveryLeaf } = require('../services/audit.service');
+
+    const deliveries = db.prepare(`
+      SELECT d.id, d.entitlement_id, d.worker_id, w.document_id, w.full_name, d.delivered_at, 
+             d.verification_method, d.signature_proof, d.is_offline_sync, c.name as combo_name, cb.weight_kg
+      FROM deliveries d
+      JOIN workers w ON d.worker_id = w.id
+      LEFT JOIN daily_entitlements de ON d.entitlement_id = de.id
+      LEFT JOIN combos c ON de.combo_id = c.id
+      LEFT JOIN combos cb ON cb.id = c.id
+      ORDER BY d.delivered_at ASC, d.id ASC
+    `).all();
+
+    if (deliveries.length === 0) {
+      return res.status(404).json({ error: 'Aún no hay entregas selladas en el árbol ministerial.' });
+    }
+
+    let targetDelivery = null;
+    if (delivery_id) {
+      targetDelivery = deliveries.find(d => d.id === delivery_id && (d.worker_id === workerId || d.document_id === documentId));
+    } else {
+      const userDeliveries = deliveries.filter(d => d.worker_id === workerId || d.document_id === documentId);
+      targetDelivery = userDeliveries[userDeliveries.length - 1];
+    }
+
+    if (!targetDelivery) {
+      return res.status(404).json({ error: 'No se encontró registro de entrega sellada para este beneficiario.' });
+    }
+
+    const tree = generateMerkleTree(deliveries);
+    const proof = generateMerkleProof(deliveries, targetDelivery.id);
+    const leafHash = hashDeliveryLeaf(targetDelivery);
+    const isValid = verifyMerkleProof(leafHash, proof, tree.root);
+
+    return res.json({
+      success: true,
+      verified: isValid,
+      merkle_root: tree.root,
+      leaf_hash: leafHash,
+      tree_depth: tree.layers.length,
+      proof_length: proof ? proof.length : 0,
+      proof,
+      delivery: {
+        id: targetDelivery.id,
+        delivered_at: targetDelivery.delivered_at,
+        verification_method: targetDelivery.verification_method,
+        combo_name: targetDelivery.combo_name,
+        worker_name: targetDelivery.full_name,
+        document_id: targetDelivery.document_id
+      },
+      standard: 'RFC 6962 / SHA-256 Binary Merkle Tree',
+      verified_at: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('[MY MERKLE PROOF ERROR]', err);
+    return res.status(500).json({ error: 'Error al verificar prueba Merkle: ' + err.message });
+  }
+};
+
+/**
  * Solicitar Recuperación de Contraseña Institucional
  * Valida Cédula contra Correo Institucional o Teléfono registrado.
  */
@@ -2532,6 +2604,7 @@ module.exports = {
   getDeliveryStatus,
   deliveryStream,
   getMyReceipts,
+  getMyMerkleProof,
   requestPasswordRecovery,
   confirmPasswordRecovery
 };

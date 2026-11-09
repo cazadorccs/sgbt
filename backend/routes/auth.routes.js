@@ -46,5 +46,6 @@ router.post('/verify/qr', authController.verifyQr);
 router.get('/auth/delivery-status', authenticate, authController.getDeliveryStatus);
 router.get('/auth/delivery-stream', authenticate, authController.deliveryStream);
 router.get('/auth/my-receipts', authenticate, authController.getMyReceipts);
+router.get('/auth/my-merkle-proof', authenticate, authController.getMyMerkleProof);
 
 module.exports = router;

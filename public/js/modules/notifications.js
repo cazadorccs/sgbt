@@ -1,6 +1,60 @@
 // ============================================================================
-// MODULE: NOTIFICATIONS (IN-APP FEED & WEB PUSH API)
+// MODULE: NOTIFICATIONS (IN-APP FEED & WEB PUSH API CON VAPID RFC 8291/8292)
+// Permite alertas push nativas en segundo plano con pantalla apagada
 // ============================================================================
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+window.initWebPushSubscription = async function() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('[PUSH] Web Push no soportado en este navegador.');
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      const res = await API.get('/api/v1/notifications/vapid-public-key');
+      if (!res || !res.publicKey) {
+        console.warn('[PUSH] No se pudo obtener la clave pública VAPID');
+        return null;
+      }
+
+      const applicationServerKey = urlBase64ToUint8Array(res.publicKey);
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey
+      });
+      console.log('[PUSH] Nueva suscripción Web Push generada.');
+    }
+
+    // Registrar o actualizar suscripción en el backend
+    await API.post('/api/v1/notifications/subscribe', {
+      subscription: subscription.toJSON(),
+      worker_id: window.STATE?.currentUser?.id || null
+    });
+    console.log('[PUSH] Suscripción sincronizada con éxito en servidor SGBT.');
+    return subscription;
+  } catch (err) {
+    console.warn('[PUSH] No fue posible suscribir a Web Push:', err.message);
+    return null;
+  }
+};
 
 window.loadNotifications = async function() {
   const container = document.getElementById('notificationsListContainer');
@@ -68,10 +122,18 @@ window.setupNotificationsSystem = function() {
   const btnSendAlert = document.getElementById('btnSendQuickAlert');
   const btnCancelAlert = document.getElementById('btnCancelQuickAlert');
 
-  if ('Notification' in window && Notification.permission === 'default') {
-    setTimeout(() => {
-      Notification.requestPermission().catch(() => {});
-    }, 3000);
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      window.initWebPushSubscription();
+    } else if (Notification.permission === 'default') {
+      setTimeout(() => {
+        Notification.requestPermission().then(permission => {
+          if (permission === 'granted') {
+            window.initWebPushSubscription();
+          }
+        }).catch(() => {});
+      }, 3000);
+    }
   }
 
   btnOpen?.addEventListener('click', () => {

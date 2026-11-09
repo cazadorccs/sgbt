@@ -1971,12 +1971,49 @@
       </div>
 
       <!-- ACCIONES DEL MODAL -->
+      <button type="button" id="btnVerifyConsolidatedMerkle" class="btn btn-outline" style="width: 100%; margin-bottom: 0.65rem; padding: 0.65rem; font-size: 0.82rem; font-weight: 800; color: #38bdf8; border: 1.5px solid #38bdf8; background: rgba(56, 189, 248, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 6px; cursor: pointer;">
+        <span>🛡️</span> <span>Auditar en Árbol Merkle Ministerial (RFC 6962)</span>
+      </button>
       <div style="display: flex; gap: 0.65rem;">
         <button type="button" id="btnPrintConsolidatedReceipt" class="btn btn-primary" style="flex: 1; padding: 0.75rem; font-size: 0.88rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: 2px solid #34d399; color: #ffffff; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.4); cursor: pointer;">
           🖨️ Imprimir Comprobante Oficial
         </button>
         <button type="button" id="btnCloseConsolidatedReceiptModalBtn" class="btn btn-outline" style="padding: 0.75rem 1.25rem; font-weight: 700; color: #ffffff; border-color: #64748b; background: rgba(255,255,255,0.08); cursor: pointer;">
           Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================================================================
+     MODAL: CERTIFICADO CRIPTOGRÁFICO MERKLE PARA EL BENEFICIARIO (RFC 6962)
+     ====================================================================== -->
+<div id="beneficiaryMerkleModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 540px; background: #0b1329; border: 2px solid #38bdf8; box-shadow: 0 10px 30px rgba(56, 189, 248, 0.3);">
+    <div class="panel-header" style="border-bottom: 2px solid #38bdf8; padding-bottom: 0.85rem; background: rgba(56, 189, 248, 0.08);">
+      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1.02rem;">
+        🛡️ Certificado de Inmutabilidad Merkle (RFC 6962)
+      </div>
+      <button id="btnCloseBeneficiaryMerkleModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div style="padding: 1rem 0.25rem;">
+      <div id="beneficiaryMerkleContent">
+        <!-- Render dinámico de la prueba -->
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+        <button type="button" id="btnCopyMerkleProof" class="btn btn-outline" style="font-size: 0.8rem; font-weight: 700; color: #38bdf8; border-color: #38bdf8;">
+          📋 Copiar Prueba SHA-256
+        </button>
+        <button type="button" id="btnCloseBeneficiaryMerkleModalBtn" class="btn btn-primary" style="font-size: 0.8rem; font-weight: 700;">
+          Entendido
         </button>
       </div>
     </div>
