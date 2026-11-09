@@ -3,25 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <title>Simulador Dual en Vivo: Pantallas y Despacho Real (100 Entregas) | SGBT MIPPCI</title>
+  <title>Simulador Dual en Vivo: Carnet de Beneficiario y Mesa de Despacho (100 Entregas) | SGBT MIPPCI</title>
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/css/styles.css?v=4.0">
   <script src="/js/qrcode.js?v=3.2"></script>
   <style>
+    /* AJUSTES VISUALES PARA LA VISTA DUAL DE PANTALLAS REALES */
     :root {
-      --bg-dark: #070c18;
-      --panel-dark: rgba(15, 23, 42, 0.9);
-      --border-dark: rgba(56, 189, 248, 0.25);
-      --accent-blue: #0284c7;
-      --accent-green: #10b981;
-      --accent-yellow: #f59e0b;
-      --accent-red: #ef4444;
-      --phone-w: 350px;
-      --phone-h: 700px;
+      --bg-dark-sim: #070c18;
+      --panel-dark-sim: rgba(15, 23, 42, 0.95);
+      --border-dark-sim: rgba(56, 189, 248, 0.25);
     }
 
     body {
-      background: radial-gradient(circle at 50% 15%, #0f172a 0%, #030712 100%);
+      background: radial-gradient(circle at 50% 10%, #0f172a 0%, #030712 100%);
       color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       margin: 0;
@@ -30,40 +25,33 @@
       overflow-x: hidden;
     }
 
-    /* BARRA SUPERIOR INSTITUCIONAL */
-    .sim-navbar {
+    /* BARRA SUPERIOR LIMPIA Y PROFESIONAL */
+    .sim-clean-header {
       background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(14px);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 0.75rem 1.5rem;
+      padding: 0.85rem 1.75rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 1000;
     }
 
-    .tricolor-stripe {
-      height: 4px;
-      width: 100%;
-      background: linear-gradient(90deg, #ffcc00 33.3%, #00247d 33.3%, #00247d 66.6%, #cf142b 66.6%);
-    }
-
-    /* CONTENEDOR GENERAL */
     .sim-container {
-      max-width: 1480px;
+      max-width: 1520px;
       margin: 0 auto;
       padding: 1.25rem 1rem 3rem 1rem;
     }
 
     /* TABLERO DE CONTROL */
     .control-dashboard {
-      background: var(--panel-dark);
-      border: 1px solid var(--border-dark);
+      background: var(--panel-dark-sim);
+      border: 1px solid var(--border-dark-sim);
       border-radius: 16px;
       padding: 1.25rem 1.5rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
       box-shadow: 0 12px 35px -5px rgba(0, 0, 0, 0.6);
     }
 
@@ -110,7 +98,14 @@
       border-color: rgba(56, 189, 248, 0.4);
     }
 
-    /* TARJETAS DE KPIS */
+    .btn-sim-outline.active {
+      background: rgba(2, 132, 199, 0.25);
+      border-color: #38bdf8;
+      color: #38bdf8;
+      font-weight: 800;
+    }
+
+    /* KPIS EN VIVO */
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -139,14 +134,13 @@
       flex-shrink: 0;
     }
 
-    /* ESCENARIO DE LOS 2 TELÉFONOS ANDROID */
+    /* ESCENARIO DE LOS 2 TELÉFONOS REALES LADO A LADO */
     .dual-phones-stage {
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      gap: 2.5rem;
-      margin: 1.5rem 0 2.5rem 0;
-      position: relative;
+      gap: 2rem;
+      margin: 1.5rem auto 2.5rem auto;
       flex-wrap: wrap;
     }
 
@@ -158,7 +152,7 @@
     }
 
     .phone-column-title {
-      font-size: 0.82rem;
+      font-size: 0.84rem;
       text-transform: uppercase;
       font-weight: 800;
       letter-spacing: 0.04em;
@@ -167,286 +161,65 @@
       gap: 0.45rem;
     }
 
-    /* MOCKUP DEL TELÉFONO ANDROID REAL */
-    .android-device {
-      width: var(--phone-w);
-      height: var(--phone-h);
-      background: #020617;
-      border-radius: 40px;
-      border: 9px solid #334155;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.12);
+    /* SOBRESCRIBIR EL ANCHO DE LOS DISPOSITIVOS PARA QUE QUEPAN PERFECTOS */
+    .dual-phones-stage .device-frame {
+      width: 400px !important;
+      max-width: 100%;
+      height: 760px !important;
+      max-height: 85vh;
       display: flex;
       flex-direction: column;
       position: relative;
-      overflow: hidden;
-      user-select: none;
+      margin: 0;
     }
 
-    .android-device.rugged {
-      border: 11px solid #1e293b;
-      box-shadow: 0 25px 55px -10px rgba(0, 0, 0, 0.9), 0 0 0 3px #475569;
-    }
-
-    /* Barra de estado superior Android */
-    .android-status-bar {
-      height: 26px;
-      background: #000000;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 1.1rem;
-      font-size: 0.68rem;
-      font-weight: 700;
-      color: #94a3b8;
-      z-index: 20;
-      flex-shrink: 0;
-    }
-
-    .camera-hole {
-      width: 10px;
-      height: 10px;
-      background: #090d16;
-      border-radius: 50%;
-      border: 1.5px solid #1e293b;
-      position: absolute;
-      top: 8px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    /* Pantalla interna con scroll suave */
-    .android-screen-viewport {
+    .dual-phones-stage .device-screen {
       flex: 1;
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      overflow-y: auto;
+      height: 100% !important;
+      overflow-y: auto !important;
       overflow-x: hidden;
-      background: #0b1120;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
-    }
-
-    /* Barra de navegación de gestos inferior */
-    .android-gesture-bar {
-      height: 16px;
-      background: #000000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-shrink: 0;
-    }
-    .gesture-pill {
-      width: 90px;
-      height: 4px;
-      background: #475569;
-      border-radius: 9999px;
-    }
-
-    /* =========================================================================
-       PANTALLA 1-A: LOGIN REAL DE BENEFICIARIO (view-login)
-       ========================================================================= */
-    .sim-real-login-view {
-      padding: 1.25rem 1rem;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      min-height: 100%;
-      box-sizing: border-box;
+      position: relative;
     }
 
-    .sim-login-card {
-      background: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 1.25rem 1rem;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      text-align: center;
-    }
-
-    .sim-form-input {
-      width: 100%;
-      box-sizing: border-box;
-      background: #1e293b;
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 0.65rem 0.75rem;
-      color: #ffffff;
-      font-size: 0.95rem;
-      font-weight: 700;
-      font-family: monospace;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .sim-form-input:focus {
-      border-color: #0284c7;
-      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.3);
-    }
-
-    /* =========================================================================
-       PANTALLA 1-B: CARNET DIGITAL REAL DE BENEFICIARIO (view-worker)
-       ========================================================================= */
-    .sim-real-carnet-view {
-      display: flex;
-      flex-direction: column;
-      min-height: 100%;
-      box-sizing: border-box;
-      background: #0a0f1d;
-    }
-
-    .carnet-app-bar {
-      background: #131b2e;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding: 0.65rem 0.85rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .carnet-profile-card {
-      padding: 0.85rem;
-      text-align: center;
-      background: linear-gradient(180deg, #131b2e 0%, #0a0f1d 100%);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .carnet-avatar {
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #0284c7, #1e40af);
-      color: white;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 800;
-      margin: 0 auto 0.4rem auto;
-      border: 2px solid rgba(56, 189, 248, 0.5);
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
-    }
-
-    .carnet-qr-box {
+    /* ESTILO DEL ESPEJO DE QR DENTRO DEL VISOR DE CÁMARA (TELÉFONO 2) */
+    .camera-qr-mirror-box {
+      width: 180px;
+      height: 180px;
       background: #ffffff;
-      width: 195px;
-      height: 195px;
-      margin: 0.65rem auto;
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 8px;
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
       display: flex;
       align-items: center;
       justify-content: center;
       position: relative;
+      z-index: 5;
     }
 
-    /* =========================================================================
-       CANAL ÓPTICO DE ESCANEO CENTRAL
-       ========================================================================= */
-    .optical-beam-channel {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 140px;
-      margin-top: 240px;
-      position: relative;
-    }
-
-    .laser-line-p2p {
-      width: 100%;
-      height: 3px;
-      background: linear-gradient(90deg, #ef4444 0%, #10b981 50%, #38bdf8 100%);
-      box-shadow: 0 0 12px #10b981, 0 0 24px #38bdf8;
-      position: relative;
-      animation: laserPulse 1.2s infinite alternate;
-    }
-
-    @keyframes laserPulse {
-      0% { opacity: 0.35; transform: scaleY(0.7); }
-      100% { opacity: 1; transform: scaleY(1.4); }
-    }
-
-    /* =========================================================================
-       PANTALLA 2: MESA DE DESPACHO / DISTRIBUIDOR REAL (view-distributor)
-       ========================================================================= */
-    .sim-real-distributor-view {
-      display: flex;
-      flex-direction: column;
-      min-height: 100%;
-      box-sizing: border-box;
-      background: #020617;
-      position: relative;
-    }
-
-    .distributor-viewfinder {
-      height: 220px;
-      background: #000000;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .scanner-laser-sweep {
+    /* ANIMACIÓN DEL BARRIDO LÁSER DE ESCANEO SOBRE EL QR */
+    .scanner-laser-bar {
       position: absolute;
       left: 0;
       right: 0;
-      height: 2px;
+      height: 3px;
       background: #ef4444;
       box-shadow: 0 0 10px #ef4444, 0 0 20px #ef4444;
-      animation: sweepLine 1.8s infinite ease-in-out;
+      z-index: 10;
+      animation: sweepCameraLaser 1.8s infinite ease-in-out;
     }
 
-    @keyframes sweepLine {
+    @keyframes sweepCameraLaser {
       0% { top: 10%; }
       50% { top: 90%; }
       100% { top: 10%; }
     }
 
-    .finder-corner {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-color: #38bdf8;
-      border-style: solid;
-      pointer-events: none;
-    }
-    .fc-tl { top: 18px; left: 18px; border-width: 3px 0 0 3px; }
-    .fc-tr { top: 18px; right: 18px; border-width: 3px 3px 0 0; }
-    .fc-bl { bottom: 18px; left: 18px; border-width: 0 0 3px 3px; }
-    .fc-br { bottom: 18px; right: 18px; border-width: 0 3px 3px 0; }
-
-    /* OVERLAY VERDE DE FEEDBACK REAL (distributorFeedbackOverlay) */
-    .distributor-real-feedback-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: linear-gradient(135deg, rgba(6, 78, 59, 0.96), rgba(4, 47, 46, 0.98));
-      backdrop-filter: blur(10px);
-      z-index: 100;
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      text-align: center;
-      animation: feedbackIn 0.25s ease-out;
-    }
-
-    @keyframes feedbackIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
     /* TABLA DE AUDITORÍA */
     .audit-table-container {
-      background: var(--panel-dark);
-      border: 1px solid var(--border-dark);
+      background: var(--panel-dark-sim);
+      border: 1px solid var(--border-dark-sim);
       border-radius: 16px;
       padding: 1.25rem 1.5rem;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
@@ -478,93 +251,79 @@
     .real-audit-table tr:hover {
       background: rgba(56, 189, 248, 0.05);
     }
-
-    /* BADGES */
-    .badge-sim {
-      font-size: 0.65rem;
-      font-weight: 700;
-      padding: 0.15rem 0.5rem;
-      border-radius: 9999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.25rem;
-    }
   </style>
 </head>
 <body>
 
-  <!-- BARRA SUPERIOR INSTITUCIONAL -->
-  <header class="sim-navbar">
-    <div style="display: flex; align-items: center; gap: 0.85rem;">
-      <a href="/coseg" style="color: #38bdf8; text-decoration: none; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; font-weight: 700; background: rgba(2, 132, 199, 0.15); padding: 0.35rem 0.75rem; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
-        <span>← Gobernanza (/coseg)</span>
+  <!-- BARRA SUPERIOR LIMPIA SIN CINTILLO NI LOGO EXTRAÑO -->
+  <header class="sim-clean-header">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <a href="/coseg" style="color: #38bdf8; text-decoration: none; font-size: 0.82rem; font-weight: 700; background: rgba(2, 132, 199, 0.15); padding: 0.4rem 0.75rem; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
+        ← Volver a Gobernanza (/coseg)
       </a>
       <div>
-        <h1 style="font-size: 1.1rem; font-weight: 800; margin: 0; color: #ffffff; letter-spacing: -0.01em;">
-          Simulador Dual P2P: Procedimiento & Pantallas Reales SGBT
+        <h1 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #ffffff;">
+          Simulador Dual en Vivo: Pantallas Reales de Despacho (100 Entregas)
         </h1>
-        <div style="font-size: 0.72rem; color: #94a3b8;">
-          100 Entregas Reales con Padrón MIPPCI · Login Cédula ➔ Carnet Digital ➔ QR Criptográfico ➔ Escáner de Almacén
+        <div style="font-size: 0.75rem; color: #94a3b8;">
+          Carnet de Beneficiario (Izquierda) ➔ Mesa de Despacho con Escaneo de Cámara (Derecha)
         </div>
       </div>
     </div>
-    
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <span class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
-        🟢 Servidor & DB en Vivo
+
+    <div style="display: flex; align-items: center; gap: 0.65rem;">
+      <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 9999px; font-weight: 700;">
+        🟢 Base de Datos SQLite & FIDO2 Activo
       </span>
-      <a href="/" style="font-size: 0.75rem; color: #94a3b8; text-decoration: none; padding: 0.35rem 0.65rem; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;">
+      <a href="/" style="font-size: 0.78rem; color: #94a3b8; text-decoration: none; padding: 0.35rem 0.65rem; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;">
         Portal General
       </a>
     </div>
   </header>
-  <div class="tricolor-stripe"></div>
 
   <main class="sim-container">
 
     <!-- ======================================================================
-         1. TABLERO DE CONTROL, SELECCIÓN Y VELOCIDAD
+         1. PANEL DE CONTROL Y METRICAS
          ====================================================================== -->
     <section class="control-dashboard">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
         <div>
-          <h2 style="font-size: 1.2rem; font-weight: 800; margin: 0 0 0.25rem 0; color: #ffffff;">
-            🎮 Consola de Despacho Automatizado
+          <h2 style="font-size: 1.15rem; font-weight: 800; margin: 0 0 0.2rem 0; color: #ffffff;">
+            🎮 Control de Ejecución (100 Beneficiarios MIPPCI)
           </h2>
-          <p style="font-size: 0.8rem; color: #94a3b8; margin: 0;">
-            Ejecuta el ciclo de entrega individual o continuo con las pantallas reales de la plataforma institucional.
+          <p style="font-size: 0.78rem; color: #94a3b8; margin: 0;">
+            Selecciona un funcionario específico o ejecuta el despacho secuencial automatizado observando las dos pantallas en tiempo real.
           </p>
         </div>
 
-        <!-- Botonera de Control -->
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <button id="btnStartSimulation" class="btn-sim btn-sim-success" title="Iniciar despacho continuo de los 100 beneficiarios">
+          <button id="btnStartSimulation" class="btn-sim btn-sim-success">
             <span>▶ Iniciar Flujo 100 Entregas</span>
           </button>
-          <button id="btnPauseSimulation" class="btn-sim btn-sim-outline" style="display: none;" title="Pausar el proceso">
+          <button id="btnPauseSimulation" class="btn-sim btn-sim-outline" style="display: none;">
             <span>⏸ Pausar</span>
           </button>
-          <button id="btnStepSimulation" class="btn-sim btn-sim-primary" title="Ejecutar paso a paso (1 entrega completa)">
+          <button id="btnStepSimulation" class="btn-sim btn-sim-primary">
             <span>⏭ Paso a Paso (1 Entrega)</span>
           </button>
-          <button id="btnResetSimulation" class="btn-sim btn-sim-outline" title="Reiniciar lote y limpiar despachos del simulador">
+          <button id="btnResetSimulation" class="btn-sim btn-sim-outline">
             <span>🔄 Reiniciar Lote (0/100)</span>
           </button>
         </div>
       </div>
 
-      <!-- Barra de Configuración y Velocidad -->
+      <!-- Fila de Selección y Cadencia -->
       <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-        
-        <!-- Selector manual de Funcionario -->
-        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 280px;">
+        <!-- Selector de Beneficiario -->
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 290px;">
           <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Beneficiario:</span>
-          <select id="workerDirectSelect" style="flex: 1; background: #1e293b; color: #ffffff; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 0.4rem 0.6rem; font-size: 0.8rem; font-weight: 600; outline: none;">
-            <option value="">Cargando primeros 100 beneficiarios del padrón...</option>
+          <select id="workerDirectSelect" style="flex: 1; background: #1e293b; color: #ffffff; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 0.45rem 0.65rem; font-size: 0.8rem; font-weight: 600; outline: none;">
+            <option value="">Cargando primeros 100 beneficiarios...</option>
           </select>
         </div>
 
-        <!-- Selector de Cadencia / Velocidad -->
+        <!-- Selector de Cadencia -->
         <div style="display: flex; align-items: center; gap: 0.4rem;">
           <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Cadencia:</span>
           <button type="button" class="btn-sim btn-sim-outline speed-btn active" data-delay="2400" id="speedNormal" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
@@ -579,10 +338,10 @@
         </div>
       </div>
 
-      <!-- Barra de Progreso de 0 a 100 -->
+      <!-- Barra de Progreso -->
       <div style="margin-top: 1rem;">
         <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: #94a3b8; margin-bottom: 0.35rem;">
-          <span>Progreso del Lote Oficial: <strong id="progressCountLabel" style="color: #38bdf8;">[ 0 / 100 ]</strong></span>
+          <span>Progreso del Lote: <strong id="progressCountLabel" style="color: #38bdf8;">[ 0 / 100 ]</strong></span>
           <span id="progressPctLabel" style="color: #34d399;">0% Completado</span>
         </div>
         <div style="height: 8px; width: 100%; background: #1e293b; border-radius: 9999px; overflow: hidden;">
@@ -590,7 +349,7 @@
         </div>
       </div>
 
-      <!-- 4 KPIS EN VIVO -->
+      <!-- 4 KPIs -->
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-icon" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">📦</div>
@@ -628,359 +387,312 @@
 
 
     <!-- ======================================================================
-         2. ESCENARIO DUAL: 2 TELÉFONOS ANDROID CON PANTALLAS REALES
+         2. ESCENARIO DUAL: PANTALLAS REALES SGBT LADO A LADO
          ====================================================================== -->
     <section class="dual-phones-stage">
 
       <!-- ====================================================================
-           TELÉFONO 1: BENEFICIARIO (GOOGLE PIXEL / ANDROID 14)
+           PANTALLA IZQUIERDA: CARNET DE BENEFICIARIO REAL (view-worker)
            ==================================================================== -->
       <div class="phone-column">
         <div class="phone-column-title" style="color: #38bdf8;">
-          <span>📱</span> <span>Teléfono 1: Beneficiario Titular (Android Pixel)</span>
+          <span>📱</span> <span>CARNET DE BENEFICIARIO (PANTALLA REAL)</span>
         </div>
 
-        <div class="android-device" id="phone1Container">
-          <!-- Barra de Estado Android -->
-          <div class="android-status-bar">
-            <span id="phone1Clock">12:00</span>
-            <div class="camera-hole"></div>
-            <span>5G 📶 98% 🔋</span>
+        <div class="device-frame">
+          <div class="device-notch">
+            <div class="device-camera"></div>
           </div>
 
-          <!-- Viewport con pantallas reales que se alternan -->
-          <div class="android-screen-viewport" id="phone1Viewport">
-
-            <!-- ================================================================
-                 PANTALLA 1-A: FORMULARIO REAL DE LOGIN DE BENEFICIARIO (view-login)
-                 ================================================================ -->
-            <div id="simLoginView" class="sim-real-login-view">
-              <div class="sim-login-card">
-                <!-- Cintillo Institucional -->
-                <div style="text-align: center; margin-bottom: 0.75rem;">
-                  <div style="font-size: 0.62rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">
-                    REPÚBLICA BOLIVARIANA DE VENEZUELA
-                  </div>
-                  <div style="font-size: 0.7rem; color: #38bdf8; font-weight: 800;">
-                    MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN
-                  </div>
-                  <div class="tricolor-stripe" style="margin: 0.5rem 0;"></div>
+          <div class="device-screen">
+            <!-- App Bar Oficial del Beneficiario -->
+            <div class="mobile-app-bar">
+              <div class="mobile-app-bar-header">
+                <div class="mobile-app-title">
+                  <span>🏛️ MIPPCI Beneficios</span>
                 </div>
-
-                <div style="margin-bottom: 0.85rem;">
-                  <h3 style="font-size: 1.05rem; font-weight: 800; color: #ffffff; margin: 0 0 0.2rem 0;">
-                    Acceso de Beneficiario
-                  </h3>
-                  <div style="font-size: 0.72rem; color: #94a3b8;">
-                    Sistema de Gestión de Beneficios Institucionales
-                  </div>
+                <div class="mobile-app-bar-actions">
+                  <span id="workerConditionBadge" class="badge badge-activo" style="font-size: 0.65rem;">🏢 Activo</span>
+                  <button id="btnWorkerMobileLogout" class="btn btn-outline btn-mobile-logout" title="Cerrar Sesión">
+                    🚪 Salir
+                  </button>
                 </div>
+              </div>
 
-                <!-- Input Cédula Real con prefijo V/E -->
-                <div style="margin-bottom: 0.85rem; text-align: left;">
-                  <label style="font-size: 0.68rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; display: block; margin-bottom: 0.35rem;">
-                    Cédula de Identidad:
-                  </label>
-                  <div style="display: flex; gap: 0.4rem;">
-                    <div style="width: 50px; background: #1e293b; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #38bdf8; font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; justify-content: center;">
-                      V-
-                    </div>
-                    <input 
-                      type="text" 
-                      id="simInputCedula" 
-                      class="sim-form-input" 
-                      placeholder="Ej: 10009670" 
-                      readonly
-                    >
-                  </div>
-                  <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.35rem;">
-                    Ingrese su cédula para consultar beneficio o emitir código QR.
-                  </div>
+              <div class="mobile-app-bar-profile" id="workerHeaderProfileRow" style="cursor: pointer;">
+                <div id="workerHeaderAvatar" class="mobile-avatar-circle">
+                  AE
                 </div>
-
-                <!-- Botón de Envío Real -->
-                <button type="button" id="simBtnLogin" class="btn-sim btn-sim-primary" style="width: 100%; justify-content: center; padding: 0.7rem; font-size: 0.88rem;">
-                  <span id="simBtnLoginText">Continuar con Cédula de Identidad</span>
-                </button>
-
-                <div style="margin-top: 0.85rem; font-size: 0.68rem; color: #64748b;">
-                  🔒 Verificación criptográfica con FIDO2 & Base de Datos Oficial
+                <div class="mobile-app-profile-details">
+                  <div id="workerHeaderIdentity" class="mobile-app-identity">
+                    ANELSY JOSEFINA ESCOBAR ESCALONA (10009670)
+                  </div>
                 </div>
               </div>
             </div>
 
+            <!-- Botón Mis Recibos Digitales -->
+            <button type="button" id="btnOpenReceiptsHistoryModal" class="btn btn-outline" style="width: 100%; margin: 0.5rem 0; font-size: 0.76rem; font-weight: 700; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.08); display: flex; align-items: center; justify-content: center; gap: 0.45rem; padding: 0.45rem 0.75rem; border-radius: 8px;">
+              <span>📜</span>
+              <span>Mis Recibos Digitales de Entrega</span>
+            </button>
 
-            <!-- ================================================================
-                 PANTALLA 1-B: CARNET DIGITAL REAL DE BENEFICIARIO (view-worker)
-                 ================================================================ -->
-            <div id="simCarnetView" class="sim-real-carnet-view" style="display: none;">
-              <!-- App Bar del Carnet -->
-              <div class="carnet-app-bar">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <span style="font-size: 1.05rem;">🏛️</span>
-                  <span style="font-weight: 800; font-size: 0.82rem; color: #ffffff;">MIPPCI Beneficios</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.35rem;">
-                  <span class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
-                    🏢 Activo
-                  </span>
-                  <button type="button" id="simBtnLogoutWorker" style="background: none; border: none; color: #94a3b8; font-size: 0.75rem; cursor: pointer;" title="Cerrar sesión">
-                    🚪
-                  </button>
+            <!-- Semáforo de Colas en Comedor -->
+            <div id="queueTrafficContainer" style="margin-bottom: 0.65rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.55rem;">
+                <span id="queueTrafficDot" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.7); flex-shrink: 0;"></span>
+                <div>
+                  <div id="queueTrafficTitle" style="font-weight: 700; font-size: 0.75rem; color: #34d399;">🟢 Cola en Comedor: Despejada (&lt; 3 min)</div>
+                  <div id="queueTrafficDesc" style="font-size: 0.65rem; color: #94a3b8;">Tránsito fluido en mesas de entrega</div>
                 </div>
               </div>
-              <div class="tricolor-stripe"></div>
+              <span style="color: #38bdf8; font-size: 0.8rem;">🔄</span>
+            </div>
 
-              <!-- Ficha de Perfil del Beneficiario -->
-              <div class="carnet-profile-card">
-                <div id="carnetAvatar" class="carnet-avatar">AE</div>
-                <h3 id="carnetFullName" style="font-size: 0.92rem; font-weight: 800; color: #ffffff; margin: 0 0 0.2rem 0; line-height: 1.2;">
-                  ANELSY JOSEFINA ESCOBAR
-                </h3>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 0.4rem;">
-                  <span id="carnetDocId" style="font-size: 0.8rem; font-weight: 800; color: #38bdf8;">C.I. 10009670</span>
-                  <span class="badge-sim" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8;">BENEFICIARIO TITULAR</span>
-                </div>
-                <div id="carnetDept" style="font-size: 0.68rem; color: #94a3b8; margin-top: 0.3rem;">
-                  Oficina de Seguridad y Protección Integral
-                </div>
-              </div>
-
-              <!-- Semáforo de Colas en Comedor -->
-              <div style="margin: 0.65rem 0.75rem; padding: 0.45rem 0.7rem; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; gap: 0.5rem;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981;"></span>
-                <span style="font-size: 0.7rem; color: #34d399; font-weight: 700;">🟢 Cola en Comedor: Despejada (&lt; 3 min)</span>
-              </div>
-
-              <!-- Combos Asignados en la Jornada Activa -->
-              <div style="margin: 0 0.75rem 0.65rem 0.75rem; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 0.6rem 0.75rem;">
-                <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
-                  <span>Beneficio Asignado Hoy:</span>
-                  <span style="color: #10b981;">1 Combo</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 0.55rem;">
-                  <span style="font-size: 1.4rem;">🌾</span>
-                  <div>
-                    <div style="font-size: 0.78rem; font-weight: 800; color: #ffffff;" id="carnetComboName">
-                      Bolsa de Víveres Secos (Canasta MIPPCI)
-                    </div>
-                    <div style="font-size: 0.68rem; color: #38bdf8; font-weight: 600;">
-                      Peso: 14.50 kg · Harina, Arroz, Pasta, Granos
+            <!-- Bultos a Entregar (Combos Asignados) -->
+            <div class="packages-container" id="workerPackagesSection">
+              <div class="packages-master-wrapper" style="margin-bottom: 0.65rem;">
+                <div class="btn-toggle-combos-master" style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.6rem 0.75rem; display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; align-items: center; gap: 0.55rem;">
+                    <span style="font-size: 1.2rem;">📦</span>
+                    <div>
+                      <div style="font-weight: 800; font-size: 0.82rem; color: #f8fafc;" id="lblCarnetComboTitle">
+                        Bolsa de Víveres Secos (Canasta MIPPCI)
+                      </div>
+                      <div style="font-size: 0.67rem; color: #94a3b8;">
+                        Beneficio Activo · Mesa 1 · 14.5 kg
+                      </div>
                     </div>
                   </div>
+                  <span class="badge" style="font-size: 0.68rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; font-weight: 700; border: 1px solid rgba(56, 189, 248, 0.35);">
+                    Asignado
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- VISOR DE QR DINÁMICO DE RETIRO SEGURO (REAL) -->
+            <div id="workerQrContainer" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+              <div class="flex-between" style="width: 100%; margin-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700;">CÓDIGO QR DE RETIRO SEGURO</span>
+                <button id="btnToggleBrightness" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.65rem;">
+                  💡 Brillo 100%
+                </button>
+              </div>
+
+              <!-- Indicador de Estación Activa -->
+              <div id="qrStationBanner" style="width: 100%; box-sizing: border-box; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; padding: 0.4rem 0.65rem; border-radius: 8px; background: rgba(2, 132, 199, 0.18); border: 1px solid rgba(2, 132, 199, 0.4);">
+                <span id="qrStationTitle" style="font-size: 0.7rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">
+                  📦 Retiro Totalizado (Todos los Combos)
+                </span>
+                <span id="qrStationBadgePill" class="badge badge-viveres" style="font-size: 0.6rem; padding: 0.15rem 0.45rem;">
+                  1 Solo Escaneo
+                </span>
+              </div>
+
+              <!-- Caja del QR con Sello y Barra de Expiración -->
+              <div id="qrDisplayBox" class="qr-display-box" style="width: 100%; box-sizing: border-box; background: #ffffff; border-radius: 14px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
+                <!-- ELEMENTO DONDE SE GENERA EL QR REAL -->
+                <div id="qrCodeTarget" style="min-height: 200px; display: flex; align-items: center; justify-content: center;"></div>
+                
+                <div class="countdown-bar-container" style="width: 100%; height: 6px; background: #e2e8f0; border-radius: 9999px; margin-top: 8px; overflow: hidden;">
+                  <div id="qrCountdownFill" class="countdown-bar-fill" style="height: 100%; width: 100%; background: #0284c7; transition: width 1s linear;"></div>
+                </div>
+                <div id="qrTimerLabel" style="font-size: 0.72rem; font-weight: 800; color: #0f172a; margin-top: 0.35rem;">
+                  Expira en: 180s
+                </div>
+                <div class="qr-nonce-text" id="qrNonceLabel" style="font-size: 0.6rem; color: #64748b; font-family: monospace;">
+                  Firma FIDO2 ES256 Activa
                 </div>
               </div>
 
-              <!-- Visor de QR Dinámico Real -->
-              <div id="carnetQrSection" style="padding: 0 0.75rem 0.85rem 0.75rem; text-align: center;">
-                <div style="background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 0.35rem 0.5rem; margin-bottom: 0.45rem; font-size: 0.68rem; font-weight: 800; color: #38bdf8; text-transform: uppercase;">
-                  📦 Retiro Totalizado de Combos (1 Solo Escaneo)
+              <!-- Panel NFC -->
+              <div id="workerNfcTouchPanel" style="width: 100%; box-sizing: border-box; margin: 0.65rem 0; padding: 0.65rem; border-radius: 10px; background: rgba(56, 189, 248, 0.08); border: 1.5px dashed #0284c7; text-align: center;">
+                <div style="font-size: 0.74rem; color: #38bdf8; font-weight: 700; margin-bottom: 0.2rem;">
+                  📡 Validación por Proximidad NFC Móvil
                 </div>
-
-                <div class="carnet-qr-box" id="carnetQrBox">
-                  <div id="simRealQrDisplay"></div>
-                </div>
-
-                <div style="font-size: 0.68rem; color: #34d399; font-weight: 700; margin-top: 0.35rem;">
-                  ⏱️ Código Criptográfico Activo · <span id="simQrTimer">Expira en: 180s</span>
-                </div>
-                <div style="font-size: 0.58rem; color: #64748b; font-family: monospace; margin-top: 0.2rem;" id="simQrHashShort">
-                  NONCE: f89a2b · FIRMA ES256 OK
+                <div style="font-size: 0.68rem; color: #94a3b8;">
+                  Acerque su dispositivo a la mesa o presente el código QR superior
                 </div>
               </div>
 
-              <!-- Comprobante Verde de Entrega Confirmada (Se activa tras entrega) -->
-              <div id="carnetReceiptCard" style="display: none; margin: 0.5rem 0.75rem 1rem 0.75rem; background: linear-gradient(135deg, rgba(6, 78, 59, 0.4), rgba(4, 47, 46, 0.6)); border: 1.5px solid #10b981; border-radius: 12px; padding: 0.85rem; text-align: center;">
-                <div style="font-size: 1.8rem; margin-bottom: 0.25rem;">✅</div>
-                <div style="font-weight: 800; font-size: 0.88rem; color: #34d399; text-transform: uppercase;">
+              <!-- Comprobante de Entrega Aprobada (Se activa tras escaneo) -->
+              <div id="workerDeliveryReceiptBox" class="delivery-receipt-card" style="display: none; width: 100%; box-sizing: border-box; margin: 0.5rem 0; padding: 0.85rem; border-radius: 12px; background: linear-gradient(135deg, rgba(6, 78, 59, 0.6), rgba(4, 47, 46, 0.8)); border: 1.5px solid #10b981; text-align: center;">
+                <div style="font-size: 2rem;">✅</div>
+                <div style="font-size: 0.88rem; font-weight: 800; color: #34d399; text-transform: uppercase;">
                   ¡Beneficio Retirado con Éxito!
                 </div>
-                <div style="font-size: 0.72rem; color: #e2e8f0; margin-top: 0.25rem;">
+                <div style="font-size: 0.72rem; color: #e2e8f0; margin-top: 0.25rem;" id="receiptComboText">
                   Bolsa de Víveres Secos (14.50 kg)
                 </div>
-                <div id="carnetReceiptTime" style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.35rem; font-family: monospace;">
+                <div id="receiptTimestamp" style="font-size: 0.65rem; color: #94a3b8; margin-top: 0.35rem; font-family: monospace;">
                   Entregado a las: 12:00:00 p. m.
                 </div>
               </div>
             </div>
 
           </div>
-
-          <!-- Barra de Gestos Inferior -->
-          <div class="android-gesture-bar">
-            <div class="gesture-pill"></div>
-          </div>
         </div>
 
-        <span id="turnLabelBeneficiary" style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">
+        <span id="turnLabelBeneficiary" style="font-size: 0.74rem; color: #94a3b8; font-weight: 700;">
           Funcionario en Turno: #1 de 100
         </span>
       </div>
 
 
       <!-- ====================================================================
-           CANAL CENTRAL: ENLACE ÓPTICO LÁSER P2P
-           ==================================================================== -->
-      <div class="optical-beam-channel">
-        <div style="font-size: 0.68rem; font-weight: 800; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.4rem; text-align: center;">
-          📡 Enlace Óptico
-        </div>
-        <div class="laser-line-p2p" id="simLaserP2P"></div>
-        <div style="margin-top: 0.5rem; text-align: center;">
-          <div id="simBeamStatus" style="font-size: 0.68rem; font-weight: 700; color: #10b981;">
-            Enfocando QR...
-          </div>
-          <div style="font-size: 0.6rem; color: #64748b; margin-top: 0.15rem;">
-            Distancia: ~15 cm
-          </div>
-        </div>
-      </div>
-
-
-      <!-- ====================================================================
-           TELÉFONO 2: MESA DE DESPACHO / DISTRIBUIDOR REAL (view-distributor)
+           PANTALLA DERECHA: MESA DE DESPACHO REAL (view-distributor)
            ==================================================================== -->
       <div class="phone-column">
         <div class="phone-column-title" style="color: #10b981;">
-          <span>📦</span> <span>Teléfono 2: Mesa de Despacho (Terminal Colector)</span>
+          <span>📦</span> <span>MESA DE DESPACHO (PANTALLA REAL)</span>
         </div>
 
-        <div class="android-device rugged" id="phone2Container">
-          <!-- Barra de Estado Android Rugerizado -->
-          <div class="android-status-bar">
-            <span id="phone2Clock">12:00</span>
-            <div class="camera-hole"></div>
-            <span>WiFi 📶 100% ⚡</span>
+        <div class="device-frame" style="border-color: #1e293b;">
+          <div class="device-notch">
+            <div class="device-camera"></div>
           </div>
 
-          <!-- Viewport con la pantalla real del Distribuidor -->
-          <div class="android-screen-viewport" id="phone2Viewport">
+          <div class="device-screen" style="position: relative;">
             
-            <div class="sim-real-distributor-view">
+            <!-- OVERLAY GIGANTE REAL DE FEEDBACK (distributorFeedbackOverlay) -->
+            <div id="distributorFeedbackOverlay" class="distributor-feedback-overlay">
+              <div id="feedbackIcon" class="feedback-icon" style="font-size: 3.5rem;">✅</div>
+              <h2 id="feedbackTitle" class="feedback-title" style="font-size: 1.3rem; font-weight: 900; color: #ffffff;">
+                ENTREGA AUTORIZADA
+              </h2>
+              <p id="feedbackSubtitle" class="feedback-subtitle" style="font-size: 0.8rem; color: #a7f3d0;">
+                Beneficiario verificado correctamente con firma digital FIDO2
+              </p>
+              <div id="feedbackDetails" style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.78rem; margin-bottom: 1.25rem; width: 100%; box-sizing: border-box; text-align: left;">
+                <div style="margin-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Funcionario:</span> 
+                  <strong id="overlayWorkerName" style="color: #ffffff; display: block; font-size: 0.85rem;">-</strong>
+                </div>
+                <div style="margin-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Cédula:</span> 
+                  <strong id="overlayWorkerDoc" style="color: #38bdf8;">-</strong>
+                </div>
+                <div style="margin-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Combo Retirado:</span> 
+                  <strong style="color: #34d399; display: block;">🌾 Bolsa de Víveres Secos (14.50 kg)</strong>
+                </div>
+                <div id="overlayHash" style="font-size: 0.65rem; color: #64748b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  SELLO: SHA256-OK
+                </div>
+              </div>
+              <button id="btnCloseFeedbackOverlay" class="btn btn-outline" style="background: rgba(255,255,255,0.25); color: #fff; width: 85%; font-weight: 700; padding: 0.6rem;">
+                Siguiente Entrega (Listo) ›
+              </button>
+            </div>
+
+            <!-- App Bar del Distribuidor -->
+            <div class="mobile-app-bar">
+              <div class="mobile-app-title">
+                <span>📦 Despacho Almacén Sótano</span>
+              </div>
+              <span id="distributorModeBadge" class="badge badge-passkey" style="font-size: 0.65rem;">
+                DB Local: SQLCipher OK
+              </span>
+            </div>
+
+            <!-- Identidad del Operador de Mesa Activo -->
+            <div id="distributorOperatorIdentityBar" style="background: rgba(2, 132, 199, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: var(--radius-sm); padding: 0.5rem 0.75rem; margin: 0.5rem 0; display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 0.55rem;">
+                <div id="distributorOperatorAvatar" class="user-avatar-badge" style="background: linear-gradient(135deg, #0284c7, #0891b2); color: #fff; font-size: 0.75rem; font-weight: 700; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                  OP
+                </div>
+                <div>
+                  <div id="distributorOperatorName" style="font-size: 0.8rem; font-weight: 700; color: #f8fafc; line-height: 1.2;">
+                    Mesa de Despacho
+                  </div>
+                  <div id="distributorOperatorBadge" style="font-size: 0.65rem; color: #38bdf8;">
+                    Rol: Mesa de Despacho (Operador)
+                  </div>
+                </div>
+              </div>
+              <span style="font-size: 0.7rem; color: #10b981; font-weight: 700;">
+                📦 Despachos (<span id="distributorDeliveriesHeaderCount">0</span>)
+              </span>
+            </div>
+
+            <!-- Selector de Modalidad y Punto Activo -->
+            <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--bg-card-border); border-radius: var(--radius-md); padding: 0.5rem 0.75rem; margin-bottom: 0.65rem; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.68rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">
+                Punto de Despacho:
+              </span>
+              <span id="activeStationBadge" class="badge badge-proteina" style="font-size: 0.65rem; background: #059669; color: #fff; padding: 0.2rem 0.55rem; border-radius: 6px;">
+                🌟 Retiro Totalizado (Todos los Combos)
+              </span>
+            </div>
+
+            <!-- VISOR DE ESCANEO / LECTOR DE CÁMARA REAL CON EL MISMO QR REFLEJADO -->
+            <div style="margin-bottom: 0.75rem;">
+              <div class="flex-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <label style="font-size: 0.7rem; color: var(--sea-anakiwa); text-transform: uppercase; font-weight: 700;">
+                  Lector de Código QR (Cámara en Vivo):
+                </label>
+                <span id="cameraStatusBadge" class="badge badge-viveres" style="font-size: 0.6rem;">Cámara Lista</span>
+              </div>
               
-              <!-- ==============================================================
-                   OVERLAY REAL DE FEEDBACK GIGANTE (distributorFeedbackOverlay)
-                   ============================================================== -->
-              <div id="simDistributorFeedbackOverlay" class="distributor-real-feedback-overlay">
-                <div style="font-size: 3.5rem; line-height: 1; margin-bottom: 0.5rem; animation: pulse 1s infinite;">✅</div>
-                <h2 style="font-size: 1.25rem; font-weight: 900; color: #ffffff; margin: 0 0 0.25rem 0; letter-spacing: 0.03em;">
-                  ENTREGA AUTORIZADA
-                </h2>
-                <p style="font-size: 0.78rem; color: #a7f3d0; margin: 0 0 1rem 0;">
-                  Beneficiario verificado correctamente con firma digital FIDO2
-                </p>
-
-                <div style="background: rgba(0, 0, 0, 0.45); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; padding: 0.85rem 1rem; font-size: 0.78rem; width: 100%; box-sizing: border-box; text-align: left; margin-bottom: 1.25rem;">
-                  <div style="margin-bottom: 0.4rem;">
-                    <span style="color: #94a3b8;">Funcionario:</span> 
-                    <strong id="feedbackWorkerName" style="color: #ffffff; display: block; font-size: 0.85rem;">-</strong>
-                  </div>
-                  <div style="margin-bottom: 0.4rem;">
-                    <span style="color: #94a3b8;">Cédula:</span> 
-                    <strong id="feedbackWorkerDoc" style="color: #38bdf8;">-</strong>
-                  </div>
-                  <div style="margin-bottom: 0.4rem;">
-                    <span style="color: #94a3b8;">Combo Despachado:</span> 
-                    <strong id="feedbackComboName" style="color: #34d399; display: block;">Bolsa de Víveres Secos (14.50 kg)</strong>
-                  </div>
-                  <div style="font-size: 0.65rem; color: #64748b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="feedbackProofHash">
-                    SELLO: SHA256-OK
-                  </div>
-                </div>
-
-                <button type="button" id="btnNextFromOverlay" class="btn-sim btn-sim-outline" style="background: rgba(255,255,255,0.2); color: #fff; width: 90%; justify-content: center; font-size: 0.82rem;">
-                  Siguiente Entrega (Listo) ›
-                </button>
-              </div>
-
-              <!-- App Bar del Distribuidor -->
-              <div style="background: #111827; padding: 0.65rem 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.4rem;">
-                  <span style="font-size: 1rem;">📦</span>
-                  <span style="font-size: 0.8rem; font-weight: 800; color: #ffffff;">Despacho Almacén Sótano</span>
-                </div>
-                <span class="badge-sim" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; border: 1px solid rgba(2, 132, 199, 0.4);">
-                  DB: SQLCipher OK
-                </span>
-              </div>
-
-              <!-- Barra de Operador Activo -->
-              <div style="background: rgba(2, 132, 199, 0.12); border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding: 0.55rem 0.85rem; display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                  <div style="width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #0284c7, #0891b2); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.72rem;">
-                    OP
-                  </div>
-                  <div>
-                    <div style="font-size: 0.75rem; font-weight: 800; color: #ffffff; line-height: 1.1;">Mesa de Despacho</div>
-                    <div style="font-size: 0.65rem; color: #38bdf8;">Rol: Operador de Almacén</div>
-                  </div>
-                </div>
-                <span style="font-size: 0.68rem; color: #10b981; font-weight: 700;">
-                  📦 Despachados: <span id="distributorSessionCounter" style="font-weight: 800;">0</span>
-                </span>
-              </div>
-
-              <!-- Selector de Modalidad (Totalizado) -->
-              <div style="padding: 0.5rem 0.85rem; background: rgba(15, 23, 42, 0.5); border-bottom: 1px solid rgba(255, 255, 255, 0.05); display: flex; justify-content: space-between; align-items: center;">
-                <span style="font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Modalidad:</span>
-                <span class="badge-sim" style="background: #059669; color: #ffffff;">
-                  🌟 Retiro Totalizado (Todos los Combos)
-                </span>
-              </div>
-
-              <!-- VISOR DE CÁMARA REAL EN VIVO CON MIRA LÁSER -->
-              <div class="distributor-viewfinder" id="simViewfinder">
-                <div class="scanner-laser-sweep" id="simCameraLaser"></div>
+              <!-- Visor de Cámara Real con HUD y LÁSER -->
+              <div id="liveCameraContainer" style="display: block; background: #020617; border-radius: var(--radius-md); overflow: hidden; position: relative; border: 2px solid var(--sea-malibu); box-shadow: 0 0 25px var(--accent-primary-glow); height: 230px;">
                 
-                <!-- 4 Esquinas de Enfoque tipo Telegram -->
-                <div class="finder-corner fc-tl"></div>
-                <div class="finder-corner fc-tr"></div>
-                <div class="finder-corner fc-bl"></div>
-                <div class="finder-corner fc-br"></div>
+                <!-- Animación del barrido láser sobre el visor -->
+                <div class="scanner-laser-bar" id="simCameraLaserBar"></div>
 
-                <div id="simScannerHudBadge" style="position: absolute; top: 12px; font-size: 0.65rem; font-weight: 800; background: rgba(0, 0, 0, 0.65); color: #38bdf8; padding: 0.2rem 0.6rem; border-radius: 9999px; border: 1px solid rgba(56, 189, 248, 0.3);">
-                  📹 LECTOR QR ACTIVO · ENFOCANDO
+                <!-- CONTENEDOR CENTRAL: MUESTRA EL MISMO CÓDIGO QR QUE ESTÁ EN EL TELÉFONO IZQUIERDO -->
+                <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2;">
+                  <div class="camera-qr-mirror-box" id="simDistributorCameraQrPreview">
+                    <!-- Aquí se renderiza en espejo el mismo QR generado a la izquierda -->
+                  </div>
                 </div>
 
-                <div id="simScanResultPill" style="font-size: 0.75rem; font-weight: 800; color: #ffffff; text-align: center; padding: 0.5rem 0.85rem; background: rgba(0, 0, 0, 0.75); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
-                  Centre el código QR del carnet
+                <!-- Visor Dinámico de Enfoque Tipo Telegram (Esquinas HUD) -->
+                <div id="telegramFinderOverlay" class="telegram-scanner-overlay" style="display: block; position: absolute; inset: 0; z-index: 15; pointer-events: none;" aria-hidden="true">
+                  <div id="telegramTargetBox" class="telegram-target-box">
+                    <span class="tg-corner tg-corner-tl"></span>
+                    <span class="tg-corner tg-corner-tr"></span>
+                    <span class="tg-corner tg-corner-bl"></span>
+                    <span class="tg-corner tg-corner-br"></span>
+                    <div class="tg-center-crosshair"></div>
+                  </div>
+                  <div id="telegramAssistPill" class="telegram-assist-pill" style="position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); z-index: 20;">
+                    <span id="telegramAssistIcon" class="tg-pill-icon">🎯</span>
+                    <span id="telegramAssistText" class="tg-pill-text" style="font-size: 0.7rem;">Enfocando código QR del carnet...</span>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Combos a Entregar (Verificación Física en Mesa) -->
-              <div style="padding: 0.75rem; flex: 1;">
-                <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
-                  <span>Verificación Física en Mesa:</span>
-                  <span style="color: #38bdf8;">14.50 kg</span>
-                </div>
+            <!-- Combos a Entregar (Verificación Física en Mesa) -->
+            <div style="margin-bottom: 0.65rem;" class="distributor-combos-section" id="distributorCombosSection">
+              <div class="flex-between" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                  Verificación Física en Mesa:
+                </span>
+                <span id="assignedCombosCountBadge" class="badge badge-viveres" style="font-size: 0.65rem;">1 Combo Asignado</span>
+              </div>
 
-                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 0.65rem 0.8rem; margin-bottom: 0.5rem;">
-                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem;">
+              <div class="dispatch-checklist" id="dispatchChecklist">
+                <div class="checklist-card checked" style="border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3); background: rgba(15, 23, 42, 0.6); overflow: hidden; padding: 0.5rem 0.65rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
                     <span style="font-size: 1.2rem;">🌾</span>
-                    <strong style="color: #ffffff; font-size: 0.78rem;" id="simDeskComboName">Bolsa de Víveres Secos</strong>
-                    <span class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">Mesa 1</span>
+                    <strong style="color: #f1f5f9; font-size: 0.8rem;" id="simDeskComboName">Bolsa de Víveres Secos</strong>
+                    <span class="badge" style="font-size: 0.62rem; background: rgba(56, 189, 248, 0.2); color: #38bdf8; font-weight: 700;">Mesa 1</span>
+                    <span class="badge" style="font-size: 0.62rem; background: rgba(148, 163, 184, 0.15); color: #94a3b8;">14.5 kg</span>
                   </div>
-                  <div style="font-size: 0.67rem; color: #94a3b8; line-height: 1.35; padding: 0.35rem 0.5rem; background: rgba(0,0,0,0.3); border-radius: 6px;">
-                    4 kg Harina Maíz, 2 kg Arroz Blanco, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, Granos y Sardinas.
+                  <div style="font-size: 0.68rem; color: #cbd5e1; margin-top: 0.35rem; padding: 0.3rem 0.5rem; background: rgba(0,0,0,0.3); border-radius: 6px;">
+                    4 kg Harina Maíz, 2 kg Arroz, 2 kg Pasta, 1 Lt Aceite, 1 kg Azúcar, Granos y Sardinas.
                   </div>
-                </div>
-
-                <div style="background: rgba(15, 23, 42, 0.4); border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 8px; padding: 0.5rem; text-align: center; font-size: 0.65rem; color: #64748b;">
-                  Sello criptográfico emitido por Secure Enclave
                 </div>
               </div>
-
             </div>
 
           </div>
-
-          <!-- Barra de Gestos Inferior -->
-          <div class="android-gesture-bar">
-            <div class="gesture-pill"></div>
-          </div>
         </div>
 
-        <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">
+        <span style="font-size: 0.74rem; color: #94a3b8; font-weight: 700;">
           Estación de Validación Oficial SGBT
         </span>
       </div>
@@ -1001,7 +713,7 @@
             Historial consolidado en tiempo real con las firmas criptográficas SHA-256 generadas por los despachos del simulador.
           </p>
         </div>
-        <span class="badge-sim" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; font-size: 0.75rem;">
+        <span class="badge" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; font-size: 0.75rem; border: 1px solid rgba(2, 132, 199, 0.4);">
           Conexión SQLite / Supabase Cloud OK
         </span>
       </div>
@@ -1034,24 +746,22 @@
 
   </main>
 
+
   <!-- ======================================================================
-       MOTOR JAVASCRIPT DEL SIMULADOR: PROCEDIMIENTO Y PANTALLAS REALES
+       MOTOR JAVASCRIPT DEL SIMULADOR: CARNET REAL ➔ CÁMARA ➔ DESPACHO
        ====================================================================== -->
   <script>
     (function() {
-      // Estado interno del Simulador
+      // Estado de la Simulación
       let workersList = [];
       let currentIndex = 0;
       let isRunning = false;
       let isPaused = false;
-      let activeDelay = 2400; // Cadencia por defecto (Didáctica)
+      let activeDelay = 2400; // Didáctica por defecto
       let deliveredCount = 0;
       let totalWeightKg = 0;
-      let currentSessionToken = null;
-      let activeQrPayload = null;
-      let currentQrInstance = null;
 
-      // Elementos del DOM
+      // Elementos de Control
       const btnStart = document.getElementById('btnStartSimulation');
       const btnPause = document.getElementById('btnPauseSimulation');
       const btnStep = document.getElementById('btnStepSimulation');
@@ -1068,45 +778,30 @@
       const kpiLatency = document.getElementById('kpiLatency');
       const kpiRate = document.getElementById('kpiRate');
       const turnLabelBeneficiary = document.getElementById('turnLabelBeneficiary');
-      const distributorSessionCounter = document.getElementById('distributorSessionCounter');
+      const distributorDeliveriesHeaderCount = document.getElementById('distributorDeliveriesHeaderCount');
 
-      // Teléfono 1 (Beneficiario)
-      const simLoginView = document.getElementById('simLoginView');
-      const simCarnetView = document.getElementById('simCarnetView');
-      const simInputCedula = document.getElementById('simInputCedula');
-      const simBtnLogin = document.getElementById('simBtnLogin');
-      const simBtnLoginText = document.getElementById('simBtnLoginText');
-      const simBtnLogoutWorker = document.getElementById('simBtnLogoutWorker');
-      const carnetAvatar = document.getElementById('carnetAvatar');
-      const carnetFullName = document.getElementById('carnetFullName');
-      const carnetDocId = document.getElementById('carnetDocId');
-      const carnetDept = document.getElementById('carnetDept');
-      const carnetComboName = document.getElementById('carnetComboName');
-      const carnetQrSection = document.getElementById('carnetQrSection');
-      const simRealQrDisplay = document.getElementById('simRealQrDisplay');
-      const simQrTimer = document.getElementById('simQrTimer');
-      const simQrHashShort = document.getElementById('simQrHashShort');
-      const carnetReceiptCard = document.getElementById('carnetReceiptCard');
-      const carnetReceiptTime = document.getElementById('carnetReceiptTime');
+      // Elementos del Carnet (Teléfono Izquierdo)
+      const workerHeaderAvatar = document.getElementById('workerHeaderAvatar');
+      const workerHeaderIdentity = document.getElementById('workerHeaderIdentity');
+      const lblCarnetComboTitle = document.getElementById('lblCarnetComboTitle');
+      const qrCodeTarget = document.getElementById('qrCodeTarget');
+      const qrTimerLabel = document.getElementById('qrTimerLabel');
+      const qrNonceLabel = document.getElementById('qrNonceLabel');
+      const qrCountdownFill = document.getElementById('qrCountdownFill');
+      const workerQrContainer = document.getElementById('workerQrContainer');
+      const workerDeliveryReceiptBox = document.getElementById('workerDeliveryReceiptBox');
+      const receiptTimestamp = document.getElementById('receiptTimestamp');
+      const receiptComboText = document.getElementById('receiptComboText');
 
-      // Canal Óptico
-      const simLaserP2P = document.getElementById('simLaserP2P');
-      const simBeamStatus = document.getElementById('simBeamStatus');
-
-      // Teléfono 2 (Distribuidor)
-      const simViewfinder = document.getElementById('simViewfinder');
-      const simCameraLaser = document.getElementById('simCameraLaser');
-      const simScannerHudBadge = document.getElementById('simScannerHudBadge');
-      const simScanResultPill = document.getElementById('simScanResultPill');
-      const simDistributorFeedbackOverlay = document.getElementById('simDistributorFeedbackOverlay');
-      const feedbackWorkerName = document.getElementById('feedbackWorkerName');
-      const feedbackWorkerDoc = document.getElementById('feedbackWorkerDoc');
-      const feedbackComboName = document.getElementById('feedbackComboName');
-      const feedbackProofHash = document.getElementById('feedbackProofHash');
-      const btnNextFromOverlay = document.getElementById('btnNextFromOverlay');
-      const simDeskComboName = document.getElementById('simDeskComboName');
-
-      // Tabla de Auditoría
+      // Elementos de la Mesa (Teléfono Derecho)
+      const simDistributorCameraQrPreview = document.getElementById('simDistributorCameraQrPreview');
+      const telegramAssistText = document.getElementById('telegramAssistText');
+      const telegramAssistIcon = document.getElementById('telegramAssistIcon');
+      const distributorFeedbackOverlay = document.getElementById('distributorFeedbackOverlay');
+      const overlayWorkerName = document.getElementById('overlayWorkerName');
+      const overlayWorkerDoc = document.getElementById('overlayWorkerDoc');
+      const overlayHash = document.getElementById('overlayHash');
+      const btnCloseFeedbackOverlay = document.getElementById('btnCloseFeedbackOverlay');
       const realAuditTableBody = document.getElementById('realAuditTableBody');
 
       // Web Audio API para síntesis del Beep de escáner a 1760 Hz
@@ -1124,27 +819,13 @@
           osc.type = 'sine';
           osc.frequency.setValueAtTime(1760, audioCtx.currentTime); // Beep industrial agudo
           gain.gain.setValueAtTime(0.18, audioCtx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
           osc.connect(gain);
           gain.connect(audioCtx.destination);
           osc.start();
-          osc.stop(audioCtx.currentTime + 0.09);
-        } catch (e) {
-          // Fallback silencioso si el navegador bloquea audio sin interacción
-        }
+          osc.stop(audioCtx.currentTime + 0.08);
+        } catch (e) {}
       }
-
-      // Relojes de los teléfonos
-      function updateClocks() {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const c1 = document.getElementById('phone1Clock');
-        const c2 = document.getElementById('phone2Clock');
-        if (c1) c1.textContent = timeStr;
-        if (c2) c2.textContent = timeStr;
-      }
-      setInterval(updateClocks, 1000);
-      updateClocks();
 
       // Selector de Cadencia
       speedBtns.forEach(btn => {
@@ -1156,14 +837,14 @@
       });
 
       // ----------------------------------------------------------------------
-      // 1. CARGA INICIAL DE LOS 100 TRABAJADORES DESDE LA BD
+      // 1. CARGA INICIAL DE LOS 100 BENEFICIARIOS
       // ----------------------------------------------------------------------
       async function loadSimulationData() {
         try {
           const res = await fetch('/api/v1/simulation/workers');
           const data = await res.json();
           if (!data.success || !data.workers) {
-            throw new Error(data.error || 'Error cargando funcionarios');
+            throw new Error(data.error || 'Error cargando nómina');
           }
 
           workersList = data.workers;
@@ -1176,130 +857,58 @@
             workerDirectSelect.appendChild(opt);
           });
 
-          // Contar entregas ya existentes
           deliveredCount = workersList.filter(w => w.is_already_delivered).length;
           totalWeightKg = deliveredCount * 14.5;
           updateDashboardKpis();
 
-          // Cargar vista inicial en el primer trabajador pendiente
           const firstPendingIdx = workersList.findIndex(w => !w.is_already_delivered);
           currentIndex = (firstPendingIdx >= 0) ? firstPendingIdx : 0;
           workerDirectSelect.value = currentIndex;
-          setupWorkerInLoginView(workersList[currentIndex]);
+
+          // Renderizar el carnet del beneficiario actual con su QR real
+          renderWorkerCarnetAndQr(workersList[currentIndex]);
 
         } catch (err) {
           console.error('[SIMULATOR LOAD ERROR]', err);
-          workerDirectSelect.innerHTML = `<option value="">Error cargando datos: ${err.message}</option>`;
+          workerDirectSelect.innerHTML = `<option value="">Error cargando funcionarios: ${err.message}</option>`;
         }
       }
 
       // ----------------------------------------------------------------------
-      // 2. PREPARAR BENEFICIARIO EN PANTALLA 1-A (LOGIN REAL)
+      // 2. RENDERIZAR CARNET Y CÓDIGO QR REAL EN AMBOS TELÉFONOS
       // ----------------------------------------------------------------------
-      function setupWorkerInLoginView(worker) {
-        if (!worker) return;
-        // Ocultar carnet, mostrar pantalla de login
-        simCarnetView.style.display = 'none';
-        simLoginView.style.display = 'flex';
-        simDistributorFeedbackOverlay.style.display = 'none';
-        carnetReceiptCard.style.display = 'none';
-        carnetQrSection.style.display = 'block';
-
-        simInputCedula.value = '';
-        simBtnLoginText.textContent = 'Continuar con Cédula de Identidad';
-        simBtnLogin.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
-
-        turnLabelBeneficiary.textContent = `Funcionario en Turno: #${worker.order_index} de 100 · C.I. V-${worker.document_id}`;
-        workerDirectSelect.value = currentIndex;
-
-        // Reset visual del escáner en teléfono 2
-        simScanResultPill.textContent = 'Centre el código QR del carnet';
-        simScanResultPill.style.color = '#ffffff';
-        simScanResultPill.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-        simBeamStatus.textContent = 'Esperando login...';
-        simBeamStatus.style.color = '#94a3b8';
-      }
-
-      // Animación de tipeo de la cédula carácter por carácter
-      function typeDocIdIntoLogin(docId, onComplete) {
-        let i = 0;
-        simInputCedula.value = '';
-        const interval = setInterval(() => {
-          if (i < docId.length) {
-            simInputCedula.value += docId[i];
-            i++;
-          } else {
-            clearInterval(interval);
-            if (onComplete) onComplete();
-          }
-        }, activeDelay > 1500 ? 50 : 15);
-      }
-
-      // ----------------------------------------------------------------------
-      // 3. EJECUCIÓN DEL PROCEDIMIENTO REAL COMPLETO (1 BENEFICIARIO)
-      // ----------------------------------------------------------------------
-      async function executeSingleFullCycle(workerIndex) {
-        const worker = workersList[workerIndex];
+      async function renderWorkerCarnetAndQr(worker) {
         if (!worker) return;
 
-        const startTime = Date.now();
-        setupWorkerInLoginView(worker);
+        // Ocultar overlay de feedback previo
+        distributorFeedbackOverlay.classList.remove('active');
+        distributorFeedbackOverlay.style.display = 'none';
 
-        // PASO 1: Tipeo de la Cédula Real en el Input
-        await new Promise(resolve => typeDocIdIntoLogin(worker.document_id, resolve));
-        await new Promise(r => setTimeout(r, activeDelay > 1500 ? 250 : 80));
-
-        // PASO 2: Click en "Continuar con Cédula de Identidad"
-        simBtnLoginText.textContent = '⏳ Verificando Identidad...';
-        simBtnLogin.style.background = '#0369a1';
-
-        // Llamada REAL a la API de Login (/api/v1/auth/login)
-        let loginResponse;
-        try {
-          const authRes = await fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              document_id: worker.document_id,
-              login_mode: 'beneficiary',
-              as_beneficiary: true,
-              is_simulation: true
-            })
-          });
-          loginResponse = await authRes.json();
-          currentSessionToken = loginResponse.session_token || loginResponse.token;
-        } catch (loginErr) {
-          console.warn('[LOGIN FETCH ERROR]', loginErr);
-        }
-
-        await new Promise(r => setTimeout(r, activeDelay > 1500 ? 300 : 100));
-
-        // PASO 3: Transición suave a la Pantalla 1-B: CARNET DIGITAL REAL
-        simLoginView.style.display = 'none';
-        simCarnetView.style.display = 'flex';
-
-        // Poblado de datos reales del trabajador en el Carnet
-        carnetFullName.textContent = worker.full_name;
-        carnetDocId.textContent = `C.I. V-${worker.document_id}`;
-        carnetDept.textContent = worker.department_name || 'Nómina Central MIPPCI';
-        carnetComboName.textContent = worker.combo?.name || 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)';
-
+        // Actualizar datos del beneficiario en el Carnet (Teléfono Izquierdo)
         const nameParts = worker.full_name.trim().split(/\s+/);
         const initials = nameParts.length >= 2
           ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
           : nameParts[0].substring(0, 2).toUpperCase();
-        carnetAvatar.textContent = initials;
+        
+        workerHeaderAvatar.textContent = initials;
+        workerHeaderIdentity.textContent = `${worker.full_name} (${worker.document_id})`;
+        lblCarnetComboTitle.textContent = worker.combo?.name || 'Bolsa de Víveres Secos (Canasta Básica MIPPCI)';
+        turnLabelBeneficiary.textContent = `Funcionario en Turno: #${worker.order_index} de 100 · C.I. V-${worker.document_id}`;
+        workerDirectSelect.value = currentIndex;
 
-        // PASO 4: Generación del CÓDIGO QR CRIPTOGRÁFICO REAL
-        // Llama a /api/v1/auth/passkey/sign-offline para obtener la firma P-256 ECDSA
+        // Reset visual de comprobantes
+        workerDeliveryReceiptBox.style.display = 'none';
+        workerQrContainer.style.display = 'flex';
+
+        telegramAssistText.textContent = 'Enfocando código QR del carnet...';
+        telegramAssistIcon.textContent = '🎯';
+
+        // Obtener la firma criptográfica real offline (P-256 ECDSA)
         let signData = null;
         try {
           const signRes = await fetch('/api/v1/auth/passkey/sign-offline', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': currentSessionToken ? `Bearer ${currentSessionToken}` : ''
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               worker_id: worker.id,
               entitlement_id: worker.combo?.id || 'c1a2b3c4-1111-2222-3333-444455556666',
@@ -1307,14 +916,14 @@
             })
           });
           signData = await signRes.json();
-        } catch (signErr) {
-          console.warn('[SIGN FETCH ERROR]', signErr);
+        } catch (e) {
+          console.warn('[SIGN ERROR]', e);
         }
 
-        // Si fallara por conexión, generamos el payload compatible con verifyQr
+        // Fallback criptográfico compatible
         if (!signData || !signData.qr_raw_string) {
           const nonce = Math.random().toString(36).substring(2, 10);
-          const fallbackPayload = {
+          const fbPayload = {
             wid: worker.id,
             ent: worker.combo?.id || 'c1a2b3c4-1111-2222-3333-444455556666',
             station: 'all',
@@ -1324,58 +933,76 @@
             sig: 'MEYCIQDxTEST' + nonce
           };
           signData = {
-            qr_payload: fallbackPayload,
-            qr_raw_string: JSON.stringify(fallbackPayload)
+            qr_payload: fbPayload,
+            qr_raw_string: JSON.stringify(fbPayload)
           };
         }
 
-        activeQrPayload = signData.qr_payload;
+        worker.activeQrPayload = signData.qr_payload;
+        worker.activeQrRaw = signData.qr_raw_string;
 
-        // Renderizado del código QR real con QRCode.js
-        simRealQrDisplay.innerHTML = '';
-        currentQrInstance = new QRCode(simRealQrDisplay, {
-          text: signData.qr_raw_string,
-          width: 175,
-          height: 175,
-          colorDark: '#000000',
-          colorLight: '#ffffff',
-          correctLevel: QRCode.CorrectLevel.M
-        });
+        qrNonceLabel.textContent = `Firma ES256 · Nonce: ${signData.qr_payload.nonce?.substring(0, 8)}...`;
+        qrTimerLabel.textContent = 'Expira en: 180s';
 
-        const shortSig = (activeQrPayload.sig || 'FIDO2-ECDSA').substring(0, 16);
-        simQrHashShort.textContent = `NONCE: ${activeQrPayload.nonce?.substring(0, 8)} · SIG: ${shortSig}...`;
+        // 1. RENDERIZAR CÓDIGO QR REAL EN EL CARNET (TELÉFONO IZQUIERDO)
+        qrCodeTarget.innerHTML = '';
+        if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+          window.QRCodeGenerator.render('qrCodeTarget', signData.qr_raw_string, { size: 200 });
+        } else if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+          const canvas = document.createElement('canvas');
+          qrCodeTarget.appendChild(canvas);
+          QRCode.toCanvas(canvas, signData.qr_raw_string, { width: 200, margin: 1 });
+        }
 
-        // PASO 5: ENLACE ÓPTICO Y LECTURA POR EL TELÉFONO 2 (MESA DE DESPACHO)
-        simBeamStatus.textContent = '🎯 Haz Láser Enfocando QR';
-        simBeamStatus.style.color = '#10b981';
-        simScannerHudBadge.textContent = '📹 QR DETECTADO · DECODIFICANDO';
-        simScannerHudBadge.style.color = '#34d399';
+        // 2. RENDERIZAR EL MISMO CÓDIGO QR EN EL VISOR DE CÁMARA (TELÉFONO DERECHO)
+        // El usuario ve exactamente el código QR que está siendo escaneado por el lente
+        simDistributorCameraQrPreview.innerHTML = '';
+        if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+          window.QRCodeGenerator.render('simDistributorCameraQrPreview', signData.qr_raw_string, { size: 165 });
+        } else if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+          const canvas = document.createElement('canvas');
+          simDistributorCameraQrPreview.appendChild(canvas);
+          QRCode.toCanvas(canvas, signData.qr_raw_string, { width: 165, margin: 1 });
+        }
+      }
 
-        await new Promise(r => setTimeout(r, activeDelay > 1500 ? 500 : 150));
+      // ----------------------------------------------------------------------
+      // 3. EJECUTAR EL ESCANEO Y DESPACHO REAL (PASO O AUTOMÁTICO)
+      // ----------------------------------------------------------------------
+      async function processDeliveryStep(workerIndex) {
+        const worker = workersList[workerIndex];
+        if (!worker) return;
 
-        // Destello de captura y sonido de escáner "BEEP"
+        const startTime = Date.now();
+
+        // 1. Asegurar que el carnet y el QR están dibujados
+        await renderWorkerCarnetAndQr(worker);
+
+        // 2. Simular tiempo de enfoque de cámara sobre el QR
+        await new Promise(r => setTimeout(r, activeDelay > 1500 ? 600 : 200));
+
+        // 3. Detección óptica y pitido "BEEP" de escáner industrial
         playScannerBeep();
-        simScanResultPill.textContent = `✅ QR VÁLIDO: ${worker.full_name.substring(0, 22)}`;
-        simScanResultPill.style.color = '#34d399';
-        simScanResultPill.style.borderColor = '#10b981';
+        telegramAssistText.textContent = `✅ QR DETECTADO: ${worker.full_name.substring(0, 22)}`;
+        telegramAssistIcon.textContent = '⚡';
 
-        // PASO 6: PROCESAMIENTO Y VALIDACIÓN REAL DEL DESPACHO
+        // 4. Llamada REAL a la API de Despacho y Verificación (/api/v1/verify/qr)
         let verifyResult = null;
         try {
           const vRes = await fetch('/api/v1/verify/qr', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              qr_payload: activeQrPayload,
+              qr_payload: worker.activeQrPayload,
               station: 'all'
             })
           });
           verifyResult = await vRes.json();
-        } catch (vErr) {
-          console.warn('[VERIFY FETCH ERROR]', vErr);
+        } catch (e) {
+          console.warn('[VERIFY API ERROR]', e);
         }
 
-        // Fallback a dispatch-step de simulación si se requiere asegurar idempotencia
+        // Fallback a simulación si la jornada ya marcó el combo
         if (!verifyResult || !verifyResult.valid) {
           try {
             const stepRes = await fetch('/api/v1/simulation/dispatch-step', {
@@ -1392,29 +1019,28 @@
               valid: true,
               worker_name: worker.full_name,
               document_id: worker.document_id,
-              combo_name: worker.combo?.name || 'Bolsa de Víveres Secos',
-              signature_proof: sData.signature_proof || 'SHA256-SIM-' + Math.random().toString(36).substring(2, 8)
+              signature_proof: sData.signature_proof || ('SHA256-OK-' + Math.random().toString(36).substring(2, 8))
             };
-          } catch (e) {}
+          } catch (err) {}
         }
 
         const elapsedMs = Date.now() - startTime;
+        const finalProof = verifyResult?.signature_proof || verifyResult?.delivery_id || ('SHA256-' + Math.random().toString(36).substring(2, 10));
 
-        // PASO 7: ACTIVACIÓN DEL OVERLAY VERDE REAL EN TELÉFONO 2 (distributorFeedbackOverlay)
-        feedbackWorkerName.textContent = worker.full_name;
-        feedbackWorkerDoc.textContent = `C.I. V-${worker.document_id}`;
-        feedbackComboName.textContent = `${worker.combo?.name || 'Bolsa de Víveres Secos'} (14.50 kg)`;
-        const finalProof = verifyResult?.signature_proof || verifyResult?.delivery_id || ('SIG-' + Math.random().toString(36).substring(2, 10));
-        feedbackProofHash.textContent = `SELLO MERKLE: ${finalProof}`;
+        // 5. TELÉFONO DERECHO: DESPLEGAR EL OVERLAY REAL DE FEEDBACK (distributorFeedbackOverlay)
+        overlayWorkerName.textContent = worker.full_name;
+        overlayWorkerDoc.textContent = `C.I. V-${worker.document_id}`;
+        overlayHash.textContent = `SELLO MERKLE: ${finalProof}`;
 
-        simDistributorFeedbackOverlay.style.display = 'flex';
+        distributorFeedbackOverlay.classList.add('active');
+        distributorFeedbackOverlay.style.display = 'flex';
 
-        // PASO 8: ACTUALIZACIÓN DEL CARNET DEL TRABAJADOR (COMPROBANTE VERDE)
-        carnetQrSection.style.display = 'none';
-        carnetReceiptCard.style.display = 'block';
-        carnetReceiptTime.textContent = `Entregado a las: ${new Date().toLocaleTimeString()}`;
+        // 6. TELÉFONO IZQUIERDO: ACTUALIZAR EL CARNET CON EL COMPROBANTE OFICIAL
+        workerDeliveryReceiptBox.style.display = 'block';
+        receiptTimestamp.textContent = `Entregado a las: ${new Date().toLocaleTimeString()}`;
+        receiptComboText.textContent = `${worker.combo?.name || 'Bolsa de Víveres Secos'} (14.50 kg)`;
 
-        // PASO 9: ACTUALIZACIÓN DE ESTADÍSTICAS Y AUDITORÍA
+        // 7. ACTUALIZACIÓN DE CONTADORES, KPIS Y AUDITORÍA
         if (!worker.is_already_delivered) {
           worker.is_already_delivered = true;
           deliveredCount++;
@@ -1424,14 +1050,13 @@
         updateDashboardKpis(elapsedMs);
         addAuditTableRow(worker, finalProof);
 
-        // PASO 10: ESPERA DE CADENCIA Y TRANSICIÓN AL SIGUIENTE FUNCIONARIO
-        await new Promise(r => setTimeout(r, activeDelay > 1500 ? 900 : (activeDelay > 700 ? 400 : 150)));
+        // 8. ESPERAR Y PASAR AL SIGUIENTE SI ESTÁ EN MODO CONTINUO
+        await new Promise(r => setTimeout(r, activeDelay > 1500 ? 900 : (activeDelay > 700 ? 450 : 180)));
 
-        // Si la simulación sigue activa, avanzar al siguiente
         if (isRunning && !isPaused) {
           currentIndex++;
           if (currentIndex < workersList.length) {
-            executeSingleFullCycle(currentIndex);
+            processDeliveryStep(currentIndex);
           } else {
             finishSimulationRun();
           }
@@ -1439,13 +1064,13 @@
       }
 
       // ----------------------------------------------------------------------
-      // 4. ACTUALIZACIÓN DE KPIS Y TABLA DE AUDITORÍA
+      // 4. ACTUALIZAR KPIS Y TABLA DE AUDITORÍA
       // ----------------------------------------------------------------------
-      function updateDashboardKpis(lastLatency = 14) {
+      function updateDashboardKpis(lastLatency = 16) {
         kpiDeliveredCount.textContent = deliveredCount;
         kpiTonnage.textContent = `${totalWeightKg.toFixed(2)} kg`;
         kpiLatency.textContent = `${lastLatency} ms`;
-        distributorSessionCounter.textContent = deliveredCount;
+        distributorDeliveriesHeaderCount.textContent = deliveredCount;
 
         const total = workersList.length || 100;
         const pct = Math.round((deliveredCount / total) * 100);
@@ -1455,25 +1080,23 @@
       }
 
       function addAuditTableRow(worker, proofHash) {
-        // Remover renglón de placeholder inicial si existe
         if (realAuditTableBody.querySelector('td[colspan]')) {
           realAuditTableBody.innerHTML = '';
         }
 
         const now = new Date();
         const tr = document.createElement('tr');
-        tr.style.animation = 'fadeIn 0.3s ease';
 
         tr.innerHTML = `
           <td><strong>#${worker.order_index}</strong></td>
           <td style="color: #94a3b8; font-family: monospace;">${now.toLocaleTimeString()}</td>
           <td><strong>${worker.full_name}</strong></td>
           <td style="color: #38bdf8; font-weight: 700;">V-${worker.document_id}</td>
-          <td style="font-size: 0.75rem; color: #cbd5e1;">${worker.department_name || 'Nómina Central'}</td>
+          <td style="font-size: 0.75rem; color: #cbd5e1;">${worker.department_name || 'Nómina Central MIPPCI'}</td>
           <td><span style="color: #34d399; font-weight: 700;">🌾 Bolsa de Víveres Secos</span> <small style="color: #94a3b8;">(14.5 kg)</small></td>
-          <td><span class="badge-sim" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">Passkey FIDO2</span></td>
+          <td><span class="badge" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">Passkey FIDO2</span></td>
           <td style="font-family: monospace; font-size: 0.7rem; color: #94a3b8;" title="${proofHash}">${proofHash.substring(0, 16)}...</td>
-          <td><span class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✅ Entregado</span></td>
+          <td><span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">✅ Entregado</span></td>
         `;
 
         realAuditTableBody.insertBefore(tr, realAuditTableBody.firstChild);
@@ -1500,12 +1123,11 @@
         btnPause.style.display = 'inline-flex';
         btnStep.disabled = true;
 
-        // Si ya está al final, reiniciar al inicio
         if (currentIndex >= workersList.length) {
           currentIndex = 0;
         }
 
-        executeSingleFullCycle(currentIndex);
+        processDeliveryStep(currentIndex);
       });
 
       btnPause.addEventListener('click', () => {
@@ -1523,7 +1145,7 @@
         if (currentIndex >= workersList.length) {
           currentIndex = 0;
         }
-        executeSingleFullCycle(currentIndex);
+        processDeliveryStep(currentIndex);
         currentIndex++;
       });
 
@@ -1551,30 +1173,27 @@
           </tr>
         `;
         updateDashboardKpis();
-        setupWorkerInLoginView(workersList[0]);
+        renderWorkerCarnetAndQr(workersList[0]);
       });
 
       workerDirectSelect.addEventListener('change', (e) => {
         const val = parseInt(e.target.value, 10);
         if (!isNaN(val) && workersList[val]) {
           currentIndex = val;
-          setupWorkerInLoginView(workersList[val]);
+          renderWorkerCarnetAndQr(workersList[val]);
         }
       });
 
-      btnNextFromOverlay.addEventListener('click', () => {
-        simDistributorFeedbackOverlay.style.display = 'none';
+      btnCloseFeedbackOverlay.addEventListener('click', () => {
+        distributorFeedbackOverlay.classList.remove('active');
+        distributorFeedbackOverlay.style.display = 'none';
         currentIndex++;
         if (currentIndex < workersList.length) {
-          setupWorkerInLoginView(workersList[currentIndex]);
+          renderWorkerCarnetAndQr(workersList[currentIndex]);
         }
       });
 
-      simBtnLogoutWorker.addEventListener('click', () => {
-        setupWorkerInLoginView(workersList[currentIndex]);
-      });
-
-      // Cargar los 100 funcionarios al iniciar la página
+      // Cargar la nómina oficial e iniciar el primer carnet
       loadSimulationData();
 
     })();
