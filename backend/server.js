@@ -98,6 +98,11 @@ app.get(/^\/entregas(\/.*)?$/, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/entregas/index.html'));
 });
 
+// Ruta para el Simulador Dual de Despacho (Beneficiario / Mesa de Despacho) (/simulador)
+app.get(/^\/simulador(\/.*)?$/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/simulador/index.html'));
+});
+
 // Servidor de estáticos (PWA, CSS, JS, Assets)
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));

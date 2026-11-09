@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Dual P2P (100 Entregas) | SGBT MIPPCI</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/styles.css?v=4.0">
+  <script src="/js/qrcode.js?v=3.2"></script>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --panel-dark: rgba(15, 23, 42, 0.85);
+      --border-dark: rgba(56, 189, 248, 0.2);
+      --accent-blue: #0284c7;
+      --accent-green: #10b981;
+      --accent-yellow: #f59e0b;
+      --accent-red: #ef4444;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% 20%, #0f172a 0%, #020617 100%);
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .sim-header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.85rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .tricolor-stripe {
+      height: 4px;
+      width: 100%;
+      background: linear-gradient(90deg, #ffcc00 33.3%, #00247d 33.3%, #00247d 66.6%, #cf142b 66.6%);
+    }
+
+    /* CONTENEDOR PRINCIPAL DUAL */
+    .sim-container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 1.5rem 1rem 3rem 1rem;
+    }
+
+    /* BARRA DE CONTROL Y KPI */
+    .control-dashboard {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-dark);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ESCENARIO DE LOS 2 TELÉFONOS */
+    .dual-phones-stage {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 2.5rem;
+      margin: 2rem 0;
+      position: relative;
+      flex-wrap: wrap;
+    }
+
+    /* MOCKUP TELÉFONO ANDROID */
+    .android-phone {
+      width: 320px;
+      height: 640px;
+      background: #0f172a;
+      border-radius: 38px;
+      border: 8px solid #334155;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .android-phone.rugged {
+      border: 10px solid #1e293b;
+      border-radius: 42px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 0 3px #475569;
+    }
+
+    /* Barra de estado superior */
+    .phone-status-bar {
+      height: 24px;
+      background: #000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 1rem;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #94a3b8;
+      z-index: 10;
+    }
+
+    .phone-camera-hole {
+      width: 10px;
+      height: 10px;
+      background: #000;
+      border-radius: 50%;
+      border: 1.5px solid #1e293b;
+      position: absolute;
+      top: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+    }
+
+    .phone-screen {
+      flex: 1;
+      background: #0b1120;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* CANAL INTERACTIVO CENTRAL */
+    .beam-channel {
+      width: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .laser-beam {
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #ef4444, #10b981);
+      box-shadow: 0 0 15px #ef4444, 0 0 25px #10b981;
+      position: relative;
+      border-radius: 9999px;
+      animation: pulseLaser 1s infinite alternate;
+    }
+
+    .laser-beam.nfc-mode {
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      box-shadow: 0 0 15px #38bdf8, 0 0 25px #818cf8;
+      height: 6px;
+    }
+
+    @keyframes pulseLaser {
+      0% { opacity: 0.6; transform: scaleY(0.8); }
+      100% { opacity: 1; transform: scaleY(1.4); }
+    }
+
+    /* LÁSER DE ESCÁNER EN PANTALLA RECEPTORA */
+    .scanner-viewfinder {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 1.5rem auto;
+      border: 2px dashed rgba(56, 189, 248, 0.4);
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(2, 6, 23, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .scan-line {
+      position: absolute;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #ef4444, #ef4444, transparent);
+      box-shadow: 0 0 8px #ef4444;
+      animation: scanSweep 2s ease-in-out infinite;
+    }
+
+    .scan-line.validated {
+      background: linear-gradient(90deg, transparent, #10b981, #10b981, transparent);
+      box-shadow: 0 0 12px #10b981;
+    }
+
+    @keyframes scanSweep {
+      0% { top: 0%; }
+      50% { top: 96%; }
+      100% { top: 0%; }
+    }
+
+    /* FEED DE AUDITORÍA */
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .audit-table th {
+      background: rgba(30, 41, 59, 0.8);
+      color: #94a3b8;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .audit-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #e2e8f0;
+    }
+
+    .audit-table tr.new-entry {
+      animation: rowFlash 1.2s ease-out;
+    }
+
+    @keyframes rowFlash {
+      0% { background: rgba(16, 185, 129, 0.35); }
+      100% { background: transparent; }
+    }
+
+    .badge-sim {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FRANJA TRICOLOR INSTITUCIONAL -->
+  <div class="tricolor-stripe"></div>
+
+  <!-- CABECERA -->
+  <header class="sim-header">
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span style="font-size: 1.6rem;">🇻🇪</span>
+      <div>
+        <h1 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #f8fafc; letter-spacing: -0.01em;">
+          Simulador Dual P2P: Beneficiario vs. Mesa de Despacho
+        </h1>
+        <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">
+          Plataforma de Despacho Automatizado SGBT · Ministerio del Poder Popular para la Comunicación y la Información
+        </p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 0.75rem;">
+      <a href="/coseg" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #f8fafc; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.2s ease;">
+        <span>⬅ Consola Administrativa (/coseg)</span>
+      </a>
+      <a href="/" style="background: rgba(2, 132, 199, 0.25); border: 1px solid rgba(2, 132, 199, 0.5); color: #38bdf8; padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 700;">
+        <span>🏠 Portal Principal</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENEDOR PRINCIPAL -->
+  <div class="sim-container">
+
+    <!-- PANEL DE CONTROL PRINCIPAL -->
+    <div class="control-dashboard">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+        <div>
+          <span style="font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: #38bdf8; letter-spacing: 0.05em;">Panel de Control de Simulación</span>
+          <h2 style="margin: 0.2rem 0 0 0; font-size: 1.4rem; font-weight: 800; color: #ffffff;">
+            Lote de Prueba: 100 Primeros Beneficiarios Institucionales
+          </h2>
+        </div>
+
+        <!-- CONTROLES DE REPRODUCCIÓN -->
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <button id="btnStartSim" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; padding: 0.65rem 1.25rem; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+            <span>▶ Iniciar Simulación (100)</span>
+          </button>
+          
+          <button id="btnPauseSim" disabled style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); color: #94a3b8; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: not-allowed; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <span>⏸ Pausar</span>
+          </button>
+
+          <button id="btnStepSim" style="background: rgba(2, 132, 199, 0.2); border: 1px solid rgba(2, 132, 199, 0.4); color: #38bdf8; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <span>⏭ Paso a Paso</span>
+          </button>
+
+          <button id="btnResetSim" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; padding: 0.65rem 1rem; border-radius: 10px; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+            <span>🔄 Reiniciar Lote</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- BARRA DE PROGRESO Y AJUSTES -->
+      <div style="background: rgba(2, 6, 23, 0.6); padding: 1rem 1.25rem; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.06);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span style="font-size: 0.85rem; font-weight: 800; color: #f8fafc;" id="progressLabelText">Progreso del Lote: 0 de 100</span>
+            <span id="speedIndicator" style="font-size: 0.7rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.15rem 0.5rem; border-radius: 9999px; font-weight: 700;">Velocidad: 1.5s</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <!-- Selector de Velocidad -->
+            <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: #94a3b8;">
+              <span>Cadencia:</span>
+              <button type="button" class="btn-speed active" data-speed="1600" style="background: rgba(2, 132, 199, 0.4); border: 1px solid #38bdf8; color: #fff; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">1.6s</button>
+              <button type="button" class="btn-speed" data-speed="700" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">0.7s</button>
+              <button type="button" class="btn-speed" data-speed="200" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #94a3b8; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.75rem; cursor: pointer;">Turbo</button>
+            </div>
+
+            <!-- Selector de Modo -->
+            <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; color: #94a3b8;">
+              <span>Modalidad:</span>
+              <select id="selectMode" style="background: #0f172a; border: 1px solid #334155; color: #fff; padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem;">
+                <option value="passkey_qr">📷 Escaneo QR Óptico</option>
+                <option value="passkey_nfc">📶 Proximidad NFC Tap-to-Claim</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="width: 100%; height: 10px; background: rgba(255, 255, 255, 0.1); border-radius: 9999px; overflow: hidden; position: relative;">
+          <div id="simProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #10b981); transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ESCENARIO DE LOS 2 TELÉFONOS ENFRENTADOS -->
+    <div class="dual-phones-stage">
+
+      <!-- ========================================== -->
+      <!-- TELÉFONO 1: BENEFICIARIO (ANDROID MÓVIL)   -->
+      <!-- ========================================== -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📱</span> <span>Dispositivo 1: Teléfono del Beneficiario</span>
+        </span>
+
+        <div class="android-phone" id="phoneBeneficiary">
+          <div class="phone-status-bar">
+            <span id="phone1Clock">12:00</span>
+            <div class="phone-camera-hole"></div>
+            <span>5G 📶 96% 🔋</span>
+          </div>
+
+          <div class="phone-screen">
+            <!-- Franja Tricolor Superior del Carnet -->
+            <div class="tricolor-stripe"></div>
+
+            <div style="padding: 1rem 0.85rem; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+              <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">
+                REPÚBLICA BOLIVARIANA DE VENEZUELA
+              </div>
+              <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 800;">
+                MIPPCI · BIENESTAR SOCIAL
+              </div>
+            </div>
+
+            <!-- Ficha del Funcionario en Turno -->
+            <div style="padding: 0.85rem; text-align: center;">
+              <div id="workerAvatarCircle" style="width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, #0284c7, #1e40af); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; font-weight: 800; margin: 0 auto 0.5rem auto; border: 2px solid rgba(56, 189, 248, 0.5); box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);">
+                AE
+              </div>
+
+              <h3 id="workerCardName" style="margin: 0; font-size: 0.95rem; font-weight: 800; color: #ffffff; line-height: 1.2;">
+                ANELSY JOSEFINA ESCOBAR
+              </h3>
+              
+              <div style="margin-top: 0.35rem; display: flex; justify-content: center; gap: 0.4rem; align-items: center;">
+                <span id="workerCardDoc" style="font-size: 0.82rem; font-weight: 800; color: #38bdf8;">C.I. 10009670</span>
+                <span id="workerCardType" class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">ACTIVO</span>
+              </div>
+
+              <div id="workerCardDept" style="font-size: 0.68rem; color: #94a3b8; margin-top: 0.25rem;">
+                OFICINA DE SEGURIDAD Y PROTECCION INTEGRAL
+              </div>
+            </div>
+
+            <!-- Contenedor QR Dinámico -->
+            <div style="background: #ffffff; width: 175px; height: 175px; margin: 0.25rem auto; border-radius: 14px; padding: 8px; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center;" id="qrCanvasBox">
+              <div id="simQrDisplay"></div>
+            </div>
+
+            <!-- Footer Criptográfico del Teléfono -->
+            <div style="margin-top: auto; padding: 0.75rem; background: rgba(15, 23, 42, 0.95); text-align: center; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+              <div style="font-size: 0.65rem; color: #34d399; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
+                <span>🔒 FIRMA PASSKEY FIDO2 ACTIVA</span>
+              </div>
+              <div id="simNonceLabel" style="font-size: 0.6rem; color: #64748b; margin-top: 0.15rem; font-family: monospace;">
+                NONCE: 4f8b2a1c · ES256
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <span style="font-size: 0.72rem; color: #94a3b8;" id="workerTurnLabel">Funcionario #1 en turno</span>
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- CANAL DE TRANSMISIÓN CENTRAL (LÁSER / NFC) -->
+      <!-- ========================================== -->
+      <div class="beam-channel">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #94a3b8; margin-bottom: 0.5rem; text-transform: uppercase;" id="channelModeLabel">
+          Láser Óptico
+        </div>
+        
+        <div class="laser-beam" id="simLaserBeam"></div>
+
+        <div style="margin-top: 0.5rem; text-align: center;">
+          <span style="font-size: 0.65rem; color: #64748b;">Distancia: ~15 cm</span>
+          <div id="txPulseText" style="font-size: 0.68rem; font-weight: 700; color: #10b981; margin-top: 0.2rem;">
+            Enfocando...
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ========================================== -->
+      <!-- TELÉFONO 2: MESA DE DESPACHO (ALMACÉN)     -->
+      <!-- ========================================== -->
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+        <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 800; color: #10b981; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📦</span> <span>Dispositivo 2: Mesa de Despacho (Operador)</span>
+        </span>
+
+        <div class="android-phone rugged" id="phoneDistributor">
+          <div class="phone-status-bar">
+            <span id="phone2Clock">12:00</span>
+            <div class="phone-camera-hole"></div>
+            <span>WiFi 📶 100% ⚡</span>
+          </div>
+
+          <div class="phone-screen">
+            <!-- Barra Superior del Operador -->
+            <div style="background: rgba(15, 23, 42, 0.95); padding: 0.75rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div style="font-size: 0.65rem; color: #10b981; font-weight: 800; text-transform: uppercase;">Mesa #1 · Almacén Central</div>
+                <div style="font-size: 0.75rem; color: #fff; font-weight: 700;">Operador: Despacho Activo</div>
+              </div>
+              <span class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
+                EN VIVO
+              </span>
+            </div>
+
+            <!-- Visor de Cámara y Retícula Láser -->
+            <div class="scanner-viewfinder" id="simViewfinder">
+              <div class="scan-line" id="simScanLine"></div>
+              
+              <!-- Retícula decorativa en esquinas -->
+              <div style="position: absolute; top: 12px; left: 12px; width: 22px; height: 22px; border-top: 3px solid #38bdf8; border-left: 3px solid #38bdf8;"></div>
+              <div style="position: absolute; top: 12px; right: 12px; width: 22px; height: 22px; border-top: 3px solid #38bdf8; border-right: 3px solid #38bdf8;"></div>
+              <div style="position: absolute; bottom: 12px; left: 12px; width: 22px; height: 22px; border-bottom: 3px solid #38bdf8; border-left: 3px solid #38bdf8;"></div>
+              <div style="position: absolute; bottom: 12px; right: 12px; width: 22px; height: 22px; border-bottom: 3px solid #38bdf8; border-right: 3px solid #38bdf8;"></div>
+
+              <div id="viewfinderStatus" style="font-size: 0.72rem; color: #38bdf8; font-weight: 700; text-align: center; padding: 0.5rem; background: rgba(0,0,0,0.6); border-radius: 8px;">
+                Buscando código QR...
+              </div>
+            </div>
+
+            <!-- Ficha de Validación Inmediata del Combo -->
+            <div style="margin: auto 0.85rem 0.85rem 0.85rem; background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 0.85rem; text-align: left;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Combo Validado:</span>
+                <span id="validatedStatusBadge" class="badge-sim" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8;">En Espera</span>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <span id="validatedComboIcon" style="font-size: 1.6rem;">🌾</span>
+                <div>
+                  <div id="validatedComboName" style="font-size: 0.85rem; font-weight: 800; color: #fff; line-height: 1.2;">
+                    Bolsa de Víveres Secos
+                  </div>
+                  <div id="validatedComboWeight" style="font-size: 0.7rem; color: #10b981; font-weight: 700;">
+                    Peso: 14.5 kg · Canasta Básica
+                  </div>
+                </div>
+              </div>
+
+              <div id="validatedHashText" style="margin-top: 0.5rem; font-size: 0.58rem; color: #64748b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                SELLO: Pendiente de escaneo
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <span style="font-size: 0.72rem; color: #94a3b8;">Estación de Validación FIDO2</span>
+      </div>
+
+    </div>
+
+    <!-- 4 TARJETAS DE KPIS EN VIVO -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin: 2rem 0;">
+      
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(16, 185, 129, 0.3); padding: 1.25rem; border-radius: 14px;">
+        <span style="font-size: 0.7rem; color: #10b981; text-transform: uppercase; font-weight: 800;">Combos Despachados</span>
+        <div id="kpiDeliveredCount" style="font-size: 2rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">0 / 100</div>
+        <div style="font-size: 0.7rem; color: #94a3b8;" id="kpiDeliveredPct">0% completado</div>
+      </div>
+
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.3); padding: 1.25rem; border-radius: 14px;">
+        <span style="font-size: 0.7rem; color: #38bdf8; text-transform: uppercase; font-weight: 800;">Tonelaje Acumulado</span>
+        <div id="kpiWeightTotal" style="font-size: 2rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">0.00 kg</div>
+        <div style="font-size: 0.7rem; color: #94a3b8;">0.00 toneladas métricas</div>
+      </div>
+
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(245, 158, 11, 0.3); padding: 1.25rem; border-radius: 14px;">
+        <span style="font-size: 0.7rem; color: #f59e0b; text-transform: uppercase; font-weight: 800;">Latencia de Despacho</span>
+        <div id="kpiLatency" style="font-size: 2rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">-- ms</div>
+        <div style="font-size: 0.7rem; color: #94a3b8;">Tiempo verificación API</div>
+      </div>
+
+      <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(168, 85, 247, 0.3); padding: 1.25rem; border-radius: 14px;">
+        <span style="font-size: 0.7rem; color: #c084fc; text-transform: uppercase; font-weight: 800;">Tasa de Efectividad</span>
+        <div id="kpiSuccessRate" style="font-size: 2rem; font-weight: 800; color: #ffffff; margin: 0.2rem 0;">100%</div>
+        <div style="font-size: 0.7rem; color: #94a3b8;">0 rechazos o fallos</div>
+      </div>
+
+    </div>
+
+    <!-- FEED DE AUDITORÍA EN TIEMPO REAL -->
+    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid var(--border-dark); border-radius: 16px; overflow: hidden;">
+      <div style="padding: 1rem 1.5rem; background: rgba(30, 41, 59, 0.5); display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; font-size: 1rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem;">
+          <span>📋</span> <span>Registro de Despachos en Vivo (Auditoría en Tiempo Real)</span>
+        </h3>
+        <span id="feedCountBadge" style="font-size: 0.75rem; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700;">
+          0 registros
+        </span>
+      </div>
+
+      <div style="max-height: 400px; overflow-y: auto;">
+        <table class="audit-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Hora</th>
+              <th>Funcionario / Cédula</th>
+              <th>Dependencia Institucional</th>
+              <th>Combo Despachado</th>
+              <th>Modalidad</th>
+              <th>Sello Digital (Hash)</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="simAuditTableBody">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 2.5rem; color: #64748b;">
+                Inicie la simulación para comenzar a presenciar el escaneo de los 100 beneficiarios en tiempo real.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- LÓGICA JAVASCRIPT DEL SIMULADOR DUAL -->
+  <script>
+    (function() {
+      // Estado del Simulador
+      let workersList = [];
+      let currentIndex = 0;
+      let isRunning = false;
+      let timerId = null;
+      let stepSpeed = 1600; // ms
+      let deliveredCount = 0;
+      let accumulatedWeightKg = 0;
+      let latencies = [];
+      let audioCtx = null;
+
+      // Inicializar AudioContext nativo para síntesis del sonido "Beep" de escáner
+      function playScannerBeep() {
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1760, audioCtx.currentTime); // 1760 Hz (A6)
+          gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.12);
+        } catch (e) {
+          // Ignorar si audio está bloqueado por el navegador
+        }
+      }
+
+      // Reloj en vivo para las barras de estado de los teléfonos
+      function updateClocks() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const el1 = document.getElementById('phone1Clock');
+        const el2 = document.getElementById('phone2Clock');
+        if (el1) el1.textContent = timeStr;
+        if (el2) el2.textContent = timeStr;
+      }
+      setInterval(updateClocks, 1000);
+      updateClocks();
+
+      // Cargar los 100 trabajadores desde el backend
+      async function loadWorkers() {
+        try {
+          const res = await fetch('/api/v1/simulation/workers');
+          const data = await res.json();
+          if (data && data.success && Array.isArray(data.workers)) {
+            workersList = data.workers;
+            console.log(`[SIM] ${workersList.length} trabajadores listos para la simulación.`);
+            renderCurrentWorker();
+          }
+        } catch (err) {
+          console.error('[SIM ERROR] Error cargando trabajadores:', err);
+        }
+      }
+
+      // Renderizar el trabajador actual en el Teléfono 1 (Beneficiario)
+      function renderCurrentWorker() {
+        if (!workersList || workersList.length === 0) return;
+        const w = workersList[currentIndex];
+        if (!w) return;
+
+        // Actualizar datos del beneficiario
+        const nameParts = (w.full_name || 'U').trim().split(/\s+/);
+        const initials = nameParts.length >= 2 
+          ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+          : nameParts[0].substring(0, 2).toUpperCase();
+
+        const avatar = document.getElementById('workerAvatarCircle');
+        const nameEl = document.getElementById('workerCardName');
+        const docEl = document.getElementById('workerCardDoc');
+        const deptEl = document.getElementById('workerCardDept');
+        const typeEl = document.getElementById('workerCardType');
+        const turnEl = document.getElementById('workerTurnLabel');
+        const nonceEl = document.getElementById('simNonceLabel');
+
+        if (avatar) avatar.textContent = initials;
+        if (nameEl) nameEl.textContent = w.full_name;
+        if (docEl) docEl.textContent = `C.I. ${w.document_id}`;
+        if (deptEl) deptEl.textContent = w.department_name;
+        if (typeEl) {
+          typeEl.textContent = (w.worker_type || 'activo').toUpperCase();
+          typeEl.className = 'badge-sim ' + (w.worker_type === 'jubilado' ? 'badge-jubilado' : 'badge-activo');
+        }
+        if (turnEl) turnEl.textContent = `Beneficiario #${currentIndex + 1} de ${workersList.length}`;
+        
+        const randomNonce = Math.random().toString(36).substring(2, 10);
+        if (nonceEl) nonceEl.textContent = `NONCE: ${randomNonce} · ES256 / SHA-256`;
+
+        // Generar Código QR Dinámico en el Teléfono 1
+        generateQrForWorker(w, randomNonce);
+      }
+
+      function generateQrForWorker(w, nonce) {
+        const qrBox = document.getElementById('simQrDisplay');
+        if (!qrBox) return;
+        qrBox.innerHTML = '';
+
+        const payload = JSON.stringify({
+          worker_id: w.id,
+          document_id: w.document_id,
+          full_name: w.full_name,
+          combo_id: w.combo ? w.combo.id : 'c1a2b3c4-1111-2222-3333-444455556666',
+          timestamp: Date.now(),
+          nonce: nonce
+        });
+
+        if (window.QRCode) {
+          new QRCode(qrBox, {
+            text: payload,
+            width: 155,
+            height: 155,
+            colorDark: "#020617",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+      }
+
+      // Ejecutar un paso de despacho
+      async function executeStep() {
+        if (currentIndex >= workersList.length) {
+          stopSimulation();
+          alert('🎉 ¡Simulación completada! Se procesaron las 100 entregas institucionales exitosamente.');
+          return;
+        }
+
+        const worker = workersList[currentIndex];
+        const mode = document.getElementById('selectMode')?.value || 'passkey_qr';
+        const startTime = performance.now();
+
+        // Efecto visual de escaneo activo
+        const scanLine = document.getElementById('simScanLine');
+        const viewStatus = document.getElementById('viewfinderStatus');
+        const txPulse = document.getElementById('txPulseText');
+        
+        if (scanLine) scanLine.classList.add('validated');
+        if (viewStatus) {
+          viewStatus.textContent = '⚡ Leyendo datos criptográficos...';
+          viewStatus.style.color = '#10b981';
+        }
+        if (txPulse) {
+          txPulse.textContent = (mode === 'passkey_nfc' ? '📶 Señal NFC validada' : '🔴 Lectura Láser Aprobada');
+          txPulse.style.color = '#10b981';
+        }
+
+        try {
+          // Despacho en Backend
+          const res = await fetch('/api/v1/simulation/dispatch-step', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              worker_id: worker.id,
+              verification_method: mode,
+              combo_id: worker.combo ? worker.combo.id : null
+            })
+          });
+
+          const data = await res.json();
+          const latency = Math.round(performance.now() - startTime);
+          latencies.push(latency);
+
+          if (data && data.success) {
+            // Sonido de escáner beep
+            playScannerBeep();
+
+            deliveredCount++;
+            accumulatedWeightKg += Number(data.combo?.weight_kg || 14.5);
+
+            // Actualizar interfaz del Teléfono 2 (Mesa de Despacho)
+            updatePhone2Success(data);
+
+            // Agregar registro a la tabla de auditoría en vivo
+            addAuditRow(data, latency, currentIndex + 1);
+
+            // Actualizar métricas
+            updateDashboardMetrics();
+          }
+
+        } catch (err) {
+          console.error('[SIM DISPATCH ERROR]', err);
+        }
+
+        // Pasar al siguiente funcionario
+        currentIndex++;
+
+        if (currentIndex < workersList.length) {
+          renderCurrentWorker();
+        } else {
+          stopSimulation();
+        }
+      }
+
+      function updatePhone2Success(data) {
+        const badge = document.getElementById('validatedStatusBadge');
+        const name = document.getElementById('validatedComboName');
+        const weight = document.getElementById('validatedComboWeight');
+        const hash = document.getElementById('validatedHashText');
+        const icon = document.getElementById('validatedComboIcon');
+
+        if (badge) {
+          badge.textContent = '✓ DESPACHADO';
+          badge.style.background = 'rgba(16, 185, 129, 0.2)';
+          badge.style.color = '#34d399';
+        }
+        if (name) name.textContent = data.combo?.name || 'Bolsa de Víveres Secos';
+        if (weight) weight.textContent = `Peso: ${data.combo?.weight_kg || 14.5} kg · Canasta Básica`;
+        if (hash) hash.textContent = `SELLO: ${data.signature_proof ? data.signature_proof.substring(0, 32) : 'OK'}...`;
+        if (icon && data.combo?.icon) icon.textContent = data.combo.icon;
+
+        // Breve flash verde
+        const phone2 = document.getElementById('phoneDistributor');
+        if (phone2) {
+          phone2.style.boxShadow = '0 0 30px rgba(16, 185, 129, 0.6), 0 0 0 3px #10b981';
+          setTimeout(() => {
+            phone2.style.boxShadow = '';
+          }, 350);
+        }
+      }
+
+      function addAuditRow(data, latency, index) {
+        const tbody = document.getElementById('simAuditTableBody');
+        if (!tbody) return;
+
+        if (deliveredCount === 1) {
+          tbody.innerHTML = ''; // Limpiar mensaje inicial
+        }
+
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString();
+
+        const tr = document.createElement('tr');
+        tr.className = 'new-entry';
+        tr.innerHTML = `
+          <td style="font-weight: 800; color: #38bdf8;">${index}</td>
+          <td style="font-family: monospace; color: #94a3b8;">${timeStr}</td>
+          <td>
+            <div style="font-weight: 800; color: #fff;">${data.worker.full_name}</div>
+            <div style="font-size: 0.7rem; color: #38bdf8;">C.I. ${data.worker.document_id} · <span style="text-transform: capitalize;">${data.worker.worker_type}</span></div>
+          </td>
+          <td style="color: #cbd5e1; font-size: 0.72rem;">${data.worker.department_name}</td>
+          <td>
+            <div style="display: flex; align-items: center; gap: 0.35rem;">
+              <span>${data.combo.icon || '📦'}</span>
+              <span style="font-weight: 700;">${data.combo.name}</span>
+            </div>
+            <span style="font-size: 0.65rem; color: #10b981;">${data.combo.weight_kg} kg</span>
+          </td>
+          <td>
+            <span class="badge-sim" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">
+              ${data.verification_method === 'passkey_nfc' ? '📶 NFC' : '📷 QR FIDO2'}
+            </span>
+          </td>
+          <td style="font-family: monospace; font-size: 0.65rem; color: #64748b;" title="${data.signature_proof}">
+            ${(data.signature_proof || '').substring(0, 16)}...
+          </td>
+          <td>
+            <span class="badge-sim" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4);">
+              ✓ Aprobado
+            </span>
+          </td>
+        `;
+
+        tbody.insertBefore(tr, tbody.firstChild);
+
+        const countBadge = document.getElementById('feedCountBadge');
+        if (countBadge) countBadge.textContent = `${deliveredCount} registros`;
+      }
+
+      function updateDashboardMetrics() {
+        const total = workersList.length || 100;
+        const pct = Math.round((deliveredCount / total) * 100);
+
+        // Barra de progreso
+        const bar = document.getElementById('simProgressBar');
+        if (bar) bar.style.width = `${pct}%`;
+
+        const label = document.getElementById('progressLabelText');
+        if (label) label.textContent = `Progreso del Lote: ${deliveredCount} de ${total}`;
+
+        // KPIs
+        const elCount = document.getElementById('kpiDeliveredCount');
+        const elPct = document.getElementById('kpiDeliveredPct');
+        const elWeight = document.getElementById('kpiWeightTotal');
+        const elLat = document.getElementById('kpiLatency');
+
+        if (elCount) elCount.textContent = `${deliveredCount} / ${total}`;
+        if (elPct) elPct.textContent = `${pct}% completado`;
+        
+        if (elWeight) {
+          const tons = (accumulatedWeightKg / 1000).toFixed(2);
+          elWeight.textContent = `${accumulatedWeightKg.toLocaleString()} kg`;
+          if (elWeight.nextElementSibling) {
+            elWeight.nextElementSibling.textContent = `${tons} toneladas métricas`;
+          }
+        }
+
+        if (elLat && latencies.length > 0) {
+          const avg = Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length);
+          elLat.textContent = `${avg} ms`;
+        }
+      }
+
+      // Control de bucle de simulación
+      function startSimulation() {
+        if (isRunning) return;
+        isRunning = true;
+
+        document.getElementById('btnStartSim').disabled = true;
+        document.getElementById('btnStartSim').style.opacity = '0.5';
+        document.getElementById('btnPauseSim').disabled = false;
+        document.getElementById('btnPauseSim').style.cursor = 'pointer';
+        document.getElementById('btnPauseSim').style.color = '#fff';
+
+        runLoop();
+      }
+
+      function runLoop() {
+        if (!isRunning) return;
+        executeStep();
+        if (currentIndex < workersList.length && isRunning) {
+          timerId = setTimeout(runLoop, stepSpeed);
+        }
+      }
+
+      function stopSimulation() {
+        isRunning = false;
+        if (timerId) clearTimeout(timerId);
+        timerId = null;
+
+        document.getElementById('btnStartSim').disabled = false;
+        document.getElementById('btnStartSim').style.opacity = '1';
+        document.getElementById('btnPauseSim').disabled = true;
+        document.getElementById('btnPauseSim').style.cursor = 'not-allowed';
+        document.getElementById('btnPauseSim').style.color = '#94a3b8';
+      }
+
+      async function resetSimulation() {
+        stopSimulation();
+        if (confirm('¿Desea reiniciar el lote a 0 y revertir las entregas simuladas de prueba?')) {
+          try {
+            await fetch('/api/v1/simulation/reset', { method: 'POST' });
+          } catch (e) {}
+          currentIndex = 0;
+          deliveredCount = 0;
+          accumulatedWeightKg = 0;
+          latencies = [];
+          updateDashboardMetrics();
+          
+          const tbody = document.getElementById('simAuditTableBody');
+          if (tbody) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 2.5rem; color: #64748b;">
+                  Lote reiniciado a 0. Haga clic en Iniciar Simulación para comenzar de nuevo.
+                </td>
+              </tr>
+            `;
+          }
+          renderCurrentWorker();
+        }
+      }
+
+      // Eventos de botones
+      document.getElementById('btnStartSim')?.addEventListener('click', startSimulation);
+      document.getElementById('btnPauseSim')?.addEventListener('click', stopSimulation);
+      document.getElementById('btnStepSim')?.addEventListener('click', () => {
+        stopSimulation();
+        executeStep();
+      });
+      document.getElementById('btnResetSim')?.addEventListener('click', resetSimulation);
+
+      // Selectores de velocidad
+      document.querySelectorAll('.btn-speed').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.btn-speed').forEach(b => {
+            b.classList.remove('active');
+            b.style.background = 'rgba(255, 255, 255, 0.08)';
+            b.style.color = '#94a3b8';
+            b.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+          });
+          btn.classList.add('active');
+          btn.style.background = 'rgba(2, 132, 199, 0.4)';
+          btn.style.color = '#fff';
+          btn.style.borderColor = '#38bdf8';
+
+          stepSpeed = Number(btn.getAttribute('data-speed'));
+          const ind = document.getElementById('speedIndicator');
+          if (ind) ind.textContent = `Velocidad: ${(stepSpeed / 1000).toFixed(1)}s`;
+        });
+      });
+
+      // Cambio de modo (Láser vs NFC)
+      document.getElementById('selectMode')?.addEventListener('change', (e) => {
+        const mode = e.target.value;
+        const beam = document.getElementById('simLaserBeam');
+        const label = document.getElementById('channelModeLabel');
+        if (mode === 'passkey_nfc') {
+          if (beam) beam.classList.add('nfc-mode');
+          if (label) label.textContent = '📶 Proximidad NFC Tap-to-Claim';
+        } else {
+          if (beam) beam.classList.remove('nfc-mode');
+          if (label) label.textContent = '📷 Láser Óptico QR';
+        }
+      });
+
+      // Iniciar carga de beneficiarios al cargar la página
+      loadWorkers();
+
+    })();
+  </script>
+
+</body>
+</html>
