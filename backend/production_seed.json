@@ -1382,7 +1382,7 @@
     {
       "id": "c0000000-ca11-4000-8000-000000000001",
       "name": "__SYSTEM_CAMPAIGNS_STORE__",
-      "description": "{\"campaigns\":[{\"id\":\"camp_20261023_integral\",\"name\":\"Gran Jornada Integral de Despacho Institucional (4 Combos) - Octubre 2026\",\"description\":\"Jornada institucional efectuada el 23 de octubre de 2026 con entrega y cobertura del 100% de la nómina en los 4 combos asignados (Víveres, Higiene, Limpieza y Charcutería).\",\"start_date\":\"2026-10-23\",\"end_date\":\"2026-11-05\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"target_group\":\"all\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\",\"status\":\"en_curso\",\"notification_sent\":1,\"created_at\":\"2026-10-23 08:00:00\"},{\"id\":\"camp_20261127_programada\",\"name\":\"Jornada Especial de Víveres y Proteína (2 Combos) - Noviembre 2026\",\"description\":\"Programación de entrega de 2 combos prioritarios (Bolsa de Víveres Secos y Charcutería) pautada para el viernes 27 de noviembre de 2026.\",\"start_date\":\"2026-11-27\",\"end_date\":\"2026-11-27\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"target_group\":\"all\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\",\"status\":\"programada\",\"notification_sent\":0,\"created_at\":\"2026-11-05 08:00:00\"}],\"campaign_combos\":[{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":null},{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"3df50537-3333-4fce-8bdc-f4ecbb567adf\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"2e39c4a5-0611-4a03-b10c-08ef7e270684\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455557777\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261127_programada\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"created_at\":\"2026-11-05 12:52:04\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261127_programada\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455557777\",\"created_at\":\"2026-11-05 12:52:04\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"}]}",
+      "description": "{\"campaigns\":[{\"id\":\"camp_20261023_integral\",\"name\":\"Gran Jornada Integral de Despacho Institucional (4 Combos) - Octubre 2026\",\"description\":\"Jornada institucional efectuada el 23 de octubre de 2026 con entrega y cobertura del 100% de la nómina en los 4 combos asignados (Víveres, Higiene, Limpieza y Charcutería).\",\"start_date\":\"2026-10-23\",\"end_date\":\"2026-11-05\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"target_group\":\"all\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\",\"status\":\"finalizada\",\"notification_sent\":1,\"created_at\":\"2026-10-23 08:00:00\"},{\"id\":\"camp_20261127_programada\",\"name\":\"Gran Jornada Integral de Despacho Institucional (4 Combos) - 27 de Noviembre 2026\",\"description\":\"Despacho integral con los 4 combos institucionales (Bolsa de Víveres Secos, Combo Charcutería, Combo de Higiene Personal y Combo de Limpieza) para todo el personal del MIPPCI.\",\"start_date\":\"2026-11-27\",\"end_date\":\"2026-11-27\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"target_group\":\"all\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\",\"status\":\"en_curso\",\"notification_sent\":1,\"created_at\":\"2026-11-05 08:00:00\"}],\"campaign_combos\":[{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":null},{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"3df50537-3333-4fce-8bdc-f4ecbb567adf\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"2e39c4a5-0611-4a03-b10c-08ef7e270684\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261023_integral\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455557777\",\"created_at\":\"2026-11-05 12:51:48\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261127_programada\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455556666\",\"created_at\":\"2026-11-05 12:52:04\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261127_programada\",\"combo_id\":\"c1a2b3c4-1111-2222-3333-444455557777\",\"created_at\":\"2026-11-05 12:52:04\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261127_programada\",\"combo_id\":\"3df50537-3333-4fce-8bdc-f4ecbb567adf\",\"created_at\":\"2026-11-09 11:58:00\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"},{\"campaign_id\":\"camp_20261127_programada\",\"combo_id\":\"2e39c4a5-0611-4a03-b10c-08ef7e270684\",\"created_at\":\"2026-11-09 11:58:00\",\"distribution_point_id\":\"b12f492f-ebb3-430f-bc20-26ca4aa5b865\"}]}",
       "category": "bolsa_viveres",
       "calories": 0,
       "dietary_info": "Cloud State Store",
@@ -20821,19 +20821,6 @@
   ],
   "delivery_campaigns": [
     {
-      "id": "camp_20261127_programada",
-      "name": "Jornada Especial de Víveres y Proteína (2 Combos) - Noviembre 2026",
-      "description": "Programación de entrega de 2 combos prioritarios (Bolsa de Víveres Secos y Charcutería) pautada para el viernes 27 de noviembre de 2026.",
-      "start_date": "2026-11-27",
-      "end_date": "2026-11-27",
-      "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
-      "target_group": "all",
-      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
-      "status": "programada",
-      "notification_sent": 0,
-      "created_at": "2026-11-05 08:00:00"
-    },
-    {
       "id": "camp_20261023_integral",
       "name": "Gran Jornada Integral de Despacho Institucional (4 Combos) - Octubre 2026",
       "description": "Jornada institucional efectuada el 23 de octubre de 2026 con entrega y cobertura del 100% de la nómina en los 4 combos asignados (Víveres, Higiene, Limpieza y Charcutería).",
@@ -20842,9 +20829,22 @@
       "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
       "target_group": "all",
       "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
-      "status": "en_curso",
+      "status": "finalizada",
       "notification_sent": 1,
       "created_at": "2026-10-23 08:00:00"
+    },
+    {
+      "id": "camp_20261127_programada",
+      "name": "Gran Jornada Integral de Despacho Institucional (4 Combos) - 27 de Noviembre 2026",
+      "description": "Despacho integral con los 4 combos institucionales (Bolsa de Víveres Secos, Combo Charcutería, Combo de Higiene Personal y Combo de Limpieza) para todo el personal del MIPPCI.",
+      "start_date": "2026-11-27",
+      "end_date": "2026-11-27",
+      "combo_id": "c1a2b3c4-1111-2222-3333-444455556666",
+      "target_group": "all",
+      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865",
+      "status": "en_curso",
+      "notification_sent": 1,
+      "created_at": "2026-11-05 08:00:00"
     }
   ],
   "system_notifications": [
@@ -21577,6 +21577,18 @@
       "campaign_id": "camp_20261127_programada",
       "combo_id": "c1a2b3c4-1111-2222-3333-444455557777",
       "created_at": "2026-11-05 12:52:04",
+      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865"
+    },
+    {
+      "campaign_id": "camp_20261127_programada",
+      "combo_id": "3df50537-3333-4fce-8bdc-f4ecbb567adf",
+      "created_at": "2026-11-09 11:58:00",
+      "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865"
+    },
+    {
+      "campaign_id": "camp_20261127_programada",
+      "combo_id": "2e39c4a5-0611-4a03-b10c-08ef7e270684",
+      "created_at": "2026-11-09 11:58:00",
       "distribution_point_id": "b12f492f-ebb3-430f-bc20-26ca4aa5b865"
     }
   ]

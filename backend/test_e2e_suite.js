@@ -59,6 +59,8 @@ let testWorkerId = null;
 let testEntitlementId = null;
 let workerSessionToken = null;
 let adminSessionToken = null;
+let testAdminDoc = null;
+let testAdminEmail = null;
 
 // ----------------------------------------------------------------------------
 // 1. ASSETS Y ARQUITECTURA MODULAR ESTRUCTURAL
@@ -130,13 +132,18 @@ test('E2E-07: Login de Administrador Institucional (C.I. 13537582 o V-11123987)'
     admin_secret: '0578',
     require_admin: true
   });
-  if (res.status !== 200) {
-    // Si 13537582 ya configuró su PIN personalizado, autenticar con el administrador V-11123987
+  if (res.status === 200) {
+    testAdminDoc = '13537582';
+    testAdminEmail = 'Sfranco@mippci.gob.ve';
+  } else {
+    // Si 13537582 ya configuró su PIN personalizado, autenticar con el administrador institucional V-11123987
     res = await request('POST', '/api/v1/auth/login', {
       document_id: 'V-11123987',
       admin_secret: '0578',
       require_admin: true
     });
+    testAdminDoc = 'V-11123987';
+    testAdminEmail = 'juan.rivas@mippci.gob.ve';
   }
   if (res.status !== 200) throw new Error(`HTTP ${res.status}: ${res.data?.error}`);
   if (!res.data.user || !['admin', 'director'].includes(res.data.user.role)) throw new Error('Usuario no tiene permisos de admin');
@@ -415,28 +422,31 @@ test('E2E-24: Mitigación Activa CVE-2026-111497 (Brotli Heap Corruption) y Cabe
 });
 
 test('E2E-25: Autenticación de Administración del Sistema (Cédula/Email, PIN y Control RBAC)', async () => {
+  const adminDoc = testAdminDoc || 'V-11123987';
+  const adminMail = testAdminEmail || 'juan.rivas@mippci.gob.ve';
+
   // 1. Acceso exitoso con Cédula y PIN administrativo correcto
   const resAdminCi = await request('POST', '/api/v1/auth/login', {
-    document_id: '13537582',
+    document_id: adminDoc,
     admin_secret: '0578',
     require_admin: true
   });
-  if (resAdminCi.status !== 200) throw new Error(`HTTP ${resAdminCi.status} en login admin por C.I.`);
-  if (!resAdminCi.data.user || resAdminCi.data.user.role !== 'admin') {
+  if (resAdminCi.status !== 200) throw new Error(`HTTP ${resAdminCi.status} en login admin por C.I. (${adminDoc})`);
+  if (!resAdminCi.data.user || !['admin', 'director'].includes(resAdminCi.data.user.role)) {
     throw new Error('El usuario autenticado no posee rol administrativo');
   }
 
   // 2. Acceso exitoso con Correo Institucional
   const resAdminEmail = await request('POST', '/api/v1/auth/login', {
-    document_id: 'Sfranco@mippci.gob.ve',
+    document_id: adminMail,
     admin_secret: '0578',
     require_admin: true
   });
-  if (resAdminEmail.status !== 200) throw new Error(`HTTP ${resAdminEmail.status} en login admin por correo`);
+  if (resAdminEmail.status !== 200) throw new Error(`HTTP ${resAdminEmail.status} en login admin por correo (${adminMail})`);
 
   // 3. Rechazo ante PIN de seguridad erróneo (HTTP 401)
   const resWrongPin = await request('POST', '/api/v1/auth/login', {
-    document_id: '13537582',
+    document_id: adminDoc,
     admin_secret: 'clave_invalida',
     require_admin: true
   });

@@ -112,12 +112,20 @@ async function runSecurityTests() {
     // PRUEBA 3: Inyección de Cookies Seguras HttpOnly (sgbt_session)
     // ------------------------------------------------------------------------
     console.log('3. Verificando Inyección de Cookies HttpOnly + SameSite=Strict...');
-    const resLogin = await makeRequest('POST', '/api/v1/auth/login', {
+    let resLogin = await makeRequest('POST', '/api/v1/auth/login', {
       document_id: '13537582',
       admin_secret: '0578',
       require_admin: true,
       device_id: 'dev_test_device_pc_1'
     });
+    if (resLogin.status !== 200) {
+      resLogin = await makeRequest('POST', '/api/v1/auth/login', {
+        document_id: 'V-11123987',
+        admin_secret: '0578',
+        require_admin: true,
+        device_id: 'dev_test_device_pc_1'
+      });
+    }
     assert.strictEqual(resLogin.status, 200);
     assert(resLogin.data.success);
     const cookies = resLogin.headers['set-cookie'];
@@ -174,7 +182,7 @@ async function runSecurityTests() {
     const sessionDev1 = createDeviceSession({
       workerId: testWorkerId,
       role: 'admin',
-      documentId: '13537582',
+      documentId: resLogin.data.user.document_id,
       deviceId: 'laptop_oficina_piso3',
       ipAddress: '10.0.1.50',
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
@@ -183,7 +191,7 @@ async function runSecurityTests() {
     const sessionDev2 = createDeviceSession({
       workerId: testWorkerId,
       role: 'admin',
-      documentId: '13537582',
+      documentId: resLogin.data.user.document_id,
       deviceId: 'telefono_movil_guardia',
       ipAddress: '10.0.1.99',
       userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)'

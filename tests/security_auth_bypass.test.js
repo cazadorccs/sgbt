@@ -75,6 +75,7 @@ async function runSecurityAuditSuite() {
     const { db } = require('../backend/db');
     const { hashPassword } = require('../backend/crypto-utils');
     const { supabase, isSupabaseConfigured } = require('../backend/supabase');
+    try { db.prepare("DELETE FROM login_security_tracker").run(); } catch {}
     const defaultHash = hashPassword('1178');
     db.prepare(`
       UPDATE workers 
