@@ -244,7 +244,7 @@ Todas las optimizaciones fueron consolidadas en la rama `main` y sincronizadas c
 | `cea7205` | `public/sw.js`, `public/icons/` | Reducción del 43.2% en peso de red PWA y activación de caché Stale-While-Revalidate |
 | `87482c3` | `public/css/styles.css`, `benchmarks/` | Ergonomía táctil completa (100% targets $\ge 48\text{px}$) y contraste solar WCAG 2.2 AAA (7.53:1) |
 | `42296f5` | `backend/controllers/auth.controller.js` | Blindaje de seguridad con fallback al PIN institucional 0578 para consola administrativa en producción |
-| *(Pendiente)* | `public/js/`, `public/index.html` | Suite Avanzada UI/UX: Scan-to-Dispatch en 350ms, Virtual Windowing a 60fps, Háptica y Network Drift HUD |
+| `cb3d3c5` | `public/js/`, `public/index.html` | Suite Avanzada UI/UX: Scan-to-Dispatch en 350ms, Virtual Windowing a 60fps, Háptica y Network Drift HUD |
 
 ---
 
