@@ -1,0 +1,2 @@
+commit	status	tps	duration_ms	avg_latency_ms	description
+baseline	keep	12406	80.70	0.081	Baseline con correccion bug enrolled_at

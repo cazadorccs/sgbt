@@ -90,7 +90,7 @@ function recordDelivery({
     const cred = db.prepare(`
       SELECT public_key FROM passkey_credentials
       WHERE worker_id = ? AND status = 'active'
-      ORDER BY created_at DESC LIMIT 1
+      ORDER BY enrolled_at DESC LIMIT 1
     `).get(workerId);
 
     if (cred && cred.public_key) {

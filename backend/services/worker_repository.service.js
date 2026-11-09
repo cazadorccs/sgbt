@@ -61,10 +61,10 @@ function updateWorkerFormalization({ id, passwordHash, avatarUrl, boundDeviceId 
  */
 function getActivePasskeyByWorkerId(workerId) {
   return db.prepare(`
-    SELECT id, credential_id, public_key, sign_count, device_name, created_at
+    SELECT id, credential_id, public_key, sign_count, device_name, enrolled_at as created_at, enrolled_at
     FROM passkey_credentials
     WHERE worker_id = ? AND status = 'active'
-    ORDER BY created_at DESC
+    ORDER BY enrolled_at DESC
     LIMIT 1
   `).get(workerId);
 }
