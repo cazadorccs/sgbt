@@ -316,6 +316,7 @@ Todas las optimizaciones fueron consolidadas en la rama `main` y sincronizadas c
 | `cb3d3c5` | `public/js/`, `public/index.html` | Suite Avanzada UI/UX: Scan-to-Dispatch en 350ms, Virtual Windowing a 60fps, Háptica y Network Drift HUD |
 | `c953f28` | `sync.controller.js`, `distributor.js` | Autoresearch Frente 7: Delta Daily-Packs (-99.78% wire size: 2.5KB), micro-caché in-memory (0.07ms) y ETag 304 |
 | `84ff362` | `backend/db.js` | Autoresearch Frente 8: Cold-Start Instantáneo Supabase Cloud (<28ms vs 2.28s) y streaming en segundo plano |
+| `3cc69c2` | `audit.service.js`, `admin.controller.js` | Autoresearch Frente 9: Árbol Merkle Ministerial (RFC 6962), Merkle Proof O(log N) 13 hashes y endpoint /merkle-verify |
 
 ---
 
