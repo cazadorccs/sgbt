@@ -965,7 +965,7 @@ class TelegramQrFocusTracker {
           if (!this.hasVibratedOnLock) {
             this.hasVibratedOnLock = true;
             if (typeof navigator !== 'undefined' && navigator.vibrate) {
-              try { navigator.vibrate(35); } catch (_) {}
+              try { navigator.vibrate(35); } catch (_) { }
             }
           }
 
@@ -1035,7 +1035,7 @@ class TelegramQrFocusTracker {
       if (this.assistText) this.assistText.textContent = '¡Código QR validado exitosamente!';
     }
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      try { navigator.vibrate([40, 35, 60]); } catch (_) {}
+      try { navigator.vibrate([40, 35, 60]); } catch (_) { }
     }
     setTimeout(() => {
       if (this.targetBox) this.targetBox.classList.remove('is-success');
@@ -1597,8 +1597,8 @@ async function processQrPayload(payload, isLiveCamera = false) {
       STATE.localCache.deliveredEntitlements.add(payload.wid + '_station_2');
       updateSyncQueueUI();
 
-      const offlineHeader = isNfcMobile 
-        ? 'DESPACHO TOTALIZADO NFC (GUARDADO LOCAL)' 
+      const offlineHeader = isNfcMobile
+        ? 'DESPACHO TOTALIZADO NFC (GUARDADO LOCAL)'
         : (isAutoFallback ? 'DESPACHO TOTALIZADO APROBADO (COLA LOCAL)' : 'DESPACHO TOTALIZADO (OFFLINE)');
       const offlineDesc = isAutoFallback
         ? '📶 Red móvil o Wi-Fi lenta. Despacho validado localmente y encolado en IndexedDB para sincronización automática.'
@@ -1671,8 +1671,8 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const isStation2Offline = qrStation === '2';
     const offlineComboTitle = isStation2Offline ? '🍗 Combo Proteico Fresco (Cadena de Frío)' : 'Bulto Víveres Secos';
 
-    const offlineHeader = isNfcMobile 
-      ? 'DESPACHO NFC MÓVIL AUTORIZADO (OFFLINE)' 
+    const offlineHeader = isNfcMobile
+      ? 'DESPACHO NFC MÓVIL AUTORIZADO (OFFLINE)'
       : (isAutoFallback ? 'DESPACHO APROBADO (COLA LOCAL)' : 'DESPACHO AUTORIZADO');
     const offlineDesc = isAutoFallback
       ? '📶 Red móvil o Wi-Fi lenta. Despacho validado localmente y encolado para sincronización en segundo plano.'
@@ -1839,9 +1839,34 @@ async function processQrPayload(payload, isLiveCamera = false) {
   }
 }
 
-async function downloadDailyPack() {
+async function downloadDailyPack(options = {}) {
   try {
-    const pack = await API.get('/api/v1/sync/daily-pack');
+    const isIncremental = Boolean(options.incremental && STATE.lastSyncTimestamp);
+    const url = isIncremental
+      ? `/api/v1/sync/daily-pack?since=${encodeURIComponent(STATE.lastSyncTimestamp)}`
+      : '/api/v1/sync/daily-pack';
+
+    const pack = await API.get(url);
+
+    // Manejo de actualización incremental (Delta-Pack)
+    if (pack.is_delta) {
+      if (pack.updated_workers && Array.isArray(pack.updated_workers)) {
+        pack.updated_workers.forEach(uw => {
+          if (uw.entitlements && uw.entitlements.length > 0) {
+            STATE.localCache.entitlements[uw.worker_id] = uw.entitlements[0];
+          }
+          if (Array.isArray(STATE.localCache.workers)) {
+            const idx = STATE.localCache.workers.findIndex(w => w.worker_id === uw.worker_id);
+            if (idx !== -1) {
+              STATE.localCache.workers[idx] = Object.assign({}, STATE.localCache.workers[idx], uw);
+            }
+          }
+        });
+      }
+      STATE.lastSyncTimestamp = pack.sync_timestamp;
+      console.log(`[DISTRIBUIDOR] Delta-Pack integrado: ${pack.total_updated_workers || 0} registros sincronizados.`);
+      return;
+    }
 
     if (pack.combos && Array.isArray(pack.combos) && pack.combos.length > 0) {
       STATE.localCache.combos = pack.combos;
@@ -1852,13 +1877,14 @@ async function downloadDailyPack() {
       }
     }
 
-    STATE.localCache.workers = pack.active_workers;
+    STATE.lastSyncTimestamp = pack.sync_timestamp || new Date().toISOString();
+    STATE.localCache.workers = pack.active_workers || [];
     STATE.localCache.publicKeys = {};
     STATE.localCache.nfcCards = {};
     STATE.localCache.entitlements = {};
 
     let totalKeys = 0;
-    pack.active_workers.forEach(w => {
+    (pack.active_workers || []).forEach(w => {
       if (w.public_keys && w.public_keys.length > 0) {
         STATE.localCache.publicKeys[w.worker_id] = w.public_keys[0].public_key_pem;
         totalKeys += w.public_keys.length;
@@ -2461,7 +2487,7 @@ function triggerOptimisticFeedback(workerName = 'Beneficiario', comboName = 'Com
   if (typeof window.triggerHaptic === 'function') {
     window.triggerHaptic('delivery_approved');
   } else if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
-    try { navigator.vibrate([90, 40, 110]); } catch (_) {}
+    try { navigator.vibrate([90, 40, 110]); } catch (_) { }
   }
 
   // 2. Optical Flash visual para ambientes ruidosos de almacén
@@ -2476,7 +2502,7 @@ function triggerOptimisticFeedback(workerName = 'Beneficiario', comboName = 'Com
 // ============================================================================
 // SUITE UI/UX: NETWORK DRIFT HUD (SEÑALIZACIÓN EN VIVO EN MASTER HEADER)
 // ============================================================================
-window.updateNetworkSyncHUD = function(statusOverride = null) {
+window.updateNetworkSyncHUD = function (statusOverride = null) {
   const pill = document.getElementById('networkSyncPill');
   const icon = document.getElementById('networkSyncIcon');
   const text = document.getElementById('networkSyncText');

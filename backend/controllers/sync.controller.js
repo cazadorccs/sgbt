@@ -6,12 +6,23 @@ const { db } = require('../db');
 const { verifyOfflineSignature } = require('../crypto-utils');
 const { processBatchDeliveries } = require('../services/delivery.service');
 
+// Micro-caché en memoria para paquetes diarios de alta velocidad
+let _dailyPackCache = null;
+
+function invalidateDailyPackCache() {
+  _dailyPackCache = null;
+}
+
 const getDailyPack = (req, res) => {
   const t0 = Date.now();
   const distribution_point_id = req.query.distribution_point_id || '550e8400-e29b-41d4-a716-446655440000';
   const targetDate = req.query.date || new Date().toISOString().split('T')[0];
+  const sinceParam = req.query.since || req.query.since_timestamp || null;
 
-  // 1. Obtener los combos vinculados a la jornada activa (o catálogo completo si no hay jornada activa)
+  const headers = req.headers || {};
+  const clientEtag = headers['if-none-match'] || headers['If-None-Match'] || null;
+
+  // 1. Obtener combos activos
   let activeCombos = [];
   const activeCamp = db.prepare("SELECT id, combo_id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
   if (activeCamp) {
@@ -41,45 +52,143 @@ const getDailyPack = (req, res) => {
     `).all();
   }
 
-  // 2. Garantizar auto-asignación diaria de TODOS los combos activos para trabajadores activos
-  try {
-    const existingEnts = db.prepare(`
-      SELECT de.worker_id, de.combo_id
-      FROM daily_entitlements de
-      WHERE de.valid_date = ?
-    `).all(targetDate);
+  // 2. SOPORTE DE SINCRONIZACIÓN DELTA (?since=ISO_TIMESTAMP)
+  if (sinceParam) {
+    try {
+      const parsedSince = new Date(sinceParam).toISOString();
+      const updatedEntitlements = db.prepare(`
+        SELECT de.worker_id, de.id as entitlement_id, de.combo_id, c.name as combo_name, de.shift, de.status, de.created_at
+        FROM daily_entitlements de
+        JOIN combos c ON de.combo_id = c.id
+        WHERE de.valid_date = ? AND (de.created_at >= ? OR de.status = 'claimed')
+      `).all(targetDate, parsedSince);
 
-    const workerComboMap = new Map();
-    for (const e of existingEnts) {
-      if (!workerComboMap.has(e.worker_id)) {
-        workerComboMap.set(e.worker_id, new Set());
+      const workerIds = [...new Set(updatedEntitlements.map(e => e.worker_id))];
+      let updatedWorkers = [];
+
+      if (workerIds.length > 0) {
+        const placeholders = workerIds.map(() => '?').join(',');
+        const workers = db.prepare(`
+          SELECT w.id as worker_id, w.document_id, w.full_name, w.has_smartphone, w.contingency_reason, w.shift, w.worker_type
+          FROM workers w
+          WHERE w.id IN (${placeholders})
+        `).all(...workerIds);
+
+        const deltaEntMap = new Map();
+        for (const e of updatedEntitlements) {
+          let list = deltaEntMap.get(e.worker_id);
+          if (!list) { list = []; deltaEntMap.set(e.worker_id, list); }
+          list.push({
+            entitlement_id: e.entitlement_id,
+            combo_id: e.combo_id,
+            combo_name: e.combo_name,
+            shift: e.shift,
+            status: e.status
+          });
+        }
+
+        updatedWorkers = workers.map(w => ({
+          worker_id: w.worker_id,
+          document_id: w.document_id,
+          full_name: w.full_name,
+          has_smartphone: Boolean(w.has_smartphone),
+          contingency_reason: w.contingency_reason,
+          shift: w.shift,
+          worker_type: w.worker_type || 'activo',
+          entitlements: deltaEntMap.get(w.worker_id) || []
+        }));
       }
-      workerComboMap.get(e.worker_id).add(e.combo_id);
+
+      if (res.setHeader) {
+        res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      }
+
+      const durDelta = Date.now() - t0;
+      console.log(`⚡ [DELTA PACK GENERATED] ${updatedWorkers.length} funcionarios modificados desde ${sinceParam} (${durDelta}ms)`);
+
+      return res.json({
+        is_delta: true,
+        delta: true,
+        distribution_point_id,
+        since: sinceParam,
+        sync_timestamp: new Date().toISOString(),
+        valid_date: targetDate,
+        total_updated_workers: updatedWorkers.length,
+        total_updated_entitlements: updatedEntitlements.length,
+        combos: activeCombos,
+        updated_workers: updatedWorkers
+      });
+    } catch (deltaErr) {
+      console.warn('[DELTA PACK WARNING - FALLBACK TO FULL]', deltaErr.message);
+    }
+  }
+
+  // 3. VERIFICACIÓN DE MICRO-CACHÉ EN MEMORIA Y ETAG 304
+  const cacheKey = `${targetDate}_${distribution_point_id}`;
+  const now = Date.now();
+  if (_dailyPackCache && _dailyPackCache.key === cacheKey && (now - _dailyPackCache.createdAt < 30000)) {
+    if (res.setHeader) {
+      res.setHeader('ETag', _dailyPackCache.etag);
+      res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
     }
 
-    const activeWorkerList = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
-    const insertBatchEnt = db.prepare(`
-      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-      VALUES (?, ?, ?, ?, ?, 'pending')
-    `);
+    if (clientEtag && clientEtag === _dailyPackCache.etag) {
+      if (typeof res.status === 'function') res.status(304);
+      if (typeof res.end === 'function') return res.end();
+      return;
+    }
 
-    const txSeed = db.transaction(() => {
-      for (const w of activeWorkerList) {
-        const assignedSet = workerComboMap.get(w.id);
-        for (const combo of activeCombos) {
-          if (!assignedSet || !assignedSet.has(combo.id)) {
-            const shiftName = combo.mesa_name ? combo.mesa_name.split(' - ')[0].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua';
-            insertBatchEnt.run(crypto.randomUUID(), w.id, combo.id, targetDate, shiftName);
+    return res.json(_dailyPackCache.payload);
+  }
+
+  // 4. GARANTIZAR AUTO-ASIGNACIÓN DIARIA (Optimizado con chequeo O(1) de conteo)
+  try {
+    const activeWorkersCountRow = db.prepare("SELECT count(1) as c FROM workers WHERE status = 'active'").get();
+    const activeWorkerCount = activeWorkersCountRow ? activeWorkersCountRow.c : 0;
+    const requiredMinEntitlements = activeWorkerCount * Math.max(activeCombos.length, 1);
+    const existingCountRow = db.prepare("SELECT count(1) as c FROM daily_entitlements WHERE valid_date = ?").get(targetDate);
+    const currentCount = existingCountRow ? existingCountRow.c : 0;
+
+    // Sólo ejecutar asignación masiva si faltan registros
+    if (currentCount < requiredMinEntitlements) {
+      const existingEnts = db.prepare(`
+        SELECT de.worker_id, de.combo_id
+        FROM daily_entitlements de
+        WHERE de.valid_date = ?
+      `).all(targetDate);
+
+      const workerComboMap = new Map();
+      for (const e of existingEnts) {
+        if (!workerComboMap.has(e.worker_id)) {
+          workerComboMap.set(e.worker_id, new Set());
+        }
+        workerComboMap.get(e.worker_id).add(e.combo_id);
+      }
+
+      const activeWorkerList = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
+      const insertBatchEnt = db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, ?, 'pending')
+      `);
+
+      const txSeed = db.transaction(() => {
+        for (const w of activeWorkerList) {
+          const assignedSet = workerComboMap.get(w.id);
+          for (const combo of activeCombos) {
+            if (!assignedSet || !assignedSet.has(combo.id)) {
+              const shiftName = combo.mesa_name ? combo.mesa_name.split(' - ')[0].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua';
+              insertBatchEnt.run(crypto.randomUUID(), w.id, combo.id, targetDate, shiftName);
+            }
           }
         }
-      }
-    });
-    txSeed();
+      });
+      txSeed();
+    }
   } catch (seedErr) {
     console.warn('[DAILY PACK AUTO-ENTITLEMENTS WARNING]', seedErr.message);
   }
 
-  // 2. Ejecutar 4 consultas indexadas masivas (en lugar de N * 4 consultas iterativas)
+  // 5. Consultas indexadas masivas
   const workers = db.prepare(`
     SELECT DISTINCT w.id as worker_id, w.document_id, w.full_name, w.has_smartphone, w.contingency_reason, w.shift, w.worker_type
     FROM workers w
@@ -106,7 +215,7 @@ const getDailyPack = (req, res) => {
     WHERE de.valid_date = ? AND (c.is_active = 1 OR de.status = 'claimed')
   `).all(targetDate);
 
-  // 3. Indexación en memoria O(1) mediante Maps para rendimiento instantáneo
+  // 6. Indexación en memoria O(1)
   const passkeysMap = new Map();
   for (const p of allPasskeys) {
     let list = passkeysMap.get(p.worker_id);
@@ -157,14 +266,39 @@ const getDailyPack = (req, res) => {
   const dur = Date.now() - t0;
   console.log(`⚡ [DAILY PACK GENERATED] ${active_workers.length} funcionarios procesados en ${dur}ms (Optimización Fase 2)`);
 
-  res.json({
+  const payload = {
     distribution_point_id,
     sync_timestamp: new Date().toISOString(),
     valid_date: targetDate,
     total_workers: active_workers.length,
     combos: activeCombos,
     active_workers
-  });
+  };
+
+  // Cómputo de ETag Criptográfico
+  const etagHash = crypto.createHash('sha1').update(`${targetDate}_${active_workers.length}_${allEntitlements.length}`).digest('hex').substring(0, 16);
+  const etag = `W/"sgbt-${etagHash}"`;
+
+  // Almacenar en micro-caché en memoria (30s)
+  _dailyPackCache = {
+    key: cacheKey,
+    createdAt: Date.now(),
+    etag,
+    payload
+  };
+
+  if (res.setHeader) {
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'public, max-age=15, stale-while-revalidate=30');
+  }
+
+  if (clientEtag && clientEtag === etag) {
+    if (typeof res.status === 'function') res.status(304);
+    if (typeof res.end === 'function') return res.end();
+    return;
+  }
+
+  res.json(payload);
 };
 
 const batchDeliveries = async (req, res) => {
@@ -174,6 +308,9 @@ const batchDeliveries = async (req, res) => {
   }
 
   const batchResult = processBatchDeliveries(deliveries, distribution_point_id);
+
+  // Invalidar caché tras nuevas entregas registradas
+  invalidateDailyPackCache();
 
   // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
   if (batchResult.results && batchResult.results.length > 0) {
@@ -212,5 +349,6 @@ const batchDeliveries = async (req, res) => {
 
 module.exports = {
   getDailyPack,
-  batchDeliveries
+  batchDeliveries,
+  invalidateDailyPackCache
 };
