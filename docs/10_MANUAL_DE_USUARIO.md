@@ -1,6 +1,10 @@
 # Manual de Usuario y Operaciones
 ## Sistema de Gestión de Beneficios a Trabajadores (SGBT) — MIPPCI
 
+> [!TIP] 🌐 **Versión Interactiva con Simuladores y Diagrama Isométrico 2.5D:**
+> Para una experiencia interactiva paso a paso con simuladores en vivo del Beneficiario (QR dinámico, FIDO2, Merkle, Web Push) y del Operador de Despacho (Semáforo de validación), explore el manual interactivo en:
+> **[manual_usuario_interactivo.html](manual_usuario_interactivo.html)** (o visualícelo directamente en su navegador).
+
 ---
 
 ### 1. Guía para el Funcionario / Beneficiario

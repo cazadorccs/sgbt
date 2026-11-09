@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario Interactivo · SGBT MIPPCI</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --bg: #040d1a;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --border: rgba(56, 189, 248, 0.2);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-light: #38bdf8;
+      --accent: #10b981;
+      --accent-light: #34d399;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    body.light {
+      --bg: #f1f5f9;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --border: rgba(2, 132, 199, 0.25);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --primary: #0284c7;
+      --primary-light: #0369a1;
+      --accent: #059669;
+      --accent-light: #10b981;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .iso-plane {
+      transform-style: preserve-3d;
+      transition: all 0.4s ease;
+    }
+    .pulse-ring {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 0.2; transform: scale(1.15); }
+    }
+    .qr-scan-line {
+      animation: scan 2.2s ease-in-out infinite alternate;
+    }
+    @keyframes scan {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(140px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased p-3 sm:p-6 lg:p-8">
+
+  <!-- ENCABEZADO INSTITUCIONAL -->
+  <header class="max-w-7xl mx-auto mb-8 glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-xl bg-gradient-to-tr from-sky-600 via-blue-500 to-emerald-400 p-0.5 flex items-center justify-center shadow-lg">
+        <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-2xl">
+          🏛️
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded">Soberanía Tecnológica</span>
+          <span class="text-xs text-slate-400">v5.0 Enterprise</span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white mt-1">Manual de Usuario y Operaciones Interactivo</h1>
+        <p class="text-xs sm:text-sm text-slate-400">Sistema de Gestión de Bienestar y Transferencias (SGBT · MIPPCI)</p>
+      </div>
+    </div>
+
+    <!-- CONTROLES GLOBALES -->
+    <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+      <!-- Selector de Rol -->
+      <div class="inline-flex p-1 rounded-xl bg-slate-950/60 border border-slate-700/60">
+        <button id="btnRoleBeneficiary" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-600 text-white shadow">
+          👤 Beneficiario
+        </button>
+        <button id="btnRoleOperator" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+          📦 Operador Almacén
+        </button>
+      </div>
+
+      <!-- Selector Modo Oscuro/Claro -->
+      <button id="btnThemeToggle" class="p-2 rounded-xl bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-sm" title="Cambiar Tema">
+        🌙
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto space-y-8">
+
+    <!-- SECCIÓN 1: DIAGRAMA ISOMÉTRICO 2.5D INTERACTIVO -->
+    <section class="glass-card rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4 border-b border-slate-700/60 pb-3">
+        <div>
+          <span class="text-xs font-extrabold text-sky-400 uppercase tracking-wider">Topología Física & Flujo Operativo</span>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            📐 Estaciones del Sistema en Perspectiva Isométrica 2.5D
+          </h2>
+        </div>
+        <span class="text-xs text-slate-400 italic">💡 Haz clic en cualquier estación para explorar sus reglas operativas</span>
+      </div>
+
+      <!-- LIENZO SVG ISOMÉTRICO -->
+      <div class="relative w-full h-[380px] bg-gradient-to-b from-slate-950/80 to-slate-900/90 rounded-xl border border-sky-900/30 overflow-hidden flex items-center justify-center">
+        
+        <svg viewBox="0 0 960 480" class="w-full h-full max-h-[460px] select-none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Cuadrícula isométrica -->
+            <pattern id="isoGrid" width="60" height="34.64" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 34.64 M 0 0 L 60 34.64" fill="none" stroke="rgba(56, 189, 248, 0.05)" stroke-width="1"/>
+            </pattern>
+            <!-- Degradados -->
+            <linearGradient id="gradNode1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#0284c7" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#0369a1" stop-opacity="0.7"/>
+            </linearGradient>
+            <linearGradient id="gradNode2" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#059669" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#047857" stop-opacity="0.7"/>
+            </linearGradient>
+            <linearGradient id="gradNode3" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.7"/>
+            </linearGradient>
+            <linearGradient id="gradNode4" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#d97706" stop-opacity="0.9"/>
+              <stop offset="100%" stop-color="#b45309" stop-opacity="0.7"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Fondo Cuadrícula -->
+          <rect width="960" height="480" fill="url(#isoGrid)"/>
+
+          <!-- LÍNEAS DE CONEXIÓN ISOMÉTRICAS CON PULSOS -->
+          <g stroke="rgba(56, 189, 248, 0.4)" stroke-width="2.5" stroke-dasharray="6,4" fill="none">
+            <!-- Móvil -> Mesa Despacho -->
+            <path d="M 230 260 L 480 370"/>
+            <!-- Mesa Despacho -> Servidor SQLite Local -->
+            <path d="M 480 370 L 730 260"/>
+            <!-- Servidor Local -> Nube Merkle -->
+            <path d="M 730 260 L 480 150"/>
+            <!-- Nube Merkle -> Móvil (Push) -->
+            <path d="M 480 150 L 230 260"/>
+          </g>
+
+          <!-- ESTACIÓN 1: TELÉFONO MÓVIL DEL BENEFICIARIO (ISOMÉTRICO IZQUIERDA) -->
+          <g id="isoNode1" class="cursor-pointer group" transform="translate(140, 180)" onclick="selectIsoStation(1)">
+            <!-- Sombra base -->
+            <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+            <!-- Cubo isométrico -->
+            <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode1)" stroke="#38bdf8" stroke-width="2"/>
+            <polygon points="10,65 90,110 90,140 10,95" fill="#0369a1" stroke="#38bdf8" stroke-width="1"/>
+            <polygon points="90,110 170,65 170,95 90,140" fill="#075985" stroke="#38bdf8" stroke-width="1"/>
+            <!-- Pantalla / Icono -->
+            <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">📱</text>
+            <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#e0f2fe">Móvil Beneficiario</text>
+            <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">Passkey · QR 180s · Merkle</text>
+          </g>
+
+          <!-- ESTACIÓN 2: MESA DE DESPACHO & ESCÁNER (ISOMÉTRICO ABAJO) -->
+          <g id="isoNode2" class="cursor-pointer group" transform="translate(390, 290)" onclick="selectIsoStation(2)">
+            <!-- Sombra base -->
+            <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+            <!-- Cubo isométrico -->
+            <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode2)" stroke="#34d399" stroke-width="2"/>
+            <polygon points="10,65 90,110 90,140 10,95" fill="#047857" stroke="#34d399" stroke-width="1"/>
+            <polygon points="90,110 170,65 170,95 90,140" fill="#065f46" stroke="#34d399" stroke-width="1"/>
+            <!-- Pantalla / Icono -->
+            <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">📹</text>
+            <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#d1fae5">Mesa de Despacho</text>
+            <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">Cámara HTML5 · NFC · Háptica</text>
+          </g>
+
+          <!-- ESTACIÓN 3: SERVIDOR LOCAL SGBT ALMACÉN (ISOMÉTRICO DERECHA) -->
+          <g id="isoNode3" class="cursor-pointer group" transform="translate(640, 180)" onclick="selectIsoStation(3)">
+            <!-- Sombra base -->
+            <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+            <!-- Cubo isométrico -->
+            <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode3)" stroke="#c084fc" stroke-width="2"/>
+            <polygon points="10,65 90,110 90,140 10,95" fill="#5b21b6" stroke="#c084fc" stroke-width="1"/>
+            <polygon points="90,110 170,65 170,95 90,140" fill="#4c1d95" stroke="#c084fc" stroke-width="1"/>
+            <!-- Pantalla / Icono -->
+            <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">⚡</text>
+            <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#ede9fe">Motor Local SQLite</text>
+            <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">0.07ms · WAL · Anti-Doble Reclamo</text>
+          </g>
+
+          <!-- ESTACIÓN 4: NUBE MINISTERIAL & ÁRBOL MERKLE (ISOMÉTRICO ARRIBA) -->
+          <g id="isoNode4" class="cursor-pointer group" transform="translate(390, 70)" onclick="selectIsoStation(4)">
+            <!-- Sombra base -->
+            <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+            <!-- Cubo isométrico -->
+            <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode4)" stroke="#fbbf24" stroke-width="2"/>
+            <polygon points="10,65 90,110 90,140 10,95" fill="#92400e" stroke="#fbbf24" stroke-width="1"/>
+            <polygon points="90,110 170,65 170,95 90,140" fill="#78350f" stroke="#fbbf24" stroke-width="1"/>
+            <!-- Pantalla / Icono -->
+            <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">🌳</text>
+            <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#fef3c7">Árbol Merkle & Cloud</text>
+            <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">RFC 6962 · Supabase · VAPID Push</text>
+          </g>
+        </svg>
+
+        <!-- TARJETA EXPLICATIVA DINÁMICA FLOTANTE -->
+        <div id="isoInfoCard" class="absolute bottom-3 left-4 right-4 sm:left-6 sm:right-auto sm:max-w-md glass-card rounded-xl p-3 border border-sky-500/40 shadow-2xl transition-all">
+          <div class="flex items-center justify-between">
+            <span id="isoInfoTitle" class="text-xs font-bold text-sky-400">📱 Estación 1: Móvil del Beneficiario</span>
+            <span class="text-[10px] bg-sky-950 text-sky-300 px-1.5 py-0.5 rounded border border-sky-500/30">Nivel 1</span>
+          </div>
+          <p id="isoInfoDesc" class="text-xs text-slate-200 mt-1 leading-snug">
+            El funcionario genera su QR temporal firmado asimétricamente (P-256) con 180s de vigencia. Consulta sus cuotas de combos y audita su inclusión en la raíz Merkle ministerial.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓN 2: SIMULADOR INTERACTIVO SEGÚN EL ROL -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- COLUMNA IZQUIERDA: SIMULADOR VIVO (6 COLS) -->
+      <div class="lg:col-span-6 space-y-6">
+        
+        <!-- PANEL SIMULADOR BENEFICIARIO -->
+        <div id="simBeneficiaryBox" class="glass-card rounded-2xl p-5 border border-sky-500/30 shadow-xl">
+          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📱</span>
+              <div>
+                <h3 class="text-sm font-bold text-white">Simulador en Vivo: Carnet Móvil del Trabajador</h3>
+                <p class="text-xs text-slate-400">Prueba los 5 pasos oficiales del beneficiario en tiempo real</p>
+              </div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-500/40">Interactivo</span>
+          </div>
+
+          <!-- PESTAÑAS DEL SIMULADOR -->
+          <div class="flex flex-wrap gap-1.5 mb-4 p-1 rounded-lg bg-slate-900/80 border border-slate-800 text-xs">
+            <button onclick="setSimTab('login')" id="tabBtnLogin" class="px-2.5 py-1 rounded font-bold bg-sky-600 text-white">1. Login</button>
+            <button onclick="setSimTab('passkey')" id="tabBtnPasskey" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">2. Passkey</button>
+            <button onclick="setSimTab('qr')" id="tabBtnQr" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">3. QR 180s</button>
+            <button onclick="setSimTab('merkle')" id="tabBtnMerkle" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">4. Sello Merkle</button>
+            <button onclick="setSimTab('push')" id="tabBtnPush" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">5. Web Push</button>
+          </div>
+
+          <!-- CONTENIDO PASO 1: LOGIN Y FORMALIZACIÓN -->
+          <div id="simStepLogin" class="space-y-3">
+            <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs space-y-2">
+              <label class="block font-semibold text-slate-300">Cédula de Identidad:</label>
+              <div class="flex gap-2">
+                <input id="simInputDoc" type="text" value="V-18456123" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white font-mono flex-1 focus:border-sky-500 outline-none">
+                <button onclick="simPerformLogin()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded text-xs transition-colors">
+                  Identificar
+                </button>
+              </div>
+              <div id="simLoginResult" class="p-2 rounded bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px]">
+                ✅ Funcionario formalizado: <strong>Carlos Eduardo Mendoza</strong> · Dirección General de Gestión Humana
+              </div>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 2: ENROLAMIENTO PASSKEY -->
+          <div id="simStepPasskey" class="space-y-3 hidden">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-center space-y-3">
+              <div class="text-3xl">🔑 🛡️</div>
+              <h4 class="text-xs font-bold text-white">Enrolamiento Biométrico FIDO2 / WebAuthn</h4>
+              <p class="text-[11px] text-slate-400">Genera tu par de claves asimétricas NIST P-256 en el Secure Enclave de tu teléfono.</p>
+              <button onclick="simEnrollPasskey()" id="btnSimPasskey" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-lg shadow-emerald-900/40">
+                👆 Probar Firma Biométrica
+              </button>
+              <div id="simPasskeyLog" class="text-[10px] font-mono text-slate-400 text-left bg-slate-950 p-2 rounded max-h-20 overflow-y-auto">
+                > Esperando toque biométrico...
+              </div>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 3: QR DINÁMICO 180S -->
+          <div id="simStepQr" class="space-y-3 hidden">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-center space-y-3">
+              <div class="relative w-36 h-36 mx-auto bg-white p-2 rounded-xl shadow-lg border border-slate-300 flex items-center justify-center overflow-hidden">
+                <!-- Código QR Simulado -->
+                <svg viewBox="0 0 100 100" class="w-full h-full text-slate-900">
+                  <rect x="5" y="5" width="25" height="25" fill="currentColor"/>
+                  <rect x="70" y="5" width="25" height="25" fill="currentColor"/>
+                  <rect x="5" y="70" width="25" height="25" fill="currentColor"/>
+                  <rect x="10" y="10" width="15" height="15" fill="#ffffff"/>
+                  <rect x="75" y="10" width="15" height="15" fill="#ffffff"/>
+                  <rect x="10" y="75" width="15" height="15" fill="#ffffff"/>
+                  <rect x="14" y="14" width="7" height="7" fill="currentColor"/>
+                  <rect x="79" y="14" width="7" height="7" fill="currentColor"/>
+                  <rect x="14" y="79" width="7" height="7" fill="currentColor"/>
+                  <rect x="35" y="35" width="30" height="30" fill="currentColor"/>
+                  <circle cx="50" cy="50" r="8" fill="#0284c7"/>
+                </svg>
+                <div class="absolute left-0 right-0 h-0.5 bg-emerald-400 qr-scan-line shadow-[0_0_8px_#34d399]"></div>
+              </div>
+
+              <!-- TEMPORIZADOR DINÁMICO 180s -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs font-mono font-bold">
+                  <span class="text-slate-400">Expiración Anti-Repetición:</span>
+                  <span id="simQrTimer" class="text-emerald-400">180s</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="simQrProgressBar" class="h-full bg-emerald-500 transition-all duration-1000" style="width: 100%;"></div>
+                </div>
+              </div>
+
+              <button onclick="resetQrTimer()" class="text-xs text-sky-400 hover:text-sky-300 font-semibold underline">
+                🔄 Regenerar Token Criptográfico (180s)
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 4: PRUEBA MERKLE -->
+          <div id="simStepMerkle" class="space-y-3 hidden">
+            <div class="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white flex items-center gap-1.5">
+                  <span>🌳</span> Certificado Merkle (RFC 6962)
+                </span>
+                <span class="bg-emerald-950 text-emerald-300 text-[10px] px-2 py-0.5 rounded border border-emerald-500/40">Inmutable</span>
+              </div>
+              <div class="space-y-1.5 text-[11px]">
+                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                  <div class="text-[10px] text-slate-400">Raíz Merkle Ministerial:</div>
+                  <code class="text-sky-400 font-mono text-[10px] break-all">65463a568858229b4b08c69f212268ee410fe7e32faec6d623ce1d386926955a</code>
+                </div>
+                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                  <div class="text-[10px] text-slate-400">Hash SHA-256 de tu Entrega:</div>
+                  <code class="text-emerald-400 font-mono text-[10px] break-all">d3bf81ea412098b671a5472856f6bc42a19b882103f7ec1249b6d802194ad477</code>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center pt-1">
+                  <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Profundidad Árbol</span>
+                    <strong class="text-white">14 Capas</strong>
+                  </div>
+                  <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Ruta O(log N)</span>
+                    <strong class="text-sky-400">13 Hashes (~416 B)</strong>
+                  </div>
+                </div>
+              </div>
+              <button onclick="alert('✅ Comprobación Criptográfica Exitosa: Tu entrega pertenece legítimamente al Acta Oficial Ministerial con sello inalterable.')" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-1.5 rounded text-xs transition-colors">
+                🛡️ Ejecutar Verificación Matemática
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 5: WEB PUSH -->
+          <div id="simStepPush" class="space-y-3 hidden">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-center space-y-3">
+              <div class="text-3xl">🔔 📡</div>
+              <h4 class="text-xs font-bold text-white">Notificaciones Web Push VAPID (Segundo Plano)</h4>
+              <p class="text-[11px] text-slate-400">Recibe alertas con la pantalla apagada cuando inicie tu jornada o retiren tu combo.</p>
+              <button onclick="simTriggerWebPush()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors shadow-lg shadow-amber-900/30">
+                🚀 Simular Aviso Push Entrante
+              </button>
+              <div id="simPushNotification" class="hidden p-3 rounded-lg bg-slate-950 border-l-4 border-amber-500 text-left text-xs shadow-xl animate-bounce">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">📢</span>
+                  <strong class="text-white">SGBT · ¡Combo Entregado con Éxito!</strong>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1">Se confirmó el despacho de su Bolsa de Víveres y Combo Proteico en Mesa 1 (Sótano 1).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL SIMULADOR OPERADOR DE ALMACÉN -->
+        <div id="simOperatorBox" class="glass-card rounded-2xl p-5 border border-emerald-500/30 shadow-xl hidden">
+          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📹</span>
+              <div>
+                <h3 class="text-sm font-bold text-white">Simulador de Mesa: Estación de Despacho</h3>
+                <p class="text-xs text-slate-400">Terminal táctil con escáner, feedback sensorial y anti-duplicados</p>
+              </div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-sky-900/60 text-sky-300 border border-sky-500/40">Almacén</span>
+          </div>
+
+          <!-- PANTALLA HUD DEL OPERADOR -->
+          <div id="operatorHud" class="rounded-xl p-5 text-center transition-all duration-300 bg-slate-900 border-2 border-slate-700 min-h-[170px] flex flex-col items-center justify-center space-y-2">
+            <span id="operatorHudIcon" class="text-4xl">📷</span>
+            <h4 id="operatorHudTitle" class="text-sm font-black text-white uppercase tracking-wider">Esperando Escaneo Óptico / NFC...</h4>
+            <p id="operatorHudDesc" class="text-xs text-slate-400">Acerque el código QR del funcionario o tarjeta de proximidad.</p>
+          </div>
+
+          <!-- BOTONES DE PRUEBA DE CASOS DE DESPACHO -->
+          <div class="grid grid-cols-3 gap-2 mt-4 text-xs">
+            <button onclick="simDispatchCase('success')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2.5 rounded-lg transition-colors flex flex-col items-center gap-1 shadow">
+              <span>🟢</span>
+              <span>1. Retiro Válido</span>
+            </button>
+            <button onclick="simDispatchCase('duplicate')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold p-2.5 rounded-lg transition-colors flex flex-col items-center gap-1 shadow">
+              <span>🔴</span>
+              <span>2. Intento Duplicado</span>
+            </button>
+            <button onclick="simDispatchCase('expired')" class="bg-amber-600 hover:bg-amber-500 text-white font-bold p-2.5 rounded-lg transition-colors flex flex-col items-center gap-1 shadow">
+              <span>🟡</span>
+              <span>3. QR Expirado</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 text-center mt-2.5">
+            🛡️ Protegido por índice relacional único <code class="text-emerald-400">idx_unique_daily_claim</code> a nivel de base de datos.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DERECHA: TEXTO OFICIAL DEL MANUAL INDEXADO (6 COLS) -->
+      <div class="lg:col-span-6 space-y-4">
+        <div class="glass-card rounded-2xl p-5 border border-slate-700/60 shadow-xl max-h-[580px] overflow-y-auto space-y-4 text-xs">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-2.5">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <span>📖</span> Guía Rápida Oficial del Manual de Usuario
+            </h3>
+            <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">MIPPCI 2026</span>
+          </div>
+
+          <!-- SECCIÓN 1: BENEFICIARIO -->
+          <div class="space-y-3">
+            <div class="font-extrabold text-sky-400 uppercase text-[11px] tracking-wider">Parte 1: Funcionario / Beneficiario</div>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group" open>
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.1 Acceso y Formalización de Beneficiario</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                El trabajador ingresa con su Cédula (`V-18456123`). En su primer ingreso captura su foto (cámara web frontal o galería móvil) y asigna su contraseña institucional. La persistencia queda garantizada en Supabase Cloud.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.2 Passkeys FIDO2 y Retiro Biométrico</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                Permite activar Face ID, Touch ID o huella Android en el Secure Enclave del teléfono. Genera un QR dinámico firmado con NIST P-256 de 180 segundos que impide capturas de pantalla o traspasos indebidos.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.3 Recuperación de Contraseña (Autoservicio)</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                Mediante el enlace "¿Olvidó su contraseña?", el funcionario valida su cédula contra su correo institucional o teléfono y asigna una nueva contraseña sin intervención de soporte técnico.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.4 Historial de Recibos y Auto-Verificación Merkle</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                En el botón "📜 Mis Recibos", el trabajador consulta sus despachos históricos y presiona "🛡️ Auditar en Árbol Merkle Ministerial (RFC 6962)", verificando la prueba logarítmica de inclusión contra la raíz oficial.
+              </p>
+            </details>
+          </div>
+
+          <!-- SECCIÓN 2: OPERADOR DE ALMACÉN -->
+          <div class="space-y-3 pt-2">
+            <div class="font-extrabold text-emerald-400 uppercase text-[11px] tracking-wider">Parte 2: Operador de Almacén</div>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group" open>
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>2.1 Estación de Despacho y Escaneo</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                El operador ingresa con su rol a la estación. Apunta la cámara al QR del trabajador o acerca la tarjeta NFC. La interfaz responde en &lt; 0.08 ms con feedback háptico sensorial y sonido de confirmación.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>2.2 Modos de Contingencia y Sin Conexión (Offline)</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                Para adultos mayores sin smartphone, se utiliza la búsqueda por cédula con autorización del supervisor (`override_reason`). Si falla la red, el sistema continúa despachando en SQLite local y se sincroniza al restablecer conexión.
+              </p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SCRIPTS INTERACTIVOS -->
+  <script>
+    // 1. Selector de Roles
+    const btnRoleBen = document.getElementById('btnRoleBeneficiary');
+    const btnRoleOp = document.getElementById('btnRoleOperator');
+    const boxBen = document.getElementById('simBeneficiaryBox');
+    const boxOp = document.getElementById('simOperatorBox');
+
+    btnRoleBen.addEventListener('click', () => {
+      btnRoleBen.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-600 text-white shadow";
+      btnRoleOp.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+      boxBen.classList.remove('hidden');
+      boxOp.classList.add('hidden');
+      selectIsoStation(1);
+    });
+
+    btnRoleOp.addEventListener('click', () => {
+      btnRoleOp.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600 text-white shadow";
+      btnRoleBen.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+      boxOp.classList.remove('hidden');
+      boxBen.classList.add('hidden');
+      selectIsoStation(2);
+    });
+
+    // 2. Selector de Modo Oscuro/Claro
+    const btnTheme = document.getElementById('btnThemeToggle');
+    btnTheme.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      btnTheme.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    });
+
+    // 3. Estaciones Isométricas
+    const isoData = {
+      1: { title: "📱 Estación 1: Móvil del Beneficiario", tag: "Nivel 1", desc: "El funcionario formaliza su carnet, enrola su Passkey FIDO2 en hardware seguro y genera su código QR temporal de 180s. Audita su recibo en el Árbol Merkle y recibe Web Push en 2do plano." },
+      2: { title: "📹 Estación 2: Mesa de Despacho", tag: "Nivel 2", desc: "Terminal del operador con cámara web HTML5 y antena NFC (Tap-to-Claim). Liquida beneficios con feedback háptico sensorial multimodal y pantalla verde de confirmación instantánea." },
+      3: { title: "⚡ Estación 3: Servidor Local SGBT (Almacén Central)", tag: "Nivel 3", desc: "Motor SQLite nativo en modo WAL con micro-caché in-memory a 0.07 ms (197x). Neutraliza dobles entregas mediante el índice único de base de datos idx_unique_daily_claim." },
+      4: { title: "🌳 Estación 4: Árbol Merkle & Supabase Cloud", tag: "Nivel 4", desc: "Sellado criptográfico RFC 6962 de 14 capas. Genera actas ministeriales oficiales con hash SHA-256 inmutable y emite alertas Web Push VAPID a los trabajadores." }
+    };
+
+    function selectIsoStation(id) {
+      const data = isoData[id];
+      if (!data) return;
+      document.getElementById('isoInfoTitle').textContent = data.title;
+      document.getElementById('isoInfoDesc').textContent = data.desc;
+    }
+
+    // 4. Pestañas del Simulador de Beneficiario
+    function setSimTab(tab) {
+      const tabs = ['login', 'passkey', 'qr', 'merkle', 'push'];
+      tabs.forEach(t => {
+        const step = document.getElementById(`simStep${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === tab) {
+          step?.classList.remove('hidden');
+          btn?.classList.add('bg-sky-600', 'text-white');
+          btn?.classList.remove('text-slate-400');
+        } else {
+          step?.classList.add('hidden');
+          btn?.classList.remove('bg-sky-600', 'text-white');
+          btn?.classList.add('text-slate-400');
+        }
+      });
+      if (tab === 'qr') startQrTimer();
+    }
+
+    function simPerformLogin() {
+      const doc = document.getElementById('simInputDoc').value;
+      const res = document.getElementById('simLoginResult');
+      res.innerHTML = `✅ Sesión iniciada: Funcionario activo con C.I. <strong>${doc}</strong>. Dispositivo verificado.`;
+    }
+
+    function simEnrollPasskey() {
+      const log = document.getElementById('simPasskeyLog');
+      log.innerHTML += '<br>> Desafío WebAuthn P-256 recibido del servidor...';
+      setTimeout(() => {
+        log.innerHTML += '<br>> Solicitando huella/FaceID al Secure Enclave...';
+      }, 500);
+      setTimeout(() => {
+        log.innerHTML += '<br><strong>✅ ¡Passkey enrolada exitosamente! Clave pública guardada.</strong>';
+      }, 1200);
+    }
+
+    // Temporizador QR 180s
+    let qrTimerInterval = null;
+    let qrSeconds = 180;
+
+    function startQrTimer() {
+      if (qrTimerInterval) clearInterval(qrTimerInterval);
+      qrSeconds = 180;
+      updateQrDisplay();
+      qrTimerInterval = setInterval(() => {
+        qrSeconds--;
+        if (qrSeconds <= 0) {
+          clearInterval(qrTimerInterval);
+          qrSeconds = 0;
+        }
+        updateQrDisplay();
+      }, 1000);
+    }
+
+    function resetQrTimer() {
+      startQrTimer();
+    }
+
+    function updateQrDisplay() {
+      const timerEl = document.getElementById('simQrTimer');
+      const barEl = document.getElementById('simQrProgressBar');
+      if (timerEl) timerEl.textContent = `${qrSeconds}s`;
+      if (barEl) {
+        const pct = (qrSeconds / 180) * 100;
+        barEl.style.width = `${pct}%`;
+        if (pct < 20) {
+          barEl.className = "h-full bg-rose-500 transition-all duration-1000";
+        } else if (pct < 50) {
+          barEl.className = "h-full bg-amber-500 transition-all duration-1000";
+        } else {
+          barEl.className = "h-full bg-emerald-500 transition-all duration-1000";
+        }
+      }
+    }
+
+    function simTriggerWebPush() {
+      const pushEl = document.getElementById('simPushNotification');
+      pushEl?.classList.remove('hidden');
+      setTimeout(() => {
+        pushEl?.classList.add('hidden');
+      }, 6000);
+    }
+
+    // 5. Casos de Despacho del Operador
+    function simDispatchCase(type) {
+      const hud = document.getElementById('operatorHud');
+      const icon = document.getElementById('operatorHudIcon');
+      const title = document.getElementById('operatorHudTitle');
+      const desc = document.getElementById('operatorHudDesc');
+
+      if (type === 'success') {
+        hud.className = "rounded-xl p-5 text-center transition-all duration-300 bg-emerald-950 border-2 border-emerald-500 min-h-[170px] flex flex-col items-center justify-center space-y-2 shadow-[0_0_25px_rgba(16,185,129,0.3)]";
+        icon.textContent = "✅";
+        title.className = "text-base font-black text-emerald-300 uppercase tracking-wider";
+        title.textContent = "¡DESPACHO AUTORIZADO! (1 COMBO VÍVERES + 1 PROTEICO)";
+        desc.className = "text-xs text-emerald-200";
+        desc.textContent = "Beneficiario: Carlos Mendoza · V-18456123 · Cuota liquidada en SQLite y Supabase Cloud.";
+      } else if (type === 'duplicate') {
+        hud.className = "rounded-xl p-5 text-center transition-all duration-300 bg-rose-950 border-2 border-rose-500 min-h-[170px] flex flex-col items-center justify-center space-y-2 shadow-[0_0_25px_rgba(239,68,68,0.3)]";
+        icon.textContent = "⛔";
+        title.className = "text-base font-black text-rose-300 uppercase tracking-wider";
+        title.textContent = "RECHAZADO: BENEFICIO YA RETIRADO HOY";
+        desc.className = "text-xs text-rose-200";
+        desc.textContent = "El trabajador ya reclamó sus combos en Mesa 1 a las 09:15 AM. Idempotencia activada.";
+      } else if (type === 'expired') {
+        hud.className = "rounded-xl p-5 text-center transition-all duration-300 bg-amber-950 border-2 border-amber-500 min-h-[170px] flex flex-col items-center justify-center space-y-2 shadow-[0_0_25px_rgba(245,158,11,0.3)]";
+        icon.textContent = "⚠️";
+        title.className = "text-base font-black text-amber-300 uppercase tracking-wider";
+        title.textContent = "CÓDIGO QR EXPIRADO (> 180 SEGUNDOS)";
+        desc.className = "text-xs text-amber-200";
+        desc.textContent = "Solicite al funcionario presionar 'Regenerar Código' en su pantalla para emitir nuevo token.";
+      }
+    }
+  </script>
+</body>
+</html>
