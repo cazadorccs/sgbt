@@ -70,6 +70,37 @@ async function runSecurityAuditSuite() {
     });
   }
 
+  // Asegurar estado determinista de cuentas de prueba para TOB-01 y TOB-09
+  try {
+    const { db } = require('../backend/db');
+    const { hashPassword } = require('../backend/crypto-utils');
+    const { supabase, isSupabaseConfigured } = require('../backend/supabase');
+    const defaultHash = hashPassword('1178');
+    db.prepare(`
+      UPDATE workers 
+      SET password_hash = ?, enrollment_status = 'registrado' 
+      WHERE document_id = '13537582'
+    `).run(defaultHash);
+    
+    db.prepare(`
+      UPDATE workers 
+      SET password_hash = NULL, enrollment_status = 'precargado' 
+      WHERE document_id = 'V-11123987'
+    `).run();
+
+    if (isSupabaseConfigured && isSupabaseConfigured() && supabase) {
+      const w13 = db.prepare('SELECT id FROM workers WHERE document_id = ?').get('13537582');
+      if (w13) {
+        await supabase.from('passkey_credentials')
+          .update({ public_key: defaultHash })
+          .eq('worker_id', w13.id)
+          .like('credential_id', 'formalized_pwd_%');
+      }
+    }
+  } catch (seedErr) {
+    console.warn('   ⚠️ [SETUP WARN] No se pudo reiniciar hashes de prueba:', seedErr.message);
+  }
+
   try {
     // ------------------------------------------------------------------------
     // PRUEBA TOB-01: Intentar login administrativo con solo ingresar la cédula
@@ -208,6 +239,13 @@ async function runSecurityAuditSuite() {
     // PRUEBA TOB-09: Aislamiento Criptográfico de Sesión de Beneficiario para Super Admin
     // ------------------------------------------------------------------------
     console.log('9. Verificando que login de beneficiario con clave legítima (1178) obtenga scope "beneficiary" y no pueda acceder a /admin/*...');
+    try {
+      const { db } = require('../backend/db');
+      const { hashPassword } = require('../backend/crypto-utils');
+      const testHash = hashPassword('1178');
+      db.prepare("UPDATE workers SET password_hash = ?, enrollment_status = 'registrado' WHERE document_id = '13537582'").run(testHash);
+    } catch (e) {}
+
     const resAdminAsBeneficiary = await httpRequest('POST', '/api/v1/auth/login', {
       document_id: '13537582',
       password: '1178',

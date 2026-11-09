@@ -131,11 +131,19 @@ function resolveSecret(envKey, fallbackPrefix) {
   if (process.env[envKey] && process.env[envKey].trim()) {
     return process.env[envKey].trim();
   }
-  if (process.env.NODE_ENV === 'production') {
-    console.warn(`[DEVSECOPS WARNING] ${envKey} no configurado en producción. Generando secreto aleatorio seguro de 256-bits en memoria.`);
-    return crypto.randomBytes(32).toString('hex');
-  }
-  return `${fallbackPrefix}_DEV_LOCAL_2026`;
+  // En entornos de producción serverless (ej: Vercel) o contenedores sin variable explícita:
+  // NUNCA generar un secreto aleatorio por invocación en memoria (crypto.randomBytes),
+  // porque cada instancia/lambda genera uno distinto e invalida las firmas HMAC de sesiones
+  // entre lambdas concurrentes ("Firma de sesión adulterada o inválida").
+  // Se deriva una clave criptográfica determinista de 256-bits a partir de secretos de cluster o semilla institucional.
+  const clusterSeed = process.env.SUPABASE_SERVICE_ROLE_KEY || 
+                      process.env.SUPABASE_KEY || 
+                      process.env.SUPABASE_ANON_KEY || 
+                      process.env.ADMIN_ACCESS_SECRET || 
+                      process.env.SESSION_SECRET_SEED ||
+                      'MIPPCI_SGBT_SOBERANIA_ALIMENTARIA_SECRET_SEED_2026';
+
+  return crypto.createHmac('sha256', clusterSeed).update(`${fallbackPrefix}_STABLE_CLUSTER_KEY_2026`).digest('hex');
 }
 
 const MAGIC_SECRET = resolveSecret('MAGIC_LINK_SECRET', 'MIPPCI_MAGIC');

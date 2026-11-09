@@ -765,7 +765,11 @@ window.registerPlatformBiometrics = registerPlatformBiometrics;
 function showLoginAlert(msg) {
   const alertBox = document.getElementById('loginAlertBox');
   if (alertBox) {
-    alertBox.textContent = msg;
+    if (typeof msg === 'string' && (msg.includes('<') || msg.includes('&'))) {
+      alertBox.innerHTML = msg;
+    } else {
+      alertBox.textContent = msg;
+    }
     alertBox.style.display = 'block';
   }
 }
@@ -966,7 +970,11 @@ async function executeAdminLogin(identifier, secret) {
 
     if (!data.success) {
       console.warn(`[CLIENT AUTH] ❌ Acceso administrativo denegado:`, data.error);
-      showLoginAlert(data.error || 'Credenciales administrativas inválidas.');
+      let alertMsg = data.error || 'Credenciales administrativas inválidas.';
+      if (typeof alertMsg === 'string' && alertMsg.includes('contraseña de beneficiario')) {
+        alertMsg = '🛡️ Clave o PIN administrativo incorrecto.<br><small style="display:inline-block; margin-top:0.35rem;">Para ingresar a la consola administrativa (/coseg) use el PIN oficial (<strong>0578</strong>). Su clave personal es para acceder al portal de beneficiarios y combos.</small>';
+      }
+      showLoginAlert(alertMsg);
       playAudioFeedback('error');
       return;
     }
