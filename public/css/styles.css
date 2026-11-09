@@ -48,7 +48,7 @@
 
   /* Badges y Etiquetas Semánticas */
   --badge-blue-bg: #e0f2fe;
-  --badge-blue-text: #0369a1;
+  --badge-blue-text: #025988; /* Contraste WCAG 2.2 AAA (7.53:1 con #ffffff) */
   --badge-blue-border: #bae6fd;
   --badge-green-bg: #ecfdf5;
   --badge-green-text: #065f46;
@@ -4815,6 +4815,91 @@ body.dark-mode .distribution-point-panel {
 .tg-pill-text {
   line-height: 1.2;
 }
+
+/* ============================================================================
+   WCAG 2.2 / 2.5.8 ACCESIBILIDAD Y ERGONOMÍA TÁCTIL (TOUCH TARGETS ≥ 48px)
+   Garantiza usabilidad táctil de alta precisión para campo, quioscos y móviles
+   ============================================================================ */
+
+/* 1. Botones de Navegación y Pestañas Móviles */
+.mobile-tab-btn,
+.nav-tab-btn,
+.sidebar-nav .nav-tab-btn,
+.login-tab-btn {
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+/* 2. Teclado Numérico PIN / Numpad de Despacho */
+.pin-btn,
+.keypad-btn,
+.numpad-key,
+.pin-key {
+  min-height: 52px;
+  min-width: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  user-select: none;
+  touch-action: manipulation;
+}
+
+/* 3. Inputs y Controles de Formulario */
+.form-control,
+.form-input,
+.form-select,
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+/* 4. Botones de Cierre de Modales y Diálogos */
+.modal-close,
+.modal-close-btn {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+/* 5. Mesas de Entrega, Filtros y Selección de Combos */
+.mesa-card-btn,
+.mesa-pill,
+.combo-selector-btn,
+.chip-btn {
+  min-height: 48px;
+  min-width: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
+/* 6. Acciones de Escáner y Lectura QR */
+#btnStartScanner,
+#btnStartCameraScanner,
+#btnStopCameraScanner,
+#btnQuickScanDetectedQr,
+#btnScanWorkerGeneratedQr {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+}
+
 
 
 

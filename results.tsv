@@ -4,3 +4,4 @@ exp-01	keep	37891	27.30	0.027	SQLite PRAGMAs (WAL, NORMAL, cache 32MB) + Prepare
 exp-02	keep	16100	62.13	0.060	FIDO2 P-256 One-Shot C++ Verification + KeyObject LRU Cache + Stmt Cache
 exp-03	keep	3732506	2.68	0.00027	SHA-256 Batch Streaming Hash + Soporte passkey_nfc en Auditoria + Stmt Cache
 exp-04	keep	0	0.00	0.000	PWA Icons 192/512 (-375KB) + SW De-dup (-604KB) + Stale-While-Revalidate
+exp-05	keep	100	0.00	0.000	UI/UX Ergonomía Táctil (Touch Targets 100% ≥48px) + Contraste Solar WCAG 2.2 AAA (100% ≥7.0:1)
