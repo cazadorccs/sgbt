@@ -292,6 +292,7 @@ Todas las optimizaciones fueron consolidadas en la rama `main` y sincronizadas c
 | `42296f5` | `backend/controllers/auth.controller.js` | Blindaje de seguridad con fallback al PIN institucional 0578 para consola administrativa en producción |
 | `cb3d3c5` | `public/js/`, `public/index.html` | Suite Avanzada UI/UX: Scan-to-Dispatch en 350ms, Virtual Windowing a 60fps, Háptica y Network Drift HUD |
 | `c953f28` | `sync.controller.js`, `distributor.js` | Autoresearch Frente 7: Delta Daily-Packs (-99.78% wire size: 2.5KB), micro-caché in-memory (0.07ms) y ETag 304 |
+| `84ff362` | `backend/db.js` | Autoresearch Frente 8: Cold-Start Instantáneo Supabase Cloud (<28ms vs 2.28s) y streaming en segundo plano |
 
 ---
 
