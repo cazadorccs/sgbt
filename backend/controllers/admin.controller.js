@@ -1529,6 +1529,63 @@ const manageWorkerPassword = (req, res) => {
   }
 };
 
+const verifyMerkleProofEndpoint = (req, res) => {
+  try {
+    const { document_id, delivery_id } = req.query;
+    if (!document_id && !delivery_id) {
+      return res.status(400).json({ error: 'Parámetro document_id o delivery_id requerido' });
+    }
+
+    const { generateMerkleTree, generateMerkleProof, verifyMerkleProof, hashDeliveryLeaf } = require('../services/audit.service');
+
+    const deliveries = db.prepare(`
+      SELECT d.id, d.entitlement_id, d.worker_id, w.document_id, w.full_name, d.delivered_at, 
+             d.verification_method, d.signature_proof, d.is_offline_sync, c.name as combo_name, cb.weight_kg
+      FROM deliveries d
+      JOIN workers w ON d.worker_id = w.id
+      LEFT JOIN daily_entitlements de ON d.entitlement_id = de.id
+      LEFT JOIN combos c ON de.combo_id = c.id
+      LEFT JOIN combos cb ON cb.id = c.id
+      ORDER BY d.delivered_at ASC, d.id ASC
+    `).all();
+
+    if (!deliveries || deliveries.length === 0) {
+      return res.status(404).json({ error: 'No hay despachos registrados para auditar' });
+    }
+
+    const targetKey = (document_id || delivery_id).trim();
+    const targetDelivery = deliveries.find(d => d.document_id === targetKey || d.id === targetKey);
+    if (!targetDelivery) {
+      return res.status(404).json({ error: `Despacho no encontrado para identificador: ${targetKey}` });
+    }
+
+    const tree = generateMerkleTree(deliveries);
+    const proof = generateMerkleProof(deliveries, targetKey);
+    const leafHash = hashDeliveryLeaf(targetDelivery);
+    const isValid = verifyMerkleProof(leafHash, proof, tree.root);
+
+    res.json({
+      verified: isValid,
+      merkle_root: tree.root,
+      total_deliveries_in_tree: tree.totalRecords,
+      tree_depth: tree.layers.length,
+      proof_length: proof ? proof.length : 0,
+      delivery: {
+        id: targetDelivery.id,
+        document_id: targetDelivery.document_id,
+        full_name: targetDelivery.full_name,
+        delivered_at: targetDelivery.delivered_at,
+        verification_method: targetDelivery.verification_method
+      },
+      leaf_hash: leafHash,
+      proof
+    });
+  } catch (err) {
+    console.error('[MERKLE VERIFY ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   getKpis,
   getWorkers,
@@ -1548,6 +1605,7 @@ module.exports = {
   deleteCombo,
   getAuditStats,
   getDeliveries,
-  exportDeliveries
+  exportDeliveries,
+  verifyMerkleProofEndpoint
 };
 

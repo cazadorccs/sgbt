@@ -8,6 +8,7 @@ const { validateWorkerRole } = require('../middleware/validator.middleware');
 // KPIs y Métricas de Auditoría
 router.get('/admin/kpis', requireRole('admin', 'director', 'supervisor', 'auditor'), adminController.getKpis);
 router.get('/admin/audit/stats', requireRole('admin', 'director', 'supervisor', 'auditor'), adminController.getAuditStats);
+router.get('/admin/audit/merkle-verify', requireRole('admin', 'director', 'supervisor', 'auditor'), adminController.verifyMerkleProofEndpoint);
 router.get('/admin/deliveries', requireRole('admin', 'director', 'supervisor', 'auditor'), adminController.getDeliveries);
 router.get('/admin/export', requireRole('admin', 'director', 'supervisor', 'auditor'), adminController.exportDeliveries);
 

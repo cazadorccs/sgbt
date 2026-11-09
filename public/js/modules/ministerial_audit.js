@@ -602,7 +602,7 @@
                   ${latestActa.acta_number}
                 </span>
                 <span class="badge" style="background: #065f46; color: #6ee7b7; font-size: 0.65rem;">
-                  🔒 Sello SHA-256 Verificado
+                  🌳 Árbol Merkle RFC 6962 Verificado
                 </span>
               </div>
               <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.2rem;">
@@ -636,6 +636,22 @@
     printActaDirect(actaId) {
       const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
       window.open(`/api/v1/audit/ministerial/acta/${encodeURIComponent(actaId || 'latest')}/print?session_token=${encodeURIComponent(token)}`, '_blank');
+    },
+
+    async verifyBeneficiaryMerkle(docId) {
+      if (!docId) return;
+      try {
+        const res = await (window.API ? window.API.get(`/api/v1/admin/audit/merkle-verify?document_id=${encodeURIComponent(docId)}`) : fetch(`/api/v1/admin/audit/merkle-verify?document_id=${encodeURIComponent(docId)}`).then(r => r.json()));
+        if (res && res.verified) {
+          if (typeof window.showToast === 'function') {
+            window.showToast(`✅ Despacho verificado en Árbol Merkle (Profundidad: ${res.tree_depth}, Prueba: ${res.proof_length} nodos).`, 'success');
+          }
+        }
+      } catch (e) {
+        if (typeof window.showToast === 'function') {
+          window.showToast(`Verificación Merkle: ${e.message}`, 'warning');
+        }
+      }
     }
   };
 

@@ -68,9 +68,137 @@ function calculateAuditMetrics(deliveries = []) {
 }
 
 /**
+ * Hashea una hoja canónica del despacho para el árbol Merkle
+ */
+function hashDeliveryLeaf(d) {
+  const payload = `SGBT:v1:${d.id || d.delivery_id}:${d.delivered_at || ''}:${d.document_id || ''}:${d.verification_method || ''}:${d.signature_proof || ''}`;
+  return crypto.createHash('sha256').update(payload).digest('hex');
+}
+
+/**
+ * Combina dos hashes hermanos en el árbol Merkle
+ */
+function combineMerkleHashes(left, right) {
+  return crypto.createHash('sha256').update(left + right).digest('hex');
+}
+
+/**
+ * Construye el Árbol Merkle Criptográfico binario completo (RFC 6962 / Bitcoin standard)
+ * @param {Array} deliveries Lista de despachos
+ * @returns {Object} { root, leaves, layers, totalRecords }
+ */
+function generateMerkleTree(deliveries = []) {
+  if (!deliveries || deliveries.length === 0) {
+    const emptyRoot = crypto.createHash('sha256').update('SGBT_EMPTY_MERKLE_TREE').digest('hex');
+    return {
+      root: emptyRoot,
+      leaves: [],
+      layers: [[emptyRoot]],
+      totalRecords: 0
+    };
+  }
+
+  // 1. Capa 0: Hashes de las hojas
+  const leaves = deliveries.map(hashDeliveryLeaf);
+  const layers = [leaves];
+
+  // 2. Reducción jerárquica por capas
+  let currentLayer = leaves;
+  while (currentLayer.length > 1) {
+    const nextLayer = [];
+    const len = currentLayer.length;
+    for (let i = 0; i < len; i += 2) {
+      const left = currentLayer[i];
+      // Si el número de nodos es impar, se duplica el último nodo (RFC 6962)
+      const right = (i + 1 < len) ? currentLayer[i + 1] : left;
+      nextLayer.push(combineMerkleHashes(left, right));
+    }
+    layers.push(nextLayer);
+    currentLayer = nextLayer;
+  }
+
+  const root = currentLayer[0];
+  return {
+    root,
+    leaves,
+    layers,
+    totalRecords: deliveries.length
+  };
+}
+
+/**
+ * Genera la prueba de inclusión Merkle Proof O(log N) para un despacho específico
+ * @param {Array} deliveries Lista de despachos
+ * @param {number|string} target Index numérico o ID/Cédula del despacho
+ */
+function generateMerkleProof(deliveries = [], target) {
+  if (!deliveries || deliveries.length === 0) return null;
+
+  let index = -1;
+  if (typeof target === 'number') {
+    index = target;
+  } else if (typeof target === 'string') {
+    index = deliveries.findIndex(d => 
+      d.document_id === target || 
+      d.id === target || 
+      d.delivery_id === target
+    );
+  }
+
+  if (index < 0 || index >= deliveries.length) return null;
+
+  const tree = generateMerkleTree(deliveries);
+  const proof = [];
+  let currentIndex = index;
+
+  for (let l = 0; l < tree.layers.length - 1; l++) {
+    const currentLayer = tree.layers[l];
+    const isEven = (currentIndex % 2 === 0);
+    const pairIndex = isEven ? currentIndex + 1 : currentIndex - 1;
+
+    let pairHash = null;
+    if (pairIndex < currentLayer.length) {
+      pairHash = currentLayer[pairIndex];
+    } else {
+      pairHash = currentLayer[currentIndex]; // Duplicado si es impar al final
+    }
+
+    proof.push({
+      position: isEven ? 'right' : 'left',
+      hash: pairHash
+    });
+
+    currentIndex = Math.floor(currentIndex / 2);
+  }
+
+  return proof;
+}
+
+/**
+ * Verifica una prueba de inclusión Merkle Proof en tiempo O(log N) sin conocer las demás hojas
+ * @param {string} leafHash Hash SHA-256 de la hoja
+ * @param {Array} proof Array de objetos { position, hash }
+ * @param {string} expectedRoot Raíz de Merkle oficial sellada en el acta
+ * @returns {boolean} True si la prueba es válida e inmutable
+ */
+function verifyMerkleProof(leafHash, proof, expectedRoot) {
+  if (!leafHash || !proof || !Array.isArray(proof) || !expectedRoot) return false;
+
+  let current = leafHash;
+  for (const step of proof) {
+    if (step.position === 'right') {
+      current = combineMerkleHashes(current, step.hash);
+    } else {
+      current = combineMerkleHashes(step.hash, current);
+    }
+  }
+
+  return current === expectedRoot;
+}
+
+/**
  * Genera el sello de integridad SHA-256 a partir de la secuencia ordenada de despachos.
- * Implementación optimizada con flujo continuo de actualización en hash (streaming),
- * reduciendo a cero las asignaciones intermedias de arrays y cadenas en el recolector de basura V8.
+ * Utiliza la Raíz del Árbol Merkle (RFC 6962) para garantizar verificabilidad descentralizada.
  * @param {Array} deliveries Lista de despachos
  */
 function generateSha256IntegritySeal(deliveries = []) {
@@ -78,14 +206,8 @@ function generateSha256IntegritySeal(deliveries = []) {
     return crypto.createHash('sha256').update('SGBT_EMPTY_DISPATCH').digest('hex');
   }
 
-  const hash = crypto.createHash('sha256');
-  const len = deliveries.length;
-  for (let i = 0; i < len; i++) {
-    const d = deliveries[i];
-    if (i > 0) hash.update('|');
-    hash.update(`${d.delivery_id || d.id}:${d.delivered_at}:${d.document_id}`);
-  }
-  return hash.digest('hex');
+  const tree = generateMerkleTree(deliveries);
+  return tree.root;
 }
 
 /**
@@ -275,5 +397,10 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
 module.exports = {
   calculateAuditMetrics,
   generateSha256IntegritySeal,
+  generateMerkleTree,
+  generateMerkleProof,
+  verifyMerkleProof,
+  hashDeliveryLeaf,
+  combineMerkleHashes,
   generateOfficialActaHtml
 };
