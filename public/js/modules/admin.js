@@ -6,7 +6,7 @@ window.refreshPortalData = async function() {
   if (window.API && !window.API.hasToken()) return;
   try {
     // 1. KPIs
-    const kpiData = await API.get('/api/v1/admin/kpis');
+    const kpiData = await API.get('/api/v1/admin/kpis?_t=' + Date.now());
     const { kpis, alerts } = kpiData;
 
     const elTotalWorkers = document.getElementById('kpiTotalWorkers');
@@ -89,6 +89,11 @@ window.refreshPortalData = async function() {
     // 9. Monitor de Formalización Previa y Auditoría Ministerial (Fase 5)
     if (window.MinisterialAudit && typeof window.MinisterialAudit.loadData === 'function') {
       await window.MinisterialAudit.loadData();
+    }
+
+    // 10. Resumen de Despacho Manual en Vivo (Combos Entregados / Pendientes Hoy)
+    if (typeof window.loadManualDispatchStats === 'function') {
+      window.loadManualDispatchStats().catch(() => {});
     }
 
   } catch (err) {

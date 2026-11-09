@@ -6,7 +6,26 @@ const { db } = require('../db');
 const { generateOfficialActaHtml } = require('../services/audit.service');
 const { hashPassword, generateMagicLinkToken } = require('../crypto-utils');
 
-const getKpis = (req, res) => {
+const getKpis = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
+  // Resiliencia Serverless (Vercel Cold-Start):
+  // Si no hay entregas en la base local, esperar brevemente a la hidratación asíncrona de Supabase
+  try {
+    const localDelCount = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE delivered_at >= datetime('now', '-24 hours')").get()?.c || 0;
+    if (localDelCount === 0) {
+      const { cloudHydrationPromise } = require('../db');
+      if (cloudHydrationPromise) {
+        await Promise.race([
+          cloudHydrationPromise,
+          new Promise((resolve) => setTimeout(resolve, 500))
+        ]);
+      }
+    }
+  } catch (e) {}
+
   const today = new Date().toISOString().split('T')[0];
 
   const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().count;
