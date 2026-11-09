@@ -1093,6 +1093,19 @@ const getSupervisorDailyQr = (req, res) => {
   }
 };
 
+// Prepared statement en caché para verificación rápida de Passkeys
+let _stmtAuthPasskey = null;
+function getActivePasskeyForAuth(wid) {
+  if (!_stmtAuthPasskey) {
+    _stmtAuthPasskey = db.prepare(`
+      SELECT public_key, status FROM passkey_credentials
+      WHERE worker_id = ? AND status = 'active'
+      ORDER BY enrolled_at DESC LIMIT 1
+    `);
+  }
+  return _stmtAuthPasskey.get(wid);
+}
+
 const verifyQr = async (req, res) => {
   let { qr_payload, distribution_point_id, delivered_by_user_id, station, verification_method } = req.body;
   if (!qr_payload) {
@@ -1325,11 +1338,7 @@ const verifyQr = async (req, res) => {
     });
   }
 
-  const cred = db.prepare(`
-    SELECT public_key, status FROM passkey_credentials
-    WHERE worker_id = ? AND status = 'active'
-    ORDER BY enrolled_at DESC LIMIT 1
-  `).get(wid);
+  const cred = getActivePasskeyForAuth(wid);
 
   if (!cred) {
     logScan('REJECTED_NO_PASSKEY', qr_payload, { error: 'NO_ACTIVE_PASSKEY', worker_id: wid }, { req, ip: req.ip });

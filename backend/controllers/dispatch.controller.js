@@ -106,6 +106,19 @@ const setDispatchMode = (req, res) => {
   });
 };
 
+// Prepared statement en caché para verificación de Passkeys activas
+let _stmtDispatchPasskey = null;
+function getActivePasskeyForDispatch(wid) {
+  if (!_stmtDispatchPasskey) {
+    _stmtDispatchPasskey = db.prepare(`
+      SELECT public_key, status FROM passkey_credentials
+      WHERE worker_id = ? AND status = 'active'
+      ORDER BY enrolled_at DESC LIMIT 1
+    `);
+  }
+  return _stmtDispatchPasskey.get(wid);
+}
+
 /**
  * Ejecuta el retiro atómico totalizado o específico para un beneficiario
  */
@@ -180,11 +193,7 @@ const atomicClaim = async (req, res) => {
 
   // Verificación criptográfica de firma ECDSA P-256 si se provee firma
   if (sig) {
-    const cred = db.prepare(`
-      SELECT public_key, status FROM passkey_credentials
-      WHERE worker_id = ? AND status = 'active'
-      ORDER BY enrolled_at DESC LIMIT 1
-    `).get(wid);
+    const cred = getActivePasskeyForDispatch(wid);
 
     if (!cred) {
       logDispatch('REJECTED_NO_PASSKEY', qr_payload, { error: 'NO_ACTIVE_PASSKEY', worker_id: wid }, { req, ip: req.ip });

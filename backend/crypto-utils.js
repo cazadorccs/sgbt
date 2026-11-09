@@ -50,31 +50,55 @@ function canonicalizePayload({ wid, ent, ts, nonce }) {
   });
 }
 
+// Caché LRU de objetos de llave pública ECDSA P-256 para evitar parseo ASN.1 repetitivo en C++
+const publicKeyCache = new Map();
+const MAX_KEY_CACHE = 2048;
+
+function getParsedPublicKey(pem) {
+  if (!pem) return null;
+  if (typeof pem !== 'string') return pem;
+  let keyObj = publicKeyCache.get(pem);
+  if (!keyObj) {
+    try {
+      keyObj = crypto.createPublicKey(pem);
+      if (publicKeyCache.size >= MAX_KEY_CACHE) {
+        const oldest = publicKeyCache.keys().next().value;
+        publicKeyCache.delete(oldest);
+      }
+      publicKeyCache.set(pem, keyObj);
+    } catch {
+      return pem;
+    }
+  }
+  return keyObj;
+}
+
 /**
  * Firma el payload offline usando la clave privada ECDSA P-256.
- * Retorna la firma en formato Base64.
+ * Retorna la firma en formato Base64 mediante el método directo one-shot C++.
  */
 function signOfflinePayload(privateKeyPem, { wid, ent, ts, nonce }) {
   const canonicalData = canonicalizePayload({ wid, ent, ts, nonce });
-  const sign = crypto.createSign('SHA256');
-  sign.update(canonicalData);
-  sign.end();
-  return sign.sign(privateKeyPem, 'base64');
+  return crypto.sign('SHA256', Buffer.from(canonicalData, 'utf8'), privateKeyPem).toString('base64');
 }
 
 /**
  * Verifica la firma ECDSA P-256 utilizando la clave pública PEM del trabajador.
  * Funciona de forma 100% offline contra la clave pública en base de datos.
+ * Utiliza verificación one-shot C++ y KeyObject en caché para máximo rendimiento y mínima latencia.
  */
 function verifyOfflineSignature(publicKeyPem, { wid, ent, ts, nonce }, signatureBase64) {
   try {
+    if (!publicKeyPem || !signatureBase64) return false;
     const canonicalData = canonicalizePayload({ wid, ent, ts, nonce });
-    const verify = crypto.createVerify('SHA256');
-    verify.update(canonicalData);
-    verify.end();
-    return verify.verify(publicKeyPem, signatureBase64, 'base64');
+    const key = getParsedPublicKey(publicKeyPem);
+    return crypto.verify(
+      'SHA256',
+      Buffer.from(canonicalData, 'utf8'),
+      key,
+      Buffer.from(signatureBase64, 'base64')
+    );
   } catch (err) {
-    console.error('Error verificando firma ECDSA P-256:', err.message);
     return false;
   }
 }

@@ -139,6 +139,19 @@ async function registerPasskeyCredential({ worker_id, credential, device_name })
   };
 }
 
+let _stmtActivePasskey = null;
+function getActivePasskey(worker_id) {
+  if (!_stmtActivePasskey) {
+    _stmtActivePasskey = db.prepare(`
+      SELECT credential_id, public_key, status
+      FROM passkey_credentials
+      WHERE worker_id = ? AND status = 'active'
+      ORDER BY enrolled_at DESC LIMIT 1
+    `);
+  }
+  return _stmtActivePasskey.get(worker_id);
+}
+
 /**
  * Genera el paquete criptográfico firmado para validación offline en mesas de despacho.
  * @param {object} params - { worker_id, entitlement_id, station, user }
@@ -187,12 +200,7 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
 
   const finalEntId = (targetEnt && targetEnt.id) || entitlement_id || crypto.randomUUID();
 
-  const cred = db.prepare(`
-    SELECT credential_id, public_key, status
-    FROM passkey_credentials
-    WHERE worker_id = ? AND status = 'active'
-    ORDER BY enrolled_at DESC LIMIT 1
-  `).get(worker_id);
+  const cred = getActivePasskey(worker_id);
 
   if (!cred) {
     const err = new Error('El trabajador no tiene activada la validación en su celular');
