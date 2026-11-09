@@ -1,2 +1,3 @@
 commit	status	tps	duration_ms	avg_latency_ms	description
 baseline	keep	12406	80.70	0.081	Baseline con correccion bug enrolled_at
+exp-01	keep	37891	27.30	0.027	SQLite PRAGMAs (WAL, NORMAL, cache 32MB) + Prepared Statements Cache en batch

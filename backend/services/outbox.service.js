@@ -29,6 +29,19 @@ function initOutboxTable() {
 
 initOutboxTable();
 
+// Prepared Statement en caché para inserciones de alta frecuencia en Outbox
+let stmtInsertOutbox = null;
+function getInsertOutboxStmt() {
+  if (!stmtInsertOutbox) {
+    stmtInsertOutbox = db.prepare(`
+      INSERT INTO outbox_events (
+        id, event_type, aggregate_type, aggregate_id, payload, status, retry_count, created_at
+      ) VALUES (?, ?, ?, ?, ?, 'pending', 0, CURRENT_TIMESTAMP)
+    `);
+  }
+  return stmtInsertOutbox;
+}
+
 /**
  * Encola un evento transaccional dentro del flujo de negocio
  */
@@ -36,11 +49,7 @@ function enqueueEvent(eventType, aggregateType, aggregateId, payload) {
   const eventId = crypto.randomUUID();
   try {
     const payloadStr = typeof payload === 'string' ? payload : JSON.stringify(payload);
-    db.prepare(`
-      INSERT INTO outbox_events (
-        id, event_type, aggregate_type, aggregate_id, payload, status, retry_count, created_at
-      ) VALUES (?, ?, ?, ?, ?, 'pending', 0, CURRENT_TIMESTAMP)
-    `).run(eventId, eventType, aggregateType, aggregateId, payloadStr);
+    getInsertOutboxStmt().run(eventId, eventType, aggregateType, aggregateId, payloadStr);
 
     return { success: true, eventId };
   } catch (err) {

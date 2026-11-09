@@ -9,6 +9,52 @@ const { enqueueEvent } = require('./outbox.service');
 // Tolerancia máxima permitida para desfase de reloj (Clock Skew) en sincronización offline (4 horas)
 const MAX_CLOCK_SKEW_MS = 4 * 60 * 60 * 1000;
 
+// ============================================================================
+// PREPARED STATEMENTS EN CACHÉ PARA MÁXIMO THROUGHPUT DE DESPACHOS OFFLINE
+// ============================================================================
+let _stmtPoint = null;
+let _stmtOp = null;
+let _stmtPasskey = null;
+let _stmtInsertDelivery = null;
+let _stmtUpdateEntitlement = null;
+
+function getStmtPoint() {
+  if (!_stmtPoint) _stmtPoint = db.prepare("SELECT id FROM distribution_points LIMIT 1");
+  return _stmtPoint;
+}
+function getStmtOp() {
+  if (!_stmtOp) _stmtOp = db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1");
+  return _stmtOp;
+}
+function getStmtPasskey() {
+  if (!_stmtPasskey) {
+    _stmtPasskey = db.prepare(`
+      SELECT public_key FROM passkey_credentials
+      WHERE worker_id = ? AND status = 'active'
+      ORDER BY enrolled_at DESC LIMIT 1
+    `);
+  }
+  return _stmtPasskey;
+}
+function getStmtInsertDelivery() {
+  if (!_stmtInsertDelivery) {
+    _stmtInsertDelivery = db.prepare(`
+      INSERT INTO deliveries (
+        id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+        verification_method, signature_proof, challenge_nonce, supervisor_id,
+        override_reason, is_offline_sync, delivered_at, synced_at, campaign_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
+    `);
+  }
+  return _stmtInsertDelivery;
+}
+function getStmtUpdateEntitlement() {
+  if (!_stmtUpdateEntitlement) {
+    _stmtUpdateEntitlement = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+  }
+  return _stmtUpdateEntitlement;
+}
+
 /**
  * Valida la coherencia temporal de una entrega sincronizada desde terminales offline.
  * Previene que dispositivos con reloj adulterado inyecten despachos de fechas arbitrarias.
@@ -64,13 +110,13 @@ function recordDelivery({
   // 1. Obtener puntos y operadores por defecto si no vienen especificados
   let finalPointId = distributionPointId;
   if (!finalPointId) {
-    const pt = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+    const pt = getStmtPoint().get();
     finalPointId = pt ? pt.id : null;
   }
 
   let finalOpId = deliveredByUserId;
   if (!finalOpId) {
-    const op = db.prepare("SELECT id FROM workers WHERE role IN ('operator', 'supervisor', 'admin') LIMIT 1").get();
+    const op = getStmtOp().get();
     finalOpId = op ? op.id : null;
   }
 
@@ -87,11 +133,7 @@ function recordDelivery({
 
   // 3. Validación de firmas criptográficas para passkey_qr si se provee prueba y nonce
   if (verificationMethod === 'passkey_qr' && signatureProof && challengeNonce) {
-    const cred = db.prepare(`
-      SELECT public_key FROM passkey_credentials
-      WHERE worker_id = ? AND status = 'active'
-      ORDER BY enrolled_at DESC LIMIT 1
-    `).get(workerId);
+    const cred = getStmtPasskey().get(workerId);
 
     if (cred && cred.public_key) {
       const ts = Math.floor(new Date(finalDeliveredAt).getTime() / 1000);
@@ -114,13 +156,7 @@ function recordDelivery({
 
   // 4. Inserción con protección de idempotencia
   try {
-    db.prepare(`
-      INSERT INTO deliveries (
-        id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-        verification_method, signature_proof, challenge_nonce, supervisor_id,
-        override_reason, is_offline_sync, delivered_at, synced_at, campaign_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
-    `).run(
+    getStmtInsertDelivery().run(
       finalDeliveryId,
       entitlementId,
       workerId,
@@ -138,7 +174,7 @@ function recordDelivery({
 
     // Actualizar estado de asignación diaria
     try {
-      db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(entitlementId);
+      getStmtUpdateEntitlement().run(entitlementId);
     } catch (e) {}
 
     // Encolar evento en Outbox Pattern para sincronización cloud
@@ -185,6 +221,10 @@ function processBatchDeliveries(deliveries = [], defaultPointId = null) {
   const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
   const campId = activeCamp ? activeCamp.id : null;
 
+  // Pre-resolver valores por defecto una sola vez antes de la iteración masiva
+  const fallbackPoint = defaultPointId || getStmtPoint().get()?.id || null;
+  const fallbackOp = getStmtOp().get()?.id || null;
+
   const tx = db.transaction(() => {
     for (const d of deliveries) {
       try {
@@ -192,8 +232,8 @@ function processBatchDeliveries(deliveries = [], defaultPointId = null) {
           deliveryId: d.id,
           entitlementId: d.entitlement_id,
           workerId: d.worker_id,
-          distributionPointId: defaultPointId || d.distribution_point_id,
-          deliveredByUserId: d.delivered_by_user_id,
+          distributionPointId: d.distribution_point_id || fallbackPoint,
+          deliveredByUserId: d.delivered_by_user_id || fallbackOp,
           verificationMethod: d.verification_method || 'passkey_qr',
           signatureProof: d.signature_proof,
           challengeNonce: d.challenge_nonce,

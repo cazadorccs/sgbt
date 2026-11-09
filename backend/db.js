@@ -1371,6 +1371,11 @@ if (Database) {
     rawDb = new Database(DB_PATH);
     rawDb.pragma('foreign_keys = ON');
     rawDb.pragma('journal_mode = WAL');
+    rawDb.pragma('synchronous = NORMAL');
+    rawDb.pragma('busy_timeout = 5000');
+    rawDb.pragma('temp_store = MEMORY');
+    rawDb.pragma('cache_size = -32000');
+    rawDb.pragma('mmap_size = 268435456');
 
     initializeDatabase();
     seedDatabase();
