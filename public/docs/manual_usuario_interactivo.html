@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Usuario Interactivo · SGBT MIPPCI</title>
+  <!-- Tailwind CSS -->
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <!-- Three.js & OrbitControls para WebGL 3D Real Acelerado por GPU -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    :root {
+      --bg: #040d1a;
+      --card-bg: rgba(15, 23, 42, 0.85);
+      --border: rgba(56, 189, 248, 0.2);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #0284c7;
+      --primary-light: #38bdf8;
+      --accent: #10b981;
+      --accent-light: #34d399;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    body.light {
+      --bg: #f1f5f9;
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --border: rgba(2, 132, 199, 0.25);
+      --text: #0f172a;
+      --text-muted: #475569;
+      --primary: #0284c7;
+      --primary-light: #0369a1;
+      --accent: #059669;
+      --accent-light: #10b981;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+    .glass-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
+    .pulse-ring {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 0.2; transform: scale(1.15); }
+    }
+    .qr-scan-line {
+      animation: scan 2.2s ease-in-out infinite alternate;
+    }
+    @keyframes scan {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(140px); }
+    }
+    /* Canvas 3D styling */
+    #webglCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+    }
+    .hud-badge {
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased p-3 sm:p-6 lg:p-8">
+
+  <!-- ENCABEZADO INSTITUCIONAL -->
+  <header class="max-w-7xl mx-auto mb-6 glass-card rounded-2xl p-5 flex flex-col md:flex-row justify-between items-center gap-4 shadow-xl">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-xl bg-gradient-to-tr from-sky-600 via-blue-500 to-emerald-400 p-0.5 flex items-center justify-center shadow-lg">
+        <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center text-2xl">
+          🏛️
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded">Soberanía Tecnológica</span>
+          <span class="text-xs text-slate-400">v5.0 Enterprise · WebGL 3D</span>
+        </div>
+        <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white mt-1">Manual de Usuario y Operaciones Interactivo</h1>
+        <p class="text-xs sm:text-sm text-slate-400">Sistema de Gestión de Bienestar y Transferencias (SGBT · MIPPCI)</p>
+      </div>
+    </div>
+
+    <!-- CONTROLES GLOBALES -->
+    <div class="flex items-center gap-3 w-full md:w-auto justify-end flex-wrap">
+      <!-- Selector de Rol -->
+      <div class="inline-flex p-1 rounded-xl bg-slate-950/60 border border-slate-700/60">
+        <button id="btnRoleBeneficiary" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-600 text-white shadow">
+          👤 Beneficiario
+        </button>
+        <button id="btnRoleOperator" class="px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+          📦 Operador Almacén
+        </button>
+      </div>
+
+      <!-- Selector Modo Oscuro/Claro -->
+      <button id="btnThemeToggle" class="p-2 rounded-xl bg-slate-800/80 border border-slate-700 hover:bg-slate-700 text-sm" title="Cambiar Tema">
+        🌙
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto space-y-8">
+
+    <!-- SECCIÓN 1: ESCENARIO 3D WEBGL INTERACTIVO + TOPOLOGÍA FÍSICA -->
+    <section class="glass-card rounded-2xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+      
+      <!-- BARRA DE HERRAMIENTAS Y MODOS DE VISUALIZACIÓN -->
+      <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 border-b border-slate-700/60 pb-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-extrabold text-sky-400 uppercase tracking-wider">Topología Física & Flujo Operativo</span>
+            <span class="bg-sky-950 text-sky-300 border border-sky-500/40 text-[10px] px-2 py-0.5 rounded font-mono font-bold">Directrices WebGL 3D</span>
+          </div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2 mt-0.5">
+            🌐 Escenario 3D Interactivo y Gemelo Digital en Tiempo Real
+          </h2>
+        </div>
+
+        <div class="flex items-center gap-2.5 flex-wrap w-full lg:w-auto justify-between lg:justify-end">
+          <!-- Presets de Cámara 3D -->
+          <div id="cameraPresetBar" class="inline-flex p-1 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+            <button onclick="setCameraView('iso')" class="px-2.5 py-1 rounded font-bold bg-sky-700 text-white hover:bg-sky-600 transition-colors" title="Vista Isométrica General">👁️ Isométrica</button>
+            <button onclick="setCameraView('mobile')" class="px-2 py-1 rounded font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" title="Enfocar Teléfono Móvil">📱 Móvil</button>
+            <button onclick="setCameraView('desk')" class="px-2 py-1 rounded font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" title="Enfocar Mesa de Despacho">📦 Mesa</button>
+            <button onclick="setCameraView('server')" class="px-2 py-1 rounded font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" title="Enfocar Servidor SQLite">⚡ Servidor</button>
+            <button onclick="setCameraView('merkle')" class="px-2 py-1 rounded font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors" title="Enfocar Árbol Merkle">🌳 Merkle</button>
+            <button onclick="toggleAutoRotate()" id="btnAutoRotate" class="px-2 py-1 rounded font-bold text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 transition-colors" title="Activar/Pausar Auto-Giro">🔄 Auto-Giro</button>
+          </div>
+
+          <!-- Alternador WebGL 3D / Isométrico 2.5D SVG -->
+          <div class="inline-flex p-1 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+            <button id="btnViewWebGL" onclick="switchSceneMode('webgl')" class="px-3 py-1 rounded-lg font-bold bg-emerald-600 text-white shadow">
+              🎮 WebGL 3D (GPU)
+            </button>
+            <button id="btnViewSVG" onclick="switchSceneMode('svg')" class="px-3 py-1 rounded-lg font-bold text-slate-400 hover:text-white">
+              📐 Isométrico 2.5D
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTENEDOR PRINCIPAL DEL VISOR (ALTURA 480px) -->
+      <div class="relative w-full h-[480px] bg-gradient-to-b from-slate-950 via-[#030a16] to-slate-900 rounded-xl border border-sky-900/40 overflow-hidden shadow-inner flex items-center justify-center">
+
+        <!-- 1. LIENZO WEBGL 3D THREE.JS -->
+        <div id="webglContainer" class="w-full h-full relative cursor-grab active:cursor-grabbing">
+          <canvas id="webglCanvas"></canvas>
+
+          <!-- HUD FLOTANTE SUPERIOR IZQUIERDA: ESTADO Y MÉTRICAS GPU -->
+          <div class="absolute top-3 left-3 flex flex-col gap-1.5 pointer-events-none select-none">
+            <div class="hud-badge px-2.5 py-1 rounded-lg flex items-center gap-2 text-[11px] font-mono">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span class="text-emerald-300 font-bold">WebGL 2.0 Acelerado por GPU</span>
+              <span class="text-slate-400 border-l border-slate-700 pl-2" id="webglFpsText">60 FPS</span>
+            </div>
+            <div class="hud-badge px-2.5 py-1 rounded-lg text-[10px] text-slate-300 font-mono flex items-center gap-3">
+              <span>Latencia SQLite: <strong class="text-emerald-400">0.07 ms</strong></span>
+              <span>Sellado Merkle: <strong class="text-amber-400">14 Capas</strong></span>
+              <span>Buffer Sync: <strong class="text-sky-400">0 Pendientes</strong></span>
+            </div>
+          </div>
+
+          <!-- HUD FLOTANTE INFERIOR DERECHA: GUÍA DE CONTROL -->
+          <div class="absolute bottom-3 right-3 hud-badge px-3 py-1.5 rounded-lg text-[11px] text-slate-300 pointer-events-none select-none hidden sm:flex items-center gap-2 border border-slate-700/60">
+            <span>🖱️ Arrastrar: Orbitar</span>
+            <span class="text-slate-600">|</span>
+            <span>🔍 Rueda: Zoom</span>
+            <span class="text-slate-600">|</span>
+            <span>👆 Clic: Inspeccionar Nodo</span>
+          </div>
+
+          <!-- BOTÓN CENTRAR CÁMARA RÁPIDO -->
+          <button onclick="setCameraView('iso')" class="absolute top-3 right-3 p-2 rounded-lg bg-slate-900/80 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 text-xs shadow-lg" title="Restablecer vista centrada">
+            🎯 Recentrar
+          </button>
+        </div>
+
+        <!-- 2. LIENZO ALTERNATIVO SVG ISOMÉTRICO 2.5D (FALLBACK Y MODO LIGERO) -->
+        <div id="svgContainer" class="w-full h-full hidden">
+          <svg viewBox="0 0 960 480" class="w-full h-full max-h-[480px] select-none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="isoGrid" width="60" height="34.64" patternUnits="userSpaceOnUse">
+                <path d="M 60 0 L 0 34.64 M 0 0 L 60 34.64" fill="none" stroke="rgba(56, 189, 248, 0.05)" stroke-width="1"/>
+              </pattern>
+              <linearGradient id="gradNode1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#0284c7" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#0369a1" stop-opacity="0.7"/>
+              </linearGradient>
+              <linearGradient id="gradNode2" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#059669" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#047857" stop-opacity="0.7"/>
+              </linearGradient>
+              <linearGradient id="gradNode3" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.7"/>
+              </linearGradient>
+              <linearGradient id="gradNode4" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#d97706" stop-opacity="0.9"/>
+                <stop offset="100%" stop-color="#b45309" stop-opacity="0.7"/>
+              </linearGradient>
+            </defs>
+
+            <rect width="960" height="480" fill="url(#isoGrid)"/>
+
+            <!-- LÍNEAS DE CONEXIÓN ISOMÉTRICAS CON PULSOS -->
+            <g stroke="rgba(56, 189, 248, 0.4)" stroke-width="2.5" stroke-dasharray="6,4" fill="none">
+              <path d="M 230 260 L 480 370"/>
+              <path d="M 480 370 L 730 260"/>
+              <path d="M 730 260 L 480 150"/>
+              <path d="M 480 150 L 230 260"/>
+            </g>
+
+            <!-- ESTACIÓN 1: TELÉFONO MÓVIL DEL BENEFICIARIO -->
+            <g id="isoNode1" class="cursor-pointer group" transform="translate(140, 180)" onclick="selectStation(1)">
+              <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+              <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode1)" stroke="#38bdf8" stroke-width="2"/>
+              <polygon points="10,65 90,110 90,140 10,95" fill="#0369a1" stroke="#38bdf8" stroke-width="1"/>
+              <polygon points="90,110 170,65 170,95 90,140" fill="#075985" stroke="#38bdf8" stroke-width="1"/>
+              <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">📱</text>
+              <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#e0f2fe">Móvil Beneficiario</text>
+              <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">Passkey · QR 180s · Merkle</text>
+            </g>
+
+            <!-- ESTACIÓN 2: MESA DE DESPACHO & ESCÁNER -->
+            <g id="isoNode2" class="cursor-pointer group" transform="translate(390, 290)" onclick="selectStation(2)">
+              <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+              <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode2)" stroke="#34d399" stroke-width="2"/>
+              <polygon points="10,65 90,110 90,140 10,95" fill="#047857" stroke="#34d399" stroke-width="1"/>
+              <polygon points="90,110 170,65 170,95 90,140" fill="#065f46" stroke="#34d399" stroke-width="1"/>
+              <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">📹</text>
+              <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#d1fae5">Mesa de Despacho</text>
+              <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">Cámara HTML5 · NFC · Háptica</text>
+            </g>
+
+            <!-- ESTACIÓN 3: SERVIDOR LOCAL SGBT ALMACÉN -->
+            <g id="isoNode3" class="cursor-pointer group" transform="translate(640, 180)" onclick="selectStation(3)">
+              <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+              <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode3)" stroke="#c084fc" stroke-width="2"/>
+              <polygon points="10,65 90,110 90,140 10,95" fill="#5b21b6" stroke="#c084fc" stroke-width="1"/>
+              <polygon points="90,110 170,65 170,95 90,140" fill="#4c1d95" stroke="#c084fc" stroke-width="1"/>
+              <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">⚡</text>
+              <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#ede9fe">Motor Local SQLite</text>
+              <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">0.07ms · WAL · Anti-Doble Reclamo</text>
+            </g>
+
+            <!-- ESTACIÓN 4: NUBE MINISTERIAL & ÁRBOL MERKLE -->
+            <g id="isoNode4" class="cursor-pointer group" transform="translate(390, 70)" onclick="selectStation(4)">
+              <polygon points="90,140 170,95 90,50 10,95" fill="rgba(0,0,0,0.5)"/>
+              <polygon points="90,110 170,65 90,20 10,65" fill="url(#gradNode4)" stroke="#fbbf24" stroke-width="2"/>
+              <polygon points="10,65 90,110 90,140 10,95" fill="#92400e" stroke="#fbbf24" stroke-width="1"/>
+              <polygon points="90,110 170,65 170,95 90,140" fill="#78350f" stroke="#fbbf24" stroke-width="1"/>
+              <text x="90" y="65" text-anchor="middle" font-size="28" fill="#ffffff">🌳</text>
+              <text x="90" y="92" text-anchor="middle" font-size="11" font-weight="bold" fill="#fef3c7">Árbol Merkle & Cloud</text>
+              <text x="90" y="165" text-anchor="middle" font-size="10" fill="#94a3b8">RFC 6962 · Supabase · VAPID Push</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- TARJETA EXPLICATIVA DINÁMICA FLOTANTE (SINCRONIZADA CON 3D RAYCASTING) -->
+        <div id="stationInfoCard" class="absolute bottom-3 left-3 right-3 sm:left-4 sm:right-auto sm:max-w-md glass-card rounded-xl p-3.5 border border-sky-500/50 shadow-2xl transition-all z-20">
+          <div class="flex items-center justify-between">
+            <span id="stationInfoTitle" class="text-xs font-bold text-sky-400">📱 Estación 1: Móvil del Beneficiario</span>
+            <span id="stationInfoTag" class="text-[10px] bg-sky-950 text-sky-300 px-1.5 py-0.5 rounded border border-sky-500/30">Nivel 1</span>
+          </div>
+          <p id="stationInfoDesc" class="text-xs text-slate-200 mt-1 leading-snug">
+            El funcionario formaliza su carnet, enrola su Passkey FIDO2 en hardware seguro y genera su código QR temporal de 180s. Audita su recibo en el Árbol Merkle y recibe Web Push en 2do plano.
+          </p>
+          <div id="stationInfoTech" class="mt-2 pt-1.5 border-t border-slate-700/60 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+            <span>Seguridad: NIST P-256</span>
+            <span class="text-emerald-400">Anti-Captura Activo</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECCIÓN 2: SIMULADOR INTERACTIVO SEGÚN EL ROL -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- COLUMNA IZQUIERDA: SIMULADOR VIVO (6 COLS) -->
+      <div class="lg:col-span-6 space-y-6">
+        
+        <!-- PANEL SIMULADOR BENEFICIARIO -->
+        <div id="simBeneficiaryBox" class="glass-card rounded-2xl p-5 border border-sky-500/30 shadow-xl">
+          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📱</span>
+              <div>
+                <h3 class="text-sm font-bold text-white">Simulador en Vivo: Carnet Móvil del Trabajador</h3>
+                <p class="text-xs text-slate-400">Prueba los 5 pasos oficiales del beneficiario en tiempo real</p>
+              </div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 border border-emerald-500/40">Interactivo</span>
+          </div>
+
+          <!-- PESTAÑAS DEL SIMULADOR -->
+          <div class="flex flex-wrap gap-1.5 mb-4 p-1 rounded-lg bg-slate-900/80 border border-slate-800 text-xs">
+            <button onclick="setSimTab('login')" id="tabBtnLogin" class="px-2.5 py-1 rounded font-bold bg-sky-600 text-white">1. Login</button>
+            <button onclick="setSimTab('passkey')" id="tabBtnPasskey" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">2. Passkey</button>
+            <button onclick="setSimTab('qr')" id="tabBtnQr" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">3. QR 180s</button>
+            <button onclick="setSimTab('merkle')" id="tabBtnMerkle" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">4. Sello Merkle</button>
+            <button onclick="setSimTab('push')" id="tabBtnPush" class="px-2.5 py-1 rounded font-bold text-slate-400 hover:text-white">5. Web Push</button>
+          </div>
+
+          <!-- CONTENIDO PASO 1: LOGIN Y FORMALIZACIÓN -->
+          <div id="simStepLogin" class="space-y-3">
+            <div class="p-3 rounded-lg bg-slate-900/60 border border-slate-800 text-xs space-y-2">
+              <label class="block font-semibold text-slate-300">Cédula de Identidad:</label>
+              <div class="flex gap-2">
+                <input id="simInputDoc" type="text" value="V-18456123" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white font-mono flex-1 focus:border-sky-500 outline-none">
+                <button onclick="simPerformLogin()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-3 py-1.5 rounded text-xs transition-colors">
+                  Identificar
+                </button>
+              </div>
+              <div id="simLoginResult" class="p-2 rounded bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-[11px]">
+                ✅ Funcionario formalizado: <strong>Carlos Eduardo Mendoza</strong> · Dirección General de Gestión Humana
+              </div>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 2: ENROLAMIENTO PASSKEY -->
+          <div id="simStepPasskey" class="space-y-3 hidden">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-center space-y-3">
+              <div class="text-3xl">🔑 🛡️</div>
+              <h4 class="text-xs font-bold text-white">Enrolamiento Biométrico FIDO2 / WebAuthn</h4>
+              <p class="text-[11px] text-slate-400">Genera tu par de claves asimétricas NIST P-256 en el Secure Enclave de tu teléfono.</p>
+              <button onclick="simEnrollPasskey()" id="btnSimPasskey" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition-all shadow-lg shadow-emerald-900/40">
+                👆 Probar Firma Biométrica
+              </button>
+              <div id="simPasskeyLog" class="text-[10px] font-mono text-slate-400 text-left bg-slate-950 p-2 rounded max-h-20 overflow-y-auto">
+                > Esperando toque biométrico...
+              </div>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 3: QR DINÁMICO 180S -->
+          <div id="simStepQr" class="space-y-3 hidden">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-center space-y-3">
+              <div class="relative w-36 h-36 mx-auto bg-white p-2 rounded-xl shadow-lg border border-slate-300 flex items-center justify-center overflow-hidden">
+                <!-- Código QR Simulado -->
+                <svg viewBox="0 0 100 100" class="w-full h-full text-slate-900">
+                  <rect x="5" y="5" width="25" height="25" fill="currentColor"/>
+                  <rect x="70" y="5" width="25" height="25" fill="currentColor"/>
+                  <rect x="5" y="70" width="25" height="25" fill="currentColor"/>
+                  <rect x="10" y="10" width="15" height="15" fill="#ffffff"/>
+                  <rect x="75" y="10" width="15" height="15" fill="#ffffff"/>
+                  <rect x="10" y="75" width="15" height="15" fill="#ffffff"/>
+                  <rect x="14" y="14" width="7" height="7" fill="currentColor"/>
+                  <rect x="79" y="14" width="7" height="7" fill="currentColor"/>
+                  <rect x="14" y="79" width="7" height="7" fill="currentColor"/>
+                  <rect x="35" y="35" width="30" height="30" fill="currentColor"/>
+                  <circle cx="50" cy="50" r="8" fill="#0284c7"/>
+                </svg>
+                <div class="absolute left-0 right-0 h-0.5 bg-emerald-400 qr-scan-line shadow-[0_0_8px_#34d399]"></div>
+              </div>
+
+              <!-- TEMPORIZADOR DINÁMICO 180s -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs font-mono font-bold">
+                  <span class="text-slate-400">Expiración Anti-Repetición:</span>
+                  <span id="simQrTimer" class="text-emerald-400">180s</span>
+                </div>
+                <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div id="simQrProgressBar" class="h-full bg-emerald-500 transition-all duration-1000" style="width: 100%;"></div>
+                </div>
+              </div>
+
+              <button onclick="resetQrTimer()" class="text-xs text-sky-400 hover:text-sky-300 font-semibold underline">
+                🔄 Regenerar Token Criptográfico (180s)
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 4: PRUEBA MERKLE -->
+          <div id="simStepMerkle" class="space-y-3 hidden">
+            <div class="p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs space-y-2.5">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-white flex items-center gap-1.5">
+                  <span>🌳</span> Certificado Merkle (RFC 6962)
+                </span>
+                <span class="bg-emerald-950 text-emerald-300 text-[10px] px-2 py-0.5 rounded border border-emerald-500/40">Inmutable</span>
+              </div>
+              <div class="space-y-1.5 text-[11px]">
+                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                  <div class="text-[10px] text-slate-400">Raíz Merkle Ministerial:</div>
+                  <code class="text-sky-400 font-mono text-[10px] break-all">65463a568858229b4b08c69f212268ee410fe7e32faec6d623ce1d386926955a</code>
+                </div>
+                <div class="bg-slate-950 p-2 rounded border border-slate-800">
+                  <div class="text-[10px] text-slate-400">Hash SHA-256 de tu Entrega:</div>
+                  <code class="text-emerald-400 font-mono text-[10px] break-all">d3bf81ea412098b671a5472856f6bc42a19b882103f7ec1249b6d802194ad477</code>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center pt-1">
+                  <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Profundidad Árbol</span>
+                    <strong class="text-white">14 Capas</strong>
+                  </div>
+                  <div class="bg-slate-950 p-1.5 rounded border border-slate-800">
+                    <span class="text-[10px] text-slate-400 block">Ruta O(log N)</span>
+                    <strong class="text-sky-400">13 Hashes (~416 B)</strong>
+                  </div>
+                </div>
+              </div>
+              <button onclick="simAuditMerkle()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-1.5 rounded text-xs transition-colors flex items-center justify-center gap-1.5">
+                <span>🛡️</span>
+                <span>Ejecutar Verificación Matemática en Escenario 3D</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CONTENIDO PASO 5: WEB PUSH -->
+          <div id="simStepPush" class="space-y-3 hidden">
+            <div class="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-center space-y-3">
+              <div class="text-3xl">🔔 📡</div>
+              <h4 class="text-xs font-bold text-white">Notificaciones Web Push VAPID (Segundo Plano)</h4>
+              <p class="text-[11px] text-slate-400">Recibe alertas con la pantalla apagada cuando inicie tu jornada o retiren tu combo.</p>
+              <button onclick="simTriggerWebPush()" class="bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-lg text-xs transition-colors shadow-lg shadow-amber-900/30">
+                🚀 Disparar Pulso Web Push en Escenario 3D
+              </button>
+              <div id="simPushNotification" class="hidden p-3 rounded-lg bg-slate-950 border-l-4 border-amber-500 text-left text-xs shadow-xl animate-bounce">
+                <div class="flex items-center gap-2">
+                  <span class="text-base">📢</span>
+                  <strong class="text-white">SGBT · ¡Combo Entregado con Éxito!</strong>
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1">Se confirmó el despacho de su Bolsa de Víveres y Combo Proteico en Mesa 1 (Sótano 1).</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PANEL SIMULADOR OPERADOR DE ALMACÉN -->
+        <div id="simOperatorBox" class="glass-card rounded-2xl p-5 border border-emerald-500/30 shadow-xl hidden">
+          <div class="flex items-center justify-between border-b border-slate-700/60 pb-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xl">📹</span>
+              <div>
+                <h3 class="text-sm font-bold text-white">Simulador de Mesa: Estación de Despacho</h3>
+                <p class="text-xs text-slate-400">Terminal táctil con escáner, feedback sensorial y anti-duplicados</p>
+              </div>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded bg-sky-900/60 text-sky-300 border border-sky-500/40">Almacén</span>
+          </div>
+
+          <!-- PANTALLA HUD DEL OPERADOR -->
+          <div id="operatorHud" class="rounded-xl p-5 text-center transition-all duration-300 bg-slate-900 border-2 border-slate-700 min-h-[170px] flex flex-col items-center justify-center space-y-2">
+            <span id="operatorHudIcon" class="text-4xl">📷</span>
+            <h4 id="operatorHudTitle" class="text-sm font-black text-white uppercase tracking-wider">Esperando Escaneo Óptico / NFC...</h4>
+            <p id="operatorHudDesc" class="text-xs text-slate-400">Acerque el código QR del funcionario o tarjeta de proximidad.</p>
+          </div>
+
+          <!-- BOTONES DE PRUEBA DE CASOS DE DESPACHO -->
+          <div class="grid grid-cols-3 gap-2 mt-4 text-xs">
+            <button onclick="simDispatchCase('success')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold p-2.5 rounded-lg transition-colors flex flex-col items-center gap-1 shadow">
+              <span>🟢</span>
+              <span>1. Retiro Válido</span>
+            </button>
+            <button onclick="simDispatchCase('duplicate')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold p-2.5 rounded-lg transition-colors flex flex-col items-center gap-1 shadow">
+              <span>🔴</span>
+              <span>2. Intento Duplicado</span>
+            </button>
+            <button onclick="simDispatchCase('expired')" class="bg-amber-600 hover:bg-amber-500 text-white font-bold p-2.5 rounded-lg transition-colors flex flex-col items-center gap-1 shadow">
+              <span>🟡</span>
+              <span>3. QR Expirado</span>
+            </button>
+          </div>
+          <p class="text-[11px] text-slate-400 text-center mt-2.5">
+            🛡️ Protegido por índice relacional único <code class="text-emerald-400">idx_unique_daily_claim</code> a nivel de base de datos.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DERECHA: TEXTO OFICIAL DEL MANUAL INDEXADO (6 COLS) -->
+      <div class="lg:col-span-6 space-y-4">
+        <div class="glass-card rounded-2xl p-5 border border-slate-700/60 shadow-xl max-h-[580px] overflow-y-auto space-y-4 text-xs">
+          <div class="flex items-center justify-between border-b border-slate-700 pb-2.5">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <span>📖</span> Guía Rápida Oficial del Manual de Usuario
+            </h3>
+            <span class="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">MIPPCI 2026</span>
+          </div>
+
+          <!-- SECCIÓN 1: BENEFICIARIO -->
+          <div class="space-y-3">
+            <div class="font-extrabold text-sky-400 uppercase text-[11px] tracking-wider">Parte 1: Funcionario / Beneficiario</div>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group" open>
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.1 Acceso y Formalización de Beneficiario</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                El trabajador ingresa con su Cédula (`V-18456123`). En su primer ingreso captura su foto (cámara web frontal o galería móvil) y asigna su contraseña institucional. La persistencia queda garantizada en Supabase Cloud.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.2 Passkeys FIDO2 y Retiro Biométrico</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                Permite activar Face ID, Touch ID o huella Android en el Secure Enclave del teléfono. Genera un QR dinámico firmado con NIST P-256 de 180 segundos que impide capturas de pantalla o traspasos indebidos.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.3 Recuperación de Contraseña (Autoservicio)</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                Mediante el enlace "¿Olvidó su contraseña?", el funcionario valida su cédula contra su correo institucional o teléfono y asigna una nueva contraseña sin intervención de soporte técnico.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>1.4 Historial de Recibos y Auto-Verificación Merkle</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                En el botón "📜 Mis Recibos", el trabajador consulta sus despachos históricos y presiona "🛡️ Auditar en Árbol Merkle Ministerial (RFC 6962)", verificando la prueba logarítmica de inclusión contra la raíz oficial.
+              </p>
+            </details>
+          </div>
+
+          <!-- SECCIÓN 2: OPERADOR DE ALMACÉN -->
+          <div class="space-y-3 pt-2">
+            <div class="font-extrabold text-emerald-400 uppercase text-[11px] tracking-wider">Parte 2: Operador de Almacén</div>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group" open>
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>2.1 Estación de Despacho y Escaneo</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                El operador ingresa con su rol a la estación. Apunta la cámara al QR del trabajador o acerca la tarjeta NFC. La interfaz responde en &lt; 0.08 ms con feedback háptico sensorial y sonido de confirmación.
+              </p>
+            </details>
+
+            <details class="bg-slate-900/80 rounded-lg p-2.5 border border-slate-800 group">
+              <summary class="font-bold text-white cursor-pointer list-none flex justify-between items-center">
+                <span>2.2 Modos de Contingencia y Sin Conexión (Offline)</span>
+                <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+              </summary>
+              <p class="text-slate-300 mt-2 leading-relaxed">
+                Para adultos mayores sin smartphone, se utiliza la búsqueda por cédula con autorización del supervisor (`override_reason`). Si falla la red, el sistema continúa despachando en SQLite local y se sincroniza al restablecer conexión.
+              </p>
+            </details>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MOTOR 3D WEBGL Y SCRIPTS INTERACTIVOS -->
+  <script>
+    // =========================================================================
+    // 1. ESTADO Y DATOS DE ESTACIONES
+    // =========================================================================
+    const stationData = {
+      1: {
+        title: "📱 Estación 1: Móvil del Beneficiario",
+        tag: "Nivel 1 · Endpoint PWA/TWA",
+        desc: "El funcionario formaliza su carnet, enrola su Passkey FIDO2 en hardware seguro y genera su código QR temporal de 180s. Audita su recibo en el Árbol Merkle y recibe Web Push en 2do plano.",
+        tech: "Seguridad: NIST P-256 · FIDO2 WebAuthn · Push VAPID",
+        badge: "Anti-Captura Activo"
+      },
+      2: {
+        title: "📹 Estación 2: Mesa de Despacho & Escaneo",
+        tag: "Nivel 2 · Estación Física",
+        desc: "Terminal del operador con cámara web HTML5 y antena NFC (Tap-to-Claim). Liquida beneficios con feedback háptico sensorial multimodal y pantalla verde de confirmación instantánea.",
+        tech: "Validación: Escáner Óptico QR + NFC 13.56 MHz · Audio Háptico",
+        badge: "Respuesta < 0.08ms"
+      },
+      3: {
+        title: "⚡ Estación 3: Servidor Local SGBT (Almacén Central)",
+        tag: "Nivel 3 · Motor SQLite WAL",
+        desc: "Motor SQLite nativo en modo WAL con micro-caché in-memory a 0.07 ms (197x). Neutraliza dobles entregas mediante el índice único de base de datos idx_unique_daily_claim.",
+        tech: "Persistencia: better-sqlite3 WAL · Memoria Micro-Caché In-Memory",
+        badge: "Cero Doble Reclamo"
+      },
+      4: {
+        title: "🌳 Estación 4: Árbol Merkle & Supabase Cloud",
+        tag: "Nivel 4 · Criptografía RFC 6962",
+        desc: "Sellado criptográfico RFC 6962 de 14 capas. Genera actas ministeriales oficiales con hash SHA-256 inmutable y emite alertas Web Push VAPID a los trabajadores.",
+        tech: "Criptografía: SHA-256 Binary Hash Tree · PostgreSQL Sync",
+        badge: "Inmutable Ministerial"
+      }
+    };
+
+    function selectStation(id) {
+      const data = stationData[id];
+      if (!data) return;
+      document.getElementById('stationInfoTitle').textContent = data.title;
+      document.getElementById('stationInfoTag').textContent = data.tag;
+      document.getElementById('stationInfoDesc').textContent = data.desc;
+      document.getElementById('stationInfoTech').innerHTML = `
+        <span>${data.tech}</span>
+        <span class="text-emerald-400 font-bold">${data.badge}</span>
+      `;
+
+      if (id === 1) setCameraView('mobile');
+      else if (id === 2) setCameraView('desk');
+      else if (id === 3) setCameraView('server');
+      else if (id === 4) setCameraView('merkle');
+    }
+
+    // =========================================================================
+    // 2. SELECTOR DE ROLES Y TEMAS
+    // =========================================================================
+    const btnRoleBen = document.getElementById('btnRoleBeneficiary');
+    const btnRoleOp = document.getElementById('btnRoleOperator');
+    const boxBen = document.getElementById('simBeneficiaryBox');
+    const boxOp = document.getElementById('simOperatorBox');
+
+    btnRoleBen.addEventListener('click', () => {
+      btnRoleBen.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-sky-600 text-white shadow";
+      btnRoleOp.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+      boxBen.classList.remove('hidden');
+      boxOp.classList.add('hidden');
+      selectStation(1);
+    });
+
+    btnRoleOp.addEventListener('click', () => {
+      btnRoleOp.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600 text-white shadow";
+      btnRoleBen.className = "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+      boxOp.classList.remove('hidden');
+      boxBen.classList.add('hidden');
+      selectStation(2);
+    });
+
+    const btnTheme = document.getElementById('btnThemeToggle');
+    btnTheme.addEventListener('click', () => {
+      document.body.classList.toggle('light');
+      btnTheme.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
+    });
+
+    // Alternar entre WebGL 3D y SVG 2.5D
+    function switchSceneMode(mode) {
+      const webglBox = document.getElementById('webglContainer');
+      const svgBox = document.getElementById('svgContainer');
+      const btn3D = document.getElementById('btnViewWebGL');
+      const btn2D = document.getElementById('btnViewSVG');
+      const camBar = document.getElementById('cameraPresetBar');
+
+      if (mode === 'webgl') {
+        webglBox.classList.remove('hidden');
+        svgBox.classList.add('hidden');
+        camBar.classList.remove('hidden');
+        btn3D.className = "px-3 py-1 rounded-lg font-bold bg-emerald-600 text-white shadow";
+        btn2D.className = "px-3 py-1 rounded-lg font-bold text-slate-400 hover:text-white";
+        if (renderer) onWindowResize();
+      } else {
+        webglBox.classList.add('hidden');
+        svgBox.classList.remove('hidden');
+        camBar.classList.add('hidden');
+        btn2D.className = "px-3 py-1 rounded-lg font-bold bg-sky-600 text-white shadow";
+        btn3D.className = "px-3 py-1 rounded-lg font-bold text-slate-400 hover:text-white";
+      }
+    }
+
+    // =========================================================================
+    // 3. MOTOR WEBGL 3D THREE.JS (DIRECTRIZ 1, 2 Y 3)
+    // =========================================================================
+    let scene, camera, renderer, controls;
+    let autoRotate = true;
+    let targetCameraPos = null;
+    let targetLookAt = null;
+
+    // Entidades 3D de la Escena
+    let nodeMobileGroup, nodeDeskGroup, nodeServerGroup, nodeMerkleGroup;
+    let laserBeamMesh, nfcWaveMesh, foodComboMesh;
+    let serverLeds = [];
+    let merkleGimbalRing1, merkleGimbalRing2, merkleCoreMesh, merkleParticles;
+    let screenDynamicCanvas, screenDynamicTexture, screenDynamicCtx;
+    let dataStreamParticles = [];
+
+    // Raycasting
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hoveredMesh = null;
+
+    function initWebGLScene() {
+      const container = document.getElementById('webglContainer');
+      const canvas = document.getElementById('webglCanvas');
+      if (!canvas || !window.THREE) {
+        console.warn('Three.js no disponible, activando modo SVG.');
+        switchSceneMode('svg');
+        return;
+      }
+
+      // Escena & Niebla
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x030a16);
+      scene.fog = new THREE.FogExp2(0x030a16, 0.025);
+
+      // Cámara
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+      camera.position.set(18, 14, 22);
+
+      // Renderizador WebGL Acelerado por GPU
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // OrbitControls
+      if (window.THREE.OrbitControls) {
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2.05;
+        controls.minDistance = 6;
+        controls.maxDistance = 50;
+        controls.target.set(0, 2, 0);
+      }
+
+      // Iluminación
+      const ambientLight = new THREE.AmbientLight(0x38bdf8, 0.55);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+      dirLight.position.set(15, 25, 15);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 1024;
+      dirLight.shadow.mapSize.height = 1024;
+      scene.add(dirLight);
+
+      // Plataforma Isométrica Hexagonal / Circular
+      buildCyberPlatform();
+
+      // Construcción de los 4 Modelos 3D
+      buildMobileStation();
+      buildDeskStation();
+      buildServerStation();
+      buildMerkleCloudStation();
+
+      // Canales de Datos y Rayos de Partículas Luminosas (Directriz 2)
+      buildDataStreamPipes();
+
+      // Eventos de Ventana y Mouse
+      window.addEventListener('resize', onWindowResize);
+      canvas.addEventListener('mousemove', onCanvasMouseMove);
+      canvas.addEventListener('click', onCanvasClick);
+
+      // Bucle de Animación
+      animateWebGL();
+    }
+
+    // Plataforma base con rejilla cyber
+    function buildCyberPlatform() {
+      const platformGeo = new THREE.CylinderGeometry(15, 15.5, 0.6, 64);
+      const platformMat = new THREE.MeshStandardMaterial({
+        color: 0x071326,
+        roughness: 0.6,
+        metalness: 0.8
+      });
+      const platform = new THREE.Mesh(platformGeo, platformMat);
+      platform.position.y = -0.3;
+      platform.receiveShadow = true;
+      scene.add(platform);
+
+      // Anillo cian brillante
+      const ringGeo = new THREE.RingGeometry(14.8, 15.1, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, side: THREE.DoubleSide });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.02;
+      scene.add(ring);
+
+      // Rejilla de cuadrícula
+      const grid = new THREE.GridHelper(30, 30, 0x0284c7, 0x1e293b);
+      grid.position.y = 0.01;
+      scene.add(grid);
+    }
+
+    // ESTACIÓN 1: SMARTPHONE 3D BENEFICIARIO
+    function buildMobileStation() {
+      nodeMobileGroup = new THREE.Group();
+      nodeMobileGroup.position.set(-8.5, 0, 1.5);
+      nodeMobileGroup.userData = { stationId: 1, name: "Móvil Beneficiario" };
+
+      // Chasis de Smartphone
+      const phoneGeo = new THREE.BoxGeometry(2.4, 4.8, 0.28);
+      const phoneMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        metalness: 0.9,
+        roughness: 0.2
+      });
+      const phoneMesh = new THREE.Mesh(phoneGeo, phoneMat);
+      phoneMesh.position.y = 3.2;
+      phoneMesh.rotation.y = Math.PI / 6;
+      phoneMesh.castShadow = true;
+      phoneMesh.userData = { isStation: true, stationId: 1 };
+      nodeMobileGroup.add(phoneMesh);
+
+      // Textura dinámica de Pantalla OLED (Canvas 2D vivo para QR y Carátula)
+      screenDynamicCanvas = document.createElement('canvas');
+      screenDynamicCanvas.width = 256;
+      screenDynamicCanvas.height = 512;
+      screenDynamicCtx = screenDynamicCanvas.getContext('2d');
+      updateScreenCanvas(180, 'active');
+
+      screenDynamicTexture = new THREE.CanvasTexture(screenDynamicCanvas);
+      const screenGeo = new THREE.PlaneGeometry(2.1, 4.4);
+      const screenMat = new THREE.MeshBasicMaterial({ map: screenDynamicTexture });
+      const screenMesh = new THREE.Mesh(screenGeo, screenMat);
+      screenMesh.position.set(0, 0, 0.15);
+      phoneMesh.add(screenMesh);
+
+      // Halo circular en el suelo
+      const haloGeo = new THREE.RingGeometry(1.6, 2.0, 32);
+      const haloMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.rotation.x = -Math.PI / 2;
+      halo.position.y = 0.05;
+      nodeMobileGroup.add(halo);
+
+      scene.add(nodeMobileGroup);
+    }
+
+    function updateScreenCanvas(seconds = 180, status = 'active') {
+      if (!screenDynamicCtx) return;
+      const ctx = screenDynamicCtx;
+      ctx.fillStyle = '#020617';
+      ctx.fillRect(0, 0, 256, 512);
+
+      // Cabecera Institucional
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(0, 0, 256, 48);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('SGBT · MIPPCI CARNET', 128, 30);
+
+      // Nombre y Cédula
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText('Carlos Mendoza · V-18456123', 128, 75);
+
+      // Marco QR
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(38, 95, 180, 180);
+      ctx.fillStyle = '#000000';
+      // Cuadrados ficticios QR
+      ctx.fillRect(50, 107, 45, 45);
+      ctx.fillRect(161, 107, 45, 45);
+      ctx.fillRect(50, 218, 45, 45);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(60, 117, 25, 25);
+      ctx.fillRect(171, 117, 25, 25);
+      ctx.fillRect(60, 228, 25, 25);
+      ctx.fillStyle = status === 'expired' ? '#f59e0b' : '#0284c7';
+      ctx.fillRect(68, 125, 9, 9);
+      ctx.fillRect(179, 125, 9, 9);
+      ctx.fillRect(68, 236, 9, 9);
+
+      // Contador de segundos
+      ctx.fillStyle = status === 'expired' ? '#ef4444' : '#10b981';
+      ctx.font = 'bold 22px monospace';
+      ctx.fillText(status === 'expired' ? 'EXPIRADO' : `EXP: ${seconds}s`, 128, 315);
+
+      // Barra de Combos Asignados
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(20, 340, 216, 120);
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('📦 BOLSA VÍVERES: ASIGNADA', 30, 370);
+      ctx.fillText('🥩 COMBO PROTEICO: ASIGNADO', 30, 400);
+      ctx.fillStyle = '#10b981';
+      ctx.fillText('🛡️ Sello Merkle: RFC 6962 OK', 30, 435);
+
+      if (screenDynamicTexture) screenDynamicTexture.needsUpdate = true;
+    }
+
+    // ESTACIÓN 2: MESA DE DESPACHO & ESCÁNER
+    function buildDeskStation() {
+      nodeDeskGroup = new THREE.Group();
+      nodeDeskGroup.position.set(-1.5, 0, 7.5);
+      nodeDeskGroup.userData = { stationId: 2, name: "Mesa de Despacho" };
+
+      // Mesa mostrador
+      const tableGeo = new THREE.BoxGeometry(4.5, 1.8, 2.5);
+      const tableMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.5, roughness: 0.5 });
+      const table = new THREE.Mesh(tableGeo, tableMat);
+      table.position.y = 0.9;
+      table.castShadow = true;
+      table.userData = { isStation: true, stationId: 2 };
+      nodeDeskGroup.add(table);
+
+      // Torreta escáner
+      const poleGeo = new THREE.CylinderGeometry(0.08, 0.08, 1.6);
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9 });
+      const pole = new THREE.Mesh(poleGeo, poleMat);
+      pole.position.set(-1.5, 2.4, -0.6);
+      nodeDeskGroup.add(pole);
+
+      const headGeo = new THREE.BoxGeometry(0.6, 0.4, 0.6);
+      const headMat = new THREE.MeshStandardMaterial({ color: 0x059669 });
+      const head = new THREE.Mesh(headGeo, headMat);
+      head.position.set(-1.5, 3.2, -0.6);
+      nodeDeskGroup.add(head);
+
+      // Haz láser de escaneo volumétrico
+      const laserGeo = new THREE.ConeGeometry(0.8, 2.2, 16, 1, true);
+      const laserMat = new THREE.MeshBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.28, side: THREE.DoubleSide });
+      laserBeamMesh = new THREE.Mesh(laserGeo, laserMat);
+      laserBeamMesh.position.set(-1.5, 2.1, 0.2);
+      laserBeamMesh.rotation.x = Math.PI / 3.5;
+      nodeDeskGroup.add(laserBeamMesh);
+
+      // Cajas de Combos de Alimentos 3D
+      const boxGeo = new THREE.BoxGeometry(1.4, 1.1, 1.1);
+      const boxMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
+      foodComboMesh = new THREE.Mesh(boxGeo, boxMat);
+      foodComboMesh.position.set(0.6, 2.35, 0.2);
+      foodComboMesh.castShadow = true;
+      nodeDeskGroup.add(foodComboMesh);
+
+      // Antena NFC Tap-to-Claim
+      const nfcGeo = new THREE.RingGeometry(0.3, 0.6, 24);
+      const nfcMat = new THREE.MeshBasicMaterial({ color: 0x34d399, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+      nfcWaveMesh = new THREE.Mesh(nfcGeo, nfcMat);
+      nfcWaveMesh.rotation.x = -Math.PI / 2;
+      nfcWaveMesh.position.set(-0.6, 1.81, 0.4);
+      nodeDeskGroup.add(nfcWaveMesh);
+
+      scene.add(nodeDeskGroup);
+    }
+
+    // ESTACIÓN 3: SERVIDOR LOCAL SQLITE RACK
+    function buildServerStation() {
+      nodeServerGroup = new THREE.Group();
+      nodeServerGroup.position.set(8.5, 0, 1.5);
+      nodeServerGroup.userData = { stationId: 3, name: "Servidor SQLite WAL" };
+
+      // Chasis de Rack 19"
+      const rackGeo = new THREE.BoxGeometry(2.4, 5.2, 2.4);
+      const rackMat = new THREE.MeshStandardMaterial({ color: 0x090d16, metalness: 0.95, roughness: 0.3 });
+      const rack = new THREE.Mesh(rackGeo, rackMat);
+      rack.position.y = 2.6;
+      rack.castShadow = true;
+      rack.userData = { isStation: true, stationId: 3 };
+      nodeServerGroup.add(rack);
+
+      // 4 Unidades Blade con rejilla
+      for (let i = 0; i < 4; i++) {
+        const bladeGeo = new THREE.BoxGeometry(2.1, 0.9, 0.1);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, metalness: 0.7 });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        blade.position.set(0, 1.2 + i * 1.1, 1.22);
+        nodeServerGroup.add(blade);
+
+        // LEDs de actividad I/O
+        for (let j = 0; j < 3; j++) {
+          const ledGeo = new THREE.SphereGeometry(0.06, 8, 8);
+          const ledMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+          const led = new THREE.Mesh(ledGeo, ledMat);
+          led.position.set(-0.7 + j * 0.25, 1.2 + i * 1.1, 1.28);
+          nodeServerGroup.add(led);
+          serverLeds.push(led);
+        }
+      }
+
+      // Halo suelo púrpura
+      const haloGeo = new THREE.RingGeometry(1.6, 2.0, 32);
+      const haloMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+      const halo = new THREE.Mesh(haloGeo, haloMat);
+      halo.rotation.x = -Math.PI / 2;
+      halo.position.y = 0.05;
+      nodeServerGroup.add(halo);
+
+      scene.add(nodeServerGroup);
+    }
+
+    // ESTACIÓN 4: NUBE CRIPTOGRÁFICA & ÁRBOL MERKLE
+    function buildMerkleCloudStation() {
+      nodeMerkleGroup = new THREE.Group();
+      nodeMerkleGroup.position.set(0, 7.5, -6.5);
+      nodeMerkleGroup.userData = { stationId: 4, name: "Árbol Merkle & Supabase Cloud" };
+
+      // Núcleo Icosaédrico Dorado
+      const coreGeo = new THREE.IcosahedronGeometry(1.8, 1);
+      const coreMat = new THREE.MeshStandardMaterial({
+        color: 0xf59e0b,
+        metalness: 0.9,
+        roughness: 0.2,
+        wireframe: false
+      });
+      merkleCoreMesh = new THREE.Mesh(coreGeo, coreMat);
+      merkleCoreMesh.userData = { isStation: true, stationId: 4 };
+      nodeMerkleGroup.add(merkleCoreMesh);
+
+      // Malla alámbrica brillante sobrepuesta
+      const wireMat = new THREE.MeshBasicMaterial({ color: 0xfef08a, wireframe: true, transparent: true, opacity: 0.6 });
+      const wireMesh = new THREE.Mesh(coreGeo, wireMat);
+      merkleCoreMesh.add(wireMesh);
+
+      // Anillos orbitales contra-rotativos
+      const ring1Geo = new THREE.TorusGeometry(2.8, 0.05, 16, 64);
+      const ring1Mat = new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.7 });
+      merkleGimbalRing1 = new THREE.Mesh(ring1Geo, ring1Mat);
+      merkleGimbalRing1.rotation.x = Math.PI / 3;
+      nodeMerkleGroup.add(merkleGimbalRing1);
+
+      const ring2Geo = new THREE.TorusGeometry(3.3, 0.05, 16, 64);
+      const ring2Mat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.6 });
+      merkleGimbalRing2 = new THREE.Mesh(ring2Geo, ring2Mat);
+      merkleGimbalRing2.rotation.y = Math.PI / 4;
+      nodeMerkleGroup.add(merkleGimbalRing2);
+
+      // Partículas gravitacionales doradas
+      const particleGeo = new THREE.BufferGeometry();
+      const count = 75;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        const radius = 2.4 + Math.random() * 2.2;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        positions[i] = radius * Math.sin(phi) * Math.cos(theta);
+        positions[i + 1] = radius * Math.cos(phi);
+        positions[i + 2] = radius * Math.sin(phi) * Math.sin(theta);
+      }
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const particleMat = new THREE.PointsMaterial({ color: 0xfbbf24, size: 0.15, transparent: true, opacity: 0.9 });
+      merkleParticles = new THREE.Points(particleGeo, particleMat);
+      nodeMerkleGroup.add(merkleParticles);
+
+      scene.add(nodeMerkleGroup);
+    }
+
+    // TUBOS DE FLUJO DE DATOS Y PARTÍCULAS (DIRECTRIZ 2)
+    function buildDataStreamPipes() {
+      const routes = [
+        // Móvil -> Mesa
+        { from: new THREE.Vector3(-8.5, 3.2, 1.5), to: new THREE.Vector3(-1.5, 2.0, 7.5), color: 0x38bdf8 },
+        // Mesa -> Servidor
+        { from: new THREE.Vector3(-1.5, 2.0, 7.5), to: new THREE.Vector3(8.5, 3.0, 1.5), color: 0x10b981 },
+        // Servidor -> Nube Merkle
+        { from: new THREE.Vector3(8.5, 3.0, 1.5), to: new THREE.Vector3(0, 7.5, -6.5), color: 0xa855f7 },
+        // Nube Merkle -> Móvil (Push)
+        { from: new THREE.Vector3(0, 7.5, -6.5), to: new THREE.Vector3(-8.5, 3.2, 1.5), color: 0xf59e0b }
+      ];
+
+      routes.forEach((route, idx) => {
+        const mid = new THREE.Vector3().addVectors(route.from, route.to).multiplyScalar(0.5);
+        mid.y += 1.8;
+        const curve = new THREE.QuadraticBezierCurve3(route.from, mid, route.to);
+
+        // Tubo semi-transparente
+        const tubeGeo = new THREE.TubeGeometry(curve, 32, 0.04, 8, false);
+        const tubeMat = new THREE.MeshBasicMaterial({ color: route.color, transparent: true, opacity: 0.25 });
+        const tube = new THREE.Mesh(tubeGeo, tubeMat);
+        scene.add(tube);
+
+        // Fotones viajeros
+        const pCount = 5;
+        for (let i = 0; i < pCount; i++) {
+          const pGeo = new THREE.SphereGeometry(0.12, 8, 8);
+          const pMat = new THREE.MeshBasicMaterial({ color: route.color });
+          const pMesh = new THREE.Mesh(pGeo, pMat);
+          scene.add(pMesh);
+          dataStreamParticles.push({
+            mesh: pMesh,
+            curve: curve,
+            progress: (i / pCount) + Math.random() * 0.2,
+            speed: 0.005 + (idx === 1 ? 0.008 : 0.004)
+          });
+        }
+      });
+    }
+
+    // PRESETS DE CÁMARA 3D
+    function setCameraView(preset) {
+      if (!controls) return;
+      autoRotate = false;
+      document.getElementById('btnAutoRotate').textContent = "▶️ Auto-Giro";
+
+      if (preset === 'iso') {
+        targetCameraPos = new THREE.Vector3(18, 14, 22);
+        targetLookAt = new THREE.Vector3(0, 2, 0);
+      } else if (preset === 'mobile') {
+        targetCameraPos = new THREE.Vector3(-8.5, 5.0, 7.5);
+        targetLookAt = new THREE.Vector3(-8.5, 3.2, 1.5);
+      } else if (preset === 'desk') {
+        targetCameraPos = new THREE.Vector3(-1.5, 5.2, 12.5);
+        targetLookAt = new THREE.Vector3(-1.5, 2.0, 7.5);
+      } else if (preset === 'server') {
+        targetCameraPos = new THREE.Vector3(12.5, 4.5, 6.5);
+        targetLookAt = new THREE.Vector3(8.5, 2.6, 1.5);
+      } else if (preset === 'merkle') {
+        targetCameraPos = new THREE.Vector3(0, 9.5, 0.5);
+        targetLookAt = new THREE.Vector3(0, 7.5, -6.5);
+      }
+    }
+
+    function toggleAutoRotate() {
+      autoRotate = !autoRotate;
+      const btn = document.getElementById('btnAutoRotate');
+      btn.textContent = autoRotate ? "⏸️ Pausar Giro" : "▶️ Auto-Giro";
+    }
+
+    // RAYCASTING INTERACTIVO
+    function onCanvasMouseMove(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(scene.children, true);
+
+      let found = null;
+      for (let hit of intersects) {
+        let p = hit.object;
+        while (p && p !== scene) {
+          if (p.userData && p.userData.stationId) {
+            found = p.userData.stationId;
+            break;
+          }
+          p = p.parent;
+        }
+        if (found) break;
+      }
+
+      renderer.domElement.style.cursor = found ? 'pointer' : (controls && controls.state === 0 ? 'grab' : 'grabbing');
+    }
+
+    function onCanvasClick(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(scene.children, true);
+
+      for (let hit of intersects) {
+        let p = hit.object;
+        while (p && p !== scene) {
+          if (p.userData && p.userData.stationId) {
+            selectStation(p.userData.stationId);
+            return;
+          }
+          p = p.parent;
+        }
+      }
+    }
+
+    function onWindowResize() {
+      const container = document.getElementById('webglContainer');
+      if (!container || !renderer || !camera) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    }
+
+    // BUCLE DE RENDERIZADO 3D
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let fpsTimer = 0;
+
+    function animateWebGL() {
+      requestAnimationFrame(animateWebGL);
+
+      const now = performance.now();
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+
+      // Cálculo de FPS
+      frameCount++;
+      fpsTimer += delta;
+      if (fpsTimer >= 1.0) {
+        const fpsEl = document.getElementById('webglFpsText');
+        if (fpsEl) fpsEl.textContent = `${frameCount} FPS`;
+        frameCount = 0;
+        fpsTimer = 0;
+      }
+
+      // Animación Árbol Merkle
+      if (merkleCoreMesh) merkleCoreMesh.rotation.y += 0.008;
+      if (merkleGimbalRing1) merkleGimbalRing1.rotation.z += 0.012;
+      if (merkleGimbalRing2) merkleGimbalRing2.rotation.x -= 0.015;
+      if (merkleParticles) merkleParticles.rotation.y += 0.004;
+
+      // Pulsación Antena NFC
+      if (nfcWaveMesh) {
+        const scale = 1 + Math.sin(now * 0.005) * 0.15;
+        nfcWaveMesh.scale.set(scale, scale, 1);
+      }
+
+      // Parpadeo de LEDs del Servidor SQLite WAL
+      if (serverLeds.length > 0 && Math.random() < 0.3) {
+        const randIdx = Math.floor(Math.random() * serverLeds.length);
+        const led = serverLeds[randIdx];
+        led.material.color.setHex(Math.random() < 0.5 ? 0x10b981 : 0x0284c7);
+      }
+
+      // Viaje de partículas de datos (Directriz 2)
+      dataStreamParticles.forEach(p => {
+        p.progress += p.speed;
+        if (p.progress > 1) p.progress = 0;
+        const pt = p.curve.getPoint(p.progress);
+        p.mesh.position.copy(pt);
+      });
+
+      // Suave interpolación de cámara hacia el objetivo (Camera Lerp)
+      if (targetCameraPos && targetLookAt && controls) {
+        camera.position.lerp(targetCameraPos, 0.05);
+        controls.target.lerp(targetLookAt, 0.05);
+        if (camera.position.distanceTo(targetCameraPos) < 0.1) {
+          targetCameraPos = null;
+          targetLookAt = null;
+        }
+      } else if (autoRotate && controls) {
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.0;
+      } else if (controls) {
+        controls.autoRotate = false;
+      }
+
+      if (controls) controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // =========================================================================
+    // 4. GEMELO DIGITAL: EVENTOS REACTIVOS ENTRE SIMULADORES Y ESCENARIO 3D (DIRECTRIZ 3)
+    // =========================================================================
+    function triggerWebGlSimEvent(type, payload = {}) {
+      if (!scene) return;
+
+      if (type === 'login') {
+        setCameraView('mobile');
+        updateScreenCanvas(180, 'active');
+      } else if (type === 'passkey') {
+        setCameraView('mobile');
+        if (screenDynamicCtx) {
+          screenDynamicCtx.fillStyle = '#10b981';
+          screenDynamicCtx.fillRect(20, 480, 216, 20);
+          screenDynamicTexture.needsUpdate = true;
+        }
+      } else if (type === 'qr_reset') {
+        setCameraView('mobile');
+        updateScreenCanvas(180, 'active');
+        if (laserBeamMesh) {
+          laserBeamMesh.material.color.setHex(0x10b981);
+          laserBeamMesh.material.opacity = 0.4;
+        }
+      } else if (type === 'dispatch_success') {
+        setCameraView('desk');
+        // Elevación de caja de combos
+        if (foodComboMesh) {
+          foodComboMesh.position.y = 3.2;
+          setTimeout(() => { foodComboMesh.position.y = 2.35; }, 800);
+        }
+        if (laserBeamMesh) {
+          laserBeamMesh.material.color.setHex(0x10b981);
+          laserBeamMesh.material.opacity = 0.8;
+          setTimeout(() => { laserBeamMesh.material.opacity = 0.28; }, 1500);
+        }
+        // LEDs del servidor parpadean intensamente
+        serverLeds.forEach(l => l.material.color.setHex(0x10b981));
+      } else if (type === 'dispatch_duplicate') {
+        setCameraView('desk');
+        if (laserBeamMesh) {
+          laserBeamMesh.material.color.setHex(0xef4444);
+          laserBeamMesh.material.opacity = 0.9;
+          setTimeout(() => { laserBeamMesh.material.color.setHex(0x10b981); laserBeamMesh.material.opacity = 0.28; }, 2000);
+        }
+        serverLeds.forEach(l => l.material.color.setHex(0xef4444));
+      } else if (type === 'dispatch_expired') {
+        setCameraView('mobile');
+        updateScreenCanvas(0, 'expired');
+        if (laserBeamMesh) {
+          laserBeamMesh.material.color.setHex(0xf59e0b);
+          laserBeamMesh.material.opacity = 0.6;
+        }
+      } else if (type === 'merkle_audit') {
+        setCameraView('merkle');
+        if (merkleCoreMesh) {
+          merkleCoreMesh.scale.set(1.4, 1.4, 1.4);
+          setTimeout(() => { merkleCoreMesh.scale.set(1, 1, 1); }, 1200);
+        }
+      } else if (type === 'web_push') {
+        setCameraView('merkle');
+        // Aceleración de anillos
+        if (merkleGimbalRing1) merkleGimbalRing1.rotation.z += 1.5;
+        setTimeout(() => setCameraView('mobile'), 1000);
+      }
+    }
+
+    // =========================================================================
+    // 5. LÓGICA DE SIMULADORES EN PANTALLA
+    // =========================================================================
+    function setSimTab(tab) {
+      const tabs = ['login', 'passkey', 'qr', 'merkle', 'push'];
+      tabs.forEach(t => {
+        const step = document.getElementById(`simStep${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (t === tab) {
+          step?.classList.remove('hidden');
+          btn?.classList.add('bg-sky-600', 'text-white');
+          btn?.classList.remove('text-slate-400');
+        } else {
+          step?.classList.add('hidden');
+          btn?.classList.remove('bg-sky-600', 'text-white');
+          btn?.classList.add('text-slate-400');
+        }
+      });
+      if (tab === 'qr') startQrTimer();
+      triggerWebGlSimEvent(tab);
+    }
+
+    function simPerformLogin() {
+      const doc = document.getElementById('simInputDoc').value;
+      const res = document.getElementById('simLoginResult');
+      res.innerHTML = `✅ Sesión iniciada: Funcionario activo con C.I. <strong>${doc}</strong>. Dispositivo verificado.`;
+      triggerWebGlSimEvent('login');
+    }
+
+    function simEnrollPasskey() {
+      const log = document.getElementById('simPasskeyLog');
+      log.innerHTML += '<br>> Desafío WebAuthn P-256 recibido del servidor...';
+      setTimeout(() => {
+        log.innerHTML += '<br>> Solicitando huella/FaceID al Secure Enclave...';
+      }, 500);
+      setTimeout(() => {
+        log.innerHTML += '<br><strong>✅ ¡Passkey enrolada exitosamente! Clave pública guardada.</strong>';
+        triggerWebGlSimEvent('passkey');
+      }, 1200);
+    }
+
+    let qrTimerInterval = null;
+    let qrSeconds = 180;
+
+    function startQrTimer() {
+      if (qrTimerInterval) clearInterval(qrTimerInterval);
+      qrSeconds = 180;
+      updateQrDisplay();
+      triggerWebGlSimEvent('qr_reset');
+      qrTimerInterval = setInterval(() => {
+        qrSeconds--;
+        if (qrSeconds <= 0) {
+          clearInterval(qrTimerInterval);
+          qrSeconds = 0;
+          triggerWebGlSimEvent('dispatch_expired');
+        }
+        updateQrDisplay();
+      }, 1000);
+    }
+
+    function resetQrTimer() {
+      startQrTimer();
+    }
+
+    function updateQrDisplay() {
+      const timerEl = document.getElementById('simQrTimer');
+      const barEl = document.getElementById('simQrProgressBar');
+      if (timerEl) timerEl.textContent = `${qrSeconds}s`;
+      updateScreenCanvas(qrSeconds, qrSeconds <= 0 ? 'expired' : 'active');
+      if (barEl) {
+        const pct = (qrSeconds / 180) * 100;
+        barEl.style.width = `${pct}%`;
+        if (pct < 20) {
+          barEl.className = "h-full bg-rose-500 transition-all duration-1000";
+        } else if (pct < 50) {
+          barEl.className = "h-full bg-amber-500 transition-all duration-1000";
+        } else {
+          barEl.className = "h-full bg-emerald-500 transition-all duration-1000";
+        }
+      }
+    }
+
+    function simAuditMerkle() {
+      triggerWebGlSimEvent('merkle_audit');
+      alert('✅ Comprobación Criptográfica Exitosa: Tu entrega pertenece legítimamente al Acta Oficial Ministerial con sello inalterable RFC 6962.');
+    }
+
+    function simTriggerWebPush() {
+      triggerWebGlSimEvent('web_push');
+      const pushEl = document.getElementById('simPushNotification');
+      pushEl?.classList.remove('hidden');
+      setTimeout(() => {
+        pushEl?.classList.add('hidden');
+      }, 6000);
+    }
+
+    function simDispatchCase(type) {
+      const hud = document.getElementById('operatorHud');
+      const icon = document.getElementById('operatorHudIcon');
+      const title = document.getElementById('operatorHudTitle');
+      const desc = document.getElementById('operatorHudDesc');
+
+      if (type === 'success') {
+        hud.className = "rounded-xl p-5 text-center transition-all duration-300 bg-emerald-950 border-2 border-emerald-500 min-h-[170px] flex flex-col items-center justify-center space-y-2 shadow-[0_0_25px_rgba(16,185,129,0.3)]";
+        icon.textContent = "✅";
+        title.className = "text-base font-black text-emerald-300 uppercase tracking-wider";
+        title.textContent = "¡DESPACHO AUTORIZADO! (1 COMBO VÍVERES + 1 PROTEICO)";
+        desc.className = "text-xs text-emerald-200";
+        desc.textContent = "Beneficiario: Carlos Mendoza · V-18456123 · Cuota liquidada en SQLite y Supabase Cloud.";
+        triggerWebGlSimEvent('dispatch_success');
+      } else if (type === 'duplicate') {
+        hud.className = "rounded-xl p-5 text-center transition-all duration-300 bg-rose-950 border-2 border-rose-500 min-h-[170px] flex flex-col items-center justify-center space-y-2 shadow-[0_0_25px_rgba(239,68,68,0.3)]";
+        icon.textContent = "⛔";
+        title.className = "text-base font-black text-rose-300 uppercase tracking-wider";
+        title.textContent = "RECHAZADO: BENEFICIO YA RETIRADO HOY";
+        desc.className = "text-xs text-rose-200";
+        desc.textContent = "El trabajador ya reclamó sus combos en Mesa 1 a las 09:15 AM. Idempotencia activada.";
+        triggerWebGlSimEvent('dispatch_duplicate');
+      } else if (type === 'expired') {
+        hud.className = "rounded-xl p-5 text-center transition-all duration-300 bg-amber-950 border-2 border-amber-500 min-h-[170px] flex flex-col items-center justify-center space-y-2 shadow-[0_0_25px_rgba(245,158,11,0.3)]";
+        icon.textContent = "⚠️";
+        title.className = "text-base font-black text-amber-300 uppercase tracking-wider";
+        title.textContent = "CÓDIGO QR EXPIRADO (> 180 SEGUNDOS)";
+        desc.className = "text-xs text-amber-200";
+        desc.textContent = "Solicite al funcionario presionar 'Regenerar Código' en su pantalla para emitir nuevo token.";
+        triggerWebGlSimEvent('dispatch_expired');
+      }
+    }
+
+    // Inicializar la escena 3D al cargar el DOM
+    window.addEventListener('DOMContentLoaded', () => {
+      // Espera corta para que las librerías CDN carguen adecuadamente
+      setTimeout(() => {
+        try {
+          initWebGLScene();
+        } catch (e) {
+          console.error("Error iniciando WebGL, cayendo a SVG:", e);
+          switchSceneMode('svg');
+        }
+      }, 100);
+    });
+  </script>
+</body>
+</html>

@@ -102,6 +102,8 @@ app.get(/^\/entregas(\/.*)?$/, (req, res) => {
 app.use(express.static(path.join(__dirname, '../public')));
 app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
 app.use('/docs/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
+app.use('/docs', express.static(path.join(__dirname, '../public/docs')));
+app.use('/docs', express.static(path.join(__dirname, '../docs')));
 
 const { auditLoggerMiddleware } = require('./middleware/audit_logger.middleware');
 
@@ -139,6 +141,17 @@ app.use(async (req, res, next) => {
 // Redirecciones amigables a la documentación interactiva OpenAPI 3.1
 app.get('/docs', (req, res) => res.redirect('/api/v1/docs'));
 app.get('/api/docs', (req, res) => res.redirect('/api/v1/docs'));
+
+// Rutas amigables para los manuales interactivos WebGL 3D
+app.get('/docs/manual_usuario_interactivo', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/docs/manual_usuario_interactivo.html'));
+});
+app.get('/docs/manual_sistema_interactivo', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/docs/manual_sistema_interactivo.html'));
+});
+app.get('/docs/manual_administracion_interactivo', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/docs/manual_administracion_interactivo.html'));
+});
 
 // Soporte de idempotencia en peticiones mutadoras de la API (RFC / Idempotency-Key)
 app.use('/api', idempotencyMiddleware);

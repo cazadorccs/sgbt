@@ -82,6 +82,42 @@
       "destination": "/public/Propuesta de Comercialización.md"
     },
     {
+      "source": "/docs/manual_usuario_interactivo",
+      "destination": "/public/docs/manual_usuario_interactivo.html"
+    },
+    {
+      "source": "/docs/manual_usuario_interactivo.html",
+      "destination": "/public/docs/manual_usuario_interactivo.html"
+    },
+    {
+      "source": "/manual_usuario_interactivo",
+      "destination": "/public/docs/manual_usuario_interactivo.html"
+    },
+    {
+      "source": "/manual_usuario_interactivo.html",
+      "destination": "/public/docs/manual_usuario_interactivo.html"
+    },
+    {
+      "source": "/docs/manual_sistema_interactivo",
+      "destination": "/public/docs/manual_sistema_interactivo.html"
+    },
+    {
+      "source": "/docs/manual_sistema_interactivo.html",
+      "destination": "/public/docs/manual_sistema_interactivo.html"
+    },
+    {
+      "source": "/docs/manual_administracion_interactivo",
+      "destination": "/public/docs/manual_administracion_interactivo.html"
+    },
+    {
+      "source": "/docs/manual_administracion_interactivo.html",
+      "destination": "/public/docs/manual_administracion_interactivo.html"
+    },
+    {
+      "source": "/docs/(.*)",
+      "destination": "/public/docs/$1"
+    },
+    {
       "source": "/diagrams/",
       "destination": "/public/diagrams/index.html"
     },
