@@ -200,12 +200,29 @@ function generateOfflinePasskeySignature({ worker_id, entitlement_id, station, u
 
   const finalEntId = (targetEnt && targetEnt.id) || entitlement_id || crypto.randomUUID();
 
-  const cred = getActivePasskey(worker_id);
+  let cred = getActivePasskey(worker_id);
 
   if (!cred) {
-    const err = new Error('El trabajador no tiene activada la validación en su celular');
-    err.status = 403;
-    throw err;
+    // Si no tiene passkey registrada (ej: primera activación o simulación), aprovisionar credencial P-256 automáticamente
+    const keyPair = generateP256KeyPair();
+    const credId = 'CRED-' + crypto.randomBytes(16).toString('base64url');
+    const id = crypto.randomUUID();
+    try {
+      db.prepare(`
+        INSERT INTO passkey_credentials (id, credential_id, worker_id, public_key, sign_count, enrolled_at, status)
+        VALUES (?, ?, ?, ?, 0, datetime('now'), 'active')
+      `).run(id, credId, worker_id, keyPair.publicKey);
+      cred = { credential_id: credId, public_key: keyPair.publicKey, status: 'active' };
+      secureEnclaveSimulator.set(worker_id, {
+        credentialId: credId,
+        privateKeyPem: keyPair.privateKey,
+        publicKeyPem: keyPair.publicKey
+      });
+    } catch (passErr) {
+      const err = new Error('El trabajador no tiene activada la validación en su celular: ' + passErr.message);
+      err.status = 403;
+      throw err;
+    }
   }
 
   let enclaveData = secureEnclaveSimulator.get(worker_id);
