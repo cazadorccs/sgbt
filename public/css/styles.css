@@ -4900,6 +4900,93 @@ select {
   touch-action: manipulation;
 }
 
+/* ============================================================================
+   SUITE AVANZADA UI/UX: ÁREAS B, C, D, E (AUTORESEARCH)
+   - Área B: Scan-to-Dispatch Rápido
+   - Área C: Virtual Scroll & Containment DOM 60fps
+   - Área D: Optimistic UI Flash & Háptica
+   - Área E: Network Drift HUD Reactivo de Sincronización en Vivo
+   ============================================================================ */
+
+/* Área E: Network Drift HUD */
+.network-sync-pill,
+#networkSyncPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  min-height: 32px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  contain: layout style;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.network-sync-pill.synced {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+.network-sync-pill.pending {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.network-sync-pill.syncing {
+  background: rgba(2, 132, 199, 0.14);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.35);
+}
+
+.network-sync-pill.offline {
+  background: rgba(100, 116, 139, 0.14);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.28);
+}
+
+.sync-pill-pulse {
+  animation: syncPillPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes syncPillPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.88; transform: scale(0.97); }
+}
+
+.sync-icon-spin {
+  animation: syncSpin 0.9s linear infinite;
+  display: inline-block;
+}
+
+@keyframes syncSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Área D: Optical Flash para Optimistic UI en Almacén Ruidoso */
+body.delivery-flash-active {
+  animation: deliveryFlashGreen 0.45s ease-out;
+}
+
+@keyframes deliveryFlashGreen {
+  0% { box-shadow: inset 0 0 0 6px #10b981; }
+  50% { box-shadow: inset 0 0 0 14px rgba(16, 185, 129, 0.4); }
+  100% { box-shadow: inset 0 0 0 0 transparent; }
+}
+
+/* Área C: Virtual Windowing y Containment CSS a 60fps */
+.virtual-table-row {
+  contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: 52px;
+}
+
+
 
 
 

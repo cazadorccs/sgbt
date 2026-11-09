@@ -63,6 +63,12 @@
         <span id="connectionText">Online</span>
       </div>
 
+      <!-- 1.1 NETWORK DRIFT HUD: COLA DE DESPACHOS Y ESTADO DE SINCRONIZACIÓN EN VIVO -->
+      <div id="networkSyncPill" class="status-pill status-pill-compact network-sync-pill synced" role="button" tabindex="0" title="Estado de sincronización SQLite/IndexedDB (Clic para sincronizar cola silenciosa)" onclick="if (typeof window.syncDeferredQueue === 'function') window.syncDeferredQueue(true);">
+        <span id="networkSyncIcon" class="sync-icon">☁️</span>
+        <span id="networkSyncText">Sincronizado</span>
+      </div>
+
       <!-- Selector de Modo Oscuro / Claro -->
       <button type="button" id="btnThemeToggle" class="btn-icon-header" title="Cambiar a Modo Oscuro" aria-label="Cambiar Tema" style="cursor: pointer;">
         <!-- Icono Sol (visible en modo oscuro) -->

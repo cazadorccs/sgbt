@@ -5,3 +5,4 @@ exp-02	keep	16100	62.13	0.060	FIDO2 P-256 One-Shot C++ Verification + KeyObject 
 exp-03	keep	3732506	2.68	0.00027	SHA-256 Batch Streaming Hash + Soporte passkey_nfc en Auditoria + Stmt Cache
 exp-04	keep	0	0.00	0.000	PWA Icons 192/512 (-375KB) + SW De-dup (-604KB) + Stale-While-Revalidate
 exp-05	keep	100	0.00	0.000	UI/UX Ergonomía Táctil (Touch Targets 100% ≥48px) + Contraste Solar WCAG 2.2 AAA (100% ≥7.0:1)
+exp-06	keep	100	0.00	0.000	UI/UX Avanzada: Scan Rápido (350ms) + Virtual Windowing DOM + Háptica Industrial + Network Drift HUD

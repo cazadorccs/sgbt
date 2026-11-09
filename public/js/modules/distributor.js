@@ -1198,12 +1198,18 @@ async function startLiveCameraScanner() {
       clearTimeout(hud._timer);
       hud._timer = setTimeout(() => {
         hud.style.display = 'none';
-      }, isSuccess ? 1300 : 1900);
+      }, isSuccess ? 650 : 1800);
     }
 
     const onScanSuccess = async (decodedText) => {
       const cleanText = decodedText.trim();
-      if (isScanCooldown || (lastScannedRaw === cleanText && (Date.now() - lastScannedTime < 2800))) {
+      const isSameRaw = (lastScannedRaw === cleanText);
+      // Smart Cooldown diferenciado: 350ms para beneficiarios distintos en cola, 2.4s anti-rebote para el mismo código QR
+      const isCooldownActive = isSameRaw
+        ? (Date.now() - lastScannedTime < 2400)
+        : (isScanCooldown && (Date.now() - lastScannedTime < 350));
+
+      if (isCooldownActive) {
         return;
       }
       lastScannedRaw = cleanText;
@@ -1231,7 +1237,7 @@ async function startLiveCameraScanner() {
       } finally {
         setTimeout(() => {
           isScanCooldown = false;
-        }, 1300);
+        }, 350);
       }
     };
 
@@ -1546,6 +1552,11 @@ async function processQrPayload(payload, isLiveCamera = false) {
     const worker = STATE.localCache.workers.find(w => w.worker_id === payload.wid);
     const nowIso = new Date().toISOString();
     const isAutoFallback = triggerReason.includes('Fallback');
+
+    // Optimistic UI & Feedback Háptico Inmediato (0ms de latencia)
+    if (typeof triggerOptimisticFeedback === 'function') {
+      triggerOptimisticFeedback(worker ? worker.full_name : 'Beneficiario', isTotalMode ? 'Retiro Totalizado' : 'Combo Alimentos');
+    }
 
     // ========================================================================
     // CASO OFFLINE A: RETIRO ÚNICO TOTALIZADO
@@ -2437,9 +2448,79 @@ async function syncDeferredQueue(isAuto = false) {
     console.warn('[OFFLINE SYNC ERROR]', err.message || err);
   } finally {
     isSyncingDeferredQueue = false;
+    if (typeof window.updateNetworkSyncHUD === 'function') window.updateNetworkSyncHUD();
   }
 }
 window.syncDeferredQueue = syncDeferredQueue;
+
+// ============================================================================
+// SUITE UI/UX: OPTIMISTIC UI & SENSORY HAPTIC FEEDBACK (0 MS LATENCY)
+// ============================================================================
+function triggerOptimisticFeedback(workerName = 'Beneficiario', comboName = 'Combo Alimentos') {
+  // 1. Háptica Industrial (0ms sincrónico)
+  if (typeof window.triggerHaptic === 'function') {
+    window.triggerHaptic('delivery_approved');
+  } else if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    try { navigator.vibrate([90, 40, 110]); } catch (_) {}
+  }
+
+  // 2. Optical Flash visual para ambientes ruidosos de almacén
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.classList.add('delivery-flash-active');
+    setTimeout(() => {
+      document.body.classList.remove('delivery-flash-active');
+    }, 450);
+  }
+}
+
+// ============================================================================
+// SUITE UI/UX: NETWORK DRIFT HUD (SEÑALIZACIÓN EN VIVO EN MASTER HEADER)
+// ============================================================================
+window.updateNetworkSyncHUD = function(statusOverride = null) {
+  const pill = document.getElementById('networkSyncPill');
+  const icon = document.getElementById('networkSyncIcon');
+  const text = document.getElementById('networkSyncText');
+  if (!pill || !icon || !text) return;
+
+  const queueCount = (STATE && STATE.localCache && STATE.localCache.syncQueue)
+    ? STATE.localCache.syncQueue.length
+    : 0;
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  pill.classList.remove('synced', 'pending', 'syncing', 'offline', 'sync-pill-pulse');
+  icon.classList.remove('sync-icon-spin');
+
+  if (statusOverride === 'syncing') {
+    pill.classList.add('syncing');
+    icon.classList.add('sync-icon-spin');
+    icon.textContent = '🔄';
+    text.textContent = queueCount > 0 ? `Sincronizando (${queueCount})...` : 'Sincronizando...';
+    return;
+  }
+
+  if (!isOnline) {
+    pill.classList.add('offline');
+    icon.textContent = '📶';
+    text.textContent = queueCount > 0 ? `${queueCount} en cola (Offline)` : 'Offline';
+    return;
+  }
+
+  if (queueCount > 0) {
+    pill.classList.add('pending', 'sync-pill-pulse');
+    icon.textContent = '⚡';
+    text.textContent = `${queueCount} pendientes`;
+  } else {
+    pill.classList.add('synced');
+    icon.textContent = '☁️';
+    text.textContent = 'Sincronizado';
+  }
+};
+
+// Escuchar cambios de conectividad para reactividad inmediata del HUD
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => { if (typeof window.updateNetworkSyncHUD === 'function') window.updateNetworkSyncHUD(); });
+  window.addEventListener('offline', () => { if (typeof window.updateNetworkSyncHUD === 'function') window.updateNetworkSyncHUD(); });
+}
 
 function updateSyncQueueUI() {
   const counter = document.getElementById('syncQueueCounter');
@@ -2448,6 +2529,7 @@ function updateSyncQueueUI() {
 
   const count = STATE.localCache.syncQueue.length;
   counter.textContent = `${count} pendientes en cola`;
+  if (typeof window.updateNetworkSyncHUD === 'function') window.updateNetworkSyncHUD();
   list.innerHTML = '';
 
   if (count === 0) {
@@ -2485,7 +2567,10 @@ function showDistributorFeedback(isSuccess, title, subtitle, extraData = null) {
   if (icon) icon.textContent = isSuccess ? '✅' : '🛑';
   if (t) t.textContent = title;
   if (isSuccess) {
+    if (typeof window.triggerHaptic === 'function') window.triggerHaptic('delivery_approved');
     window.dispatchEvent(new CustomEvent('delivery:completed', { detail: { title, subtitle, extraData } }));
+  } else {
+    if (typeof window.triggerHaptic === 'function') window.triggerHaptic('duplicate');
   }
 
   if (isSuccess && d) {
