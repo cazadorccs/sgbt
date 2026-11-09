@@ -376,14 +376,16 @@ const login = async (req, res) => {
 
     const providedSecret = (admin_secret || req.body.password || '').trim();
 
-    // 1. Verificar si el usuario administrador posee un admin_pin_hash individual asignado
+    // 1. Si el usuario administrador posee un admin_pin_hash individual asignado:
+    // Debe autenticarse EXCLUSIVAMENTE con su PIN personalizado.
+    // Queda terminantemente PROHIBIDO el acceso mediante el PIN por defecto (0578), el cual ha sido reescrito.
     let isPinMatch = false;
-    if (worker.admin_pin_hash && worker.admin_pin_hash.trim()) {
-      isPinMatch = verifyPassword(providedSecret, worker.admin_pin_hash);
-    }
+    const hasCustomAdminPin = Boolean(worker.admin_pin_hash && worker.admin_pin_hash.trim());
 
-    // 2. Si no posee PIN individual o no coincidió, verificar contra el PIN administrativo oficial por defecto
-    if (!isPinMatch) {
+    if (hasCustomAdminPin) {
+      isPinMatch = verifyPassword(providedSecret, worker.admin_pin_hash);
+    } else {
+      // 2. Si y solo si aún NO posee un PIN personalizado, se permite el PIN de inicialización del sistema (0578 / ADMIN_ACCESS_SECRET)
       const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
       isPinMatch = Boolean(providedSecret && providedSecret === configuredAdminSecret);
     }

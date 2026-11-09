@@ -78,7 +78,7 @@ async function runSecurityAuditSuite() {
     const defaultHash = hashPassword('1178');
     db.prepare(`
       UPDATE workers 
-      SET password_hash = ?, enrollment_status = 'registrado' 
+      SET password_hash = ?, admin_pin_hash = '', enrollment_status = 'registrado' 
       WHERE document_id = '13537582'
     `).run(defaultHash);
     
@@ -95,6 +95,11 @@ async function runSecurityAuditSuite() {
           .update({ public_key: defaultHash })
           .eq('worker_id', w13.id)
           .like('credential_id', 'formalized_pwd_%');
+
+        await supabase.from('passkey_credentials')
+          .delete()
+          .eq('worker_id', w13.id)
+          .like('credential_id', 'admin_pin_%');
       }
     }
   } catch (seedErr) {
@@ -159,9 +164,9 @@ async function runSecurityAuditSuite() {
     // ------------------------------------------------------------------------
     // PRUEBA TOB-04: Acceso administrativo formal en /coseg con PIN correcto
     // ------------------------------------------------------------------------
-    console.log('4. Verificando acceso administrativo formal en /coseg con PIN válido...');
+    console.log('4. Verificando acceso administrativo formal en /coseg con PIN institucional válido...');
     const resAdminValid = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       admin_secret: '0578',
       require_admin: true
     });
@@ -185,7 +190,7 @@ async function runSecurityAuditSuite() {
     // ------------------------------------------------------------------------
     console.log('5. Verificando rechazo ante PIN administrativo inválido...');
     const resBadPin = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       admin_secret: 'PIN_FALSO_9999',
       require_admin: true
     });

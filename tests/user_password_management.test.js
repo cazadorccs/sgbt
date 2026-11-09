@@ -69,12 +69,20 @@ async function runPasswordManagementSuite() {
 
   try {
     // 1. Obtener token administrativo legítimo
-    console.log('1. Autenticando como Administrador (13537582) con PIN...');
-    const adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
+    console.log('1. Autenticando como Administrador con PIN...');
+    let adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
       document_id: '13537582',
       admin_secret: '0578',
       require_admin: true
     });
+    if (adminLogin.status !== 200) {
+      // 13537582 posee PIN personalizado por el usuario; autenticar con admin institucional V-99995001
+      adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
+        document_id: 'V-99995001',
+        admin_secret: '0578',
+        require_admin: true
+      });
+    }
     assert.strictEqual(adminLogin.status, 200);
     assert(adminLogin.data.success);
     const adminToken = adminLogin.data.session_token;
@@ -179,12 +187,12 @@ async function runPasswordManagementSuite() {
 
     // 9. Administrador gestiona y actualiza su PIN Administrativo de Gobernanza (/coseg)
     console.log('9. Administrador gestiona y actualiza su PIN Administrativo de Gobernanza (/coseg)...');
-    const adminWorkerRes = await httpRequest('GET', '/api/v1/admin/workers?search=13537582', null, {
+    const adminWorkerRes = await httpRequest('GET', '/api/v1/admin/workers?search=99995001', null, {
       'Authorization': `Bearer ${adminToken}`
     });
     assert.strictEqual(adminWorkerRes.status, 200);
     const adminWorker = adminWorkerRes.data.workers[0];
-    assert(adminWorker, 'Debe encontrar al super administrador');
+    assert(adminWorker, 'Debe encontrar al administrador institucional');
 
     // Asignar nuevo PIN administrativo personalizado
     const setAdminPinRes = await httpRequest('POST', `/api/v1/admin/workers/${adminWorker.id}/password`, {
@@ -199,17 +207,33 @@ async function runPasswordManagementSuite() {
 
     // Iniciar sesión en /coseg con el nuevo PIN
     const newPinLogin = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       admin_secret: 'PIN-CUSTOM-2026',
       require_admin: true
     });
     assert.strictEqual(newPinLogin.status, 200, 'Debe iniciar sesión administrativa con el nuevo PIN');
     assert.strictEqual(newPinLogin.data.success, true);
 
-    // Restaurar PIN por defecto en SQLite para mantener idempotencia
+    // Verificación de Vulnerabilidad Resuelta: El PIN institucional por defecto (0578) DEBE ser revocado
+    const oldPinLogin = await httpRequest('POST', '/api/v1/auth/login', {
+      document_id: 'V-99995001',
+      admin_secret: '0578',
+      require_admin: true
+    });
+    assert.strictEqual(oldPinLogin.status, 401, 'El PIN anterior por defecto (0578) DEBE ser rechazado al existir PIN personalizado');
+    assert.strictEqual(oldPinLogin.data.success, undefined);
+
+    // Restaurar PIN por defecto en SQLite y Supabase para mantener idempotencia
     const { db } = require('../backend/db');
+    const { supabase, isSupabaseConfigured } = require('../backend/supabase');
     db.prepare("UPDATE workers SET admin_pin_hash = '' WHERE id = ?").run(adminWorker.id);
-    console.log('   ✅ [OK] Gestión dual de PIN administrativo y contraseña de carnet validada exitosamente.');
+    if (isSupabaseConfigured && isSupabaseConfigured() && supabase) {
+      await supabase.from('passkey_credentials')
+        .delete()
+        .eq('worker_id', adminWorker.id)
+        .like('credential_id', 'admin_pin_%');
+    }
+    console.log('   ✅ [OK] Gestión dual de PIN administrativo y revocación estricta de PIN por defecto validada exitosamente.');
     passed++;
 
     console.log('\n================================================================');
