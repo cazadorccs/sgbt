@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <meta name="theme-color" content="#0369a1">
+  <meta name="description" content="Estación de Trabajo para Supervisores de Almacén - Despacho Manual por Cédula y Gestión de Excepciones SGBT MIPPCI">
+  <title>🛡️ Puesto de Supervisión & Despacho Manual | SGBT MIPPCI</title>
+  
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/css/styles.css?v=3.8">
+  <link rel="stylesheet" href="/css/modal-cleanups.css?v=3.8">
+
+  <style>
+    /* Estilos dedicados a la Estación de Supervisión en Laptop */
+    :root {
+      --sup-bg: #0b1329;
+      --sup-panel: #111c38;
+      --sup-panel-elevated: #162447;
+      --sup-border: rgba(255, 255, 255, 0.1);
+      --sup-border-focus: #38bdf8;
+      --sup-text-main: #f8fafc;
+      --sup-text-muted: #94a3b8;
+      --sup-text-dim: #64748b;
+      --sup-primary: #0284c7;
+      --sup-primary-hover: #0369a1;
+      --sup-emerald: #10b981;
+      --sup-amber: #f59e0b;
+      --sup-red: #ef4444;
+    }
+
+    [data-theme="light"] {
+      --sup-bg: #f8fafc;
+      --sup-panel: #ffffff;
+      --sup-panel-elevated: #f1f5f9;
+      --sup-border: rgba(0, 0, 0, 0.1);
+      --sup-border-focus: #0284c7;
+      --sup-text-main: #0f172a;
+      --sup-text-muted: #475569;
+      --sup-text-dim: #64748b;
+    }
+
+    body {
+      background-color: var(--sup-bg);
+      color: var(--sup-text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+    }
+
+    .supervisor-container {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.25rem 1.5rem 3rem 1.5rem;
+      flex: 1;
+      box-sizing: border-box;
+    }
+
+    /* Header de la Estación */
+    .sup-navbar {
+      background: var(--sup-panel);
+      border-bottom: 1px solid var(--sup-border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+
+    .sup-brand-block {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .sup-brand-badge {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      font-size: 1.5rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .sup-brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin: 0;
+      color: var(--sup-text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sup-brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--sup-text-muted);
+      margin: 0;
+    }
+
+    /* Supervisor Session Badge */
+    .sup-user-chip {
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 9999px;
+      padding: 0.3rem 0.85rem 0.3rem 0.45rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .sup-avatar-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* KPI Grid de Supervisión */
+    .sup-kpi-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .sup-kpi-card {
+      background: var(--sup-panel);
+      border: 1px solid var(--sup-border);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .sup-kpi-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+    }
+
+    .sup-kpi-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--sup-text-main);
+      line-height: 1.1;
+    }
+
+    .sup-kpi-lbl {
+      font-size: 0.72rem;
+      color: var(--sup-text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    /* Tarjeta Principal de Despacho */
+    .sup-main-card {
+      background: var(--sup-panel);
+      border: 1px solid var(--sup-border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 2rem;
+    }
+
+    /* Input Gigante para Laptop */
+    .sup-search-input {
+      background: rgba(15, 23, 42, 0.6);
+      color: #ffffff;
+      border: 2px solid rgba(56, 189, 248, 0.4);
+      border-radius: 12px;
+      padding: 0.85rem 1.25rem;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      outline: none;
+      width: 100%;
+      box-sizing: border-box;
+      transition: all 0.2s ease;
+      font-family: monospace, monospace;
+    }
+
+    .sup-search-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
+      background: rgba(15, 23, 42, 0.85);
+    }
+
+    /* Combos Grid */
+    .manual-worker-combos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .combo-item-card {
+      background: rgba(15, 23, 42, 0.5);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .combo-item-card.selected {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    /* Login Panel */
+    .sup-login-box {
+      max-width: 480px;
+      margin: 4rem auto;
+      background: var(--sup-panel);
+      border: 2px solid rgba(56, 189, 248, 0.3);
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======================================================================
+       1. NAVBAR DE SUPERVISIÓN
+       ====================================================================== -->
+  <header class="sup-navbar">
+    <div class="sup-brand-block">
+      <div class="sup-brand-badge">🛡️</div>
+      <div>
+        <h1 class="sup-brand-title">
+          <span>Puesto de Supervisión & Despacho Manual</span>
+          <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px;">
+            Modo Laptop / Excepciones
+          </span>
+        </h1>
+        <p class="sup-brand-subtitle">
+          Sistema de Gestión de Beneficios a Trabajadores (SGBT) &middot; MIPPCI
+        </p>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+      <!-- Identidad del Supervisor Activo -->
+      <div id="supSessionChip" class="sup-user-chip" style="display: none;">
+        <div id="supAvatarCircle" class="sup-avatar-circle">CP</div>
+        <div>
+          <div id="supSessionName" style="font-size: 0.82rem; font-weight: 800; color: var(--sup-text-main); line-height: 1.1;">
+            Supervisor RRHH
+          </div>
+          <div id="supSessionDoc" style="font-size: 0.68rem; color: #38bdf8; font-family: monospace;">
+            C.I. V-13222333
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón QR Diario Supervisor -->
+      <button type="button" id="btnOpenSupervisorDailyQrModal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #0284c7; border-color: rgba(56, 189, 248, 0.4); background: rgba(2, 132, 199, 0.1); display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
+        <span>📲 QR Diario Supervisor</span>
+      </button>
+
+      <!-- Botón Registro de Despachos en Vivo -->
+      <button type="button" id="btnOpenRecentDeliveriesModal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #10b981; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
+        <span>📋 Despachos en Vivo</span>
+      </button>
+
+      <!-- Enlace a Consola Completa (/entregas) -->
+      <a href="/entregas" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #94a3b8; border-color: rgba(255, 255, 255, 0.15); border-radius: 8px; text-decoration: none;">
+        <span>Monitor /entregas ↗</span>
+      </a>
+
+      <!-- Botón Cerrar Sesión -->
+      <button type="button" id="btnSupLogout" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.75rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.08); border-radius: 8px; display: none;">
+        <span>🚪 Salir</span>
+      </button>
+    </div>
+  </header>
+
+
+  <!-- ======================================================================
+       2. PANEL DE AUTENTICACIÓN (VISIBLE SOLO CUANDO NO HAY SESIÓN)
+       ====================================================================== -->
+  <div id="supLoginPanel" class="supervisor-container" style="display: none;">
+    <div class="sup-login-box">
+      <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛡️</div>
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: #ffffff; margin-bottom: 0.25rem;">
+        Identificación de Supervisor
+      </h2>
+      <p style="font-size: 0.82rem; color: var(--sup-text-muted); margin-bottom: 1.5rem;">
+        Ingrese con sus credenciales autorizadas de supervisor o administrador para operar el despacho manual y contingencias.
+      </p>
+
+      <div id="supLoginAlertBox" style="display: none; background: #fef2f2; border: 1.5px solid #f87171; color: #991b1b; padding: 0.75rem; border-radius: 8px; font-size: 0.8rem; margin-bottom: 1rem; text-align: left;">
+      </div>
+
+      <form id="supLoginForm" onsubmit="event.preventDefault(); window.submitSupervisorLogin();">
+        <div style="text-align: left; margin-bottom: 1rem;">
+          <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Cédula de Identidad:</label>
+          <input type="text" id="supInputDocument" class="form-input text-mono" placeholder="Ej: V-13222333" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; font-weight: 700;" />
+        </div>
+
+        <div style="text-align: left; margin-bottom: 1.5rem;">
+          <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">PIN Institucional / Contraseña:</label>
+          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="PIN de Seguridad (Ej: 0578)" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px;" />
+        </div>
+
+        <button type="submit" id="btnSupLoginSubmit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 800; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+          🚀 Ingresar a la Estación
+        </button>
+
+        <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--sup-border);">
+          <div style="font-size: 0.75rem; color: var(--sup-text-muted); margin-bottom: 0.5rem;">Credencial Rápida de Prueba:</div>
+          <button type="button" class="btn btn-outline" onclick="window.fillDemoSupervisor();" style="width: 100%; font-size: 0.78rem; padding: 0.5rem; color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+            👤 Autocompletar: Lic. Claudia Vega (V-13222333 / PIN: 0578)
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ======================================================================
+       3. WORKSPACE DE SUPERVISIÓN Y DESPACHO MANUAL (VISIBLE CON SESIÓN)
+       ====================================================================== -->
+  <main id="supervisorWorkspaceContainer" class="supervisor-container" style="display: none;">
+
+    <!-- 3.1 BARRA DE KPIS EN VIVO DE LA JORNADA -->
+    <section class="sup-kpi-bar">
+      <div class="sup-kpi-card">
+        <div class="sup-kpi-icon" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8;">👥</div>
+        <div>
+          <div class="sup-kpi-lbl">Padrón Oficial</div>
+          <div id="manualKpiWorkers" class="sup-kpi-val">--</div>
+        </div>
+      </div>
+
+      <div class="sup-kpi-card">
+        <div class="sup-kpi-icon" style="background: rgba(56, 189, 248, 0.2); color: #38bdf8;">📦</div>
+        <div>
+          <div class="sup-kpi-lbl">Combos Programados</div>
+          <div id="manualKpiAssigned" class="sup-kpi-val">--</div>
+        </div>
+      </div>
+
+      <div class="sup-kpi-card" style="border-color: rgba(16, 185, 129, 0.35);">
+        <div class="sup-kpi-icon" style="background: rgba(16, 185, 129, 0.2); color: #34d399;">✅</div>
+        <div>
+          <div class="sup-kpi-lbl">Combos Entregados</div>
+          <div id="manualKpiDelivered" class="sup-kpi-val" style="color: #34d399;">--</div>
+        </div>
+      </div>
+
+      <div class="sup-kpi-card" style="border-color: rgba(245, 158, 11, 0.35);">
+        <div class="sup-kpi-icon" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">⏳</div>
+        <div>
+          <div class="sup-kpi-lbl">Combos Pendientes</div>
+          <div id="manualKpiPending" class="sup-kpi-val" style="color: #fbbf24;">--</div>
+        </div>
+      </div>
+
+      <div class="sup-kpi-card">
+        <button id="btnRefreshManualSummary" type="button" class="btn btn-outline" style="width: 100%; height: 100%; border-radius: 8px; font-weight: 700; font-size: 0.85rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem;">
+          <span>🔄 Actualizar Métricas</span>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- 3.2 TARJETA PRINCIPAL: BUSCADOR POR CÉDULA Y FICHA DE DESPACHO -->
+    <section class="sup-main-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: #ffffff; margin: 0 0 0.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>🔍 Despacho por Cédula de Identidad (Pistola Escáner o Teclado)</span>
+          </h2>
+          <p style="font-size: 0.82rem; color: var(--sup-text-muted); margin: 0;">
+            Escriba el número de cédula (o use la pistola de código de barras) y presione Enter para cargar los combos asignados.
+          </p>
+        </div>
+
+        <button type="button" id="btnOpenFastIncorporate" class="btn" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #ffffff; font-weight: 800; font-size: 0.85rem; padding: 0.65rem 1.25rem; border-radius: 8px; border: none; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.3); display: flex; align-items: center; gap: 0.4rem;">
+          <span>➕ Incorporar Funcionario Nuevo al Vuelo</span>
+        </button>
+      </div>
+
+      <!-- Formulario de Búsqueda -->
+      <form id="formManualSearch" onsubmit="event.preventDefault(); return false;" style="display: flex; gap: 0.85rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 280px; position: relative;">
+          <input 
+            type="text" 
+            id="inputManualCedula" 
+            class="sup-search-input" 
+            placeholder="Ingrese cédula... Ej: 18456123 o V-18456123" 
+            autofocus 
+            required 
+          />
+        </div>
+        <button type="button" id="btnSearchManual" class="btn btn-primary" style="padding: 0.85rem 2rem; font-size: 1.05rem; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
+          <span>🔍 Consultar</span>
+        </button>
+      </form>
+
+      <!-- Spinner de Carga -->
+      <div id="manualSearchLoading" style="display: none; text-align: center; padding: 2rem;">
+        <div class="spinner-small" style="width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #38bdf8; border-radius: 50%; margin: 0 auto 0.75rem; animation: spin 0.8s linear infinite;"></div>
+        <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">Consultando padrón institucional en tiempo real...</div>
+      </div>
+
+      <!-- Alerta cuando no se encuentra el funcionario -->
+      <div id="manualWorkerNotFoundCard" style="display: none; margin-bottom: 1.5rem; background: rgba(245, 158, 11, 0.1); border: 2px dashed #f59e0b; border-radius: 14px; padding: 1.5rem;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: flex-start; gap: 1rem;">
+            <span style="font-size: 2.2rem;">⚠️</span>
+            <div>
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: #fbbf24; margin: 0 0 0.35rem 0;">
+                Funcionario con Cédula <span id="notFoundCedulaText" class="text-mono" style="background: rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 900;">--</span> NO encontrado en la nómina
+              </h3>
+              <p style="font-size: 0.85rem; color: #e2e8f0; margin: 0;">
+                Este trabajador no está registrado en el censo actual. Como supervisor de mesa, puede <strong>incorporarlo inmediatamente al vuelo</strong> para autorizar el despacho de sus combos.
+              </p>
+            </div>
+          </div>
+          <button type="button" onclick="document.getElementById('btnOpenFastIncorporate').click();" class="btn" style="background: #f59e0b; color: #000; font-weight: 800; padding: 0.65rem 1.25rem; border-radius: 8px; border: none;">
+            ➕ Incorporar Funcionario Ahora
+          </button>
+        </div>
+      </div>
+
+      <!-- FICHA DETALLADA DEL BENEFICIARIO ENCONTRADO -->
+      <div id="manualWorkerResultCard" style="display: none; border-top: 1px solid var(--sup-border); padding-top: 1.5rem;">
+        
+        <!-- Estado de la Jornada Hoy (Verde o Alerta Roja) -->
+        <div id="manualDeliveryStatusBox" class="alert-box alert-success" style="margin-bottom: 1.25rem; border-radius: 10px; padding: 1rem;">
+          <!-- Inyectado dinámicamente -->
+        </div>
+
+        <!-- Identidad del Funcionario -->
+        <div id="manualWorkerIdentitySection" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; background: var(--sup-panel-elevated); border: 1px solid var(--sup-border); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 1.25rem;">
+            <div style="width: 58px; height: 58px; border-radius: 14px; background: linear-gradient(135deg, #0284c7, #0369a1); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 1.8rem; font-weight: 800; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);">
+              👤
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                <h3 id="manualWorkerFullName" style="font-size: 1.3rem; font-weight: 900; color: #ffffff; margin: 0;">
+                  --
+                </h3>
+                <span id="manualWorkerTypeBadge" class="badge badge-success">ACTIVO</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.85rem; margin-top: 0.35rem; font-size: 0.88rem; color: var(--sup-text-muted); flex-wrap: wrap;">
+                <span style="font-family: monospace; font-weight: 800; color: #38bdf8;" id="manualWorkerDocument">--</span>
+                <span>&middot;</span>
+                <span id="manualWorkerDepartment" style="font-weight: 600; color: #e2e8f0;">--</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Combos Asignados de la Jornada -->
+        <div id="manualWorkerCombosSection" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+              📦 Combos Programados para Entrega
+            </h4>
+            <span style="font-size: 0.78rem; color: #94a3b8;">
+              Marque o desmarque los combos a despachar
+            </span>
+          </div>
+
+          <div id="manualWorkerCombosList" class="manual-worker-combos-grid">
+            <!-- Combos inyectados dinámicamente -->
+          </div>
+        </div>
+
+        <!-- Fila de Motivo de Contingencia y Observaciones -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.4); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--sup-border);">
+          <div>
+            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
+              🔑 Motivo de Contingencia / Excepción:
+            </label>
+            <select id="manualContingencyReason" class="form-input" style="width: 100%; font-size: 0.85rem; font-weight: 700; background: #1e293b; color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 0.6rem 0.85rem;">
+              <option value="adulto_mayor_sin_smartphone" selected>👴 Adulto Mayor / Sin Celular Inteligente</option>
+              <option value="dispositivo_descargado">🪫 Teléfono Celular Descargado / Dañado</option>
+              <option value="sensor_biometrico_fallo">🖐️ Falla en Sensor Biométrico / Huella Dactilar</option>
+              <option value="funcionario_comision">🛡️ Funcionario de Guardia / Comisión de Servicio</option>
+              <option value="contingencia_operativa">⚡ Contingencia Operativa de Mesa de Almacén</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
+              📝 Nota u Observación de Supervisión (Opcional):
+            </label>
+            <input type="text" id="manualDeliveryNotes" class="form-input" placeholder="Ej: Autorizado por RRHH en taquilla 1" style="width: 100%; font-size: 0.85rem; background: #1e293b; color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 0.6rem 0.85rem;" />
+          </div>
+        </div>
+
+        <!-- Botón Gigante de Despacho -->
+        <div id="manualWorkerActionSection">
+          <button id="btnExecuteManualDelivery" class="btn btn-primary" style="width: 100%; padding: 1rem 1.75rem; font-size: 1.15rem; font-weight: 900; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); border: none; box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 0.65rem;">
+            <span>⚡ REGISTRAR ENTREGA & DESCONTAR COMBOS EN VIVO</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- 3.3 REGISTRO DE DESPACHOS EN VIVO EN ESTA ESTACIÓN -->
+    <section class="sup-main-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0 0 0.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
+            <span>📋 Registro de Despachos en Vivo (Hoy)</span>
+            <span id="recentDeliveriesCount" class="badge" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px;">0 entregas</span>
+          </h3>
+          <p style="font-size: 0.8rem; color: var(--sup-text-muted); margin: 0;">
+            Historial cronológico de trabajadores atendidos y cuotas despachadas en tiempo real.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" onclick="if(window.ManualDispatch) window.ManualDispatch.loadTodaySummary();" class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: 8px;">
+            🔄 Refrescar Tabla
+          </button>
+          <button type="button" id="btnOpenRecentDeliveriesModalBottom" class="btn btn-primary" style="background: #0284c7; border: none; font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: 8px; font-weight: 700;">
+            <span>Ver Modal Completo ↗</span>
+          </button>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto; max-height: 420px; border: 1px solid var(--sup-border); border-radius: 10px; background: rgba(15, 23, 42, 0.4);">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+          <thead style="position: sticky; top: 0; background: #1e293b; border-bottom: 2px solid var(--sup-border); color: #94a3b8; font-size: 0.72rem; text-transform: uppercase;">
+            <tr>
+              <th style="padding: 0.75rem 1rem;">Hora</th>
+              <th style="padding: 0.75rem 1rem;">Funcionario / Cédula</th>
+              <th style="padding: 0.75rem 1rem;">Dirección / Ente</th>
+              <th style="padding: 0.75rem 1rem;">Combos Despachados</th>
+              <th style="padding: 0.75rem 1rem;">Modalidad</th>
+            </tr>
+          </thead>
+          <tbody id="recentManualDeliveriesBody">
+            <tr>
+              <td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">
+                Cargando registros de despachos de hoy...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ======================================================================
+       4. MODALES INTEGRADOS (INCORPORACIÓN RÁPIDA, DESPACHOS, QR DIARIO)
+       ====================================================================== -->
+
+  <!-- 4.1 MODAL INCORPORACIÓN RÁPIDA -->
+  <div id="modalFastIncorporateBackdrop" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 600px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; padding: 1.25rem 1.5rem; border-radius: 16px 16px 0 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.8rem;">➕</span>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #ffffff;">Incorporar Funcionario a Nómina</h3>
+            <p style="font-size: 0.78rem; opacity: 0.9; margin: 0.15rem 0 0 0;">Registro de excepción autorizado por Supervisor para despacho inmediato</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseFastIncorporateModal" class="btn-close" style="color: white; font-size: 1.5rem; background: transparent; border: none; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem; background: var(--sup-panel);">
+        <form id="formFastIncorporate">
+          <div style="margin-bottom: 1rem;">
+            <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Cédula de Identidad:</label>
+            <input type="text" id="inputFastCedula" class="form-input text-mono" placeholder="Ej: V-14222333" required style="width: 100%; font-size: 1.05rem; font-weight: 800; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px;" />
+          </div>
+
+          <div style="margin-bottom: 1rem;">
+            <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Nombre y Apellido Completo:</label>
+            <input type="text" id="inputFastFullName" class="form-input" placeholder="Ej: PEDRO ANTONIO PEREZ" required style="width: 100%; font-size: 1rem; font-weight: 700; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px;" />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div>
+              <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Dirección / Ente:</label>
+              <select id="selectFastDepartment" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px;">
+                <option value="">Seleccione o cargando...</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Condición:</label>
+              <select id="selectFastType" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px;">
+                <option value="activo" selected>🏢 Activo</option>
+                <option value="jubilado">👴 Jubilado</option>
+                <option value="comision">🛡️ Comisión de Servicio</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 1.5rem;">
+            <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Motivo de Incorporación:</label>
+            <select id="selectFastReason" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px;">
+              <option value="ingreso_reciente">Ingreso reciente / No apareció en censo original</option>
+              <option value="reincorporado">Funcionario reincorporado de reposo o comisión</option>
+              <option value="correccion_cedula">Corrección de cédula de identidad en nómina</option>
+              <option value="autorizacion_directorio">Autorización especial de Directorio</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button type="button" onclick="document.getElementById('btnCloseFastIncorporateModal').click();" class="btn btn-outline" style="padding: 0.65rem 1.25rem; border-radius: 8px;">Cancelar</button>
+            <button type="submit" id="btnSubmitFastIncorporate" class="btn btn-primary" style="background: #7c3aed; border: none; font-weight: 800; padding: 0.65rem 1.5rem; border-radius: 8px;">
+              Guardar e Incorporar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4.2 MODAL REGISTRO DE DESPACHOS EN VIVO (EXPANDIDO) -->
+  <div id="recentDeliveriesModalBackdrop" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 900px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 1.25rem 1.5rem; border-radius: 16px 16px 0 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.8rem;">📋</span>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #ffffff;">Registro Detallado de Despachos en Vivo (Hoy)</h3>
+            <p id="modalDeliveriesSummaryText" style="font-size: 0.78rem; opacity: 0.9; margin: 0.15rem 0 0 0;">Monitoreo en tiempo real de combos despachados</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseRecentDeliveriesModal" class="btn-close" style="color: white; font-size: 1.5rem; background: transparent; border: none; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; background: var(--sup-panel);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
+          <input type="text" id="inputSearchModalDeliveries" class="form-input" placeholder="🔍 Filtrar por nombre, cédula o combo..." style="flex: 1; min-width: 260px; font-size: 0.85rem; padding: 0.5rem 0.85rem; border-radius: 8px;" />
+          <button type="button" id="btnRefreshModalDeliveries" class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.82rem; font-weight: 700; padding: 0.5rem 1rem; border-radius: 8px;">
+            🔄 Actualizar
+          </button>
+        </div>
+
+        <div style="overflow-x: auto; max-height: 480px; border: 1px solid var(--sup-border); border-radius: 8px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+            <thead style="position: sticky; top: 0; background: #1e293b; border-bottom: 2px solid var(--sup-border); color: #94a3b8; font-size: 0.72rem; text-transform: uppercase;">
+              <tr>
+                <th style="padding: 0.7rem 0.85rem;">Hora</th>
+                <th style="padding: 0.7rem 0.85rem;">Funcionario</th>
+                <th style="padding: 0.7rem 0.85rem;">Cédula</th>
+                <th style="padding: 0.7rem 0.85rem;">Combos</th>
+                <th style="padding: 0.7rem 0.85rem;">Modalidad</th>
+              </tr>
+            </thead>
+            <tbody id="modalRecentDeliveriesBody">
+              <!-- Inyectado dinámicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; background: var(--sup-panel); border-top: 1px solid var(--sup-border); display: flex; justify-content: flex-end; border-radius: 0 0 16px 16px;">
+        <button type="button" id="btnFooterCloseRecentDeliveriesModal" class="btn btn-outline" style="padding: 0.5rem 1.25rem; border-radius: 8px;">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4.3 MODAL QR DIARIO DE SUPERVISOR -->
+  <div id="supervisorDailyQrModalBackdrop" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog" style="max-width: 480px; width: 95%;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #0284c7, #0369a1); color: white; padding: 1.25rem 1.5rem; border-radius: 16px 16px 0 0;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.8rem;">📲</span>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; margin: 0; color: #ffffff;">Código QR Diario de Supervisor</h3>
+            <p style="font-size: 0.78rem; opacity: 0.9; margin: 0.15rem 0 0 0;">Autorización dinámica para operadores de escáner en mesa</p>
+          </div>
+        </div>
+        <button type="button" id="btnCloseSupervisorDailyQrModal" class="btn-close" style="color: white; font-size: 1.5rem; background: transparent; border: none; cursor: pointer;">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem; background: var(--sup-panel); text-align: center;">
+        <div style="background: #ffffff; padding: 1rem; border-radius: 12px; display: inline-block; margin-bottom: 1rem; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+          <div id="targetSupervisorDailyQr" style="width: 220px; height: 220px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
+            <div class="spinner-small"></div>
+          </div>
+        </div>
+
+        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--sup-border); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; text-align: left; font-size: 0.8rem;">
+          <div style="margin-bottom: 0.35rem;"><span style="color: #94a3b8;">Código de Autorización:</span> <strong id="supervisorAuthCodeDisplay" class="text-mono" style="color: #38bdf8; font-size: 0.9rem;">--</strong></div>
+          <div style="margin-bottom: 0.35rem;"><span style="color: #94a3b8;">Supervisor Responsable:</span> <strong id="supervisorNameDisplay" style="color: #f8fafc;">--</strong></div>
+          <div style="margin-bottom: 0.35rem;"><span style="color: #94a3b8;">Documento:</span> <strong id="supervisorDocDisplay" class="text-mono" style="color: #38bdf8;">--</strong></div>
+          <div><span style="color: #94a3b8;">Vigencia:</span> <span id="supervisorExpiryDisplay" style="color: #fbbf24; font-weight: 700;">Solo hoy hasta las 23:59</span></div>
+        </div>
+
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" id="btnCopySupervisorDailyQrToken" class="btn btn-outline" style="flex: 1; padding: 0.6rem; font-size: 0.8rem; border-radius: 8px;">📋 Copiar Token</button>
+          <button type="button" id="btnPrintSupervisorDailyQr" class="btn btn-outline" style="flex: 1; padding: 0.6rem; font-size: 0.8rem; border-radius: 8px;">🖨️ Imprimir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ======================================================================
+       5. SCRIPTS Y MOTOR DE LA ESTACIÓN
+       ====================================================================== -->
+  <script src="/js/core/logger.js?v=3.2"></script>
+  <script src="/js/qrcode.js?v=3.2"></script>
+  <script src="/js/core/api.js?v=3.3"></script>
+  <script src="/js/core/toast.js?v=3.2"></script>
+  <script src="/js/core/audio.js?v=3.2"></script>
+  <script src="/js/modules/manual_dispatch.js?v=3.8"></script>
+
+  <script>
+    (function() {
+      // Estado de la sesión del supervisor en la estación
+      let supervisorUser = null;
+
+      const supLoginPanel = document.getElementById('supLoginPanel');
+      const supervisorWorkspaceContainer = document.getElementById('supervisorWorkspaceContainer');
+      const supSessionChip = document.getElementById('supSessionChip');
+      const supAvatarCircle = document.getElementById('supAvatarCircle');
+      const supSessionName = document.getElementById('supSessionName');
+      const supSessionDoc = document.getElementById('supSessionDoc');
+      const btnSupLogout = document.getElementById('btnSupLogout');
+
+      // Verificar estado de sesión al cargar
+      async function checkSupervisorSession() {
+        if (!window.API || !window.API.hasToken()) {
+          showLoginScreen();
+          return;
+        }
+
+        try {
+          // Consultar el perfil del usuario actual
+          const statusRes = await API.get('/api/v1/system/status');
+          const workersRes = await API.get('/api/v1/admin/workers');
+          
+          // Obtener usuario del almacenamiento si existe
+          const userStr = sessionStorage.getItem('sgbt_user') || localStorage.getItem('sgbt_user');
+          if (userStr) {
+            try { supervisorUser = JSON.parse(userStr); } catch (e) {}
+          }
+
+          if (!supervisorUser) {
+            supervisorUser = {
+              full_name: 'Supervisor de Jornada / RRHH',
+              document_id: 'V-13222333',
+              role: 'supervisor'
+            };
+          }
+
+          showWorkspaceScreen(supervisorUser);
+          if (window.ManualDispatch && typeof window.ManualDispatch.init === 'function') {
+            window.ManualDispatch.init();
+          }
+        } catch (err) {
+          console.warn('[SUPERVISOR AUTH]', err);
+          showLoginScreen();
+        }
+      }
+
+      function showLoginScreen() {
+        supLoginPanel.style.display = 'block';
+        supervisorWorkspaceContainer.style.display = 'none';
+        supSessionChip.style.display = 'none';
+        btnSupLogout.style.display = 'none';
+      }
+
+      function showWorkspaceScreen(user) {
+        supLoginPanel.style.display = 'none';
+        supervisorWorkspaceContainer.style.display = 'block';
+        supSessionChip.style.display = 'flex';
+        btnSupLogout.style.display = 'inline-flex';
+
+        if (user) {
+          supSessionName.textContent = user.full_name || 'Supervisor de Guardia';
+          supSessionDoc.textContent = user.document_id ? `C.I. V-${user.document_id.replace(/^V-?/i, '')}` : 'C.I. V-13222333';
+          const parts = (user.full_name || 'SP').trim().split(/\s+/);
+          const initials = parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
+          supAvatarCircle.textContent = initials;
+        }
+      }
+
+      // Autenticación de Supervisor
+      window.submitSupervisorLogin = async function() {
+        const doc = document.getElementById('supInputDocument')?.value.trim();
+        const secret = document.getElementById('supInputSecret')?.value.trim();
+        const alertBox = document.getElementById('supLoginAlertBox');
+        const btnSubmit = document.getElementById('btnSupLoginSubmit');
+
+        if (!doc || !secret) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = 'Por favor ingrese cédula y PIN de supervisor.';
+          return;
+        }
+
+        alertBox.style.display = 'none';
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '⏳ Verificando credenciales...';
+
+        try {
+          const res = await API.post('/api/v1/auth/login', {
+            document_id: doc,
+            admin_secret: secret,
+            require_admin: true,
+            login_mode: 'admin'
+          });
+
+          if (!res.success) {
+            throw new Error(res.error || 'Credenciales de supervisión inválidas.');
+          }
+
+          if (res.session_token) {
+            sessionStorage.setItem('sgbt_session_token', res.session_token);
+            localStorage.setItem('sgbt_session_token', res.session_token);
+          }
+
+          supervisorUser = res.user;
+          sessionStorage.setItem('sgbt_user', JSON.stringify(supervisorUser));
+          localStorage.setItem('sgbt_user', JSON.stringify(supervisorUser));
+
+          showWorkspaceScreen(supervisorUser);
+          if (window.ManualDispatch && typeof window.ManualDispatch.init === 'function') {
+            window.ManualDispatch.init();
+          }
+
+        } catch (err) {
+          alertBox.style.display = 'block';
+          alertBox.textContent = err.message || 'Error de autenticación como supervisor.';
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '🚀 Ingresar a la Estación';
+        }
+      };
+
+      // Autocompletar demo
+      window.fillDemoSupervisor = function() {
+        const docInp = document.getElementById('supInputDocument');
+        const pinInp = document.getElementById('supInputSecret');
+        if (docInp) docInp.value = 'V-13222333';
+        if (pinInp) pinInp.value = '0578';
+      };
+
+      // Logout
+      btnSupLogout.addEventListener('click', () => {
+        sessionStorage.removeItem('sgbt_session_token');
+        localStorage.removeItem('sgbt_session_token');
+        sessionStorage.removeItem('sgbt_user');
+        localStorage.removeItem('sgbt_user');
+        showLoginScreen();
+      });
+
+      // Modal QR Diario de Supervisor
+      const btnOpenDailyQr = document.getElementById('btnOpenSupervisorDailyQrModal');
+      const dailyQrBackdrop = document.getElementById('supervisorDailyQrModalBackdrop');
+      const btnCloseDailyQr = document.getElementById('btnCloseSupervisorDailyQrModal');
+
+      if (btnOpenDailyQr) {
+        btnOpenDailyQr.addEventListener('click', async () => {
+          dailyQrBackdrop.style.display = 'flex';
+          try {
+            const res = await API.get('/api/v1/supervisor/daily-qr');
+            if (res && res.qr_payload) {
+              const codeDisplay = document.getElementById('supervisorAuthCodeDisplay');
+              const nameDisplay = document.getElementById('supervisorNameDisplay');
+              const docDisplay = document.getElementById('supervisorDocDisplay');
+              if (codeDisplay) codeDisplay.textContent = res.auth_code || 'SUP-ACTIVO';
+              if (nameDisplay) nameDisplay.textContent = res.supervisor_name || 'Supervisor de Jornada';
+              if (docDisplay) docDisplay.textContent = `V-${res.supervisor_doc || '13222333'}`;
+
+              const target = document.getElementById('targetSupervisorDailyQr');
+              if (target) {
+                target.innerHTML = '';
+                if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+                  window.QRCodeGenerator.render('targetSupervisorDailyQr', res.qr_payload_raw || JSON.stringify(res.qr_payload), { size: 210 });
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[DAILY QR ERROR]', e);
+          }
+        });
+      }
+
+      if (btnCloseDailyQr) {
+        btnCloseDailyQr.addEventListener('click', () => {
+          dailyQrBackdrop.style.display = 'none';
+        });
+      }
+
+      if (dailyQrBackdrop) {
+        dailyQrBackdrop.addEventListener('click', (e) => {
+          if (e.target === dailyQrBackdrop) dailyQrBackdrop.style.display = 'none';
+        });
+      }
+
+      // Inicialización al cargar la página
+      document.addEventListener('DOMContentLoaded', checkSupervisorSession);
+    })();
+  </script>
+</body>
+</html>
+

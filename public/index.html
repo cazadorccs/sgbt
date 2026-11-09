@@ -179,6 +179,16 @@
               <span>🛡️ Aprobación de Contingencia</span>
             </button>
 
+            <!-- Acceso Directo al Puesto Dedicado de Supervisión en Laptop -->
+            <a href="/supervisor" class="dropdown-item" style="color: #38bdf8; text-decoration: none; display: flex; align-items: center; gap: 0.5rem;" title="Abrir Puesto de Supervisión y Despacho Manual para Laptops">
+              <svg class="icon-svg icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                <line x1="8" y1="21" x2="16" y2="21"></line>
+                <line x1="12" y1="17" x2="12" y2="21"></line>
+              </svg>
+              <span>💻 Puesto Supervisión Laptop (/supervisor)</span>
+            </a>
+
             <!-- Configuración & Marca (Solo Administradores) -->
             <button id="btnOpenGeneralSettings" class="dropdown-item" style="display: none;" title="Configuración del Sistema y Marca Institucional (Solo Administradores)">
               <svg class="icon-svg icon-sm" viewBox="0 0 24 24">
@@ -1100,7 +1110,11 @@
                 Ingrese el número de documento del trabajador para consultar cuota asignada, registrar entrega o incorporar beneficiarios no registrados.
               </p>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <a href="/supervisor" class="btn" style="background: rgba(255, 255, 255, 0.25); color: white; border: 1.5px solid rgba(255, 255, 255, 0.4); font-size: 0.8rem; font-weight: 800; text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;" title="Abrir Puesto Dedicado de Supervisión en Laptop">
+                <span>💻 Puesto Supervisión (/supervisor)</span>
+                <span>↗</span>
+              </a>
               <button id="btnRefreshManualSummary" class="btn" style="background: rgba(255, 255, 255, 0.2); color: white; border: 1px solid rgba(255, 255, 255, 0.3); font-size: 0.8rem;">
                 🔄 Refrescar
               </button>

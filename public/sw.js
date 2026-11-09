@@ -8,6 +8,7 @@ const STATIC_ASSETS = [
   '/',
   '/coseg',
   '/entregas',
+  '/supervisor',
   '/templates/modals.html',
   '/css/styles.css',
   '/js/qrcode.js',

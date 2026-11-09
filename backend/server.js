@@ -98,6 +98,11 @@ app.get(/^\/entregas(\/.*)?$/, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/entregas/index.html'));
 });
 
+// Ruta para la Estación Dedicada de Supervisión y Despacho Manual por Laptop (/supervisor)
+app.get(/^\/supervisor(\/.*)?$/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/supervisor/index.html'));
+});
+
 // Ruta para el Simulador Dual de Despacho (Beneficiario / Mesa de Despacho) (/simulador)
 app.get(/^\/simulador(\/.*)?$/, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/simulador/index.html'));

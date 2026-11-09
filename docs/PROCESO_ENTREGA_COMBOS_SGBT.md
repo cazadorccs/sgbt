@@ -14,6 +14,7 @@ Este documento desglosa en profundidad cada una de las fases del proceso de desp
 | **`view-worker`** | Carnet Digital del Beneficiario | Beneficiario | ![Carnet del Beneficiario](images/02_carnet_beneficiario_movil.png) |
 | **`view-distributor`** | Consola de Mesa de Despacho | Operador / Almacén | ![Mesa de Despacho](images/03_mesa_despacho_almacen.png) |
 | **`modal-scanner`** | Lector Óptico y HUD Sub-segundo | Operador / Almacén | ![Lector Óptico con HUD](images/04_lector_escaner_hud.png) |
+| **`view-supervisor`** | **Puesto de Supervisión & Despacho Manual (`/supervisor`)** | Supervisor de Almacén / RRHH | Laptop Mesa de Contingencia |
 | **`modal-supervisor`** | Módulo de Contingencia Asistida | Supervisor de Almacén | ![Modal de Contingencia](images/05_contingencia_supervisor_modal.png) |
 | **`modal-receipts`** | Historial de Recibos Digitales | Beneficiario / Auditor | ![Historial de Recibos](images/06_recibos_digitales_modal.png) |
 | **`view-admin`** | Tablero Central de Auditoría Ministerial | Dirección General / RRHH | ![Tablero de Auditoría](images/07_tablero_auditoria_ministerial.png) |
@@ -114,20 +115,25 @@ En la taquilla de entrega, el operador captura la credencial del beneficiario.
 
 ## 🤝 Fase 4: Despacho Asistido y Contingencias Especiales
 
-El SGBT contempla casos excepcionales para garantizar que ningún trabajador quede desatendido por fallas tecnológicas personales.
+El SGBT contempla casos excepcionales para garantizar que ningún trabajador quede desatendido por fallas tecnológicas personales, falta de smartphone o ingreso reciente a la nómina.
 
-### 🖥️ Pantallas Involucradas:
-1. **Modal de Contingencia Asistida (`#supervisorModalBackdrop`):**
-   - **Activación:** Se invoca cuando un trabajador no posee smartphone, presenta la pantalla dañada o agotó su batería.
-   - **Búsqueda por Cédula:** El supervisor ingresa el documento (`#supervisorContingencyDocInput`) y el sistema extrae su registro del padrón local.
-   - **Justificación Obligatoria Auditada (`#modalOverrideReasonSelect`):**
-     - El supervisor debe tipificar el motivo: *Sin teléfono inteligente, teléfono descargado/averiado, adulto mayor con asistencia o caso médico*.
-   - **Autorización de Supervisor:** La entrega requiere el PIN o escaneo del código QR diario del supervisor (`SUP-YYMMDD-XXXXXX`), quedando registrada la firma del supervisor en el acta de auditoría.
+### 🖥️ Pantallas e Interfaces Involucradas:
 
-![Modal de Contingencia Asistida del Supervisor](images/05_contingencia_supervisor_modal.png)
-*Figura 5: Modal de Contingencia Asistida para desbloqueo formal de trabajadores sin smartphone o adultos mayores.*
+1. **Puesto de Supervisión y Despacho Manual Dedicado para Laptops (`/supervisor`):**
+   - **Propósito:** Estación de trabajo web autónoma e independiente de la consola de superadministración, diseñada para que los supervisores de almacén y RRHH operen en una o varias laptops en mesas de atención sin acceder a configuraciones de superadministrador.
+   - **Búsqueda Ergonómica por Cédula:** Campo de búsqueda de gran tamaño con enfoque automático, compatible con teclado físico o pistola lectora de código de barras USB/Bluetooth.
+   - **Verificación de Cuota y Descuento de Combos:** Muestra los combos disponibles de la jornada (Víveres, Proteico, etc.), cálculo de peso acumulado en kg y estatus de reclamo.
+   - **Tipificación Obligatoria de Contingencia:** Dropdown obligatorio para registrar el motivo de la excepción: *Adulto mayor sin celular inteligente, dispositivo descargado/averiado, falla de sensor biométrico, comisión de servicio o contingencia operativa*.
+   - **Botón Prominente de Despacho:** `⚡ REGISTRAR ENTREGA & DESCONTAR COMBOS EN VIVO`, el cual descuenta en base de datos local y sincroniza de forma atómica con Supabase Cloud.
 
-2. **Modal de Retiro Delegado a Terceros (`#delegationModalBackdrop`):**
+2. **Incorporación al Vuelo de Funcionarios Rezagados (`#modalFastIncorporateBackdrop`):**
+   - Si la cédula consultada no se encuentra en el padrón, el supervisor presiona `➕ Incorporar Funcionario Nuevo al Vuelo`.
+   - Permite registrar Nombre, Cédula, Dirección/Ente y Motivo de incorporación, habilitando de inmediato el despacho sin frenar la cola de entrega.
+
+3. **Código QR Diario de Supervisor (`#supervisorDailyQrModalBackdrop`):**
+   - Emisión del token criptográfico diario (`SUP-YYMMDD-XXXXXX`) con rotación a las 23:59 VET, utilizado por los despachadores móviles para autorizar excepciones en sus visores de cámara.
+
+4. **Modal de Retiro Delegado a Terceros (`#delegationModalBackdrop`):**
    - Permite autorizar a un compañero de trabajo para retirar el beneficio de un funcionario de reposo médico o comisión de servicio, validando la constancia oficial pre-cargada.
 
 ---

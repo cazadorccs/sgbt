@@ -92,6 +92,14 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 - Micro-caché en memoria con tiempo de respuesta de 0.07 ms (197x de aceleración) y soporte completo de cabecera `ETag` SHA-1 (HTTP 304 Not Modified).
 - Arranque instantáneo del servidor en < 28 ms con streaming asíncrono en segundo plano desde Supabase Cloud.
 
+#### RF-13: Estación de Supervisión y Despacho Manual Dedicada para Laptops (/supervisor)
+- Vista web autónoma e independiente de la consola de superadministración, diseñada ergonómicamente para laptops y computadoras en mesas de atención del almacén sótano.
+- Consulta instantánea de beneficiarios mediante campo de búsqueda de cédula de gran formato, compatible con teclado físico y pistolas lectoras de código de barras USB/Bluetooth.
+- Despacho y descuento de combos con selección de cuota asignada y registro obligatorio de motivo de contingencia (adulto mayor sin celular, dispositivo descargado, falla biométrica, comisión de servicio o contingencia operativa).
+- Incorporación rápida al vuelo de funcionarios no censados sin requerir salir de la estación de supervisión.
+- Visualización interactiva del Código QR Diario de Supervisor para autorizar excepciones ante despachadores móviles.
+- Segregación estricta de privilegios (Principio de Menor Privilegio): el supervisor opera sin visibilidad de las opciones técnicas de superadministrador (respaldos de BD, migración, edición de campañas, gestión de roles de usuarios ni configuración de marca).
+
 ---
 
 ### 3. Requisitos No Funcionales
@@ -119,3 +127,48 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 - Soporte de instalación nativa Android mediante Trusted Web Activity (TWA) conforme a la especificación oficial de Google.
 - Pipeline automatizado mediante `npm run apk:package` (`scripts/package_android_apk.js`) que valida artefactos, Digital Asset Links y genera el andamiaje Gradle en `build/android/`.
 - Firma institucional inmutable vinculada al almacén de claves `android.keystore`.
+
+---
+
+### 4. Historias de Usuario (User Stories)
+
+#### HU-BEN-01: Retiro Rápido con Carnet Digital Móvil y Passkey FIDO2
+- **Como** Funcionario titular o Jubilado del MIPPCI,
+- **Quiero** acceder a mi carnet digital desde mi smartphone y generar un código QR dinámico firmado biométricamente,
+- **Para** retirar mis combos en mesa de despacho en menos de 5 segundos sin presentar cédula física ni firmar planillas de papel.
+- **Criterios de Aceptación:**
+  1. El QR expira a los 180 segundos.
+  2. Al ser escaneado con éxito, la pantalla se actualiza con un comprobante digital verde de entrega autorizada.
+
+#### HU-DES-01: Escaneo Óptico y Despacho en Mesa de Almacén
+- **Como** Operador de Mesa de Despacho en el almacén sótano,
+- **Quiero** escanear los códigos QR presentados por los trabajadores mediante la cámara trasera del teléfono con visor HUD,
+- **Para** verificar en tiempo real la identidad, confirmar los combos asignados y registrar la entrega de forma inmediata.
+- **Criterios de Aceptación:**
+  1. El sistema emite pitido sonoro ("BEEP") y feedback háptico ante escaneos válidos.
+  2. Si el trabajador ya retiró hoy, despliega inmediatamente un overlay rojo de duplicidad bloqueando la entrega.
+
+#### HU-SUP-01: Estación Dedicada de Supervisión y Despacho Manual en Laptops (/supervisor)
+- **Como** Supervisor de Jornada / RRHH ubicado en una mesa de contingencia con una laptop,
+- **Quiero** disponer de una vista única y dedicada (`/supervisor`) para buscar beneficiarios por cédula, verificar sus combos y registrar la entrega manual,
+- **Para** atender ágilmente a los funcionarios que no poseen smartphone, tienen la batería agotada o presentan fallas biométricas, sin tener acceso ni distracciones con las opciones técnicas de superadministrador.
+- **Criterios de Aceptación:**
+  1. El supervisor inicia sesión con su Cédula y PIN de seguridad de supervisor.
+  2. El campo de búsqueda por cédula tiene enfoque automático y admite escaneo directo con pistola lectora de código de barras.
+  3. Cada despacho manual exige seleccionar el motivo de contingencia oficial (Adulto mayor, teléfono descargado, falla biométrica, comisión o contingencia operativa).
+  4. La estación muestra los KPIs en vivo de la jornada y la tabla de auditoría en tiempo real.
+  5. La vista no contiene opciones de configuración técnica, bases de datos ni gestión de roles de superadministrador.
+
+#### HU-SUP-02: Incorporación al Vuelo de Funcionarios Rezagados
+- **Como** Supervisor de Jornada,
+- **Quiero** presionar el botón "Incorporar Funcionario Nuevo" cuando una cédula consultada no se encuentre en el padrón,
+- **Para** cargar sus datos esenciales (Cédula, Nombre, Dirección, Condición) y asignarle de inmediato sus combos de la jornada sin detener la cola física de entrega.
+- **Criterios de Aceptación:**
+  1. El modal pre-llena la cédula digitada previamente.
+  2. Guarda el registro en la base de datos local y sincroniza con Supabase Cloud.
+  3. Habilita automáticamente el botón de entrega manual para el funcionario incorporado.
+
+#### HU-ADM-01: Gobernanza y Balance Ministerial en Tiempo Real (/coseg)
+- **Como** Administrador General o Director de Gestión Humana,
+- **Quiero** supervisar la consola de gobernanza (`/coseg`) con el padrón general, auditoría Merkle y control de jornadas,
+- **Para** consolidar el cierre de jornada, emitir el acta ministerial certificada y asegurar la transparencia del beneficio.

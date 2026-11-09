@@ -79,6 +79,13 @@ test('E2E-01B: Ruta Segura de Acceso Administrativo (/coseg)', async () => {
   if (!res.data.includes('id="tabModeAdmin"')) throw new Error('Falta tabModeAdmin en el shell servido en /coseg');
 });
 
+test('E2E-01C: Ruta de Estación de Supervisión y Despacho Manual (/supervisor)', async () => {
+  const res = await request('GET', '/supervisor');
+  if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
+  if (!res.data.includes('supervisorWorkspaceContainer')) throw new Error('Falta supervisorWorkspaceContainer en /supervisor');
+  if (!res.data.includes('inputManualCedula')) throw new Error('Falta inputManualCedula en /supervisor');
+});
+
 test('E2E-02: Carga de Plantilla Externa de Modales (/templates/modals.html)', async () => {
   const res = await request('GET', '/templates/modals.html');
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);

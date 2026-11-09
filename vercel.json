@@ -34,6 +34,14 @@
       "destination": "/public/entregas/index.html"
     },
     {
+      "source": "/supervisor",
+      "destination": "/public/supervisor/index.html"
+    },
+    {
+      "source": "/supervisor/(.*)",
+      "destination": "/public/supervisor/index.html"
+    },
+    {
       "source": "/simulador",
       "destination": "/public/simulador/index.html"
     },
