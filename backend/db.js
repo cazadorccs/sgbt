@@ -9,11 +9,15 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { generateP256KeyPair } = require('./crypto-utils');
 
-let productionSeed = null;
-try {
-  productionSeed = require('./production_seed.json');
-} catch (e) {
-  console.warn('[DB] production_seed.json no disponible:', e.message);
+let _productionSeed = null;
+function getProductionSeed() {
+  if (_productionSeed) return _productionSeed;
+  try {
+    _productionSeed = require('./production_seed.json');
+  } catch (e) {
+    console.warn('[DB] production_seed.json no disponible:', e.message);
+  }
+  return _productionSeed;
 }
 
 const isVercel = Boolean(process.env.VERCEL);
@@ -26,6 +30,11 @@ let isWasmMode = false;
 let readyResolve;
 const readyPromise = new Promise((resolve) => {
   readyResolve = resolve;
+});
+
+let cloudHydrationResolve;
+const cloudHydrationPromise = new Promise((resolve) => {
+  cloudHydrationResolve = resolve;
 });
 
 // Simulador de Enclave Seguro de Dispositivos Móviles (Keystore / Titan M2)
@@ -600,7 +609,8 @@ function initializeDatabase() {
   // Inicializar tenant_settings por defecto si está vacío
   const tenantExists = db.prepare("SELECT COUNT(*) as count FROM tenant_settings WHERE id = 'current_tenant'").get();
   if (tenantExists.count === 0) {
-    const defaultTenant = (productionSeed && productionSeed.tenant_settings && productionSeed.tenant_settings[0]) || {
+    const prodSeed = getProductionSeed();
+    const defaultTenant = (prodSeed && prodSeed.tenant_settings && prodSeed.tenant_settings[0]) || {
       entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
       entity_short_name: 'MIPPCI',
       slogan: 'Bienestar y Soberanía Alimentaria Institucional',
@@ -627,13 +637,14 @@ function initializeDatabase() {
 
   // Inicializar una campaña fija institucional ÚNICAMENTE si la tabla está absolutamente vacía y sin nube
   const totalCampaigns = db.prepare("SELECT count(*) as count FROM delivery_campaigns").get().count;
-  let isSbConfigured = false;
-  try {
-    const { isSupabaseConfigured } = require('./supabase');
-    isSbConfigured = isSupabaseConfigured();
-  } catch (e) {}
-  if (totalCampaigns === 0 && !isSbConfigured) {
-    const campId = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b';
+  if (totalCampaigns === 0) {
+    let isSbConfigured = false;
+    try {
+      const { isSupabaseConfigured } = require('./supabase');
+      isSbConfigured = isSupabaseConfigured();
+    } catch (e) {}
+    if (!isSbConfigured) {
+      const campId = '51f3c32c-3b68-40f6-97ed-37f7c8e9441b';
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
@@ -653,6 +664,7 @@ function initializeDatabase() {
       INSERT OR IGNORE INTO system_notifications (id, campaign_id, title, message, target_group, notification_type)
       VALUES (?, ?, '📢 ¡Jornada de Despacho Activa!', 'Se encuentra activo el despacho de tu Bolsa de Víveres y Proteína en el Almacén Central. Recuerda presentar tu código QR biométrico o documento.', 'all', 'jornada')
     `).run(crypto.randomUUID(), campId);
+    }
   }
 
   // Regla de Exclusividad: Garantizar que no hayan 2 o más jornadas activas al mismo tiempo
@@ -788,6 +800,7 @@ function seedDatabase(force = false) {
   }
 
   console.log('[DB] Insertando datos maestros iniciales (Seeds Oficiales MIPPCI)...');
+  const productionSeed = getProductionSeed();
 
   // 1. Departamentos
   if (productionSeed && Array.isArray(productionSeed.departments)) {
@@ -1151,32 +1164,35 @@ async function syncFromSupabase() {
           avatar_url = CASE WHEN excluded.avatar_url IS NOT NULL AND excluded.avatar_url != '' THEN excluded.avatar_url ELSE workers.avatar_url END,
           updated_at = excluded.updated_at
       `);
-      for (const w of remoteWorkers) {
-        try {
-          const workerEmail = (w.document_id === '13537582' || String(w.document_id).includes('13537582'))
-            ? 'Sfranco@mippci.gob.ve'
-            : w.email;
-          insertWorker.run(
-            w.id,
-            w.document_id,
-            w.full_name,
-            workerEmail,
-            w.department_id,
-            w.shift || 'jornada_continua',
-            w.status || 'active',
-            w.worker_type || 'activo',
-            w.role || 'worker',
-            w.has_smartphone ? 1 : 0,
-            w.contingency_reason,
-            w.phone_number,
-            w.avatar_url,
-            w.created_at || new Date().toISOString(),
-            w.updated_at || new Date().toISOString()
-          );
-        } catch (singleErr) {
-          // Si hay conflicto de email o document_id con ID distinto, no detener la sincronización
+      const txWorkers = db.transaction((workersList) => {
+        for (const w of workersList) {
+          try {
+            const workerEmail = (w.document_id === '13537582' || String(w.document_id).includes('13537582'))
+              ? 'Sfranco@mippci.gob.ve'
+              : w.email;
+            insertWorker.run(
+              w.id,
+              w.document_id,
+              w.full_name,
+              workerEmail,
+              w.department_id,
+              w.shift || 'jornada_continua',
+              w.status || 'active',
+              w.worker_type || 'activo',
+              w.role || 'worker',
+              w.has_smartphone ? 1 : 0,
+              w.contingency_reason,
+              w.phone_number,
+              w.avatar_url,
+              w.created_at || new Date().toISOString(),
+              w.updated_at || new Date().toISOString()
+            );
+          } catch (singleErr) {
+            // Si hay conflicto de email o document_id con ID distinto, no detener la sincronización
+          }
         }
-      }
+      });
+      txWorkers(remoteWorkers);
       // Reconciliar eliminaciones y fusiones remotas en SQLite
       const remoteIds = new Set(remoteWorkers.map(rw => rw.id));
       const localWorkers = db.prepare('SELECT id FROM workers').all();
@@ -1212,36 +1228,39 @@ async function syncFromSupabase() {
           device_name = excluded.device_name,
           status = excluded.status
       `);
-      for (const pk of remotePasskeys) {
-        insertRemotePasskey.run(
-          pk.id,
-          pk.worker_id,
-          pk.credential_id,
-          pk.public_key,
-          pk.sign_count || 0,
-          pk.device_name || 'Dispositivo Móvil',
-          pk.status || 'active'
-        );
+      const txPasskeys = db.transaction((pkList) => {
+        for (const pk of pkList) {
+          insertRemotePasskey.run(
+            pk.id,
+            pk.worker_id,
+            pk.credential_id,
+            pk.public_key,
+            pk.sign_count || 0,
+            pk.device_name || 'Dispositivo Móvil',
+            pk.status || 'active'
+          );
 
-        if (pk.status === 'active') {
-          if (pk.credential_id && (pk.credential_id.startsWith('formalized_pwd_') || pk.aaguid === 'beneficiary_formalization')) {
-            try {
-              db.prepare(`
-                UPDATE workers
-                SET enrollment_status = 'registrado',
-                    password_hash = ?,
-                    bound_device_id = ?,
-                    enrolled_at = COALESCE(?, enrolled_at, CURRENT_TIMESTAMP)
-                WHERE id = ?
-              `).run(pk.public_key, pk.device_name, pk.enrolled_at, pk.worker_id);
-            } catch (e) {}
-          } else {
-            try {
-              db.prepare("UPDATE workers SET enrollment_status = 'registrado' WHERE id = ?").run(pk.worker_id);
-            } catch (e) {}
+          if (pk.status === 'active') {
+            if (pk.credential_id && (pk.credential_id.startsWith('formalized_pwd_') || pk.aaguid === 'beneficiary_formalization')) {
+              try {
+                db.prepare(`
+                  UPDATE workers
+                  SET enrollment_status = 'registrado',
+                      password_hash = ?,
+                      bound_device_id = ?,
+                      enrolled_at = COALESCE(?, enrolled_at, CURRENT_TIMESTAMP)
+                  WHERE id = ?
+                `).run(pk.public_key, pk.device_name, pk.enrolled_at, pk.worker_id);
+              } catch (e) {}
+            } else {
+              try {
+                db.prepare("UPDATE workers SET enrollment_status = 'registrado' WHERE id = ?").run(pk.worker_id);
+              } catch (e) {}
+            }
           }
         }
-      }
+      });
+      txPasskeys(remotePasskeys);
       console.log(`[SUPABASE HYDRATION] ${remotePasskeys.length} passkeys sincronizadas desde Supabase Cloud.`);
     }
 
@@ -1254,18 +1273,21 @@ async function syncFromSupabase() {
         INSERT OR REPLACE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
         VALUES (?, ?, ?, ?, ?, ?)
       `);
-      for (const ent of remoteEntitlements) {
-        try {
-          insertRemoteEnt.run(
-            ent.id,
-            ent.worker_id,
-            ent.combo_id,
-            ent.valid_date,
-            ent.shift || 'jornada_continua',
-            ent.status || 'pending'
-          );
-        } catch (e) {}
-      }
+      const txEntitlements = db.transaction((entList) => {
+        for (const ent of entList) {
+          try {
+            insertRemoteEnt.run(
+              ent.id,
+              ent.worker_id,
+              ent.combo_id,
+              ent.valid_date,
+              ent.shift || 'jornada_continua',
+              ent.status || 'pending'
+            );
+          } catch (e) {}
+        }
+      });
+      txEntitlements(remoteEntitlements);
       console.log(`[SUPABASE HYDRATION] ${remoteEntitlements.length} asignaciones de hoy sincronizadas desde Supabase Cloud.`);
     }
 
@@ -1379,10 +1401,19 @@ if (Database) {
 
     initializeDatabase();
     seedDatabase();
-    syncFromSupabase().catch(() => {}).finally(() => {
-      readyResolve(true);
-    });
+
+    // Cold-Start Instantáneo (< 50ms): Desbloquear inmediatamente el servidor
+    readyResolve(true);
     console.log('[DB] Motor better-sqlite3 nativo activo exitosamente.');
+
+    // Streaming asíncrono no bloqueante de Supabase Cloud en segundo plano
+    setImmediate(() => {
+      syncFromSupabase().catch((err) => {
+        console.warn('[SUPABASE HYDRATION BACKGROUND ERROR]', err.message);
+      }).finally(() => {
+        if (cloudHydrationResolve) cloudHydrationResolve(true);
+      });
+    });
   } catch (err) {
     console.warn('[DB] Fallo al iniciar better-sqlite3, pasando a motor WebAssembly:', err.message);
     rawDb = null;
@@ -1418,13 +1449,6 @@ if (!rawDb) {
       initializeDatabase();
       seedDatabase();
 
-      // Sincronizar catálogo y padrón desde Supabase Cloud
-      try {
-        await syncFromSupabase();
-      } catch (syncErr) {
-        console.warn('[DB] Advertencia en syncFromSupabase inicial:', syncErr.message);
-      }
-
       if (isVercel && rawDb) {
         try {
           const data = rawDb.export();
@@ -1432,8 +1456,18 @@ if (!rawDb) {
         } catch (e) {}
       }
 
+      // Cold-Start Instantáneo (< 100ms) para Vercel Serverless
       readyResolve(true);
       console.log('[DB] Motor SQLite WebAssembly (sql-wasm-inline) listo y operativo para Vercel.');
+
+      // Streaming asíncrono no bloqueante de Supabase Cloud en segundo plano
+      setImmediate(() => {
+        syncFromSupabase().catch((syncErr) => {
+          console.warn('[DB] Advertencia en syncFromSupabase en segundo plano:', syncErr.message);
+        }).finally(() => {
+          if (cloudHydrationResolve) cloudHydrationResolve(true);
+        });
+      });
     } catch (wasmErr) {
       console.error('[DB FATAL] Fallo al inicializar sql.js:', wasmErr);
       readyResolve(false);
@@ -1447,6 +1481,7 @@ if (!rawDb) {
 module.exports = {
   db,
   readyPromise,
+  cloudHydrationPromise,
   secureEnclaveSimulator,
   seedDatabase,
   syncFromSupabase

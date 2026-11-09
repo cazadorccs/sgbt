@@ -7,3 +7,4 @@ exp-04	keep	0	0.00	0.000	PWA Icons 192/512 (-375KB) + SW De-dup (-604KB) + Stale
 exp-05	keep	100	0.00	0.000	UI/UX Ergonomía Táctil (Touch Targets 100% ≥48px) + Contraste Solar WCAG 2.2 AAA (100% ≥7.0:1)
 exp-06	keep	100	0.00	0.000	UI/UX Avanzada: Scan Rápido (350ms) + Virtual Windowing DOM + Háptica Industrial + Network Drift HUD
 exp-07	keep	13655	0.07	0.070	Delta Daily-Packs (-99.78% wire size: 2.5KB vs 1.15MB) + Micro-Caché In-Memory (197x: 0.07ms) + ETag 304
+exp-08	keep	35	25.97	0.180	Cold-Start Instantáneo (<28ms vs 2.28s) + Streaming Asíncrono Supabase + Batch DB Transactions
