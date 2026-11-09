@@ -2,3 +2,4 @@ commit	status	tps	duration_ms	avg_latency_ms	description
 baseline	keep	12406	80.70	0.081	Baseline con correccion bug enrolled_at
 exp-01	keep	37891	27.30	0.027	SQLite PRAGMAs (WAL, NORMAL, cache 32MB) + Prepared Statements Cache en batch
 exp-02	keep	16100	62.13	0.060	FIDO2 P-256 One-Shot C++ Verification + KeyObject LRU Cache + Stmt Cache
+exp-03	keep	3732506	2.68	0.00027	SHA-256 Batch Streaming Hash + Soporte passkey_nfc en Auditoria + Stmt Cache

@@ -7,6 +7,44 @@
 const crypto = require('crypto');
 const QRCode = require('qrcode');
 const { db } = require('../db');
+const { generateSha256IntegritySeal } = require('../services/audit.service');
+
+// Prepared statements en caché para auditoría de entregas
+let _stmtDelStats = null;
+let _stmtDeliveriesList = null;
+
+function getDelStatsStmt() {
+  if (!_stmtDelStats) {
+    _stmtDelStats = db.prepare(`
+      SELECT 
+        COUNT(del.id) as total_delivered_combos,
+        COUNT(DISTINCT del.worker_id) as total_delivered_workers,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_weight_kg,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as total_weight_tons,
+        SUM(CASE WHEN del.verification_method IN ('passkey_qr', 'passkey_nfc') THEN 1 ELSE 0 END) as count_passkey,
+        SUM(CASE WHEN del.verification_method = 'nfc_card' THEN 1 ELSE 0 END) as count_nfc,
+        SUM(CASE WHEN del.verification_method = 'supervisor_daily_qr' THEN 1 ELSE 0 END) as count_sup_qr,
+        SUM(CASE WHEN del.verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as count_override,
+        SUM(CASE WHEN del.is_offline_sync = 1 THEN 1 ELSE 0 END) as count_offline
+      FROM deliveries del
+      JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      JOIN combos c ON ent.combo_id = c.id
+    `);
+  }
+  return _stmtDelStats;
+}
+
+function getDeliveriesListStmt() {
+  if (!_stmtDeliveriesList) {
+    _stmtDeliveriesList = db.prepare(`
+      SELECT del.id, del.delivered_at, w.document_id 
+      FROM deliveries del 
+      JOIN workers w ON del.worker_id = w.id 
+      ORDER BY del.delivered_at ASC, del.id ASC
+    `);
+  }
+  return _stmtDeliveriesList;
+}
 
 /**
  * 1. KPIs gerenciales y semaforización de formalización por dirección
@@ -404,31 +442,11 @@ const generateMinisterialActa = (req, res) => {
     };
     let deliveriesMerkleHash = 'SGBT_NO_DELIVERIES';
     try {
-      const qDel = db.prepare(`
-        SELECT 
-          COUNT(del.id) as total_delivered_combos,
-          COUNT(DISTINCT del.worker_id) as total_delivered_workers,
-          ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_weight_kg,
-          ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as total_weight_tons,
-          SUM(CASE WHEN del.verification_method = 'passkey_qr' THEN 1 ELSE 0 END) as count_passkey,
-          SUM(CASE WHEN del.verification_method = 'nfc_card' THEN 1 ELSE 0 END) as count_nfc,
-          SUM(CASE WHEN del.verification_method = 'supervisor_daily_qr' THEN 1 ELSE 0 END) as count_sup_qr,
-          SUM(CASE WHEN del.verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as count_override,
-          SUM(CASE WHEN del.is_offline_sync = 1 THEN 1 ELSE 0 END) as count_offline
-        FROM deliveries del
-        JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-        JOIN combos c ON ent.combo_id = c.id
-      `).get();
+      const qDel = getDelStatsStmt().get();
       if (qDel) delStats = { ...delStats, ...qDel };
 
-      const deliveriesList = db.prepare(`
-        SELECT del.id, del.delivered_at, w.document_id 
-        FROM deliveries del 
-        JOIN workers w ON del.worker_id = w.id 
-        ORDER BY del.delivered_at ASC, del.id ASC
-      `).all();
-      const deliveriesPayload = deliveriesList.map(d => `${d.id}:${d.delivered_at}:${d.document_id}`).join('|');
-      deliveriesMerkleHash = crypto.createHash('sha256').update(deliveriesPayload || 'SGBT_EMPTY_DISPATCH').digest('hex');
+      const deliveriesList = getDeliveriesListStmt().all();
+      deliveriesMerkleHash = generateSha256IntegritySeal(deliveriesList);
     } catch (e) {
       console.warn('[DELIVERY RECONCILIATION WARN]', e.message);
     }
