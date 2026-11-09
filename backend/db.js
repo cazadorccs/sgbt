@@ -515,6 +515,7 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_lock_reason TEXT"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN enrollment_status TEXT DEFAULT 'precargado'"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN password_hash TEXT DEFAULT ''"); } catch (e) {}
+  try { db.exec("ALTER TABLE workers ADD COLUMN admin_pin_hash TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN bound_device_id TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN enrolled_at TEXT"); } catch (e) {}
 
@@ -1265,6 +1266,14 @@ async function syncFromSupabase() {
                       enrolled_at = COALESCE(?, enrolled_at, CURRENT_TIMESTAMP)
                   WHERE id = ?
                 `).run(pk.public_key, pk.device_name, pk.enrolled_at, pk.worker_id);
+              } catch (e) {}
+            } else if (pk.credential_id && (pk.credential_id.startsWith('admin_pin_') || pk.aaguid === 'admin_security_pin')) {
+              try {
+                db.prepare(`
+                  UPDATE workers
+                  SET admin_pin_hash = ?
+                  WHERE id = ?
+                `).run(pk.public_key, pk.worker_id);
               } catch (e) {}
             } else {
               try {

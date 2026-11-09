@@ -972,7 +972,7 @@ async function executeAdminLogin(identifier, secret) {
       console.warn(`[CLIENT AUTH] ❌ Acceso administrativo denegado:`, data.error);
       let alertMsg = data.error || 'Credenciales administrativas inválidas.';
       if (typeof alertMsg === 'string' && alertMsg.includes('contraseña de beneficiario')) {
-        alertMsg = '🛡️ Clave o PIN administrativo incorrecto.<br><small style="display:inline-block; margin-top:0.35rem;">Para ingresar a la consola administrativa (/coseg) use el PIN oficial (<strong>0578</strong>). Su clave personal es para acceder al portal de beneficiarios y combos.</small>';
+        alertMsg = '🛡️ Clave o PIN administrativo incorrecto.<br><small style="display:inline-block; margin-top:0.35rem;">Para ingresar a la consola administrativa (/coseg) debe ingresar su PIN de Seguridad Administrativa. La contraseña de carnet no autoriza el acceso a la consola.</small>';
       }
       showLoginAlert(alertMsg);
       playAudioFeedback('error');

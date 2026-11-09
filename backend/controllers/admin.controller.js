@@ -487,8 +487,14 @@ const getWorkerDossier = async (req, res) => {
     `).get(worker.id, today) || null;
   } catch (e) {}
 
+  const sanitizedWorker = { ...worker };
+  sanitizedWorker.has_admin_pin = Boolean(worker.admin_pin_hash && worker.admin_pin_hash.trim());
+  sanitizedWorker.has_beneficiary_password = Boolean(worker.password_hash && worker.password_hash.trim());
+  delete sanitizedWorker.password_hash;
+  delete sanitizedWorker.admin_pin_hash;
+
   res.json({
-    worker,
+    worker: sanitizedWorker,
     passkeys,
     nfcCards,
     activeDeviceLock,
@@ -1471,6 +1477,63 @@ const manageWorkerPassword = async (req, res) => {
 
     const credId = `formalized_pwd_${worker.id}`;
 
+    if (action === 'set_admin_pin') {
+      if (!new_password || String(new_password).trim().length < 4) {
+        return res.status(400).json({ error: 'El PIN administrativo debe contener al menos 4 caracteres o dígitos.' });
+      }
+      const hashedPin = hashPassword(String(new_password).trim());
+      const adminCredId = `admin_pin_${worker.id}`;
+
+      // 1. Actualizar admin_pin_hash en workers local
+      db.prepare(`
+        UPDATE workers 
+        SET admin_pin_hash = ?, updated_at = CURRENT_TIMESTAMP 
+        WHERE id = ?
+      `).run(hashedPin, id);
+
+      // 2. Persistir en passkey_credentials local como credencial de administración
+      try {
+        db.prepare(`
+          INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status, aaguid, enrolled_at)
+          VALUES (?, ?, ?, ?, 1, ?, 'active', 'admin_security_pin', CURRENT_TIMESTAMP)
+          ON CONFLICT(credential_id) DO UPDATE SET
+            public_key = excluded.public_key,
+            status = 'active',
+            device_name = excluded.device_name
+        `).run(crypto.randomUUID(), worker.id, adminCredId, hashedPin, 'PIN de Gobernanza Administrativa');
+      } catch (passSqliteErr) {
+        console.warn('[ADMIN PIN SQLITE WARNING]', passSqliteErr.message);
+      }
+
+      // 3. Sincronizar en Supabase Cloud si está disponible
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          await supabase.from('passkey_credentials').upsert({
+            id: crypto.randomUUID(),
+            worker_id: worker.id,
+            credential_id: adminCredId,
+            public_key: hashedPin,
+            sign_count: 1,
+            device_name: 'PIN de Gobernanza Administrativa',
+            status: 'active',
+            aaguid: 'admin_security_pin',
+            enrolled_at: new Date().toISOString()
+          }, { onConflict: 'credential_id' });
+          console.log(`[SUPABASE SYNC] ✅ PIN administrativo sincronizado en Supabase Cloud para ${worker.document_id}`);
+        }
+      } catch (sbErr) {
+        console.warn('[SUPABASE SYNC ADMIN PIN ERROR]', sbErr.message);
+      }
+
+      console.log(`[SECURITY AUDIT] PIN administrativo actualizado para: ${worker.document_id} por: ${req.user?.document_id || 'admin'}`);
+      return res.json({
+        success: true,
+        message: `PIN Administrativo de gobernanza (/coseg) actualizado exitosamente para ${worker.full_name}.`,
+        is_admin_pin: true
+      });
+    }
+
     if (action === 'set_password') {
       if (!new_password || String(new_password).trim().length < 4) {
         return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' });
@@ -1527,10 +1590,10 @@ const manageWorkerPassword = async (req, res) => {
         console.warn('[SUPABASE SYNC PWD ERROR]', sbErr.message);
       }
 
-      console.log(`[SECURITY AUDIT] Contraseña actualizada para funcionario: ${worker.document_id} por administrador: ${req.user?.document_id || 'admin'}`);
+      console.log(`[SECURITY AUDIT] Contraseña de carnet actualizada para funcionario: ${worker.document_id} por administrador: ${req.user?.document_id || 'admin'}`);
       return res.json({
         success: true,
-        message: `Contraseña actualizada exitosamente para ${worker.full_name}.`,
+        message: `Contraseña de carnet y combos actualizada exitosamente para ${worker.full_name}.`,
         enrollment_status: 'registrado'
       });
     } else if (action === 'reset_enrollment') {

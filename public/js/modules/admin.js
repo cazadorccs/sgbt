@@ -979,6 +979,53 @@ async function handleAdminSetWorkerPassword() {
   }
 }
 
+async function handleAdminSetWorkerAdminPin() {
+  if (!currentManageWorkerId) {
+    window.showToast('No se ha seleccionado ningún funcionario.', 'error');
+    return;
+  }
+  const pinInput = document.getElementById('inputManageAdminPin');
+  const alertBox = document.getElementById('manageUserAlertBox');
+  const val = pinInput?.value.trim();
+
+  if (!val || val.length < 4) {
+    if (alertBox) {
+      alertBox.textContent = 'El PIN administrativo debe contener al menos 4 caracteres o dígitos.';
+      alertBox.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    window.showToast('Guardando PIN Administrativo...', 'info');
+    const res = await API.post(`/api/v1/admin/workers/${currentManageWorkerId}/password`, {
+      action: 'set_admin_pin',
+      new_password: val
+    });
+
+    if (res && res.success) {
+      window.showToast(res.message, 'success');
+      playAudioFeedback('success');
+      if (alertBox) alertBox.style.display = 'none';
+      if (pinInput) pinInput.value = '';
+      const pinBadge = document.getElementById('badgeAdminPinStatus');
+      if (pinBadge) {
+        pinBadge.textContent = 'Personalizado';
+        pinBadge.className = 'badge badge-activo';
+      }
+    } else {
+      throw new Error(res?.error || 'No se pudo guardar el PIN administrativo');
+    }
+  } catch (e) {
+    playAudioFeedback('error');
+    if (alertBox) {
+      alertBox.textContent = e.message;
+      alertBox.style.display = 'block';
+    }
+    window.showToast('Error: ' + e.message, 'error');
+  }
+}
+
 async function handleAdminResetWorkerEnrollment() {
   if (!currentManageWorkerId) return;
   const confirmMsg = '¿Desea restablecer a este funcionario a estatus PRECARGADO? Se eliminará la contraseña actual y deberá formalizarla al ingresar.';
@@ -1068,7 +1115,22 @@ function handleAdminGeneratePassword() {
 
 // DELEGACIÓN GLOBAL DE EVENTOS (Resistente a inyección asíncrona de modals.html)
 document.addEventListener('click', async (e) => {
-  // 1. Guardar Contraseña
+  // 1A. Guardar PIN Administrativo (Consola /coseg)
+  if (e.target.closest('#btnSubmitSetAdminPin')) {
+    e.preventDefault();
+    await handleAdminSetWorkerAdminPin();
+    return;
+  }
+
+  // 1B. Ver / Ocultar PIN Administrativo
+  if (e.target.closest('#btnToggleManageAdminPin')) {
+    e.preventDefault();
+    const pinInput = document.getElementById('inputManageAdminPin');
+    if (pinInput) pinInput.type = (pinInput.type === 'password') ? 'text' : 'password';
+    return;
+  }
+
+  // 1C. Guardar Contraseña de Carnet
   if (e.target.closest('#btnSubmitSetPassword')) {
     e.preventDefault();
     await handleAdminSetWorkerPassword();
@@ -1161,6 +1223,26 @@ window.openManageUserCredentialsModal = async function(workerId) {
     }
     if (roleSelectEl) {
       roleSelectEl.value = worker.role || 'worker';
+      roleSelectEl.onchange = () => {
+        const isPriv = ['admin', 'director', 'supervisor'].includes(roleSelectEl.value) || worker.document_id === '13537582';
+        const sec = document.getElementById('manageAdminPinSection');
+        if (sec) sec.style.display = isPriv ? 'block' : 'none';
+      };
+    }
+
+    // Sección de PIN Administrativo (Gobernanza /coseg)
+    const adminPinSection = document.getElementById('manageAdminPinSection');
+    const pinInput = document.getElementById('inputManageAdminPin');
+    const pinBadge = document.getElementById('badgeAdminPinStatus');
+    if (pinInput) pinInput.value = '';
+
+    const isAdminWorker = ['admin', 'director', 'supervisor'].includes(worker.role) || worker.document_id === '13537582';
+    if (adminPinSection) {
+      adminPinSection.style.display = isAdminWorker ? 'block' : 'none';
+    }
+    if (pinBadge) {
+      pinBadge.textContent = worker.has_admin_pin ? 'Personalizado' : 'Por Defecto';
+      pinBadge.className = worker.has_admin_pin ? 'badge badge-activo' : 'badge badge-passkey';
     }
 
     modal.classList.add('active');

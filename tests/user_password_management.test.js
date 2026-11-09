@@ -177,6 +177,41 @@ async function runPasswordManagementSuite() {
     console.log('   ✅ [OK] Usuario restablecido a precargado correctamente.');
     passed++;
 
+    // 9. Administrador gestiona y actualiza su PIN Administrativo de Gobernanza (/coseg)
+    console.log('9. Administrador gestiona y actualiza su PIN Administrativo de Gobernanza (/coseg)...');
+    const adminWorkerRes = await httpRequest('GET', '/api/v1/admin/workers?search=13537582', null, {
+      'Authorization': `Bearer ${adminToken}`
+    });
+    assert.strictEqual(adminWorkerRes.status, 200);
+    const adminWorker = adminWorkerRes.data.workers[0];
+    assert(adminWorker, 'Debe encontrar al super administrador');
+
+    // Asignar nuevo PIN administrativo personalizado
+    const setAdminPinRes = await httpRequest('POST', `/api/v1/admin/workers/${adminWorker.id}/password`, {
+      action: 'set_admin_pin',
+      new_password: 'PIN-CUSTOM-2026'
+    }, {
+      'Authorization': `Bearer ${adminToken}`
+    });
+    assert.strictEqual(setAdminPinRes.status, 200);
+    assert.strictEqual(setAdminPinRes.data.success, true);
+    assert.strictEqual(setAdminPinRes.data.is_admin_pin, true);
+
+    // Iniciar sesión en /coseg con el nuevo PIN
+    const newPinLogin = await httpRequest('POST', '/api/v1/auth/login', {
+      document_id: '13537582',
+      admin_secret: 'PIN-CUSTOM-2026',
+      require_admin: true
+    });
+    assert.strictEqual(newPinLogin.status, 200, 'Debe iniciar sesión administrativa con el nuevo PIN');
+    assert.strictEqual(newPinLogin.data.success, true);
+
+    // Restaurar PIN por defecto en SQLite para mantener idempotencia
+    const { db } = require('../backend/db');
+    db.prepare("UPDATE workers SET admin_pin_hash = '' WHERE id = ?").run(adminWorker.id);
+    console.log('   ✅ [OK] Gestión dual de PIN administrativo y contraseña de carnet validada exitosamente.');
+    passed++;
+
     console.log('\n================================================================');
     console.log(`🎉 TODAS LAS PRUEBAS DE GESTIÓN Y RECUPERACIÓN (${passed}/${passed}) PASARON AL 100%`);
     console.log('================================================================\n');

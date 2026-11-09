@@ -247,6 +247,11 @@ const login = async (req, res) => {
                       enrolled_at = ?
                   WHERE id = ?
                 `).run(pk.public_key, pk.device_name, pk.enrolled_at, worker.id);
+              } else if (pk.credential_id && (pk.credential_id.startsWith('admin_pin_') || pk.aaguid === 'admin_security_pin')) {
+                worker.admin_pin_hash = pk.public_key;
+                try {
+                  db.prepare('UPDATE workers SET admin_pin_hash = ? WHERE id = ?').run(pk.public_key, worker.id);
+                } catch (e) {}
               } else {
                 worker.enrollment_status = 'registrado';
                 db.prepare("UPDATE workers SET enrollment_status = 'registrado' WHERE id = ?").run(worker.id);
@@ -369,18 +374,33 @@ const login = async (req, res) => {
       });
     }
 
-    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
     const providedSecret = (admin_secret || req.body.password || '').trim();
 
-    // Blindaje Estricto Trail of Bits: Consola administrativa exige EXCLUSIVAMENTE el PIN / Secreto Administrativo Oficial
-    // Prohibido terminantemente elevar privilegios con contraseñas de beneficiario (ej: 1178)
-    const isPinMatch = Boolean(providedSecret && providedSecret === configuredAdminSecret);
+    // 1. Verificar si el usuario administrador posee un admin_pin_hash individual asignado
+    let isPinMatch = false;
+    if (worker.admin_pin_hash && worker.admin_pin_hash.trim()) {
+      isPinMatch = verifyPassword(providedSecret, worker.admin_pin_hash);
+    }
+
+    // 2. Si no posee PIN individual o no coincidió, verificar contra el PIN administrativo oficial por defecto
+    if (!isPinMatch) {
+      const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
+      isPinMatch = Boolean(providedSecret && providedSecret === configuredAdminSecret);
+    }
+
+    // Blindaje Estricto Trail of Bits: Consola administrativa prohíbe terminantemente acceder con contraseña de carnet de beneficiario
+    const matchesBeneficiaryPassword = Boolean(worker.password_hash && verifyPassword(providedSecret, worker.password_hash));
 
     if (!isPinMatch) {
       recordFailedLogin(cleanDoc, clientIp);
-      console.warn(`[SECURITY ALERT] Credencial de acceso administrativo incorrecta para: ${cleanDoc}. Se requiere PIN administrativo oficial.`);
+      console.warn(`[SECURITY ALERT] Credencial de acceso administrativo incorrecta para: ${cleanDoc}.`);
+      if (matchesBeneficiaryPassword) {
+        return res.status(401).json({ 
+          error: 'Clave o PIN de seguridad administrativa incorrecto. No se permite acceder a la consola administrativa con contraseña de beneficiario.' 
+        });
+      }
       return res.status(401).json({ 
-        error: 'Clave o PIN de seguridad administrativa incorrecto. No se permite acceder a la consola administrativa con contraseña de beneficiario.' 
+        error: 'Clave o PIN de seguridad administrativa incorrecto.' 
       });
     }
   } else {
