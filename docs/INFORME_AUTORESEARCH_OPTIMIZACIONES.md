@@ -218,7 +218,7 @@ Todas las optimizaciones fueron consolidadas en la rama `main` y sincronizadas c
 | `487534a` | `crypto-utils.js`, `passkey.service.js` | Optimización FIDO2 ECDSA P-256 con verificación one-shot C++ y caché LRU de KeyObject |
 | `9da0c4e` | `audit.service.js`, `ministerial_audit` | Streaming Hash SHA-256 en lotes e inclusión de `passkey_nfc` en reportes de auditoría |
 | `cea7205` | `public/sw.js`, `public/icons/` | Reducción del 43.2% en peso de red PWA y activación de caché Stale-While-Revalidate |
-| *(Pendiente)* | `public/css/styles.css`, `benchmarks/` | Ergonomía táctil completa (100% targets $\ge 48\text{px}$) y contraste solar WCAG 2.2 AAA (7.53:1) |
+| `87482c3` | `public/css/styles.css`, `benchmarks/` | Ergonomía táctil completa (100% targets $\ge 48\text{px}$) y contraste solar WCAG 2.2 AAA (7.53:1) |
 
 ---
 
