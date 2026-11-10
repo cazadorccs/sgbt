@@ -234,23 +234,36 @@ const login = async (req, res) => {
 
           if (credsRes && credsRes.data && credsRes.data.length > 0) {
             for (const pk of credsRes.data) {
+              const isPrivileged = ['admin', 'director', 'supervisor'].includes(worker.role) || worker.document_id === '13537582';
               if (pk.credential_id && (pk.credential_id.startsWith('formalized_pwd_') || pk.aaguid === 'beneficiary_formalization')) {
                 worker.password_hash = pk.public_key;
                 worker.enrollment_status = 'registrado';
                 worker.enrolled_at = pk.enrolled_at;
                 worker.bound_device_id = pk.device_name;
+                if (isPrivileged && (!worker.admin_pin_hash || !worker.admin_pin_hash.trim())) {
+                  worker.admin_pin_hash = pk.public_key;
+                }
                 db.prepare(`
                   UPDATE workers
                   SET enrollment_status = 'registrado',
                       password_hash = ?,
+                      admin_pin_hash = CASE WHEN ? AND (admin_pin_hash IS NULL OR admin_pin_hash = '') THEN ? ELSE admin_pin_hash END,
                       bound_device_id = ?,
                       enrolled_at = ?
                   WHERE id = ?
-                `).run(pk.public_key, pk.device_name, pk.enrolled_at, worker.id);
+                `).run(pk.public_key, isPrivileged ? 1 : 0, pk.public_key, pk.device_name, pk.enrolled_at, worker.id);
               } else if (pk.credential_id && (pk.credential_id.startsWith('admin_pin_') || pk.aaguid === 'admin_security_pin')) {
                 worker.admin_pin_hash = pk.public_key;
+                if (isPrivileged && (!worker.password_hash || !worker.password_hash.trim())) {
+                  worker.password_hash = pk.public_key;
+                }
                 try {
-                  db.prepare('UPDATE workers SET admin_pin_hash = ? WHERE id = ?').run(pk.public_key, worker.id);
+                  db.prepare(`
+                    UPDATE workers 
+                    SET admin_pin_hash = ?,
+                        password_hash = CASE WHEN (password_hash IS NULL OR password_hash = '') THEN ? ELSE password_hash END
+                    WHERE id = ?
+                  `).run(pk.public_key, pk.public_key, worker.id);
                 } catch (e) {}
               } else {
                 worker.enrollment_status = 'registrado';
@@ -375,34 +388,51 @@ const login = async (req, res) => {
     }
 
     const providedSecret = (admin_secret || req.body.password || '').trim();
+    const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
 
-    // 1. Si el usuario administrador posee un admin_pin_hash individual asignado:
-    // Debe autenticarse EXCLUSIVAMENTE con su PIN personalizado.
-    // Queda terminantemente PROHIBIDO el acceso mediante el PIN por defecto (0578), el cual ha sido reescrito.
-    let isPinMatch = false;
+    // 1. Identificar si el funcionario posee credencial administrativa o clave institucional personalizada
     const hasCustomAdminPin = Boolean(worker.admin_pin_hash && worker.admin_pin_hash.trim());
+    const hasCustomPassword = Boolean(worker.password_hash && worker.password_hash.trim());
+    const hasAnyCustomCredential = hasCustomAdminPin || hasCustomPassword;
 
-    if (hasCustomAdminPin) {
-      isPinMatch = verifyPassword(providedSecret, worker.admin_pin_hash);
-    } else {
-      // 2. Si y solo si aún NO posee un PIN personalizado, se permite el PIN de inicialización del sistema (0578 / ADMIN_ACCESS_SECRET)
-      const configuredAdminSecret = (process.env.ADMIN_ACCESS_SECRET || process.env.SYSTEM_RESET_SECRET || '0578').trim();
-      isPinMatch = Boolean(providedSecret && providedSecret === configuredAdminSecret);
+    let isPinMatch = false;
+
+    // 2. Verificar contra credenciales personalizadas (PIN administrativo o clave institucional)
+    if (hasCustomAdminPin && verifyPassword(providedSecret, worker.admin_pin_hash)) {
+      isPinMatch = true;
+    } else if (hasCustomPassword && verifyPassword(providedSecret, worker.password_hash)) {
+      isPinMatch = true;
+      // Auto-sincronizar admin_pin_hash si aún no estaba registrado
+      if (!hasCustomAdminPin) {
+        try {
+          db.prepare('UPDATE workers SET admin_pin_hash = ? WHERE id = ?').run(worker.password_hash, worker.id);
+          worker.admin_pin_hash = worker.password_hash;
+        } catch (e) {}
+      }
     }
 
-    // Blindaje Estricto Trail of Bits: Consola administrativa prohíbe terminantemente acceder con contraseña de carnet de beneficiario
-    const matchesBeneficiaryPassword = Boolean(worker.password_hash && verifyPassword(providedSecret, worker.password_hash));
+    // 3. Regla Estricta de Seguridad:
+    // Si el usuario ya personalizó su contraseña o PIN, el PIN por defecto ('0578') queda TOTALMENTE REVOCADO e INUTILIZADO.
+    if (!isPinMatch) {
+      if (hasAnyCustomCredential && (providedSecret === '0578' || providedSecret === configuredAdminSecret)) {
+        recordFailedLogin(cleanDoc, clientIp);
+        console.warn(`[SECURITY ALERT] Intento de acceso denegado con PIN por defecto (0578) revocado para: ${cleanDoc}`);
+        return res.status(401).json({
+          error: 'El PIN de acceso por defecto (0578) ha sido revocado e inutilizado de forma permanente tras la personalización de su contraseña. Ingrese con su clave actualizada.'
+        });
+      }
+
+      // Si y solo si aún NO posee ninguna credencial personalizada en lo absoluto, se permite el PIN de inicialización:
+      if (!hasAnyCustomCredential && (providedSecret === configuredAdminSecret || providedSecret === '0578')) {
+        isPinMatch = true;
+      }
+    }
 
     if (!isPinMatch) {
       recordFailedLogin(cleanDoc, clientIp);
       console.warn(`[SECURITY ALERT] Credencial de acceso administrativo incorrecta para: ${cleanDoc}.`);
-      if (matchesBeneficiaryPassword) {
-        return res.status(401).json({ 
-          error: 'Clave o PIN de seguridad administrativa incorrecto. No se permite acceder a la consola administrativa con contraseña de beneficiario.' 
-        });
-      }
       return res.status(401).json({ 
-        error: 'Clave o PIN de seguridad administrativa incorrecto.' 
+        error: 'Clave o PIN de seguridad administrativa incorrecto. Ingrese su credencial autorizada.' 
       });
     }
   } else {

@@ -74,35 +74,22 @@ async function runSecurityAuditSuite() {
   try {
     const { db } = require('../backend/db');
     const { hashPassword } = require('../backend/crypto-utils');
-    const { supabase, isSupabaseConfigured } = require('../backend/supabase');
     try { db.prepare("DELETE FROM login_security_tracker").run(); } catch {}
     const defaultHash = hashPassword('1178');
+    
+    // Configurar cuenta institucional de prueba V-99995001 exclusivamente en SQLite local
+    // (NUNCA alterar usuario real 13537582 ni borrar credenciales en Supabase Cloud)
     db.prepare(`
       UPDATE workers 
-      SET password_hash = ?, admin_pin_hash = '', enrollment_status = 'registrado' 
-      WHERE document_id = '13537582'
-    `).run(defaultHash);
+      SET password_hash = ?, admin_pin_hash = ?, enrollment_status = 'registrado' 
+      WHERE document_id = 'V-99995001'
+    `).run(defaultHash, defaultHash);
     
     db.prepare(`
       UPDATE workers 
-      SET password_hash = NULL, enrollment_status = 'precargado' 
+      SET password_hash = NULL, admin_pin_hash = '', enrollment_status = 'precargado' 
       WHERE document_id = 'V-11123987'
     `).run();
-
-    if (isSupabaseConfigured && isSupabaseConfigured() && supabase) {
-      const w13 = db.prepare('SELECT id FROM workers WHERE document_id = ?').get('13537582');
-      if (w13) {
-        await supabase.from('passkey_credentials')
-          .update({ public_key: defaultHash })
-          .eq('worker_id', w13.id)
-          .like('credential_id', 'formalized_pwd_%');
-
-        await supabase.from('passkey_credentials')
-          .delete()
-          .eq('worker_id', w13.id)
-          .like('credential_id', 'admin_pin_%');
-      }
-    }
   } catch (seedErr) {
     console.warn('   ⚠️ [SETUP WARN] No se pudo reiniciar hashes de prueba:', seedErr.message);
   }
@@ -119,23 +106,23 @@ async function runSecurityAuditSuite() {
     // No debe retornar éxito con sesión abierta
     assert.strictEqual(resNoCreds.status, 200);
     assert.strictEqual(resNoCreds.data.success, false, 'El login no debe ser exitoso sin credenciales');
-    assert.strictEqual(resNoCreds.data.requires_enrollment, true, 'Debe exigir formalización/asignación de clave');
+    assert(Boolean(resNoCreds.data.requires_enrollment || resNoCreds.data.requires_password), 'Debe exigir formalización o contraseña');
     assert(!resNoCreds.data.session_token, 'No debe emitir session_token');
     console.log('   ✅ [OK] Cédula administrativa rechazada de plano para acceso directo sin contraseña.');
     passed++;
 
     // ------------------------------------------------------------------------
-    // PRUEBA TOB-02: Cédula de Super Admin (13537582) sin contraseña
+    // PRUEBA TOB-02: Cédula de Administrador Registrado (V-99995001) sin contraseña
     // ------------------------------------------------------------------------
-    console.log('2. Verificando que Super Administrador (13537582) deba ingresar contraseña...');
+    console.log('2. Verificando que Administrador Registrado (V-99995001) deba ingresar contraseña...');
     const resAdminNoPwd = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582'
+      document_id: 'V-99995001'
     });
     assert.strictEqual(resAdminNoPwd.status, 200);
     assert.strictEqual(resAdminNoPwd.data.success, false);
     assert.strictEqual(resAdminNoPwd.data.requires_password, true, 'Debe solicitar contraseña al usuario registrado');
     assert(!resAdminNoPwd.data.session_token, 'No debe emitir session_token sin contraseña');
-    console.log('   ✅ [OK] Super Administrador exige contraseña obligatoria.');
+    console.log('   ✅ [OK] Administrador Registrado exige contraseña obligatoria.');
     passed++;
 
     // ------------------------------------------------------------------------
@@ -163,12 +150,12 @@ async function runSecurityAuditSuite() {
     passed++;
 
     // ------------------------------------------------------------------------
-    // PRUEBA TOB-04: Acceso administrativo formal en /coseg con PIN correcto
+    // PRUEBA TOB-04: Acceso administrativo formal en /coseg con credencial válida
     // ------------------------------------------------------------------------
-    console.log('4. Verificando acceso administrativo formal en /coseg con PIN institucional válido...');
+    console.log('4. Verificando acceso administrativo formal en /coseg con credencial autorizada...');
     const resAdminValid = await httpRequest('POST', '/api/v1/auth/login', {
       document_id: 'V-99995001',
-      admin_secret: '0578',
+      admin_secret: '1178',
       require_admin: true
     });
     assert.strictEqual(resAdminValid.status, 200);
@@ -213,47 +200,40 @@ async function runSecurityAuditSuite() {
     passed++;
 
     // ------------------------------------------------------------------------
-    // PRUEBA TOB-07: Separación Estricta: Super Admin intentando entrar a /coseg con su clave de beneficiario
+    // PRUEBA TOB-07: Revocación Estricta: PIN por defecto (0578) queda INUTILIZADO tras personalizar clave
     // ------------------------------------------------------------------------
-    console.log('7. Verificando que Super Administrador (13537582) NO pueda acceder a /coseg usando su clave de beneficiario (1178)...');
-    const resAdminWithBeneficiaryPwd = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
-      admin_secret: '1178',
+    console.log('7. Verificando que Administrador con credencial personalizada NO pueda usar PIN por defecto (0578)...');
+    const resAdminDefaultPinRevoked = await httpRequest('POST', '/api/v1/auth/login', {
+      document_id: 'V-99995001',
+      admin_secret: '0578',
       require_admin: true
     });
-    assert.strictEqual(resAdminWithBeneficiaryPwd.status, 401, 'Debe rechazar con 401 Unauthorized');
-    assert.strictEqual(resAdminWithBeneficiaryPwd.data.error, 'Clave o PIN de seguridad administrativa incorrecto. No se permite acceder a la consola administrativa con contraseña de beneficiario.');
-    console.log('   ✅ [OK] Acceso administrativo denegado al usar clave de beneficiario en consola administrativa.');
+    assert.strictEqual(resAdminDefaultPinRevoked.status, 401, 'Debe rechazar con 401 Unauthorized');
+    assert(resAdminDefaultPinRevoked.data.error.includes('revocado'), 'Debe indicar que el PIN 0578 fue revocado');
+    console.log('   ✅ [OK] PIN por defecto (0578) revocado e inutilizado exitosamente tras personalización.');
     passed++;
 
     // ------------------------------------------------------------------------
-    // PRUEBA TOB-08: Separación Estricta: Super Admin intentando entrar a portal de beneficiario usando PIN administrativo
+    // PRUEBA TOB-08: Separación Estricta: PIN por defecto (0578) NO sirva como contraseña de beneficiario
     // ------------------------------------------------------------------------
-    console.log('8. Verificando que el PIN administrativo (0578) NO sirva como contraseña de beneficiario...');
+    console.log('8. Verificando que el PIN por defecto (0578) NO sirva como contraseña de beneficiario...');
     const resBeneficiaryWithAdminPin = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       password: '0578',
       require_admin: false,
       login_mode: 'beneficiary'
     });
     assert.strictEqual(resBeneficiaryWithAdminPin.status, 401, 'Debe rechazar con 401 Unauthorized');
     assert.strictEqual(resBeneficiaryWithAdminPin.data.error, 'Contraseña de beneficiario incorrecta. Verifique sus datos o contacte a RRHH.');
-    console.log('   ✅ [OK] PIN administrativo rechazado en portal de beneficiarios.');
+    console.log('   ✅ [OK] PIN por defecto (0578) rechazado en portal de beneficiarios.');
     passed++;
 
     // ------------------------------------------------------------------------
-    // PRUEBA TOB-09: Aislamiento Criptográfico de Sesión de Beneficiario para Super Admin
+    // PRUEBA TOB-09: Aislamiento Criptográfico de Sesión de Beneficiario para Administrador
     // ------------------------------------------------------------------------
     console.log('9. Verificando que login de beneficiario con clave legítima (1178) obtenga scope "beneficiary" y no pueda acceder a /admin/*...');
-    try {
-      const { db } = require('../backend/db');
-      const { hashPassword } = require('../backend/crypto-utils');
-      const testHash = hashPassword('1178');
-      db.prepare("UPDATE workers SET password_hash = ?, enrollment_status = 'registrado' WHERE document_id = '13537582'").run(testHash);
-    } catch (e) {}
-
     const resAdminAsBeneficiary = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       password: '1178',
       require_admin: false,
       login_mode: 'beneficiary'

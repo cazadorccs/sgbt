@@ -413,7 +413,7 @@
 
         <div style="text-align: left; margin-bottom: 1.5rem;">
           <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">PIN Institucional / Contraseña:</label>
-          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="PIN de Seguridad (Ej: 0578)" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
+          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="PIN o Contraseña Autorizada" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
         </div>
 
         <button type="submit" id="btnSupLoginSubmit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 800; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
@@ -421,13 +421,13 @@
         </button>
 
         <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--sup-border);">
-          <div style="font-size: 0.75rem; color: var(--sup-text-muted); margin-bottom: 0.5rem; font-weight: 700;">Credenciales de Acceso Rápido:</div>
+          <div style="font-size: 0.75rem; color: var(--sup-text-muted); margin-bottom: 0.5rem; font-weight: 700;">Credenciales de Acceso:</div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             <button type="button" class="btn btn-outline" onclick="window.fillDemoSuperAdmin();" style="width: 100%; font-size: 0.78rem; padding: 0.55rem; color: #0284c7; border-color: rgba(2, 132, 199, 0.4); background: rgba(2, 132, 199, 0.08); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-              <span>👑 Acceder como Super Administrador (13537582 / PIN: 0578)</span>
+              <span>👑 Acceder como Super Administrador (C.I. 13537582)</span>
             </button>
             <button type="button" class="btn btn-outline" onclick="window.fillDemoSupervisor();" style="width: 100%; font-size: 0.78rem; padding: 0.55rem; color: #d97706; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-              <span>🛡️ Acceder como Supervisor (V-13222333 / PIN: 0578)</span>
+              <span>🛡️ Acceder como Supervisor (V-13222333)</span>
             </button>
           </div>
         </div>
@@ -1010,20 +1010,27 @@
         }
       };
 
-      // Autocompletar demo: Super Administrador
+      // Autocompletar: Super Administrador (Credencial personalizada)
       window.fillDemoSuperAdmin = function() {
         const docInp = document.getElementById('supInputDocument');
         const pinInp = document.getElementById('supInputSecret');
         if (docInp) docInp.value = '13537582';
-        if (pinInp) pinInp.value = '0578';
+        if (pinInp) {
+          pinInp.value = '';
+          pinInp.placeholder = 'Ingrese su contraseña institucional';
+          pinInp.focus();
+        }
       };
 
-      // Autocompletar demo: Supervisor de Mesa
+      // Autocompletar: Supervisor de Mesa
       window.fillDemoSupervisor = function() {
         const docInp = document.getElementById('supInputDocument');
         const pinInp = document.getElementById('supInputSecret');
         if (docInp) docInp.value = 'V-13222333';
-        if (pinInp) pinInp.value = '0578';
+        if (pinInp) {
+          pinInp.value = '0578';
+          pinInp.focus();
+        }
       };
 
       // Logout

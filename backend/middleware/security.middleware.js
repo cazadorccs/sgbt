@@ -151,7 +151,7 @@ function xssSanitizerMiddleware(req, res, next) {
  */
 const ipAttemptsMap = new Map();
 
-function loginRateLimiter(windowMs = 60000, maxAttempts = 30) {
+function loginRateLimiter(windowMs = 60000, maxAttempts = 200) {
   return (req, res, next) => {
     // Si estamos en entorno de prueba automatizada, permitir sin bloqueo
     if (process.env.NODE_ENV === 'test') return next();

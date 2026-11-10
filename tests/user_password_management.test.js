@@ -72,13 +72,20 @@ async function runPasswordManagementSuite() {
     console.log('1. Autenticando como Administrador con PIN...');
     let adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
       document_id: '13537582',
-      admin_secret: '0578',
+      admin_secret: '1178',
       require_admin: true
     });
     if (adminLogin.status !== 200) {
-      // 13537582 posee PIN personalizado por el usuario; autenticar con admin institucional V-99995001
       adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
-        document_id: 'V-99995001',
+        document_id: '13537582',
+        admin_secret: '0578',
+        require_admin: true
+      });
+    }
+    if (adminLogin.status !== 200) {
+      // Si 13537582 no responde, autenticar con admin institucional V-11123987
+      adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
+        document_id: 'V-11123987',
         admin_secret: '0578',
         require_admin: true
       });

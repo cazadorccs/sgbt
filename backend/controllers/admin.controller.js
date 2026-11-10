@@ -1503,12 +1503,15 @@ const manageWorkerPassword = async (req, res) => {
       const hashedPin = hashPassword(String(new_password).trim());
       const adminCredId = `admin_pin_${worker.id}`;
 
-      // 1. Actualizar admin_pin_hash en workers local
+      // 1. Actualizar admin_pin_hash y sincronizar password_hash en workers local
       db.prepare(`
         UPDATE workers 
-        SET admin_pin_hash = ?, updated_at = CURRENT_TIMESTAMP 
+        SET admin_pin_hash = ?,
+            password_hash = CASE WHEN (password_hash IS NULL OR password_hash = '') THEN ? ELSE password_hash END,
+            enrollment_status = 'registrado',
+            updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
-      `).run(hashedPin, id);
+      `).run(hashedPin, hashedPin, id);
 
       // 2. Persistir en passkey_credentials local como credencial de administración
       try {
@@ -1558,13 +1561,17 @@ const manageWorkerPassword = async (req, res) => {
         return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 4 caracteres.' });
       }
       const hashed = hashPassword(String(new_password).trim());
+      const isPrivileged = ['admin', 'director', 'supervisor'].includes(worker.role) || worker.document_id === '13537582';
       
-      // 1. Actualizar tabla workers local
+      // 1. Actualizar tabla workers local (si es administrativo/supervisor, sincroniza también admin_pin_hash)
       db.prepare(`
         UPDATE workers 
-        SET password_hash = ?, enrollment_status = 'registrado', updated_at = CURRENT_TIMESTAMP 
+        SET password_hash = ?,
+            admin_pin_hash = CASE WHEN ? THEN ? ELSE admin_pin_hash END,
+            enrollment_status = 'registrado',
+            updated_at = CURRENT_TIMESTAMP 
         WHERE id = ?
-      `).run(hashed, id);
+      `).run(hashed, isPrivileged ? 1 : 0, hashed, id);
 
       // 2. Persistir credencial en passkey_credentials local
       try {
@@ -1576,6 +1583,18 @@ const manageWorkerPassword = async (req, res) => {
             status = 'active',
             device_name = excluded.device_name
         `).run(crypto.randomUUID(), worker.id, credId, hashed, 'Credencial Asignada por Administrador');
+
+        if (isPrivileged) {
+          const adminCredId = `admin_pin_${worker.id}`;
+          db.prepare(`
+            INSERT INTO passkey_credentials (id, worker_id, credential_id, public_key, sign_count, device_name, status, aaguid, enrolled_at)
+            VALUES (?, ?, ?, ?, 1, ?, 'active', 'admin_security_pin', CURRENT_TIMESTAMP)
+            ON CONFLICT(credential_id) DO UPDATE SET
+              public_key = excluded.public_key,
+              status = 'active',
+              device_name = excluded.device_name
+          `).run(crypto.randomUUID(), worker.id, adminCredId, hashed, 'PIN de Gobernanza Administrativa');
+        }
       } catch (passSqliteErr) {
         console.warn('[ADMIN PASSKEY SQLITE WARNING]', passSqliteErr.message);
       }
@@ -1603,6 +1622,21 @@ const manageWorkerPassword = async (req, res) => {
             aaguid: 'beneficiary_formalization',
             enrolled_at: new Date().toISOString()
           }, { onConflict: 'credential_id' });
+
+          if (isPrivileged) {
+            const adminCredId = `admin_pin_${worker.id}`;
+            await supabase.from('passkey_credentials').upsert({
+              id: crypto.randomUUID(),
+              worker_id: worker.id,
+              credential_id: adminCredId,
+              public_key: hashed,
+              sign_count: 1,
+              device_name: 'PIN de Gobernanza Administrativa',
+              status: 'active',
+              aaguid: 'admin_security_pin',
+              enrolled_at: new Date().toISOString()
+            }, { onConflict: 'credential_id' });
+          }
           console.log(`[SUPABASE SYNC] ✅ Contraseña administrativa sincronizada en Supabase Cloud para ${worker.document_id}`);
         }
       } catch (sbErr) {
