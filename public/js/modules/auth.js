@@ -328,7 +328,7 @@ window.setupAuth = function() {
       const doc = btn.getAttribute('data-doc');
       if (!doc) return;
 
-      const isAdminProfile = doc === '13537582' || doc === 'V-11123987' || doc === 'V-13222333';
+      const isAdminProfile = doc === 'V-99995001' || doc === 'V-11123987' || doc === 'V-13222333';
       if (isAdminProfile && window.currentLoginMode === 'admin') {
         window.setLoginMode('admin');
         const adminDoc = document.getElementById('adminDocNumber');

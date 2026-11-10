@@ -407,12 +407,12 @@
       <form id="supLoginForm" onsubmit="event.preventDefault(); window.submitSupervisorLogin();">
         <div style="text-align: left; margin-bottom: 1rem;">
           <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Cédula de Identidad:</label>
-          <input type="text" id="supInputDocument" class="form-input text-mono" placeholder="Ej: 13537582 o V-13222333" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; font-weight: 700; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
+          <input type="text" id="supInputDocument" class="form-input text-mono" placeholder="Ej: V-12345678" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; font-weight: 700; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
         </div>
 
         <div style="text-align: left; margin-bottom: 1.5rem;">
-          <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">PIN Institucional / Contraseña:</label>
-          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="PIN o Contraseña Autorizada" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
+          <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Contraseña o PIN Administrativo:</label>
+          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="Contraseña Autorizada" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
         </div>
 
         <button type="submit" id="btnSupLoginSubmit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 800; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
@@ -420,13 +420,10 @@
         </button>
 
         <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--sup-border);">
-          <div style="font-size: 0.75rem; color: var(--sup-text-muted); margin-bottom: 0.5rem; font-weight: 700;">Credenciales de Acceso:</div>
+          <div style="font-size: 0.75rem; color: var(--sup-text-muted); margin-bottom: 0.5rem; font-weight: 700;">Acceso Rápido de Demostración:</div>
           <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-            <button type="button" class="btn btn-outline" onclick="window.fillDemoSuperAdmin();" style="width: 100%; font-size: 0.78rem; padding: 0.55rem; color: #0284c7; border-color: rgba(2, 132, 199, 0.4); background: rgba(2, 132, 199, 0.08); font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-              <span>👑 Acceder como Super Administrador (C.I. 13537582)</span>
-            </button>
             <button type="button" class="btn btn-outline" onclick="window.fillDemoSupervisor();" style="width: 100%; font-size: 0.78rem; padding: 0.55rem; color: #d97706; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.4rem;">
-              <span>🛡️ Acceder como Supervisor (V-13222333)</span>
+              <span>🛡️ Acceder como Supervisor Demo (V-13222333)</span>
             </button>
           </div>
         </div>
@@ -926,7 +923,7 @@
         if (user) {
           const isAdmin = user.role === 'admin' || user.role === 'director';
           supSessionName.textContent = user.full_name || (isAdmin ? 'Super Administrador' : 'Supervisor de Guardia');
-          supSessionDoc.textContent = user.document_id ? `C.I. V-${user.document_id.replace(/^V-?/i, '')}` : (isAdmin ? 'C.I. 13537582' : 'C.I. V-13222333');
+          supSessionDoc.textContent = user.document_id ? `C.I. V-${user.document_id.replace(/^V-?/i, '')}` : (isAdmin ? 'Super Administrador' : 'Supervisor de Mesa');
           
           const parts = (user.full_name || (isAdmin ? 'Super Admin' : 'SP')).trim().split(/\s+/);
           const initials = parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : parts[0].substring(0, 2).toUpperCase();
@@ -1009,19 +1006,7 @@
         }
       };
 
-      // Autocompletar: Super Administrador (Credencial personalizada)
-      window.fillDemoSuperAdmin = function() {
-        const docInp = document.getElementById('supInputDocument');
-        const pinInp = document.getElementById('supInputSecret');
-        if (docInp) docInp.value = '13537582';
-        if (pinInp) {
-          pinInp.value = '';
-          pinInp.placeholder = 'Ingrese su contraseña institucional';
-          pinInp.focus();
-        }
-      };
-
-      // Autocompletar: Supervisor de Mesa
+      // Autocompletar: Supervisor de Mesa (Demo)
       window.fillDemoSupervisor = function() {
         const docInp = document.getElementById('supInputDocument');
         const pinInp = document.getElementById('supInputSecret');
