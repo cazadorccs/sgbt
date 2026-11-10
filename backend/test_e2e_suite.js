@@ -79,6 +79,8 @@ test('E2E-01B: Ruta Segura de Acceso Administrativo (/coseg)', async () => {
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
   if (!res.data.includes('id="tabModeAdmin"')) throw new Error('Falta tabModeAdmin en el shell servido en /coseg');
   if (!res.data.includes('href="/supervisor"')) throw new Error('Falta enlace a /supervisor en el header de /coseg');
+  if (!res.data.includes('id="searchWorkerInput"')) throw new Error('Falta searchWorkerInput en el padrón de /coseg');
+  if (!res.data.includes('id="btnClearSearchWorker"')) throw new Error('Falta btnClearSearchWorker en el padrón de /coseg');
 });
 
 test('E2E-01C: Ruta de Estación de Supervisión y Despacho Manual (/supervisor)', async () => {
@@ -141,25 +143,25 @@ test('E2E-06: Verificación y Login de Trabajador Beneficiario (C.I. V-18456123)
   console.log(`     [Trabajador: ${res.data.user.full_name}, Rol: ${res.data.user.role}, Passkey: ${res.data.user.has_passkey}]`);
 });
 
-test('E2E-07: Login de Administrador Institucional (C.I. 13537582 o V-11123987)', async () => {
+test('E2E-07: Login de Administrador Institucional (V-99995001 / Cédula Directiva)', async () => {
   let res = await request('POST', '/api/v1/auth/login', {
-    document_id: '13537582',
+    document_id: 'V-99995001',
     admin_secret: '1178',
     require_admin: true
   });
   if (res.status === 200) {
-    testAdminDoc = '13537582';
-    testAdminEmail = 'Sfranco@mippci.gob.ve';
+    testAdminDoc = 'V-99995001';
+    testAdminEmail = 'director.comunicacion@mippci.gob.ve';
     testAdminSecret = '1178';
   } else {
     res = await request('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       admin_secret: '0578',
       require_admin: true
     });
     if (res.status === 200) {
-      testAdminDoc = '13537582';
-      testAdminEmail = 'Sfranco@mippci.gob.ve';
+      testAdminDoc = 'V-99995001';
+      testAdminEmail = 'director.comunicacion@mippci.gob.ve';
       testAdminSecret = '0578';
     } else {
       res = await request('POST', '/api/v1/auth/login', {

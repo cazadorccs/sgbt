@@ -113,11 +113,19 @@ async function runSecurityTests() {
     // ------------------------------------------------------------------------
     console.log('3. Verificando Inyección de Cookies HttpOnly + SameSite=Strict...');
     let resLogin = await makeRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       admin_secret: '1178',
       require_admin: true,
       device_id: 'dev_test_device_pc_1'
     });
+    if (resLogin.status !== 200) {
+      resLogin = await makeRequest('POST', '/api/v1/auth/login', {
+        document_id: '13537582',
+        admin_secret: '1178',
+        require_admin: true,
+        device_id: 'dev_test_device_pc_1'
+      });
+    }
     if (resLogin.status !== 200) {
       resLogin = await makeRequest('POST', '/api/v1/auth/login', {
         document_id: '13537582',

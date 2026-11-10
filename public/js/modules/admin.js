@@ -327,7 +327,30 @@ async function ensureDepartmentFilterPopulated() {
   }
 }
 
+function updateClearWorkerSearchVisibility() {
+  const searchInput = document.getElementById('searchWorkerInput');
+  const btnClear = document.getElementById('btnClearSearchWorker');
+  if (btnClear && searchInput) {
+    btnClear.style.display = (searchInput.value.trim().length > 0) ? 'inline-flex' : 'none';
+  }
+}
+window.updateClearWorkerSearchVisibility = updateClearWorkerSearchVisibility;
+
+window.clearWorkerSearch = function() {
+  const searchInput = document.getElementById('searchWorkerInput');
+  const btnClear = document.getElementById('btnClearSearchWorker');
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.focus();
+    if (btnClear) btnClear.style.display = 'none';
+    if (typeof window.loadWorkersDirectory === 'function') {
+      window.loadWorkersDirectory();
+    }
+  }
+};
+
 window.loadWorkersDirectory = async function(preservePage = false) {
+  updateClearWorkerSearchVisibility();
   await ensureDepartmentFilterPopulated();
   const search = document.getElementById('searchWorkerInput')?.value || '';
   const role = document.getElementById('filterRoleSelect')?.value || '';
@@ -858,9 +881,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   let searchWorkerTimeout;
-  document.getElementById('searchWorkerInput')?.addEventListener('input', () => {
+  const searchWorkerInput = document.getElementById('searchWorkerInput');
+  const btnClearSearchWorker = document.getElementById('btnClearSearchWorker');
+
+  searchWorkerInput?.addEventListener('input', () => {
+    updateClearWorkerSearchVisibility();
     clearTimeout(searchWorkerTimeout);
     searchWorkerTimeout = setTimeout(loadWorkersDirectory, 250);
+  });
+
+  searchWorkerInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchWorkerInput.value) {
+      e.preventDefault();
+      window.clearWorkerSearch();
+    }
+  });
+
+  btnClearSearchWorker?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.clearWorkerSearch();
   });
 
   document.getElementById('filterRoleSelect')?.addEventListener('change', loadWorkersDirectory);

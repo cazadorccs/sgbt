@@ -71,10 +71,17 @@ async function runPasswordManagementSuite() {
     // 1. Obtener token administrativo legítimo
     console.log('1. Autenticando como Administrador con PIN...');
     let adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
-      document_id: '13537582',
+      document_id: 'V-99995001',
       admin_secret: '1178',
       require_admin: true
     });
+    if (adminLogin.status !== 200) {
+      adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
+        document_id: 'V-99995001',
+        admin_secret: '0578',
+        require_admin: true
+      });
+    }
     if (adminLogin.status !== 200) {
       adminLogin = await httpRequest('POST', '/api/v1/auth/login', {
         document_id: '13537582',
