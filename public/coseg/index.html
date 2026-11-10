@@ -1472,9 +1472,9 @@
           </div>
 
           <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-            <div style="position: relative; display: inline-flex; align-items: center;">
-              <input id="searchWorkerInput" type="text" class="form-input" placeholder="Buscar por Cédula o Nombre..." style="width: 250px; padding-right: 2.2rem;">
-              <button type="button" id="btnClearSearchWorker" onclick="if(typeof window.clearWorkerSearch === 'function') window.clearWorkerSearch();" title="Limpiar búsqueda" aria-label="Limpiar búsqueda" style="position: absolute; right: 0.5rem; background: none; border: none; color: #94a3b8; cursor: pointer; display: none; align-items: center; justify-content: center; width: 1.5rem; height: 1.5rem; border-radius: 50%; padding: 0; line-height: 1; transition: all 0.15s ease;" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='rgba(239, 68, 68, 0.1)';" onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent';">
+            <div class="search-box-container">
+              <input id="searchWorkerInput" type="text" class="form-input search-box-input" placeholder="Buscar por Cédula o Nombre..." autocomplete="off" aria-label="Buscar por Cédula o Nombre">
+              <button type="button" id="btnClearSearchWorker" class="search-box-clear-btn" onclick="if(typeof window.clearWorkerSearch === 'function') window.clearWorkerSearch();" title="Limpiar búsqueda" aria-label="Limpiar búsqueda">
                 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>

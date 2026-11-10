@@ -5034,6 +5034,73 @@ body.delivery-flash-active {
   contain-intrinsic-size: 52px;
 }
 
+/* ==========================================================================
+   COMPONENTE: CAJA DE BÚSQUEDA MODERNA CON BOTÓN DE LIMPIAR DINÁMICO ("X")
+   ========================================================================== */
+.search-box-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 250px;
+}
+
+.search-box-input {
+  width: 100% !important;
+  padding-right: 2.25rem !important; /* Espacio para que el texto no se solape con la 'X' */
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-box-input:focus {
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2), 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.search-box-clear-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none; /* Oculto por defecto */
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  border-radius: 50%;
+  cursor: pointer;
+  outline: none;
+  transition: color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+
+.search-box-clear-btn:hover {
+  color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.1);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.search-box-clear-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.search-box-clear-btn.is-visible {
+  display: inline-flex !important;
+}
+
+/* Soporte para modo oscuro */
+body.dark-mode .search-box-clear-btn {
+  color: #64748b;
+}
+
+body.dark-mode .search-box-clear-btn:hover {
+  color: #f87171;
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+
 
 
 

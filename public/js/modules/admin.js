@@ -331,7 +331,9 @@ function updateClearWorkerSearchVisibility() {
   const searchInput = document.getElementById('searchWorkerInput');
   const btnClear = document.getElementById('btnClearSearchWorker');
   if (btnClear && searchInput) {
-    btnClear.style.display = (searchInput.value.trim().length > 0) ? 'inline-flex' : 'none';
+    const hasText = searchInput.value.trim().length > 0;
+    btnClear.classList.toggle('is-visible', hasText);
+    btnClear.style.display = hasText ? 'inline-flex' : 'none';
   }
 }
 window.updateClearWorkerSearchVisibility = updateClearWorkerSearchVisibility;
@@ -341,8 +343,11 @@ window.clearWorkerSearch = function() {
   const btnClear = document.getElementById('btnClearSearchWorker');
   if (searchInput) {
     searchInput.value = '';
+    if (btnClear) {
+      btnClear.classList.remove('is-visible');
+      btnClear.style.display = 'none';
+    }
     searchInput.focus();
-    if (btnClear) btnClear.style.display = 'none';
     if (typeof window.loadWorkersDirectory === 'function') {
       window.loadWorkersDirectory();
     }
