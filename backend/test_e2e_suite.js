@@ -77,6 +77,7 @@ test('E2E-01B: Ruta Segura de Acceso Administrativo (/coseg)', async () => {
   const res = await request('GET', '/coseg');
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
   if (!res.data.includes('id="tabModeAdmin"')) throw new Error('Falta tabModeAdmin en el shell servido en /coseg');
+  if (!res.data.includes('href="/supervisor"')) throw new Error('Falta enlace a /supervisor en el header de /coseg');
 });
 
 test('E2E-01C: Ruta de Estación de Supervisión y Despacho Manual (/supervisor)', async () => {
@@ -88,6 +89,8 @@ test('E2E-01C: Ruta de Estación de Supervisión y Despacho Manual (/supervisor)
   if (!res.data.includes('id="btnThemeToggle"')) throw new Error('Falta id="btnThemeToggle" en /supervisor');
   if (!res.data.includes('id="themeToggleText"')) throw new Error('Falta id="themeToggleText" en /supervisor');
   if (!res.data.includes('theme_manager.js')) throw new Error('Falta theme_manager.js en /supervisor');
+  if (!res.data.includes('fillDemoSuperAdmin')) throw new Error('Falta soporte para acceso de Super Administrador en /supervisor');
+  if (!res.data.includes('btnGoToSuperAdminConsole')) throw new Error('Falta enlace de retorno a /coseg en /supervisor');
 });
 
 test('E2E-02: Carga de Plantilla Externa de Modales (/templates/modals.html)', async () => {

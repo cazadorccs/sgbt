@@ -172,5 +172,10 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 
 #### HU-ADM-01: Gobernanza y Balance Ministerial en Tiempo Real (/coseg)
 - **Como** Administrador General o Director de Gestión Humana,
-- **Quiero** supervisar la consola de gobernanza (`/coseg`) con el padrón general, auditoría Merkle y control de jornadas,
-- **Para** consolidar el cierre de jornada, emitir el acta ministerial certificada y asegurar la transparencia del beneficio.
+- **Quiero** supervisar la consola de gobernanza (`/coseg`) y tener acceso directo e irrestricto a la Estación de Trabajo de Supervisión (`/supervisor`),
+- **Para** auditar el balance en tiempo real, intervenir operativamente en contingencias complejas de entrega y asegurar la transparencia del beneficio institucional.
+- **Criterios de Aceptación:**
+  1. Acceso mediante Cédula y PIN de Super Administrador con auditoría de operaciones críticas.
+  2. Botón directo y permanente en la barra superior de navegación de `/coseg` para acceder con un clic a la Estación de Supervisión (`/supervisor`).
+  3. Reconocimiento automático de privilegios de Super Administrador en `/supervisor`, con insignia `👑 SUPER ADMIN`, banner de control maestro y enlace de retorno a `/coseg`.
+  4. Capacidad de auditar, ejecutar despachos de contingencia y reiniciar entregas con autorización de seguridad.
