@@ -1012,6 +1012,82 @@ function seedDatabase(force = false) {
   }
 
   console.log('[DB] Seeds oficiales cargados exitosamente (Asignaciones por Estación 1 y Estación 2 activas).');
+
+  // Auto-consolidación canónica idempotente de departamentos (evita departamentos duplicados por errores de transcripción o símbolos °)
+  consolidateDuplicateDepartmentsIdempotent();
+}
+
+/**
+ * Auto-consolidación idempotente de departamentos duplicados:
+ * Agrupa por clave canónica (removiendo símbolos °, acentos y espacios extra)
+ * y unifica a los trabajadores bajo un único departamento oficial.
+ */
+function consolidateDuplicateDepartmentsIdempotent() {
+  try {
+    const depts = db.prepare("SELECT id, code, name, cost_center FROM departments").all();
+    if (!depts || depts.length === 0) return;
+
+    const canonicalize = (s) => String(s || '')
+      .replace(/[\xB0\xBA\xAA*~_\"'\`\^\.\,\;\:\/\\]/g, ' ')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+
+    const sanitize = (s) => String(s || '')
+      .replace(/[\xB0\xBA\xAA*~_\"'\`\^]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const groups = new Map();
+    for (const d of depts) {
+      const cKey = canonicalize(d.name);
+      if (!cKey) continue;
+      if (!groups.has(cKey)) groups.set(cKey, []);
+      groups.get(cKey).push(d);
+    }
+
+    for (const [cKey, list] of groups.entries()) {
+      if (list.length <= 1) {
+        const cleanName = sanitize(list[0].name);
+        if (cleanName !== list[0].name) {
+          db.prepare("UPDATE departments SET name = ? WHERE id = ?").run(cleanName, list[0].id);
+        }
+        continue;
+      }
+
+      const ranked = [...list].sort((a, b) => {
+        const aNoise = /[\xB0\xBA\xAA*~_\"'\`\^]/.test(a.name);
+        const bNoise = /[\xB0\xBA\xAA*~_\"'\`\^]/.test(b.name);
+        if (aNoise !== bNoise) return aNoise ? 1 : -1;
+
+        const aOfficial = !a.code.startsWith('DEP_');
+        const bOfficial = !b.code.startsWith('DEP_');
+        if (aOfficial !== bOfficial) return bOfficial ? 1 : -1;
+
+        const aWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE department_id = ?").get(a.id)?.c || 0;
+        const bWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE department_id = ?").get(b.id)?.c || 0;
+        return bWorkers - aWorkers;
+      });
+
+      const canonical = ranked[0];
+      const duplicates = ranked.slice(1);
+      const cleanName = sanitize(canonical.name);
+
+      db.prepare("UPDATE departments SET name = ? WHERE id = ?").run(cleanName, canonical.id);
+
+      for (const dup of duplicates) {
+        db.prepare("UPDATE workers SET department_id = ? WHERE department_id = ?").run(canonical.id, dup.id);
+        try {
+          db.prepare("UPDATE department_batch_orders SET department_id = ? WHERE department_id = ?").run(canonical.id, dup.id);
+        } catch (e) {}
+        db.prepare("DELETE FROM departments WHERE id = ?").run(dup.id);
+      }
+    }
+  } catch (err) {
+    console.warn('[DB AUTO-CONSOLIDATION WARNING]', err.message);
+  }
 }
 
 // ----------------------------------------------------------------------------

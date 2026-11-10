@@ -12,6 +12,35 @@ if (isProduction && !process.env.PAYROLL_WEBHOOK_SECRET) {
 }
 const WEBHOOK_SECRET = process.env.PAYROLL_WEBHOOK_SECRET || 'mippci_bolsa_secure_secret_key_2026';
 
+/**
+ * Normaliza un nombre de departamento eliminando ruido tipográfico común en OCR / transcripción:
+ * - Caracteres parásitos: °, º, ª, *, ~, _, comillas, dobles apóstrofes, acentos circunflejos.
+ * - Descompone y elimina acentos y diacríticos (NFD).
+ * - Colapsa espacios múltiples y recorta extremos.
+ * - Convierte a mayúsculas para comparación uniforme.
+ */
+function canonicalizeDepartmentName(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/[\xB0\xBA\xAA*~_\"'\`\^\.\,\;\:\/\\]/g, ' ')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * Limpia el nombre de departamento para presentación visual o inserción limpia en base de datos.
+ */
+function sanitizeDepartmentDisplayName(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/[\xB0\xBA\xAA*~_\"'\`\^]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function parseExcelToWorkers(buffer) {
   if (!buffer) return [];
   try {
@@ -288,6 +317,23 @@ const handleBatchImport = (req, res) => {
   let updated = 0;
   let failed = 0;
 
+  // Precarga y mapeo canónico de departamentos para resolución inteligente de discrepancias OCR / ° / acentos
+  const existingDepts = db.prepare("SELECT id, code, name, cost_center FROM departments").all();
+  const exactDeptMap = new Map();
+  const canonicalDeptMap = new Map();
+
+  for (const d of existingDepts) {
+    if (d.name) {
+      exactDeptMap.set(d.name.trim().toLowerCase(), d);
+      const cKey = canonicalizeDepartmentName(d.name);
+      if (cKey && (!canonicalDeptMap.has(cKey) || !d.name.includes('°'))) {
+        canonicalDeptMap.set(cKey, d);
+      }
+    }
+  }
+
+  const departmentWarnings = [];
+
   const insertOrUpdate = db.prepare(`
     INSERT INTO workers (
       id, document_id, full_name, email, department_id, job_title, hire_date,
@@ -319,14 +365,63 @@ const handleBatchImport = (req, res) => {
 
         let deptId = w.department_id || null;
         if (w.department_name && !deptId) {
-          const deptClean = String(w.department_name).trim();
-          let existingDept = db.prepare("SELECT id FROM departments WHERE LOWER(name) = LOWER(?)").get(deptClean);
-          if (!existingDept) {
+          const rawDept = String(w.department_name).trim();
+          const cleanDisplay = sanitizeDepartmentDisplayName(rawDept);
+          const cKey = canonicalizeDepartmentName(rawDept);
+
+          // 1. Coincidencia exacta insensible a mayúsculas
+          let matchedDept = exactDeptMap.get(cleanDisplay.toLowerCase());
+          if (matchedDept && rawDept !== matchedDept.name) {
+            departmentWarnings.push({
+              row: processed + failed + 1,
+              document_id: String(w.document_id).trim(),
+              worker_name: (w.full_name || 'Trabajador ' + w.document_id).trim(),
+              raw_department: rawDept,
+              resolved_department: matchedDept.name,
+              discrepancy_type: /[\xB0\xBA\xAA*~_\"'\`\^]/.test(rawDept) ? 'caracter_parasito_grado' : 'ortografia_o_espaciado',
+              message: `Discrepancia tipográfica detectada en "${rawDept}". Normalizado automáticamente al departamento oficial "${matchedDept.name}".`
+            });
+          }
+
+          // 2. Coincidencia canónica (resuelve errores tipográficos, símbolos °, acentos y espacios)
+          if (!matchedDept && cKey) {
+            matchedDept = canonicalDeptMap.get(cKey);
+            if (matchedDept) {
+              departmentWarnings.push({
+                row: processed + failed + 1,
+                document_id: String(w.document_id).trim(),
+                worker_name: (w.full_name || 'Trabajador ' + w.document_id).trim(),
+                raw_department: rawDept,
+                resolved_department: matchedDept.name,
+                discrepancy_type: /[\xB0\xBA\xAA*~_\"'\`\^]/.test(rawDept) ? 'caracter_parasito_grado' : 'ortografia_o_espaciado',
+                message: `Discrepancia tipográfica detectada en "${rawDept}". Normalizado automáticamente al departamento oficial "${matchedDept.name}".`
+              });
+            }
+          }
+
+          // 3. Si no existe en catálogo, crear departamento saneado (nunca con ° ni basura OCR)
+          if (!matchedDept) {
             deptId = crypto.randomUUID();
             const code = 'DEP_' + crypto.randomBytes(3).toString('hex').toUpperCase();
-            db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, ?, ?, ?)").run(deptId, code, deptClean, 'CC-NOMINA');
+            db.prepare("INSERT INTO departments (id, code, name, cost_center) VALUES (?, ?, ?, ?)").run(deptId, code, cleanDisplay, 'CC-NOMINA');
+            
+            matchedDept = { id: deptId, code, name: cleanDisplay, cost_center: 'CC-NOMINA' };
+            exactDeptMap.set(cleanDisplay.toLowerCase(), matchedDept);
+            if (cKey) canonicalDeptMap.set(cKey, matchedDept);
+
+            if (rawDept !== cleanDisplay) {
+              departmentWarnings.push({
+                row: processed + failed + 1,
+                document_id: String(w.document_id).trim(),
+                worker_name: (w.full_name || 'Trabajador ' + w.document_id).trim(),
+                raw_department: rawDept,
+                resolved_department: cleanDisplay,
+                discrepancy_type: 'saneamiento_nuevo_departamento',
+                message: `Departamento "${cleanDisplay}" registrado saneando caracteres parásitos de "${rawDept}".`
+              });
+            }
           } else {
-            deptId = existingDept.id;
+            deptId = matchedDept.id;
           }
         }
 
@@ -380,7 +475,15 @@ const handleBatchImport = (req, res) => {
       processed,
       failed,
       failed === 0 ? 'success' : 'partial_failure',
-      JSON.stringify({ total: workers.length, processed, updated, failed, source: source || 'manual_batch' })
+      JSON.stringify({ 
+        total: workers.length, 
+        processed, 
+        updated, 
+        failed, 
+        source: source || 'manual_batch',
+        warnings_count: departmentWarnings.length,
+        department_warnings: departmentWarnings.slice(0, 100)
+      })
     );
   });
 
@@ -400,9 +503,13 @@ const handleBatchImport = (req, res) => {
     failed,
     precargados: precargadosCount,
     registrados: registradosCount,
+    department_warnings: departmentWarnings,
+    warnings_count: departmentWarnings.length,
     deadline_date: '2026-11-12',
     campaign_date: '2026-11-27',
-    message: `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} actualizados en base de datos, ${failed} omitidos).`
+    message: departmentWarnings.length > 0
+      ? `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} en base de datos, ${departmentWarnings.length} advertencias de discrepancias tipográficas en departamentos normalizadas).`
+      : `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} actualizados en base de datos, ${failed} omitidos).`
   });
 };
 
@@ -493,5 +600,7 @@ module.exports = {
   terminateEmployee,
   parseCsvToWorkers,
   parseExcelToWorkers,
-  getEnrollmentStats
+  getEnrollmentStats,
+  canonicalizeDepartmentName,
+  sanitizeDepartmentDisplayName
 };

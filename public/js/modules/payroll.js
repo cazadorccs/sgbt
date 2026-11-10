@@ -194,7 +194,18 @@ window.setupPayrollSimulator = function() {
       const data = await API.post('/api/v1/payroll/batch-import', payload);
       if (data.success) {
         appendLog(`✓ INGESTA EXITOSA: ${data.processed} procesados (${data.updated} en DB, ${data.failed} omitidos).`);
-        window.showToast(`¡Sincronización de nómina completada!\n${data.processed} trabajadores procesados.`, 'success');
+        if (data.department_warnings && data.department_warnings.length > 0) {
+          appendLog(`⚠️ ADVERTENCIA: Se detectaron ${data.department_warnings.length} discrepancias tipográficas en departamentos (símbolos °, acentos o transcripción). Se normalizaron automáticamente al catálogo oficial canónico:`);
+          data.department_warnings.slice(0, 10).forEach(w => {
+            appendLog(`   - Fila ${w.row} [${w.document_id} ${w.worker_name}]: "${w.raw_department}" ➔ "${w.resolved_department}"`);
+          });
+          if (data.department_warnings.length > 10) {
+            appendLog(`   ... y ${data.department_warnings.length - 10} discrepancias adicionales normalizadas.`);
+          }
+          window.showToast(`¡Sincronización completada con ${data.department_warnings.length} correcciones de departamento!\nRevise el registro de auditoría.`, 'warning');
+        } else {
+          window.showToast(`¡Sincronización de nómina completada!\n${data.processed} trabajadores procesados.`, 'success');
+        }
         if (csvPreview) csvPreview.style.display = 'none';
         if (btnProcessCsv) btnProcessCsv.style.display = 'none';
         loadedCsvText = '';
@@ -508,6 +519,7 @@ V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@ente.gob
     const CHUNK_SIZE = 250;
     const totalBatches = Math.ceil(parsedCsvWorkers.length / CHUNK_SIZE);
     let totalImported = 0;
+    let totalDeptWarnings = 0;
 
     try {
       for (let b = 0; b < totalBatches; b++) {
@@ -515,10 +527,17 @@ V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@ente.gob
         btnExecuteImport.textContent = `⏳ Procesando lote ${b + 1} de ${totalBatches}... (${totalImported} registrados)`;
 
         const data = await API.post('/api/v1/admin/workers/batch', { workers: chunk });
-        totalImported += (data.imported || 0);
+        totalImported += (data.imported || data.processed || 0);
+        if (data.department_warnings && data.department_warnings.length > 0) {
+          totalDeptWarnings += data.department_warnings.length;
+        }
       }
 
-      window.showToast(`🎉 ¡Importación completada con éxito! Se procesaron ${totalImported} trabajadores.`, 'success');
+      if (totalDeptWarnings > 0) {
+        window.showToast(`🎉 ¡Importación completada! Se procesaron ${totalImported} trabajadores con ${totalDeptWarnings} discrepancias en departamentos normalizadas.`, 'warning');
+      } else {
+        window.showToast(`🎉 ¡Importación completada con éxito! Se procesaron ${totalImported} trabajadores.`, 'success');
+      }
       closeImport();
       if (typeof loadWorkersDirectory === 'function') await loadWorkersDirectory();
       playAudioFeedback('success');
