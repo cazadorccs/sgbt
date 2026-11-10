@@ -84,6 +84,10 @@ test('E2E-01C: Ruta de Estación de Supervisión y Despacho Manual (/supervisor)
   if (res.status !== 200) throw new Error(`HTTP ${res.status}`);
   if (!res.data.includes('supervisorWorkspaceContainer')) throw new Error('Falta supervisorWorkspaceContainer en /supervisor');
   if (!res.data.includes('inputManualCedula')) throw new Error('Falta inputManualCedula en /supervisor');
+  if (!res.data.includes('data-default-theme="light"')) throw new Error('Falta data-default-theme="light" en /supervisor');
+  if (!res.data.includes('id="btnThemeToggle"')) throw new Error('Falta id="btnThemeToggle" en /supervisor');
+  if (!res.data.includes('id="themeToggleText"')) throw new Error('Falta id="themeToggleText" en /supervisor');
+  if (!res.data.includes('theme_manager.js')) throw new Error('Falta theme_manager.js en /supervisor');
 });
 
 test('E2E-02: Carga de Plantilla Externa de Modales (/templates/modals.html)', async () => {

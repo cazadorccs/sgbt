@@ -71,6 +71,12 @@ window.ThemeManager = (function() {
       btnHeader.setAttribute('aria-label', isDark ? 'Modo Claro' : 'Modo Oscuro');
     }
 
+    // 1b. Texto descriptivo en botón de tema si está presente
+    const toggleText = document.getElementById('themeToggleText');
+    if (toggleText) {
+      toggleText.textContent = isDark ? 'Modo Claro' : 'Modo Oscuro';
+    }
+
     // 2. Toggle en modal de configuración general
     const toggleSetting = document.getElementById('toggleDarkModeSetting');
     if (toggleSetting) {
@@ -137,11 +143,12 @@ window.ThemeManager = (function() {
 
   function init() {
     const saved = getStoredTheme();
-    const effectiveTheme = saved || getSystemPreference();
+    const defaultTheme = document.documentElement.getAttribute('data-default-theme') || getSystemPreference();
+    const effectiveTheme = saved || defaultTheme;
     applyTheme(effectiveTheme, false);
 
-    // Escuchar cambios de preferencia del sistema si el usuario no ha forzado un tema
-    if (window.matchMedia) {
+    // Escuchar cambios de preferencia del sistema si el usuario no ha forzado un tema ni fijado un default
+    if (window.matchMedia && !document.documentElement.getAttribute('data-default-theme')) {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (!getStoredTheme()) {
           applyTheme(e.matches ? 'dark' : 'light', false);

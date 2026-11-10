@@ -98,6 +98,7 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
 - Despacho y descuento de combos con selección de cuota asignada y registro obligatorio de motivo de contingencia (adulto mayor sin celular, dispositivo descargado, falla biométrica, comisión de servicio o contingencia operativa).
 - Incorporación rápida al vuelo de funcionarios no censados sin requerir salir de la estación de supervisión.
 - Visualización interactiva del Código QR Diario de Supervisor para autorizar excepciones ante despachadores móviles.
+- **Ergonomía visual y accesibilidad:** Interfaz configurada de manera predeterminada en **Modo Claro** para máxima visibilidad en almacenes y puestos físicos, con botón toggle integrado en la barra superior para alternar fluidamente entre Modo Claro y Modo Oscuro según la iluminación del entorno (WCAG 2.2 AA).
 - Segregación estricta de privilegios (Principio de Menor Privilegio): el supervisor opera sin visibilidad de las opciones técnicas de superadministrador (respaldos de BD, migración, edición de campañas, gestión de roles de usuarios ni configuración de marca).
 
 ---
@@ -158,6 +159,7 @@ El **SGBT MIPPCI** tiene como meta erradicar la discrecionalidad mediante la dig
   3. Cada despacho manual exige seleccionar el motivo de contingencia oficial (Adulto mayor, teléfono descargado, falla biométrica, comisión o contingencia operativa).
   4. La estación muestra los KPIs en vivo de la jornada y la tabla de auditoría en tiempo real.
   5. La vista no contiene opciones de configuración técnica, bases de datos ni gestión de roles de superadministrador.
+  6. La estación inicia de forma predeterminada en Modo Claro e integra un botón visible en la cabecera para alternar fluidamente entre Modo Claro y Modo Oscuro, recordando la preferencia del operador.
 
 #### HU-SUP-02: Incorporación al Vuelo de Funcionarios Rezagados
 - **Como** Supervisor de Jornada,

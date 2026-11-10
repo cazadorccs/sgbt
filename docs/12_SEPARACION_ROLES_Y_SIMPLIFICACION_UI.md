@@ -46,6 +46,9 @@ Para garantizar la fluidez de las jornadas masivas en el almacén sótano del MI
    - Menú desplegable estandarizado con los motivos oficiales de excepción (Adulto Mayor, Falla Biometría, Dispositivo Descargado, etc.).
 3. **Incorporación al Vuelo:**
    - Botón directo `➕ Incorporar Funcionario Nuevo al Vuelo` para trabajadores rezagados o de ingreso reciente, permitiendo registrarlos e inmediatamente despachar su beneficio sin detener la fila física.
+4. **Ergonomía Visual: Modo Claro Predeterminado y Selector de Tema:**
+   - La estación inicia de forma **predeterminada en Modo Claro**, garantizando óptima visibilidad en ambientes de almacén e iluminación de oficina.
+   - Dispone de un botón interactivo en la cabecera (`☀️ Modo Claro` / `🌙 Modo Oscuro`) con persistencia local (`localStorage`) que permite alternar a Modo Oscuro en cualquier momento cumpliendo el estándar WCAG 2.2 AA.
 4. **Sincronización Transparente con Despachadores Móviles:**
    - Botón `📲 QR Diario Supervisor` para proyectar el token criptográfico del día ante los operadores móviles que requieren override de excepción.
 

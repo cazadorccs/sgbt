@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light" data-default-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="theme-color" content="#0369a1">
+  <meta name="theme-color" content="#0284c7">
   <meta name="description" content="Estación de Trabajo para Supervisores de Almacén - Despacho Manual por Cédula y Gestión de Excepciones SGBT MIPPCI">
   <title>🛡️ Puesto de Supervisión & Despacho Manual | SGBT MIPPCI</title>
   
@@ -11,9 +11,55 @@
   <link rel="stylesheet" href="/css/styles.css?v=3.8">
   <link rel="stylesheet" href="/css/modal-cleanups.css?v=3.8">
 
+  <!-- SGBT Dark/Light Theme Pre-render Script (Predeterminado Modo Claro) -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('sgbt_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        if (t === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        } else {
+          document.documentElement.classList.remove('dark-mode');
+        }
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
   <style>
     /* Estilos dedicados a la Estación de Supervisión en Laptop */
     :root {
+      /* Estación de Supervisión en Modo Claro (PREDETERMINADO) */
+      --sup-bg: #f1f5f9;
+      --sup-panel: #ffffff;
+      --sup-panel-elevated: #f8fafc;
+      --sup-border: #e2e8f0;
+      --sup-border-focus: #0284c7;
+      --sup-text-main: #0f172a;
+      --sup-text-muted: #475569;
+      --sup-text-dim: #64748b;
+      --sup-primary: #0284c7;
+      --sup-primary-hover: #0369a1;
+      --sup-emerald: #10b981;
+      --sup-amber: #f59e0b;
+      --sup-red: #ef4444;
+      --sup-input-bg: #ffffff;
+      --sup-input-text: #0f172a;
+      --sup-input-border: #cbd5e1;
+      --sup-table-header-bg: #f8fafc;
+      --sup-table-header-text: #475569;
+      --sup-table-row-hover: #f1f5f9;
+      --sup-table-border: #e2e8f0;
+      --sup-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+      --sup-hero-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
+      --sup-badge-bg: rgba(2, 132, 199, 0.08);
+      --sup-badge-border: rgba(2, 132, 199, 0.25);
+    }
+
+    [data-theme="dark"], body.dark-mode {
+      /* Estación de Supervisión en Modo Oscuro */
       --sup-bg: #0b1329;
       --sup-panel: #111c38;
       --sup-panel-elevated: #162447;
@@ -27,17 +73,17 @@
       --sup-emerald: #10b981;
       --sup-amber: #f59e0b;
       --sup-red: #ef4444;
-    }
-
-    [data-theme="light"] {
-      --sup-bg: #f8fafc;
-      --sup-panel: #ffffff;
-      --sup-panel-elevated: #f1f5f9;
-      --sup-border: rgba(0, 0, 0, 0.1);
-      --sup-border-focus: #0284c7;
-      --sup-text-main: #0f172a;
-      --sup-text-muted: #475569;
-      --sup-text-dim: #64748b;
+      --sup-input-bg: rgba(15, 23, 42, 0.65);
+      --sup-input-text: #ffffff;
+      --sup-input-border: rgba(56, 189, 248, 0.4);
+      --sup-table-header-bg: #1e293b;
+      --sup-table-header-text: #94a3b8;
+      --sup-table-row-hover: rgba(255, 255, 255, 0.03);
+      --sup-table-border: rgba(255, 255, 255, 0.1);
+      --sup-card-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      --sup-hero-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --sup-badge-bg: rgba(2, 132, 199, 0.15);
+      --sup-badge-border: rgba(56, 189, 248, 0.35);
     }
 
     body {
@@ -49,6 +95,7 @@
       flex-direction: column;
       margin: 0;
       padding: 0;
+      transition: background-color 0.25s ease, color 0.25s ease;
     }
 
     .supervisor-container {
@@ -114,8 +161,8 @@
 
     /* Supervisor Session Badge */
     .sup-user-chip {
-      background: rgba(2, 132, 199, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: var(--sup-badge-bg);
+      border: 1.5px solid var(--sup-badge-border);
       border-radius: 9999px;
       padding: 0.3rem 0.85rem 0.3rem 0.45rem;
       display: flex;
@@ -149,10 +196,11 @@
       border: 1px solid var(--sup-border);
       border-radius: 12px;
       padding: 1rem 1.25rem;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--sup-card-shadow);
       display: flex;
       align-items: center;
       gap: 1rem;
+      transition: background 0.25s ease, border-color 0.25s ease;
     }
 
     .sup-kpi-icon {
@@ -187,15 +235,16 @@
       border: 1px solid var(--sup-border);
       border-radius: 16px;
       padding: 1.75rem;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--sup-hero-shadow);
       margin-bottom: 2rem;
+      transition: background 0.25s ease, border-color 0.25s ease;
     }
 
     /* Input Gigante para Laptop */
     .sup-search-input {
-      background: rgba(15, 23, 42, 0.6);
-      color: #ffffff;
-      border: 2px solid rgba(56, 189, 248, 0.4);
+      background: var(--sup-input-bg);
+      color: var(--sup-input-text);
+      border: 2px solid var(--sup-input-border);
       border-radius: 12px;
       padding: 0.85rem 1.25rem;
       font-size: 1.35rem;
@@ -209,9 +258,8 @@
     }
 
     .sup-search-input:focus {
-      border-color: #38bdf8;
-      box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.2);
-      background: rgba(15, 23, 42, 0.85);
+      border-color: var(--sup-border-focus);
+      box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.18);
     }
 
     /* Combos Grid */
@@ -222,8 +270,8 @@
     }
 
     .combo-item-card {
-      background: rgba(15, 23, 42, 0.5);
-      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: var(--sup-panel-elevated);
+      border: 2px solid var(--sup-border);
       border-radius: 12px;
       padding: 1rem;
       display: flex;
@@ -243,11 +291,12 @@
       max-width: 480px;
       margin: 4rem auto;
       background: var(--sup-panel);
-      border: 2px solid rgba(56, 189, 248, 0.3);
+      border: 1.5px solid var(--sup-border);
       border-radius: 20px;
       padding: 2.5rem;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      box-shadow: var(--sup-hero-shadow);
       text-align: center;
+      transition: background 0.25s ease, border-color 0.25s ease;
     }
   </style>
 </head>
@@ -262,7 +311,7 @@
       <div>
         <h1 class="sup-brand-title">
           <span>Puesto de Supervisión & Despacho Manual</span>
-          <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px;">
+          <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); font-size: 0.7rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 9999px;">
             Modo Laptop / Excepciones
           </span>
         </h1>
@@ -280,24 +329,45 @@
           <div id="supSessionName" style="font-size: 0.82rem; font-weight: 800; color: var(--sup-text-main); line-height: 1.1;">
             Supervisor RRHH
           </div>
-          <div id="supSessionDoc" style="font-size: 0.68rem; color: #38bdf8; font-family: monospace;">
+          <div id="supSessionDoc" style="font-size: 0.68rem; color: var(--sup-primary); font-weight: 700; font-family: monospace;">
             C.I. V-13222333
           </div>
         </div>
       </div>
 
+      <!-- Botón Selector de Modo Claro / Modo Oscuro -->
+      <button type="button" id="btnThemeToggle" class="btn btn-outline" title="Cambiar a Modo Oscuro" aria-label="Cambiar Tema" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.45rem; border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); color: var(--sup-text-main); transition: all 0.2s ease;">
+        <!-- Icono Sol (visible en modo oscuro) -->
+        <svg id="themeIconSun" style="display: none; width: 16px; height: 16px; color: #f59e0b; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <!-- Icono Luna (visible en modo claro) -->
+        <svg id="themeIconMoon" style="display: inline-block; width: 16px; height: 16px; color: #64748b; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <span id="themeToggleText">Modo Oscuro</span>
+      </button>
+
       <!-- Botón QR Diario Supervisor -->
-      <button type="button" id="btnOpenSupervisorDailyQrModal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #0284c7; border-color: rgba(56, 189, 248, 0.4); background: rgba(2, 132, 199, 0.1); display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
+      <button type="button" id="btnOpenSupervisorDailyQrModal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #0284c7; border-color: rgba(2, 132, 199, 0.35); background: rgba(2, 132, 199, 0.08); display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
         <span>📲 QR Diario Supervisor</span>
       </button>
 
       <!-- Botón Registro de Despachos en Vivo -->
-      <button type="button" id="btnOpenRecentDeliveriesModal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #10b981; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
+      <button type="button" id="btnOpenRecentDeliveriesModal" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #10b981; border-color: rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.08); display: inline-flex; align-items: center; gap: 0.4rem; border-radius: 8px;">
         <span>📋 Despachos en Vivo</span>
       </button>
 
       <!-- Enlace a Consola Completa (/entregas) -->
-      <a href="/entregas" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: #94a3b8; border-color: rgba(255, 255, 255, 0.15); border-radius: 8px; text-decoration: none;">
+      <a href="/entregas" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 700; color: var(--sup-text-muted); border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); border-radius: 8px; text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;">
         <span>Monitor /entregas ↗</span>
       </a>
 
@@ -315,7 +385,7 @@
   <div id="supLoginPanel" class="supervisor-container" style="display: none;">
     <div class="sup-login-box">
       <div style="font-size: 3rem; margin-bottom: 0.5rem;">🛡️</div>
-      <h2 style="font-size: 1.35rem; font-weight: 800; color: #ffffff; margin-bottom: 0.25rem;">
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--sup-text-main); margin-bottom: 0.25rem;">
         Identificación de Supervisor
       </h2>
       <p style="font-size: 0.82rem; color: var(--sup-text-muted); margin-bottom: 1.5rem;">
@@ -328,12 +398,12 @@
       <form id="supLoginForm" onsubmit="event.preventDefault(); window.submitSupervisorLogin();">
         <div style="text-align: left; margin-bottom: 1rem;">
           <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Cédula de Identidad:</label>
-          <input type="text" id="supInputDocument" class="form-input text-mono" placeholder="Ej: V-13222333" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; font-weight: 700;" />
+          <input type="text" id="supInputDocument" class="form-input text-mono" placeholder="Ej: V-13222333" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; font-weight: 700; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
         </div>
 
         <div style="text-align: left; margin-bottom: 1.5rem;">
           <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">PIN Institucional / Contraseña:</label>
-          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="PIN de Seguridad (Ej: 0578)" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px;" />
+          <input type="password" id="supInputSecret" class="form-input text-mono" placeholder="PIN de Seguridad (Ej: 0578)" required style="width: 100%; font-size: 1.1rem; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
         </div>
 
         <button type="submit" id="btnSupLoginSubmit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem; font-weight: 800; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);">
@@ -342,7 +412,7 @@
 
         <div style="margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--sup-border);">
           <div style="font-size: 0.75rem; color: var(--sup-text-muted); margin-bottom: 0.5rem;">Credencial Rápida de Prueba:</div>
-          <button type="button" class="btn btn-outline" onclick="window.fillDemoSupervisor();" style="width: 100%; font-size: 0.78rem; padding: 0.5rem; color: #fbbf24; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);">
+          <button type="button" class="btn btn-outline" onclick="window.fillDemoSupervisor();" style="width: 100%; font-size: 0.78rem; padding: 0.5rem; color: #d97706; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); font-weight: 700;">
             👤 Autocompletar: Lic. Claudia Vega (V-13222333 / PIN: 0578)
           </button>
         </div>
@@ -391,7 +461,7 @@
       </div>
 
       <div class="sup-kpi-card">
-        <button id="btnRefreshManualSummary" type="button" class="btn btn-outline" style="width: 100%; height: 100%; border-radius: 8px; font-weight: 700; font-size: 0.85rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.35); background: rgba(2, 132, 199, 0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem;">
+        <button id="btnRefreshManualSummary" type="button" class="btn btn-outline" style="width: 100%; height: 100%; border-radius: 8px; font-weight: 700; font-size: 0.85rem; color: var(--sup-primary); border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem;">
           <span>🔄 Actualizar Métricas</span>
         </button>
       </div>
@@ -402,7 +472,7 @@
     <section class="sup-main-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h2 style="font-size: 1.25rem; font-weight: 800; color: #ffffff; margin: 0 0 0.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
+          <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--sup-text-main); margin: 0 0 0.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
             <span>🔍 Despacho por Cédula de Identidad (Pistola Escáner o Teclado)</span>
           </h2>
           <p style="font-size: 0.82rem; color: var(--sup-text-muted); margin: 0;">
@@ -434,20 +504,20 @@
 
       <!-- Spinner de Carga -->
       <div id="manualSearchLoading" style="display: none; text-align: center; padding: 2rem;">
-        <div class="spinner-small" style="width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top-color: #38bdf8; border-radius: 50%; margin: 0 auto 0.75rem; animation: spin 0.8s linear infinite;"></div>
-        <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">Consultando padrón institucional en tiempo real...</div>
+        <div class="spinner-small" style="width: 36px; height: 36px; border: 3px solid rgba(2, 132, 199, 0.2); border-top-color: var(--sup-primary); border-radius: 50%; margin: 0 auto 0.75rem; animation: spin 0.8s linear infinite;"></div>
+        <div style="font-size: 0.85rem; color: var(--sup-text-muted); font-weight: 600;">Consultando padrón institucional en tiempo real...</div>
       </div>
 
       <!-- Alerta cuando no se encuentra el funcionario -->
-      <div id="manualWorkerNotFoundCard" style="display: none; margin-bottom: 1.5rem; background: rgba(245, 158, 11, 0.1); border: 2px dashed #f59e0b; border-radius: 14px; padding: 1.5rem;">
+      <div id="manualWorkerNotFoundCard" style="display: none; margin-bottom: 1.5rem; background: rgba(245, 158, 11, 0.12); border: 2px dashed #f59e0b; border-radius: 14px; padding: 1.5rem;">
         <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
           <div style="display: flex; align-items: flex-start; gap: 1rem;">
             <span style="font-size: 2.2rem;">⚠️</span>
             <div>
-              <h3 style="font-size: 1.05rem; font-weight: 800; color: #fbbf24; margin: 0 0 0.35rem 0;">
-                Funcionario con Cédula <span id="notFoundCedulaText" class="text-mono" style="background: rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 900;">--</span> NO encontrado en la nómina
+              <h3 style="font-size: 1.05rem; font-weight: 800; color: #d97706; margin: 0 0 0.35rem 0;">
+                Funcionario con Cédula <span id="notFoundCedulaText" class="text-mono" style="background: rgba(245, 158, 11, 0.25); padding: 0.15rem 0.5rem; border-radius: 4px; font-weight: 900; color: var(--sup-text-main);">--</span> NO encontrado en la nómina
               </h3>
-              <p style="font-size: 0.85rem; color: #e2e8f0; margin: 0;">
+              <p style="font-size: 0.85rem; color: var(--sup-text-muted); margin: 0;">
                 Este trabajador no está registrado en el censo actual. Como supervisor de mesa, puede <strong>incorporarlo inmediatamente al vuelo</strong> para autorizar el despacho de sus combos.
               </p>
             </div>
@@ -474,15 +544,15 @@
             </div>
             <div>
               <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
-                <h3 id="manualWorkerFullName" style="font-size: 1.3rem; font-weight: 900; color: #ffffff; margin: 0;">
+                <h3 id="manualWorkerFullName" style="font-size: 1.3rem; font-weight: 900; color: var(--sup-text-main); margin: 0;">
                   --
                 </h3>
                 <span id="manualWorkerTypeBadge" class="badge badge-success">ACTIVO</span>
               </div>
               <div style="display: flex; align-items: center; gap: 0.85rem; margin-top: 0.35rem; font-size: 0.88rem; color: var(--sup-text-muted); flex-wrap: wrap;">
-                <span style="font-family: monospace; font-weight: 800; color: #38bdf8;" id="manualWorkerDocument">--</span>
+                <span style="font-family: monospace; font-weight: 800; color: var(--sup-primary);" id="manualWorkerDocument">--</span>
                 <span>&middot;</span>
-                <span id="manualWorkerDepartment" style="font-weight: 600; color: #e2e8f0;">--</span>
+                <span id="manualWorkerDepartment" style="font-weight: 600; color: var(--sup-text-main);">--</span>
               </div>
             </div>
           </div>
@@ -491,10 +561,10 @@
         <!-- Combos Asignados de la Jornada -->
         <div id="manualWorkerCombosSection" style="margin-bottom: 1.5rem;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-            <h4 style="font-size: 0.95rem; font-weight: 800; color: #ffffff; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--sup-text-main); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
               📦 Combos Programados para Entrega
             </h4>
-            <span style="font-size: 0.78rem; color: #94a3b8;">
+            <span style="font-size: 0.78rem; color: var(--sup-text-muted);">
               Marque o desmarque los combos a despachar
             </span>
           </div>
@@ -505,12 +575,12 @@
         </div>
 
         <!-- Fila de Motivo de Contingencia y Observaciones -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; background: rgba(15, 23, 42, 0.4); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--sup-border);">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; background: var(--sup-panel-elevated); padding: 1.25rem; border-radius: 12px; border: 1px solid var(--sup-border);">
           <div>
-            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
+            <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
               🔑 Motivo de Contingencia / Excepción:
             </label>
-            <select id="manualContingencyReason" class="form-input" style="width: 100%; font-size: 0.85rem; font-weight: 700; background: #1e293b; color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 0.6rem 0.85rem;">
+            <select id="manualContingencyReason" class="form-input" style="width: 100%; font-size: 0.85rem; font-weight: 700; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border); border-radius: 8px; padding: 0.6rem 0.85rem;">
               <option value="adulto_mayor_sin_smartphone" selected>👴 Adulto Mayor / Sin Celular Inteligente</option>
               <option value="dispositivo_descargado">🪫 Teléfono Celular Descargado / Dañado</option>
               <option value="sensor_biometrico_fallo">🖐️ Falla en Sensor Biométrico / Huella Dactilar</option>
@@ -520,10 +590,10 @@
           </div>
 
           <div>
-            <label style="font-size: 0.75rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
+            <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.35rem;">
               📝 Nota u Observación de Supervisión (Opcional):
             </label>
-            <input type="text" id="manualDeliveryNotes" class="form-input" placeholder="Ej: Autorizado por RRHH en taquilla 1" style="width: 100%; font-size: 0.85rem; background: #1e293b; color: #ffffff; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 0.6rem 0.85rem;" />
+            <input type="text" id="manualDeliveryNotes" class="form-input" placeholder="Ej: Autorizado por RRHH en taquilla 1" style="width: 100%; font-size: 0.85rem; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border); border-radius: 8px; padding: 0.6rem 0.85rem;" />
           </div>
         </div>
 
@@ -542,9 +612,9 @@
     <section class="sup-main-card">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
         <div>
-          <h3 style="font-size: 1.1rem; font-weight: 800; color: #ffffff; margin: 0 0 0.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--sup-text-main); margin: 0 0 0.2rem 0; display: flex; align-items: center; gap: 0.5rem;">
             <span>📋 Registro de Despachos en Vivo (Hoy)</span>
-            <span id="recentDeliveriesCount" class="badge" style="background: rgba(2, 132, 199, 0.2); color: #38bdf8; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px;">0 entregas</span>
+            <span id="recentDeliveriesCount" class="badge" style="background: rgba(2, 132, 199, 0.15); color: var(--sup-primary); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 800;">0 entregas</span>
           </h3>
           <p style="font-size: 0.8rem; color: var(--sup-text-muted); margin: 0;">
             Historial cronológico de trabajadores atendidos y cuotas despachadas en tiempo real.
@@ -552,18 +622,18 @@
         </div>
 
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <button type="button" onclick="if(window.ManualDispatch) window.ManualDispatch.loadTodaySummary();" class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: 8px;">
+          <button type="button" onclick="if(window.ManualDispatch) window.ManualDispatch.loadTodaySummary();" class="btn btn-outline" style="border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); color: var(--sup-primary); font-size: 0.8rem; font-weight: 700; padding: 0.45rem 0.85rem; border-radius: 8px;">
             🔄 Refrescar Tabla
           </button>
-          <button type="button" id="btnOpenRecentDeliveriesModalBottom" class="btn btn-primary" style="background: #0284c7; border: none; font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: 8px; font-weight: 700;">
+          <button type="button" id="btnOpenRecentDeliveriesModalBottom" class="btn btn-primary" style="background: var(--sup-primary); border: none; font-size: 0.8rem; padding: 0.45rem 0.85rem; border-radius: 8px; font-weight: 700;">
             <span>Ver Modal Completo ↗</span>
           </button>
         </div>
       </div>
 
-      <div style="overflow-x: auto; max-height: 420px; border: 1px solid var(--sup-border); border-radius: 10px; background: rgba(15, 23, 42, 0.4);">
+      <div style="overflow-x: auto; max-height: 420px; border: 1px solid var(--sup-border); border-radius: 10px; background: var(--sup-panel);">
         <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
-          <thead style="position: sticky; top: 0; background: #1e293b; border-bottom: 2px solid var(--sup-border); color: #94a3b8; font-size: 0.72rem; text-transform: uppercase;">
+          <thead style="position: sticky; top: 0; background: var(--sup-table-header-bg); border-bottom: 2px solid var(--sup-border); color: var(--sup-table-header-text); font-size: 0.72rem; text-transform: uppercase;">
             <tr>
               <th style="padding: 0.75rem 1rem;">Hora</th>
               <th style="padding: 0.75rem 1rem;">Funcionario / Cédula</th>
@@ -574,7 +644,7 @@
           </thead>
           <tbody id="recentManualDeliveriesBody">
             <tr>
-              <td colspan="5" style="text-align: center; color: #64748b; padding: 2rem;">
+              <td colspan="5" style="text-align: center; color: var(--sup-text-muted); padding: 2rem;">
                 Cargando registros de despachos de hoy...
               </td>
             </tr>
@@ -604,28 +674,28 @@
         <button type="button" id="btnCloseFastIncorporateModal" class="btn-close" style="color: white; font-size: 1.5rem; background: transparent; border: none; cursor: pointer;">&times;</button>
       </div>
 
-      <div class="modal-body" style="padding: 1.5rem; background: var(--sup-panel);">
+      <div class="modal-body" style="padding: 1.5rem; background: var(--sup-panel); color: var(--sup-text-main);">
         <form id="formFastIncorporate">
           <div style="margin-bottom: 1rem;">
             <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Cédula de Identidad:</label>
-            <input type="text" id="inputFastCedula" class="form-input text-mono" placeholder="Ej: V-14222333" required style="width: 100%; font-size: 1.05rem; font-weight: 800; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px;" />
+            <input type="text" id="inputFastCedula" class="form-input text-mono" placeholder="Ej: V-14222333" required style="width: 100%; font-size: 1.05rem; font-weight: 800; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
           </div>
 
           <div style="margin-bottom: 1rem;">
             <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Nombre y Apellido Completo:</label>
-            <input type="text" id="inputFastFullName" class="form-input" placeholder="Ej: PEDRO ANTONIO PEREZ" required style="width: 100%; font-size: 1rem; font-weight: 700; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px;" />
+            <input type="text" id="inputFastFullName" class="form-input" placeholder="Ej: PEDRO ANTONIO PEREZ" required style="width: 100%; font-size: 1rem; font-weight: 700; padding: 0.65rem 0.85rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
             <div>
               <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Dirección / Ente:</label>
-              <select id="selectFastDepartment" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px;">
+              <select id="selectFastDepartment" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);">
                 <option value="">Seleccione o cargando...</option>
               </select>
             </div>
             <div>
               <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Condición:</label>
-              <select id="selectFastType" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px;">
+              <select id="selectFastType" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);">
                 <option value="activo" selected>🏢 Activo</option>
                 <option value="jubilado">👴 Jubilado</option>
                 <option value="comision">🛡️ Comisión de Servicio</option>
@@ -635,7 +705,7 @@
 
           <div style="margin-bottom: 1.5rem;">
             <label style="font-size: 0.75rem; color: var(--sup-text-muted); font-weight: 700; text-transform: uppercase;">Motivo de Incorporación:</label>
-            <select id="selectFastReason" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px;">
+            <select id="selectFastReason" class="form-input" style="width: 100%; font-size: 0.82rem; padding: 0.6rem; margin-top: 0.25rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);">
               <option value="ingreso_reciente">Ingreso reciente / No apareció en censo original</option>
               <option value="reincorporado">Funcionario reincorporado de reposo o comisión</option>
               <option value="correccion_cedula">Corrección de cédula de identidad en nómina</option>
@@ -644,8 +714,8 @@
           </div>
 
           <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
-            <button type="button" onclick="document.getElementById('btnCloseFastIncorporateModal').click();" class="btn btn-outline" style="padding: 0.65rem 1.25rem; border-radius: 8px;">Cancelar</button>
-            <button type="submit" id="btnSubmitFastIncorporate" class="btn btn-primary" style="background: #7c3aed; border: none; font-weight: 800; padding: 0.65rem 1.5rem; border-radius: 8px;">
+            <button type="button" onclick="document.getElementById('btnCloseFastIncorporateModal').click();" class="btn btn-outline" style="padding: 0.65rem 1.25rem; border-radius: 8px; border: 1.5px solid var(--sup-border); color: var(--sup-text-muted); background: var(--sup-panel-elevated);">Cancelar</button>
+            <button type="submit" id="btnSubmitFastIncorporate" class="btn btn-primary" style="background: #7c3aed; border: none; font-weight: 800; padding: 0.65rem 1.5rem; border-radius: 8px; color: #ffffff;">
               Guardar e Incorporar
             </button>
           </div>
@@ -669,17 +739,17 @@
         <button type="button" id="btnCloseRecentDeliveriesModal" class="btn-close" style="color: white; font-size: 1.5rem; background: transparent; border: none; cursor: pointer;">&times;</button>
       </div>
 
-      <div class="modal-body" style="padding: 1.25rem 1.5rem; background: var(--sup-panel);">
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; background: var(--sup-panel); color: var(--sup-text-main);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
-          <input type="text" id="inputSearchModalDeliveries" class="form-input" placeholder="🔍 Filtrar por nombre, cédula o combo..." style="flex: 1; min-width: 260px; font-size: 0.85rem; padding: 0.5rem 0.85rem; border-radius: 8px;" />
-          <button type="button" id="btnRefreshModalDeliveries" class="btn btn-outline" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.82rem; font-weight: 700; padding: 0.5rem 1rem; border-radius: 8px;">
+          <input type="text" id="inputSearchModalDeliveries" class="form-input" placeholder="🔍 Filtrar por nombre, cédula o combo..." style="flex: 1; min-width: 260px; font-size: 0.85rem; padding: 0.5rem 0.85rem; border-radius: 8px; background: var(--sup-input-bg); color: var(--sup-input-text); border: 1.5px solid var(--sup-input-border);" />
+          <button type="button" id="btnRefreshModalDeliveries" class="btn btn-outline" style="border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); color: var(--sup-primary); font-size: 0.82rem; font-weight: 700; padding: 0.5rem 1rem; border-radius: 8px;">
             🔄 Actualizar
           </button>
         </div>
 
-        <div style="overflow-x: auto; max-height: 480px; border: 1px solid var(--sup-border); border-radius: 8px;">
+        <div style="overflow-x: auto; max-height: 480px; border: 1px solid var(--sup-border); border-radius: 8px; background: var(--sup-panel);">
           <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
-            <thead style="position: sticky; top: 0; background: #1e293b; border-bottom: 2px solid var(--sup-border); color: #94a3b8; font-size: 0.72rem; text-transform: uppercase;">
+            <thead style="position: sticky; top: 0; background: var(--sup-table-header-bg); border-bottom: 2px solid var(--sup-border); color: var(--sup-table-header-text); font-size: 0.72rem; text-transform: uppercase;">
               <tr>
                 <th style="padding: 0.7rem 0.85rem;">Hora</th>
                 <th style="padding: 0.7rem 0.85rem;">Funcionario</th>
@@ -696,7 +766,7 @@
       </div>
 
       <div class="modal-footer" style="padding: 1rem 1.5rem; background: var(--sup-panel); border-top: 1px solid var(--sup-border); display: flex; justify-content: flex-end; border-radius: 0 0 16px 16px;">
-        <button type="button" id="btnFooterCloseRecentDeliveriesModal" class="btn btn-outline" style="padding: 0.5rem 1.25rem; border-radius: 8px;">Cerrar</button>
+        <button type="button" id="btnFooterCloseRecentDeliveriesModal" class="btn btn-outline" style="padding: 0.5rem 1.25rem; border-radius: 8px; border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); color: var(--sup-text-muted);">Cerrar</button>
       </div>
     </div>
   </div>
@@ -716,23 +786,23 @@
         <button type="button" id="btnCloseSupervisorDailyQrModal" class="btn-close" style="color: white; font-size: 1.5rem; background: transparent; border: none; cursor: pointer;">&times;</button>
       </div>
 
-      <div class="modal-body" style="padding: 1.5rem; background: var(--sup-panel); text-align: center;">
-        <div style="background: #ffffff; padding: 1rem; border-radius: 12px; display: inline-block; margin-bottom: 1rem; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+      <div class="modal-body" style="padding: 1.5rem; background: var(--sup-panel); text-align: center; color: var(--sup-text-main);">
+        <div style="background: #ffffff; padding: 1rem; border-radius: 12px; display: inline-block; margin-bottom: 1rem; box-shadow: 0 4px 14px rgba(0,0,0,0.15); border: 1px solid #e2e8f0;">
           <div id="targetSupervisorDailyQr" style="width: 220px; height: 220px; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
             <div class="spinner-small"></div>
           </div>
         </div>
 
-        <div style="background: rgba(15, 23, 42, 0.5); border: 1px solid var(--sup-border); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; text-align: left; font-size: 0.8rem;">
-          <div style="margin-bottom: 0.35rem;"><span style="color: #94a3b8;">Código de Autorización:</span> <strong id="supervisorAuthCodeDisplay" class="text-mono" style="color: #38bdf8; font-size: 0.9rem;">--</strong></div>
-          <div style="margin-bottom: 0.35rem;"><span style="color: #94a3b8;">Supervisor Responsable:</span> <strong id="supervisorNameDisplay" style="color: #f8fafc;">--</strong></div>
-          <div style="margin-bottom: 0.35rem;"><span style="color: #94a3b8;">Documento:</span> <strong id="supervisorDocDisplay" class="text-mono" style="color: #38bdf8;">--</strong></div>
-          <div><span style="color: #94a3b8;">Vigencia:</span> <span id="supervisorExpiryDisplay" style="color: #fbbf24; font-weight: 700;">Solo hoy hasta las 23:59</span></div>
+        <div style="background: var(--sup-panel-elevated); border: 1px solid var(--sup-border); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; text-align: left; font-size: 0.8rem;">
+          <div style="margin-bottom: 0.35rem;"><span style="color: var(--sup-text-muted);">Código de Autorización:</span> <strong id="supervisorAuthCodeDisplay" class="text-mono" style="color: var(--sup-primary); font-size: 0.9rem;">--</strong></div>
+          <div style="margin-bottom: 0.35rem;"><span style="color: var(--sup-text-muted);">Supervisor Responsable:</span> <strong id="supervisorNameDisplay" style="color: var(--sup-text-main);">--</strong></div>
+          <div style="margin-bottom: 0.35rem;"><span style="color: var(--sup-text-muted);">Documento:</span> <strong id="supervisorDocDisplay" class="text-mono" style="color: var(--sup-primary);">--</strong></div>
+          <div><span style="color: var(--sup-text-muted);">Vigencia:</span> <span id="supervisorExpiryDisplay" style="color: #d97706; font-weight: 700;">Solo hoy hasta las 23:59</span></div>
         </div>
 
         <div style="display: flex; gap: 0.75rem;">
-          <button type="button" id="btnCopySupervisorDailyQrToken" class="btn btn-outline" style="flex: 1; padding: 0.6rem; font-size: 0.8rem; border-radius: 8px;">📋 Copiar Token</button>
-          <button type="button" id="btnPrintSupervisorDailyQr" class="btn btn-outline" style="flex: 1; padding: 0.6rem; font-size: 0.8rem; border-radius: 8px;">🖨️ Imprimir</button>
+          <button type="button" id="btnCopySupervisorDailyQrToken" class="btn btn-outline" style="flex: 1; padding: 0.6rem; font-size: 0.8rem; border-radius: 8px; border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); color: var(--sup-text-main);">📋 Copiar Token</button>
+          <button type="button" id="btnPrintSupervisorDailyQr" class="btn btn-outline" style="flex: 1; padding: 0.6rem; font-size: 0.8rem; border-radius: 8px; border: 1.5px solid var(--sup-border); background: var(--sup-panel-elevated); color: var(--sup-text-main);">🖨️ Imprimir</button>
         </div>
       </div>
     </div>
@@ -747,6 +817,7 @@
   <script src="/js/core/api.js?v=3.3"></script>
   <script src="/js/core/toast.js?v=3.2"></script>
   <script src="/js/core/audio.js?v=3.2"></script>
+  <script src="/js/core/theme_manager.js?v=4.0"></script>
   <script src="/js/modules/manual_dispatch.js?v=3.8"></script>
 
   <script>
@@ -939,3 +1010,4 @@
   </script>
 </body>
 </html>
+
