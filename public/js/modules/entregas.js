@@ -37,6 +37,7 @@
     btnPrintReport: document.getElementById('btnPrintReport'),
     btnToggleTheme: document.getElementById('btnToggleTheme'),
     themeIcon: document.getElementById('themeIcon'),
+    themeLabel: document.getElementById('themeLabel'),
     tableBody: document.getElementById('tableBodyDeliveries'),
     badgeRecordsCount: document.getElementById('badgeRecordsCount'),
     tableStatusFeedback: document.getElementById('tableStatusFeedback'),
@@ -79,14 +80,15 @@
     setupAutoRefresh();
   }
 
-  // Configuración del Tema Claro / Oscuro
+  // Configuración del Tema Claro / Oscuro (Modo Claro predeterminado)
   function initTheme() {
-    const savedTheme = localStorage.getItem('sgbt_theme') || 'dark';
+    const defaultTheme = document.documentElement.getAttribute('data-default-theme') || 'light';
+    const savedTheme = localStorage.getItem('sgbt_theme') || defaultTheme;
     applyTheme(savedTheme);
 
     if (dom.btnToggleTheme) {
       dom.btnToggleTheme.addEventListener('click', () => {
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
         const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
         applyTheme(nextTheme);
         localStorage.setItem('sgbt_theme', nextTheme);
@@ -95,9 +97,34 @@
   }
 
   function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
+    const isDark = theme === 'dark';
+    const resolvedTheme = isDark ? 'dark' : 'light';
+
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+    document.documentElement.classList.toggle('dark-mode', isDark);
+    if (document.body) {
+      document.body.classList.toggle('dark-mode', isDark);
+    }
+
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', isDark ? '#0f172a' : '#0284c7');
+    }
+
+    if (dom.btnToggleTheme) {
+      dom.btnToggleTheme.setAttribute('aria-checked', String(isDark));
+      dom.btnToggleTheme.classList.toggle('is-dark', isDark);
+      dom.btnToggleTheme.title = isDark
+        ? 'Cambiar a modo claro'
+        : 'Cambiar a modo oscuro';
+    }
+
+    if (dom.themeLabel) {
+      dom.themeLabel.textContent = isDark ? 'Oscuro' : 'Claro';
+    }
+
     if (dom.themeIcon) {
-      dom.themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+      dom.themeIcon.textContent = isDark ? '🌙' : '☀️';
     }
   }
 

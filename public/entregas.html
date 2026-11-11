@@ -1,38 +1,42 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="light" data-default-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
-  <meta name="theme-color" content="#0b132b">
+  <meta name="theme-color" content="#0284c7">
   <meta name="description" content="Consola de Auditoría y Registro en Vivo de Despachos Institucionales - MIPPCI SGBT">
   <title>Registro de Despachos en Vivo (Hoy) | SGBT MIPPCI</title>
   
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
   <link rel="stylesheet" href="/css/styles.css">
 
+  <!-- Script Pre-render de Tema (Predeterminado Modo Claro sin FOUC) -->
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('sgbt_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+        if (t === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        } else {
+          document.documentElement.classList.remove('dark-mode');
+        }
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    })();
+  </script>
+
   <style>
     /* Estilos dedicados para la vista de pantalla completa /entregas */
-    :root {
-      --bg-main: #0a0f1d;
-      --bg-card: #131b2e;
-      --bg-surface: #1e293b;
-      --border-color: rgba(255, 255, 255, 0.08);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --emerald: #10b981;
-      --emerald-dark: #059669;
-      --amber: #f59e0b;
-      --red: #ef4444;
-    }
-
-    [data-theme="light"] {
+    /* Modo Claro Predeterminado */
+    :root, [data-theme="light"] {
       --bg-main: #f1f5f9;
       --bg-card: #ffffff;
-      --bg-surface: #e2e8f0;
-      --border-color: rgba(0, 0, 0, 0.1);
+      --bg-surface: #f8fafc;
+      --bg-hover: rgba(2, 132, 199, 0.06);
+      --border-color: #cbd5e1;
+      --border-subtle: #e2e8f0;
       --text-main: #0f172a;
       --text-muted: #475569;
       --text-dim: #64748b;
@@ -42,6 +46,59 @@
       --emerald-dark: #047857;
       --amber: #d97706;
       --red: #dc2626;
+      --badge-live-bg: #ecfdf5;
+      --badge-live-border: #86efac;
+      --badge-live-text: #065f46;
+      --badge-count-bg: #e0f2fe;
+      --badge-count-text: #0369a1;
+      --cedula-bg: #f1f5f9;
+      --card-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+      --table-header-bar: #f8fafc;
+      --method-qr-bg: #ecfdf5;
+      --method-qr-border: #86efac;
+      --method-qr-text: #065f46;
+      --method-nfc-bg: #e0f2fe;
+      --method-nfc-border: #bae6fd;
+      --method-nfc-text: #0369a1;
+      --method-sup-bg: #fffbeb;
+      --method-sup-border: #fde68a;
+      --method-sup-text: #92400e;
+    }
+
+    /* Modo Oscuro */
+    [data-theme="dark"], body.dark-mode {
+      --bg-main: #0a0f1d;
+      --bg-card: #131b2e;
+      --bg-surface: #1e293b;
+      --bg-hover: rgba(255, 255, 255, 0.04);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #94a3b8;
+      --primary: #0284c7;
+      --primary-hover: #0369a1;
+      --emerald: #10b981;
+      --emerald-dark: #059669;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --badge-live-bg: rgba(16, 185, 129, 0.15);
+      --badge-live-border: rgba(16, 185, 129, 0.4);
+      --badge-live-text: #34d399;
+      --badge-count-bg: rgba(2, 132, 199, 0.2);
+      --badge-count-text: #38bdf8;
+      --cedula-bg: rgba(255, 255, 255, 0.06);
+      --card-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+      --table-header-bar: rgba(255, 255, 255, 0.02);
+      --method-qr-bg: rgba(16, 185, 129, 0.15);
+      --method-qr-border: rgba(52, 211, 153, 0.4);
+      --method-qr-text: #34d399;
+      --method-nfc-bg: rgba(2, 132, 199, 0.15);
+      --method-nfc-border: rgba(56, 189, 248, 0.4);
+      --method-nfc-text: #38bdf8;
+      --method-sup-bg: rgba(245, 158, 11, 0.15);
+      --method-sup-border: rgba(251, 191, 36, 0.4);
+      --method-sup-text: #fbbf24;
     }
 
     * {
@@ -116,20 +173,20 @@
       align-items: center;
       gap: 0.45rem;
       padding: 0.35rem 0.75rem;
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: var(--badge-live-bg);
+      border: 1px solid var(--badge-live-border);
       border-radius: 9999px;
       font-size: 0.75rem;
       font-weight: 700;
-      color: #34d399;
+      color: var(--badge-live-text);
     }
 
     .live-dot {
       width: 8px;
       height: 8px;
-      background-color: #10b981;
+      background-color: var(--emerald);
       border-radius: 50%;
-      box-shadow: 0 0 10px #10b981;
+      box-shadow: 0 0 10px var(--emerald);
       animation: pulse 1.8s infinite;
     }
 
@@ -156,8 +213,97 @@
     }
 
     .btn-nav:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--bg-hover);
       transform: translateY(-1px);
+    }
+
+    /* Switch Visual Claro / Oscuro */
+    .theme-switch-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.32rem 0.65rem;
+      border-radius: 9999px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      cursor: pointer;
+      font-size: 0.78rem;
+      font-weight: 700;
+      transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+    }
+
+    .theme-switch-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+
+    .theme-switch-btn:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
+    }
+
+    .theme-switch-icon {
+      font-size: 0.85rem;
+      line-height: 1;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .theme-switch-btn:not(.is-dark) .theme-switch-icon.sun {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+    .theme-switch-btn:not(.is-dark) .theme-switch-icon.moon {
+      opacity: 0.45;
+    }
+
+    .theme-switch-btn.is-dark .theme-switch-icon.sun {
+      opacity: 0.45;
+    }
+
+    .theme-switch-btn.is-dark .theme-switch-icon.moon {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+    .theme-switch-track {
+      position: relative;
+      width: 34px;
+      height: 18px;
+      border-radius: 9999px;
+      background: #cbd5e1;
+      border: 1px solid rgba(15, 23, 42, 0.12);
+      transition: background 0.2s ease, border-color 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .theme-switch-btn.is-dark .theme-switch-track {
+      background: var(--primary);
+      border-color: #38bdf8;
+    }
+
+    .theme-switch-thumb {
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .theme-switch-btn.is-dark .theme-switch-thumb {
+      transform: translateX(16px);
+    }
+
+    .theme-switch-label {
+      min-width: 3.1rem;
+      text-align: left;
+      color: var(--text-main);
     }
 
     .btn-primary-action {
@@ -210,7 +356,7 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 0.5rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--card-shadow);
       position: relative;
       overflow: hidden;
     }
@@ -263,7 +409,7 @@
       display: flex;
       flex-direction: column;
       gap: 0.85rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: var(--card-shadow);
     }
 
     .toolbar-row {
@@ -315,7 +461,7 @@
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      box-shadow: var(--card-shadow);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -330,7 +476,7 @@
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 0.5rem;
-      background: rgba(255, 255, 255, 0.02);
+      background: var(--table-header-bar);
     }
 
     .table-title {
@@ -343,8 +489,8 @@
     }
 
     .table-badge-count {
-      background: rgba(2, 132, 199, 0.2);
-      color: #38bdf8;
+      background: var(--badge-count-bg);
+      color: var(--badge-count-text);
       font-size: 0.75rem;
       padding: 0.2rem 0.55rem;
       border-radius: 6px;
@@ -383,7 +529,7 @@
     }
 
     table.entregas-table tr:hover td {
-      background: rgba(255, 255, 255, 0.025);
+      background: var(--bg-hover);
     }
 
     .beneficiary-cell {
@@ -406,7 +552,7 @@
       font-family: monospace;
       font-size: 0.8rem;
       font-weight: 700;
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--cedula-bg);
       padding: 0.2rem 0.45rem;
       border-radius: 4px;
       border: 1px solid var(--border-color);
@@ -425,21 +571,21 @@
     }
 
     .method-badge.passkey-qr {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(52, 211, 153, 0.4);
-      color: #34d399;
+      background: var(--method-qr-bg);
+      border: 1px solid var(--method-qr-border);
+      color: var(--method-qr-text);
     }
 
     .method-badge.passkey-nfc {
-      background: rgba(2, 132, 199, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #38bdf8;
+      background: var(--method-nfc-bg);
+      border: 1px solid var(--method-nfc-border);
+      color: var(--method-nfc-text);
     }
 
     .method-badge.supervisor {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(251, 191, 36, 0.4);
-      color: #fbbf24;
+      background: var(--method-sup-bg);
+      border: 1px solid var(--method-sup-border);
+      color: var(--method-sup-text);
     }
 
     /* Paginación */
@@ -478,7 +624,7 @@
     }
 
     .btn-page:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.1);
+      background: var(--bg-hover);
     }
 
     .btn-page.active {
@@ -619,8 +765,13 @@
         </select>
       </div>
 
-      <button type="button" id="btnToggleTheme" class="btn-nav" title="Cambiar tema claro / oscuro">
-        <span id="themeIcon">☀️</span>
+      <button type="button" id="btnToggleTheme" role="switch" aria-checked="false" class="theme-switch-btn" title="Cambiar entre modo claro y oscuro" aria-label="Alternar modo claro u oscuro">
+        <span class="theme-switch-icon sun" aria-hidden="true">☀️</span>
+        <span class="theme-switch-track" aria-hidden="true">
+          <span class="theme-switch-thumb"></span>
+        </span>
+        <span class="theme-switch-icon moon" aria-hidden="true">🌙</span>
+        <span id="themeLabel" class="theme-switch-label">Claro</span>
       </button>
 
       <a href="/coseg" id="btnBackToMain" class="btn-nav" title="Volver al panel de gestión institucional">
@@ -836,7 +987,7 @@
 
   <!-- Scripts del Módulo -->
   <script src="/js/core/api.js"></script>
-  <script src="/js/modules/entregas.js?v=4.1"></script>
+  <script src="/js/modules/entregas.js?v=4.2"></script>
 </body>
 </html>
 
