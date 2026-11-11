@@ -8,7 +8,10 @@
   <title>Registro de Despachos en Vivo (Hoy) | SGBT MIPPCI</title>
   
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=2.8">
 
   <!-- Script Pre-render de Tema (Predeterminado Modo Claro sin FOUC) -->
   <script>
@@ -39,13 +42,13 @@
       --border-subtle: #e2e8f0;
       --text-main: #0f172a;
       --text-muted: #475569;
-      --text-dim: #64748b;
-      --primary: #0284c7;
-      --primary-hover: #0369a1;
-      --emerald: #059669;
-      --emerald-dark: #047857;
-      --amber: #d97706;
-      --red: #dc2626;
+      --text-dim: #475569;
+      --primary: #0369a1;
+      --primary-hover: #075985;
+      --emerald: #047857;
+      --emerald-dark: #065f46;
+      --amber: #b45309;
+      --red: #b91c1c;
       --badge-live-bg: #ecfdf5;
       --badge-live-border: #86efac;
       --badge-live-text: #065f46;
@@ -108,10 +111,10 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: var(--font-main, 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
       background-color: var(--bg-main);
       color: var(--text-main);
-      min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       line-height: 1.5;
@@ -149,10 +152,17 @@
     }
 
     .brand-text h1 {
-      font-size: 1.05rem;
+      font-size: 1.45rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    @media (max-width: 768px) {
+      .brand-text h1 {
+        font-size: 1.15rem;
+      }
     }
 
     .brand-text span {
@@ -186,14 +196,7 @@
       height: 8px;
       background-color: var(--emerald);
       border-radius: 50%;
-      box-shadow: 0 0 10px var(--emerald);
-      animation: pulse 1.8s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.3); opacity: 1; }
-      100% { transform: scale(0.95); opacity: 0.8; }
+      box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.25);
     }
 
     .btn-nav {
@@ -209,7 +212,7 @@
       align-items: center;
       gap: 0.4rem;
       text-decoration: none;
-      transition: all 0.15s ease;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
     }
 
     .btn-nav:hover {
@@ -307,21 +310,21 @@
     }
 
     .btn-primary-action {
-      background: linear-gradient(135deg, #0284c7, #0369a1);
-      border-color: #38bdf8;
+      background: linear-gradient(135deg, #0369a1, #075985);
+      border-color: #0369a1;
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+      box-shadow: 0 2px 8px rgba(3, 105, 161, 0.3);
     }
 
     .btn-primary-action:hover {
-      background: linear-gradient(135deg, #0369a1, #075985);
+      background: linear-gradient(135deg, #075985, #0c4a6e);
     }
 
     .btn-success-action {
-      background: linear-gradient(135deg, #059669, #047857);
-      border-color: #34d399;
+      background: linear-gradient(135deg, #047857, #065f46);
+      border-color: #047857;
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 2px 8px rgba(4, 120, 87, 0.3);
     }
 
     .btn-success-action:hover {
@@ -446,14 +449,20 @@
       color: var(--text-main);
       padding: 0.5rem 0.75rem;
       font-size: 0.84rem;
-      outline: none;
       width: 100%;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .filter-control:focus {
+      outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+      box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.25);
+    }
+
+    @media (max-width: 768px) {
+      .filter-control {
+        font-size: max(1rem, 16px);
+      }
     }
 
     /* Contenedor de la Tabla */
@@ -549,7 +558,7 @@
     }
 
     .cedula-badge {
-      font-family: monospace;
+      font-family: var(--font-mono, 'JetBrains Mono', monospace);
       font-size: 0.8rem;
       font-weight: 700;
       background: var(--cedula-bg);
@@ -728,6 +737,7 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Saltar al contenido principal</a>
 
   <!-- Encabezado exclusivo para impresión institucional -->
   <div class="print-header">
@@ -781,7 +791,7 @@
   </header>
 
   <!-- Contenedor Principal de la Vista -->
-  <div class="entregas-container">
+  <main id="main-content" class="entregas-container">
 
     <!-- Tarjetas de Métricas en Vivo (KPIs) -->
     <section class="kpi-grid">
@@ -983,7 +993,7 @@
       </div>
     </div>
 
-  </div>
+  </main>
 
   <!-- Scripts del Módulo -->
   <script src="/js/core/api.js"></script>

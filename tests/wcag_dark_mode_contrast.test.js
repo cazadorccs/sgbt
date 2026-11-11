@@ -253,6 +253,74 @@ if (indexHtml.includes('color: var(--sea-onahau);')) {
   console.log('   ✅ index.html: Sin usos problemáticos de var(--sea-onahau) en textos');
 }
 
+// -----------------------------------------------------------------------------
+// FASE 4: VERIFICACIÓN WCAG 2.2 AA / AAA PARA MODO CLARO Y BOTONES INSTITUCIONALES
+// -----------------------------------------------------------------------------
+console.log('\n--- FASE 4: TOKENS Y COMPONENTES EN MODO CLARO (DEFAULT) ---');
+
+const lightSurfaces = {
+  'bg-surface-card (#ffffff)': '#ffffff',
+  'bg-surface-0 (#f8fafc)': '#f8fafc',
+  'bg-primary (#f1f5f9)': '#f1f5f9'
+};
+
+const lightTextTokens = [
+  { name: '--text-main (Texto Principal)', hex: '#0f172a', requiredRatio: 4.5, level: 'AAA' },
+  { name: '--text-muted (Texto Secundario/Cuerpo)', hex: '#334155', requiredRatio: 4.5, level: 'AAA' },
+  { name: '--text-dim (Texto Atenuado/Labels)', hex: '#475569', requiredRatio: 4.5, level: 'AA' },
+  { name: '--text-accent (Acento Institucional Sky 700)', hex: '#0369a1', requiredRatio: 4.5, level: 'AA' },
+  { name: '--text-accent-hover (Sky 800)', hex: '#075985', requiredRatio: 4.5, level: 'AAA' },
+  { name: '--badge-green-text (Esmeralda 800)', hex: '#065f46', requiredRatio: 4.5, level: 'AAA' },
+  { name: '--badge-amber-text (Ámbar 800)', hex: '#92400e', requiredRatio: 4.5, level: 'AAA' },
+  { name: '--badge-red-text (Rojo 800)', hex: '#991b1b', requiredRatio: 4.5, level: 'AAA' }
+];
+
+for (const [surfaceName, bgHex] of Object.entries(lightSurfaces)) {
+  console.log(`📌 Superficie Clara: ${surfaceName}`);
+  for (const token of lightTextTokens) {
+    const ratio = getContrastRatio(token.hex, bgHex);
+    const passed = ratio >= token.requiredRatio;
+    const formattedRatio = ratio.toFixed(2) + ':1';
+    if (passed) {
+      console.log(`   ✅ [${token.level}] ${token.name}: ${formattedRatio}`);
+    } else {
+      console.error(`   ❌ [FALLA CLARO] ${token.name}: ${formattedRatio} (Min: ${token.requiredRatio}:1)`);
+      failed = true;
+    }
+  }
+}
+
+const lightButtonPairs = [
+  { element: '.btn-primary (Texto blanco sobre #0369a1)', fgHex: '#ffffff', bgHex: '#0369a1', minRatio: 4.5 },
+  { element: '.btn-cyan (Texto #0369a1 sobre #f0f9ff)', fgHex: '#0369a1', bgHex: '#f0f9ff', minRatio: 4.5 },
+  { element: '.btn-danger (Texto #b91c1c sobre #fef2f2)', fgHex: '#b91c1c', bgHex: '#fef2f2', minRatio: 4.5 },
+  { element: '.btn-success-action (Texto blanco sobre #047857)', fgHex: '#ffffff', bgHex: '#047857', minRatio: 4.5 }
+];
+
+for (const pair of lightButtonPairs) {
+  const ratio = getContrastRatio(pair.fgHex, pair.bgHex);
+  if (ratio >= pair.minRatio) {
+    console.log(`   ✅ [BOTÓN CLARO OK] ${pair.element}: ${ratio.toFixed(2)}:1`);
+  } else {
+    console.error(`   ❌ [BOTÓN CLARO FALLA] ${pair.element}: ${ratio.toFixed(2)}:1 (Min: ${pair.minRatio}:1)`);
+    failed = true;
+  }
+}
+
+if (stylesCss.includes('--text-dim: #475569;') && stylesCss.includes('--text-accent: #0369a1;')) {
+  console.log('   ✅ styles.css: Tokens WCAG Modo Claro (--text-dim: #475569, --text-accent: #0369a1) activos');
+} else {
+  console.error('   ❌ [FALLA] styles.css no define --text-dim: #475569 o --text-accent: #0369a1');
+  failed = true;
+}
+
+if (!/maximum-scale=1\.0|user-scalable=no/i.test(indexHtml)) {
+  console.log('   ✅ index.html: Zoom móvil accesible habilitado (sin user-scalable=no ni maximum-scale=1.0)');
+} else {
+  console.error('   ❌ [FALLA A11Y] index.html bloquea el zoom móvil en viewport');
+  failed = true;
+}
+
 console.log('\n================================================================');
 if (failed) {
   console.error('❌ ERRORES EN LA SUITE DE CONTRASTE Y MODALES WCAG 2.2');

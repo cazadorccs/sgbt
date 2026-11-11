@@ -18,10 +18,10 @@
     body {
       background: radial-gradient(circle at 50% 10%, #0f172a 0%, #030712 100%);
       color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: var(--font-main, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
       margin: 0;
       padding: 0;
-      min-height: 100vh;
+      min-height: 100dvh;
       overflow-x: hidden;
     }
 
@@ -64,7 +64,7 @@
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      transition: all 0.2s ease;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
       border: 1px solid transparent;
     }
 
@@ -254,6 +254,7 @@
   </style>
 </head>
 <body>
+  <a href="#btnStartSimulation" class="skip-link">Saltar al tablero de simulación</a>
 
   <!-- BARRA SUPERIOR LIMPIA SIN CINTILLO NI LOGO EXTRAÑO -->
   <header class="sim-clean-header">
@@ -298,16 +299,16 @@
         </div>
 
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-          <button id="btnStartSimulation" class="btn-sim btn-sim-success">
+          <button type="button" id="btnStartSimulation" class="btn-sim btn-sim-success">
             <span>▶ Iniciar Flujo 100 Entregas</span>
           </button>
-          <button id="btnPauseSimulation" class="btn-sim btn-sim-outline" style="display: none;">
+          <button type="button" id="btnPauseSimulation" class="btn-sim btn-sim-outline" style="display: none;">
             <span>⏸ Pausar</span>
           </button>
-          <button id="btnStepSimulation" class="btn-sim btn-sim-primary">
+          <button type="button" id="btnStepSimulation" class="btn-sim btn-sim-primary">
             <span>⏭ Paso a Paso (1 Entrega)</span>
           </button>
-          <button id="btnResetSimulation" class="btn-sim btn-sim-outline">
+          <button type="button" id="btnResetSimulation" class="btn-sim btn-sim-outline">
             <span>🔄 Reiniciar Lote (0/100)</span>
           </button>
         </div>
@@ -421,7 +422,7 @@
                 </div>
                 <div class="mobile-app-bar-actions">
                   <span id="workerConditionBadge" class="badge badge-activo" style="font-size: 0.65rem;">🏢 Activo</span>
-                  <button id="btnWorkerMobileLogout" class="btn btn-outline btn-mobile-logout" title="Cerrar Sesión">
+                  <button type="button" id="btnWorkerMobileLogout" class="btn btn-outline btn-mobile-logout" title="Cerrar Sesión">
                     🚪 Salir
                   </button>
                 </div>
@@ -483,7 +484,7 @@
             <div id="workerQrContainer" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
               <div class="flex-between" style="width: 100%; margin-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
                 <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 700;">CÓDIGO QR DE RETIRO SEGURO</span>
-                <button id="btnToggleBrightness" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.65rem;">
+                <button type="button" id="btnToggleBrightness" class="btn btn-outline" style="padding: 0.15rem 0.45rem; font-size: 0.65rem;">
                   💡 Brillo 100%
                 </button>
               </div>
@@ -589,7 +590,7 @@
                   SELLO: SHA256-OK
                 </div>
               </div>
-              <button id="btnCloseFeedbackOverlay" class="btn btn-outline" style="background: #10b981; color: #ffffff; width: 85%; font-weight: 700; padding: 0.65rem 1rem; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+              <button type="button" id="btnCloseFeedbackOverlay" class="btn btn-outline" style="background: #10b981; color: #ffffff; width: 85%; font-weight: 700; padding: 0.65rem 1rem; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
                 Siguiente Entrega (Listo) ›
               </button>
             </div>
