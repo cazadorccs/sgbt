@@ -367,9 +367,11 @@ window.setupAuth = function() {
   const btnWorkerDeviceSessions = document.getElementById('btnWorkerDeviceSessions');
 
   btnOpenMfaSetup?.addEventListener('click', () => {
+    if (typeof window.closeUserMenu === 'function') window.closeUserMenu();
     if (typeof openMfaSetupModal === 'function') openMfaSetupModal();
   });
   btnOpenDeviceSessions?.addEventListener('click', () => {
+    if (typeof window.closeUserMenu === 'function') window.closeUserMenu();
     if (typeof openDeviceSessionsModal === 'function') openDeviceSessionsModal();
   });
   btnWorkerMfaSetup?.addEventListener('click', () => {
@@ -2133,15 +2135,62 @@ async function handleMfaVerificationSubmit() {
 window.handleMfaVerificationSubmit = handleMfaVerificationSubmit;
 
 /**
+ * Renderiza el código QR de enrolamiento MFA con respaldo local usando qrcode.js
+ */
+function renderMfaSetupQr(qrCodeDataUrl, otpauthUrl) {
+  const qrImage = document.getElementById('mfaSetupQrImage');
+  const qrFallback = document.getElementById('mfaSetupQrFallback');
+  if (!qrImage && !qrFallback) return;
+
+  const renderClientFallback = () => {
+    if (!qrFallback) return;
+    qrFallback.innerHTML = '';
+    if (otpauthUrl && typeof QRCode === 'function') {
+      try {
+        new QRCode(qrFallback, {
+          text: otpauthUrl,
+          width: 168,
+          height: 168,
+          colorDark: '#0f172a',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel ? QRCode.CorrectLevel.M : undefined
+        });
+        qrFallback.style.display = 'flex';
+        if (qrImage) qrImage.style.display = 'none';
+      } catch (qrErr) {
+        console.warn('[MFA QR FALLBACK ERROR]', qrErr);
+      }
+    }
+  };
+
+  if (qrFallback) {
+    qrFallback.style.display = 'none';
+    qrFallback.innerHTML = '';
+  }
+
+  if (qrImage && qrCodeDataUrl) {
+    qrImage.style.display = 'block';
+    qrImage.onerror = () => renderClientFallback();
+    qrImage.src = qrCodeDataUrl;
+  } else {
+    renderClientFallback();
+  }
+}
+
+/**
  * Abre el modal de configuración de MFA (Código QR y Códigos de Respaldo)
  */
 async function openMfaSetupModal() {
+  if (typeof window.loadTemplates === 'function' && !document.getElementById('mfaSetupModalBackdrop')) {
+    await window.loadTemplates();
+  }
+
   const modal = document.getElementById('mfaSetupModalBackdrop');
-  const qrImage = document.getElementById('mfaSetupQrImage');
   const secretLabel = document.getElementById('mfaSetupSecretLabel');
   const backupGrid = document.getElementById('mfaBackupCodesGrid');
   const codeInput = document.getElementById('mfaSetupVerificationCode');
   const alertBox = document.getElementById('mfaSetupAlert');
+  const statusText = document.getElementById('mfaCurrentStatusText');
 
   if (alertBox) {
     alertBox.style.display = 'none';
@@ -2152,13 +2201,25 @@ async function openMfaSetupModal() {
   }
 
   try {
-    window.showToast('Generando credenciales de doble factor...', 'info');
-    const data = await API.post('/api/v1/auth/mfa/setup');
-    if (!data.success) {
-      throw new Error(data.error || 'No se pudo generar la configuración MFA');
+    window.showToast('Generando código QR para Google Authenticator...', 'info');
+    const [data, statusRes] = await Promise.all([
+      API.post('/api/v1/auth/mfa/setup', {}),
+      API.get('/api/v1/auth/mfa/status').catch(() => null)
+    ]);
+
+    if (!data || !data.success) {
+      throw new Error((data && data.error) || 'No se pudo generar la configuración MFA');
     }
 
-    if (qrImage) qrImage.src = data.qr_code;
+    if (statusText) {
+      const isEnabled = Boolean(statusRes && statusRes.success && statusRes.mfa && statusRes.mfa.enabled);
+      statusText.innerHTML = isEnabled
+        ? '✅ <strong>MFA Activo:</strong> Escanee este QR si desea reemplazar o vincular un nuevo dispositivo en <strong>Google Authenticator</strong>.'
+        : '🛡️ Escanea este código QR en <strong>Google Authenticator</strong> (o Microsoft Authenticator / Aegis) para activar tu segundo factor.';
+    }
+
+    renderMfaSetupQr(data.qr_code, data.otpauth_url);
+
     if (secretLabel) {
       secretLabel.textContent = data.secret;
       secretLabel.setAttribute('data-secret', data.secret);
@@ -2166,7 +2227,7 @@ async function openMfaSetupModal() {
 
     if (backupGrid && Array.isArray(data.backup_codes)) {
       backupGrid.innerHTML = data.backup_codes.map(c => `
-        <div style="padding: 4px; border: 1px solid rgba(255,255,255,0.08); border-radius: 4px; text-align: center; font-family: monospace; font-size: 0.8rem; background: rgba(0,0,0,0.3);">
+        <div class="mfa-backup-item">
           ${window.escapeHTML ? window.escapeHTML(c) : c}
         </div>
       `).join('');
@@ -2175,7 +2236,8 @@ async function openMfaSetupModal() {
 
     if (modal) {
       modal.classList.add('active');
-      setTimeout(() => { if (codeInput) codeInput.focus(); }, 150);
+      const dialog = modal.querySelector('.modal-dialog');
+      if (dialog) dialog.scrollTop = 0;
     }
 
   } catch (err) {
@@ -2385,7 +2447,14 @@ document.addEventListener('click', async (e) => {
     return;
   }
 
-  // 4. Cerrar modal de configuración MFA
+  // 4. Cerrar o regenerar QR en modal de configuración MFA
+  const btnRegenerateQr = e.target.closest('#btnRegenerateMfaQr');
+  if (btnRegenerateQr) {
+    e.preventDefault();
+    openMfaSetupModal();
+    return;
+  }
+
   const btnCloseMfaSetup = e.target.closest('#btnCloseMfaSetupModal') || e.target.closest('#btnCloseMfaSetupModalBtn');
   if (btnCloseMfaSetup) {
     e.preventDefault();

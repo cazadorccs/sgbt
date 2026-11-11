@@ -3,7 +3,7 @@
 // Garantiza funcionamiento al 100% en sótanos y almacenes sin señal celular
 // ============================================================================
 
-const CACHE_NAME = 'mippci-bienestar-v4.1-stale-while-revalidate';
+const CACHE_NAME = 'mippci-bienestar-v4.2-stale-while-revalidate';
 const STATIC_ASSETS = [
   '/',
   '/coseg',

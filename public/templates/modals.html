@@ -2674,9 +2674,9 @@
      MODAL 18: CONFIGURACIÓN Y ACTIVACIÓN DE AUTENTICACIÓN MULTIFACTOR (MFA)
      ====================================================================== -->
 <div id="mfaSetupModalBackdrop" class="modal-backdrop">
-  <div class="modal-dialog" style="max-width: 520px;">
+  <div class="modal-dialog mfa-setup-dialog" style="max-width: 680px;">
     <div class="panel-header">
-      <div class="panel-title" style="color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+      <div class="panel-title" style="color: #0284c7; display: flex; align-items: center; gap: 0.5rem;">
         <span>📲</span> Configuración de Autenticación Multifactor
       </div>
       <button id="btnCloseMfaSetupModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar">
@@ -2687,70 +2687,74 @@
       </button>
     </div>
 
-    <div style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.4;">
-      La autenticación multifactor protege su cuenta contra accesos no autorizados exigiendo un código temporal al iniciar sesión.
+    <div id="mfaCurrentStatusBanner" class="mfa-status-banner">
+      <span id="mfaCurrentStatusText">🛡️ Vincula <strong>Google Authenticator</strong>, Microsoft Authenticator o Aegis escaneando el código QR.</span>
+      <button type="button" id="btnRegenerateMfaQr" class="btn btn-sm btn-outline" style="padding: 3px 10px; font-size: 0.72rem;">
+        🔄 Nuevo QR
+      </button>
     </div>
 
-    <!-- PASO 1: ESCANEAR QR -->
-    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 1rem; margin-bottom: 1rem; text-align: center;">
-      <div style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0; margin-bottom: 0.65rem;">
-        Paso 1: Escanee el código QR en su aplicación móvil (Google Authenticator / Aegis / Microsoft Auth):
-      </div>
-      <div id="mfaSetupQrContainer" style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.75rem;">
-        <div style="background: #ffffff; padding: 8px; border-radius: 8px; display: inline-block;">
-          <img id="mfaSetupQrImage" src="" alt="Código QR MFA" style="width: 160px; height: 160px; display: block;" />
+    <div class="mfa-setup-grid">
+      <!-- PASO 1: ESCANEAR QR EN GOOGLE AUTHENTICATOR -->
+      <div class="mfa-setup-card" style="text-align: center;">
+        <div class="mfa-setup-step-title" style="justify-content: center;">
+          <span>📷</span> Paso 1: Código QR (Google Authenticator)
+        </div>
+        <div id="mfaSetupQrContainer" style="display: flex; justify-content: center; align-items: center; margin-bottom: 0.65rem;">
+          <div class="mfa-qr-frame">
+            <img id="mfaSetupQrImage" src="" alt="Código QR MFA para Google Authenticator" />
+            <div id="mfaSetupQrFallback" style="display: none; width: 168px; height: 168px; align-items: center; justify-content: center;"></div>
+          </div>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-dim); margin-bottom: 0.35rem;">
+          ¿No puede escanear el QR? Ingrese esta clave manual en Google Authenticator:
+        </div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; flex-wrap: wrap;">
+          <code id="mfaSetupSecretLabel" class="text-mono mfa-secret-code">Cargando...</code>
+          <button type="button" id="btnCopyMfaSecret" class="btn btn-sm btn-outline" style="padding: 3px 8px; font-size: 0.7rem;">
+            📋 Copiar
+          </button>
         </div>
       </div>
-      <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 0.35rem;">
-        ¿No puede escanear? Ingrese esta clave manualmente:
-      </div>
-      <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-        <code id="mfaSetupSecretLabel" class="text-mono" style="font-size: 0.85rem; color: #38bdf8; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px; user-select: all;">
-          Cargando...
-        </code>
-        <button type="button" id="btnCopyMfaSecret" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.7rem;">
-          📋 Copiar
-        </button>
+
+      <!-- COLUMNA DERECHA: PASO 2 Y PASO 3 -->
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <!-- PASO 2: CÓDIGOS DE RESPALDO -->
+        <div class="mfa-setup-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-bottom: 0.45rem;">
+            <span class="mfa-setup-step-title" style="margin-bottom: 0;">🗝️ Paso 2: Códigos de Respaldo</span>
+            <button type="button" id="btnCopyBackupCodes" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.68rem;">
+              📋 Copiar
+            </button>
+          </div>
+          <div id="mfaBackupCodesGrid" class="mfa-backup-grid">
+            <!-- Inyección dinámica -->
+          </div>
+          <div style="font-size: 0.68rem; color: #d97706; margin-top: 0.35rem; font-weight: 600;">
+            ⚠️ Guárdelos por si extravía su teléfono.
+          </div>
+        </div>
+
+        <!-- PASO 3: CONFIRMAR PRIMER CÓDIGO -->
+        <form id="mfaSetupForm" class="mfa-setup-card" onsubmit="event.preventDefault(); if (typeof handleConfirmActivateMfa === 'function') handleConfirmActivateMfa(); return false;">
+          <label for="mfaSetupVerificationCode" class="mfa-setup-step-title" style="text-transform: uppercase; letter-spacing: 0.03em;">
+            🔢 Paso 3: Código de 6 dígitos
+          </label>
+          <input type="text" id="mfaSetupVerificationCode" class="mfa-code-input" maxlength="9" inputmode="numeric" placeholder="000 000" autocomplete="one-time-code" />
+
+          <div id="mfaSetupAlert" style="display: none; padding: 0.55rem 0.65rem; border-radius: 6px; font-size: 0.76rem; margin-top: 0.65rem;"></div>
+
+          <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+            <button type="submit" id="btnConfirmActivateMfa" class="btn btn-primary" style="flex: 1; padding: 0.6rem 0.75rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff; cursor: pointer;">
+              🛡️ Activar Autenticación Multifactor
+            </button>
+            <button type="button" id="btnCloseMfaSetupModalBtn" class="btn btn-outline" style="padding: 0.6rem 0.85rem; cursor: pointer;">
+              Cancelar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-
-    <!-- PASO 2: CÓDIGOS DE RESPALDO -->
-    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem;">
-        <span style="font-size: 0.75rem; font-weight: 700; color: #e2e8f0;">Paso 2: Guarde sus códigos de respaldo de emergencia:</span>
-        <button type="button" id="btnCopyBackupCodes" class="btn btn-sm btn-outline" style="padding: 2px 8px; font-size: 0.68rem;">
-          📋 Copiar Todos
-        </button>
-      </div>
-      <div id="mfaBackupCodesGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.35rem; font-family: monospace; font-size: 0.75rem; color: #a7f3d0; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 6px;">
-        <!-- Inyección dinámica -->
-      </div>
-      <div style="font-size: 0.68rem; color: #f59e0b; margin-top: 0.4rem;">
-        ⚠️ Guarde estos códigos en un lugar seguro. Le permitirán acceder si extravía su teléfono.
-      </div>
-    </div>
-
-    <!-- PASO 3: CONFIRMAR PRIMER CÓDIGO -->
-    <form id="mfaSetupForm" onsubmit="event.preventDefault(); if (typeof handleConfirmActivateMfa === 'function') handleConfirmActivateMfa(); return false;">
-      <div style="margin-bottom: 1.25rem;">
-        <label for="mfaSetupVerificationCode" style="display: block; font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.4rem;">
-          Paso 3: Ingrese el código de 6 dígitos que muestra su app para confirmar:
-        </label>
-        <input type="text" id="mfaSetupVerificationCode" maxlength="9" inputmode="numeric" placeholder="000 000" autocomplete="one-time-code"
-          style="width: 100%; text-align: center; font-size: 1.4rem; letter-spacing: 4px; font-weight: 800; font-family: monospace; padding: 0.65rem; background: rgba(15, 23, 42, 0.8); border: 1.5px solid #0284c7; border-radius: 6px; color: #38bdf8; outline: none;" />
-      </div>
-
-      <div id="mfaSetupAlert" style="display: none; padding: 0.65rem; border-radius: 6px; font-size: 0.78rem; margin-bottom: 1rem;"></div>
-
-      <div style="display: flex; gap: 0.65rem;">
-        <button type="submit" id="btnConfirmActivateMfa" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff; cursor: pointer;">
-          🛡️ Activar Autenticación Multifactor
-        </button>
-        <button type="button" id="btnCloseMfaSetupModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem; cursor: pointer;">
-          Cancelar
-        </button>
-      </div>
-    </form>
   </div>
 </div>
 

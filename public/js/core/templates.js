@@ -29,7 +29,7 @@ window.loadTemplates = async function() {
   }
 
   try {
-    const res = await fetch('/templates/modals.html');
+    const res = await fetch('/templates/modals.html?v=4.3');
     if (!res.ok) {
       throw new Error(`Error HTTP ${res.status}: ${res.statusText}`);
     }
