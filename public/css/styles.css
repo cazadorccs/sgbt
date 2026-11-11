@@ -136,10 +136,18 @@ p, .description, .modal-body, .toast-body, .alert-box, .status-desc {
   text-wrap: pretty;
 }
 
-/* Tabular Numerals para evitar saltos en contadores y cédulas de identidad */
+/* Tabular Numerals y superficies nativas de navegador (craft-floor) */
 .kpi-value, .metric-number, .worker-document, .table-cell-doc,
 .counter, .badge-count, .timer, .table-doc, [data-tabular="true"] {
   font-variant-numeric: tabular-nums;
+}
+
+input, textarea, select {
+  caret-color: var(--text-accent);
+}
+
+a {
+  text-underline-offset: 0.18em;
 }
 
 /* Image Outlines sutiles para delimitar imágenes institucionales */
@@ -569,6 +577,7 @@ body.dark-mode [contenteditable="true"] {
 
 .dropdown-item {
   width: 100%;
+  min-height: 44px;
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -592,12 +601,21 @@ body.dark-mode [contenteditable="true"] {
 }
 
 .dropdown-item-danger {
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 .dropdown-item-danger:hover {
   background: #fef2f2;
-  color: #b91c1c;
+  color: #991b1b;
+}
+
+body.dark-mode .dropdown-item-danger {
+  color: #fca5a5;
+}
+
+body.dark-mode .dropdown-item-danger:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ffffff;
 }
 
 .pulse-dot {
@@ -1016,7 +1034,7 @@ body.dark-mode .sidebar-tool-text small {
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   user-select: none;
   touch-action: manipulation;
-  min-height: 38px;
+  min-height: 44px;
 }
 
 .portal-subtab:hover {
@@ -1476,10 +1494,13 @@ body.dark-mode .sidebar-tool-text small {
   transition-property: transform, background-color, border-color, color;
   transition-duration: 0.2s;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  outline: none;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
+}
+
+.role-select-pill:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .role-select-pill:hover {
@@ -1674,9 +1695,14 @@ body.dark-mode .sidebar-tool-text small {
   padding: 0.6rem 0.85rem;
   font-size: 0.85rem;
   font-family: inherit;
-  outline: none;
+  caret-color: var(--text-accent);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus:not(:focus-visible),
+.form-select:focus:not(:focus-visible) {
+  outline: none;
 }
 
 .form-select {
@@ -3685,9 +3711,9 @@ a:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #0284c7 !important;
+  outline: 3px solid #0369a1 !important;
   outline-offset: 2px !important;
-  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.25) !important;
+  box-shadow: 0 0 0 4px rgba(3, 105, 161, 0.25) !important;
 }
 
 body.dark-mode :focus-visible,
@@ -3699,7 +3725,7 @@ body.dark-mode a:focus-visible,
 body.dark-mode input:focus-visible,
 body.dark-mode select:focus-visible,
 body.dark-mode textarea:focus-visible {
-  outline: 2px solid #38bdf8 !important;
+  outline: 3px solid #38bdf8 !important;
   outline-offset: 2px !important;
   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.3) !important;
 }
@@ -4530,9 +4556,10 @@ body.dark-mode .campaign-title-icon-box {
 }
 
 .btn-pill-action {
-  padding: 0.2rem 0.55rem;
+  position: relative;
+  padding: 0.25rem 0.65rem;
   font-size: 0.72rem;
-  min-height: 28px;
+  min-height: 36px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
@@ -4541,6 +4568,13 @@ body.dark-mode .campaign-title-icon-box {
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
   user-select: none;
+}
+
+.btn-pill-action::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  min-height: 44px;
 }
 
 .campaign-assignment-card {
@@ -5412,6 +5446,10 @@ body.dark-mode .dept-inspect-table tbody tr:hover td {
   border: 1.5px solid #0284c7;
   border-radius: 8px;
   color: #0369a1;
+  caret-color: var(--text-accent);
+}
+
+.mfa-code-input:focus:not(:focus-visible) {
   outline: none;
 }
 

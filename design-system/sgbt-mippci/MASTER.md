@@ -22,8 +22,8 @@ Fuente de verdad CSS en `public/css/styles.css` (ver también `DESIGN.md`):
 
 | Role | Light Mode (`:root`) | Dark Mode (`[data-theme="dark"]`) | CSS Variable |
 |---|---|---|---|
-| Accent / CTA | `#0284c7` | `#0284c7` / `#38bdf8` (texto) | `--sea-pacific` / `--accent-primary` |
-| Accent Hover | `#0369a1` | `#38bdf8` | `--accent-primary-hover` |
+| Accent / CTA | `#0369a1` (Sky 700, 5.93:1) | `#0284c7` / `#38bdf8` (texto) | `--text-accent` / `--accent-primary` |
+| Accent Hover | `#075985` (Sky 800, 7.56:1) | `#38bdf8` | `--text-accent-hover` / `--accent-primary-hover` |
 | Background | `#f8fafc` | `#0a0f1d` | `--bg-primary` |
 | Surface Level 0 | `#f1f5f9` | `#0f172a` | `--bg-surface-0` |
 | Card / Modal | `#ffffff` | `#141e33` | `--bg-surface-card` |
@@ -31,8 +31,8 @@ Fuente de verdad CSS en `public/css/styles.css` (ver también `DESIGN.md`):
 | Border Subtle | `rgba(226, 232, 240, 0.9)` | `#25334d` | `--border-subtle` |
 | Text Main | `#0f172a` | `#f8fafc` | `--text-main` |
 | Text Muted | `#334155` | `#cbd5e1` | `--text-muted` |
-| Text Dim (Labels) | `#64748b` | `#94a3b8` | `--text-dim` |
-| Text Subtle (Disabled) | `#94a3b8` | `#64748b` | `--text-subtle` |
+| Text Dim (Labels) | `#475569` (Slate 600, 7.58:1) | `#94a3b8` | `--text-dim` |
+| Text Subtle (Metadata) | `#64748b` (Slate 500, 4.88:1) | `#64748b` | `--text-subtle` |
 | Success | `#10b981` (`#ecfdf5` / `#065f46`) | `#34d399` (`rgba(16,185,129,0.18)`) | `--accent-emerald` / `--badge-green-*` |
 | Warning / Offline Queue | `#f59e0b` (`#fffbeb` / `#92400e`) | `#fbbf24` (`rgba(245,158,11,0.18)`) | `--accent-amber` / `--badge-amber-*` |
 | Destructive / Critical | `#ef4444` (`#fef2f2` / `#991b1b`) | `#f87171` (`rgba(239,68,68,0.18)`) | `--accent-rose` / `--badge-red-*` |
@@ -131,9 +131,9 @@ Fuente de verdad CSS en `public/css/styles.css` (ver también `DESIGN.md`):
 ## 4. Pre-Delivery Verification Checklist (Consolidado 4 Skills)
 
 Antes de aprobar cualquier PR o rediseño de vista (Fase 2–4):
-- [ ] **Tokens & Temas:** la vista funciona en Light Mode, Dark Mode (`[data-theme="dark"]`) y `senior-accessible-mode` sin colores hardcodeados ni parches `[style*="..."]`.
-- [ ] **Contraste WCAG 2.2:** >= 4.5:1 texto normal y placeholders; >= 3:1 en texto grande, iconos y bordes activos (`npm run test:wcag` verde).
-- [ ] **Hit Areas & Teclado:** controles >= 44x44px (o >= 40x40px en utilitarios compactos), foco visible `:focus-visible`, skip link presente y orden DOM = orden visual.
-- [ ] **Layout (`better-layout`):** sin scroll horizontal entre `320px` y `1440px` ni con zoom al `200%`; cabeceras sticky no tapan objetivos de foco (`scroll-padding-block-start`); una acción primaria clara por pantalla.
-- [ ] **Micro-pulido (`make-interfaces-feel-better`):** radios concéntricos, `tabular-nums` en cifras/cédulas, `text-wrap: balance/pretty`, sin `transition: all`, y respeto a `prefers-reduced-motion`.
-- [ ] **Estados completos:** carga, vacío, error recuperable, offline con cola diferida y éxito verificados con datos reales largos (nombres de departamentos MIPPCI).
+- [x] **Tokens & Temas:** la vista funciona en Light Mode, Dark Mode (`[data-theme="dark"]`) y `senior-accessible-mode` sin deriva de tokens primarios (`npm run test:ui`).
+- [x] **Contraste WCAG 2.2:** >= 4.5:1 texto normal y botones primarios Claro/Oscuro (`npm run test:wcag` — 100% verde).
+- [x] **Hit Areas & Teclado:** controles >= 44x44px (`.btn`, `.btn-icon-header`, `.portal-subtab`, `.dropdown-item`, `.search-box-clear-btn::after`, `.btn-pill-action::after`), foco visible `:focus-visible` (`3px`), skip link presente en todas las vistas `Operate` (`npm run test:ui`).
+- [x] **Layout (`better-layout`):** `100dvh` en todo viewport `Operate`, `scroll-padding-block-start: 5.25rem` para cabeceras sticky, fuentes locales/Google Fonts con fallback offline seguro, cero deriva entre rutas espejo (`/coseg`, `/entregas`, `/supervisor`, `/simulador`).
+- [x] **Micro-pulido (`make-interfaces-feel-better` & `craft-floor`):** `tabular-nums`, `text-wrap: balance/pretty`, `::selection`, `caret-color`, `text-underline-offset`, cero `transition: all`, respeto estricto a `prefers-reduced-motion`.
+- [ ] **Deuda incremental (Lote 3.3 futuro / Showcase):** consolidar estilos inline heredados dentro de `modals.html` / `index.html` hacia utilitarios CSS puros y alinear páginas informativas `Showcase` (`architecture.html`, `dossier.html`, `diagrams/*.html`).

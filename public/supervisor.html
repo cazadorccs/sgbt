@@ -256,11 +256,16 @@
       font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: 0.05em;
-      outline: none;
       width: 100%;
       box-sizing: border-box;
       transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
       font-family: var(--font-mono, 'JetBrains Mono', monospace);
+      font-variant-numeric: tabular-nums;
+      caret-color: var(--sup-primary);
+    }
+
+    .sup-search-input:focus:not(:focus-visible) {
+      outline: none;
     }
 
     .sup-search-input:focus {
