@@ -509,7 +509,14 @@ function initializeDatabase() {
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_demo_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN supervisor_qr_mode INTEGER DEFAULT 0"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN is_census_locked INTEGER DEFAULT 0"); } catch (e) {}
-  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_cutoff_date TEXT DEFAULT '2026-11-12T23:59:59'"); } catch (e) {}
+  try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_cutoff_date TEXT DEFAULT '2026-11-22T23:59:59'"); } catch (e) {}
+  try {
+    db.exec(`
+      UPDATE tenant_settings
+      SET census_cutoff_date = '2026-11-22T23:59:59'
+      WHERE census_cutoff_date IS NULL OR census_cutoff_date = '2026-11-12T23:59:59';
+    `);
+  } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_locked_at TEXT"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_locked_by TEXT"); } catch (e) {}
   try { db.exec("ALTER TABLE tenant_settings ADD COLUMN census_lock_reason TEXT"); } catch (e) {}

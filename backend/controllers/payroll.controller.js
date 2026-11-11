@@ -505,7 +505,7 @@ const handleBatchImport = (req, res) => {
     registrados: registradosCount,
     department_warnings: departmentWarnings,
     warnings_count: departmentWarnings.length,
-    deadline_date: '2026-11-12',
+    deadline_date: '2026-11-22',
     campaign_date: '2026-11-27',
     message: departmentWarnings.length > 0
       ? `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} en base de datos, ${departmentWarnings.length} advertencias de discrepancias tipográficas en departamentos normalizadas).`
@@ -522,7 +522,7 @@ const getEnrollmentStats = (req, res) => {
 
     res.json({
       success: true,
-      deadline_date: '2026-11-12',
+      deadline_date: '2026-11-22',
       campaign_date: '2026-11-27',
       total_workers: totalWorkers,
       precargados,

@@ -604,7 +604,7 @@ window.setupAuth = function() {
     btnToggleDemo?.click();
   });
 
-  // Consulta / Formalización de Beneficiario Institucional (Jornada 27/Nov - Límite 12/Nov)
+  // Consulta / Formalización de Beneficiario Institucional (Jornada 27/Nov - Límite 22/Nov)
   const btnCheckEnrollment = document.getElementById('btnCheckBeneficiaryEnrollment');
   btnCheckEnrollment?.addEventListener('click', async () => {
     const docType = document.getElementById('loginDocType')?.value || 'V';
@@ -833,7 +833,7 @@ async function executeLogin(rawDocId) {
       if (typeof window.openBeneficiaryEnrollmentModal === 'function') {
         window.openBeneficiaryEnrollmentModal(data.worker, data.deadline_date, data.campaign_date);
       }
-      showLoginAlert(data.message || 'Debe formalizar su registro (clave y fotografía) antes del 12 de Noviembre de 2026.');
+      showLoginAlert(data.message || 'Debe formalizar su registro (clave y fotografía) antes del 22 de Noviembre de 2026.');
       return;
     }
 
@@ -1542,7 +1542,7 @@ window.checkAuthSession = function() {
 // ============================================================================
 // ============================================================================
 // GESTIÓN DE FORMALIZACIÓN DE BENEFICIARIOS (PRECARGADO -> REGISTRADO)
-// Plazo: 12/Noviembre/2026 | Gran Jornada: 27/Noviembre/2026
+// Plazo: 22/Noviembre/2026 | Gran Jornada: 27/Noviembre/2026
 // ============================================================================
 
 let currentEnrollmentWorker = null;

@@ -1,7 +1,7 @@
 // public/js/modules/ministerial_audit.js
 // ============================================================================
 // MÓDULO FRONTEND: MONITOR DE FORMALIZACIÓN PREVIA Y AUDITORÍA MINISTERIAL (FASE 5)
-// Fecha Límite Cierre Censo: 12/Nov/2026 | Gran Jornada de Despacho: 27/Nov/2026
+// Fecha Límite Cierre Censo: 22/Nov/2026 | Gran Jornada de Despacho: 27/Nov/2026
 // ============================================================================
 
 (function() {
@@ -209,7 +209,7 @@
           badgeTab.style.background = '#ef4444';
         }
         if (lockBadge) {
-          lockBadge.textContent = 'CONGELADO (12/Nov)';
+          lockBadge.textContent = 'CONGELADO (22/Nov)';
           lockBadge.style.background = '#ef4444';
         }
         if (lockIcon) lockIcon.textContent = '🔒';
@@ -229,7 +229,7 @@
         }
         if (lockIcon) lockIcon.textContent = '🔓';
         if (btnToggleLock) {
-          btnToggleLock.textContent = '🔒 Congelar al 12/Nov';
+          btnToggleLock.textContent = '🔒 Congelar al 22/Nov';
           btnToggleLock.style.color = '#b91c1c';
           btnToggleLock.style.borderColor = '#ef4444';
         }
@@ -522,7 +522,7 @@
     },
 
     openRezagadoNotice(cedula, name, dept) {
-      const noticeText = `Estimado(a) ${name} (C.I. ${cedula}), de la unidad ${dept}:\n\nSe le convoca formalmente con carácter de URGENCIA a completar su proceso de registro biométrico (Selfie + Clave de Acceso) en la plataforma institucional del MIPPCI antes del Cierre Definitivo del 12 de Noviembre de 2026, requisito indispensable para el retiro de su beneficio alimentario en la Gran Jornada Nacional del 27 de Noviembre de 2026.`;
+      const noticeText = `Estimado(a) ${name} (C.I. ${cedula}), de la unidad ${dept}:\n\nSe le convoca formalmente con carácter de URGENCIA a completar su proceso de registro biométrico (Selfie + Clave de Acceso) en la plataforma institucional del MIPPCI antes del Cierre Definitivo del 22 de Noviembre de 2026, requisito indispensable para el retiro de su beneficio alimentario en la Gran Jornada Nacional del 27 de Noviembre de 2026.`;
       
       if (navigator.clipboard) {
         navigator.clipboard.writeText(noticeText).then(() => {
@@ -551,7 +551,7 @@
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `rezagados_censo_mippci_cierre_12nov_${new Date().toISOString().slice(0, 10)}.csv`;
+        a.download = `rezagados_censo_mippci_cierre_22nov_${new Date().toISOString().slice(0, 10)}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -573,7 +573,7 @@
       const confirmAction = confirm(
         isLocked 
           ? '¿Desea LEVANTAR el congelamiento del padrón y habilitar una prórroga extraordinaria de auto-formalización biométrica?'
-          : '¿Desea CONGELAR el padrón institucional al 12/Nov/2026? A partir de este momento se bloquearán nuevas formalizaciones móviles (HTTP 423 Locked).'
+          : '¿Desea CONGELAR el padrón institucional al 22/Nov/2026? A partir de este momento se bloquearán nuevas formalizaciones móviles (HTTP 423 Locked).'
       );
 
       if (!confirmAction) return;
@@ -585,7 +585,7 @@
           headers,
           body: JSON.stringify({
             lock: !isLocked,
-            reason: isLocked ? 'Apertura de prórroga extraordinaria por RRHH' : 'Cierre formal de censo al 12 de Noviembre de 2026'
+            reason: isLocked ? 'Apertura de prórroga extraordinaria por RRHH' : 'Cierre formal de censo al 22 de Noviembre de 2026'
           })
         });
 

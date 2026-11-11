@@ -20,7 +20,7 @@ router.get('/audit/ministerial/rezagados', authenticate, controller.listRezagado
 // 3. Exportación oficial de Rezagados a CSV para citaciones de RRHH (BOM UTF-8)
 router.get('/audit/ministerial/rezagados/export', authenticate, controller.exportRezagadosCsv);
 
-// 4. Estado de congelamiento del censo previo (Cierre 12/Nov)
+// 4. Estado de congelamiento del censo previo (Cierre 22/Nov)
 router.get('/audit/ministerial/census-lock', authenticate, controller.getCensusLockStatus);
 
 // 5. Control administrativo de congelamiento / prórroga del censo (Admin / Director)

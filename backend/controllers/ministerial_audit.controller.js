@@ -55,7 +55,7 @@ const getMinisterialMonitorStats = (req, res) => {
       SELECT 
         entity_name, entity_short_name, slogan, 
         COALESCE(is_census_locked, 0) as is_census_locked,
-        COALESCE(census_cutoff_date, '2026-11-12T23:59:59') as census_cutoff_date,
+        COALESCE(census_cutoff_date, '2026-11-22T23:59:59') as census_cutoff_date,
         census_locked_at, census_locked_by, census_lock_reason
       FROM tenant_settings 
       WHERE id = 'current_tenant'
@@ -63,7 +63,7 @@ const getMinisterialMonitorStats = (req, res) => {
       entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
       entity_short_name: 'MIPPCI',
       is_census_locked: 0,
-      census_cutoff_date: '2026-11-12T23:59:59'
+      census_cutoff_date: '2026-11-22T23:59:59'
     };
 
     // Padrón General
@@ -338,7 +338,7 @@ const exportRezagadosCsv = (req, res) => {
     const csvContent = '\uFEFF' + rows.join('\r\n');
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="rezagados_censo_mippci_cierre_12nov.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="rezagados_censo_mippci_cierre_22nov.csv"`);
     return res.send(csvContent);
   } catch (err) {
     console.error('[EXPORT REZAGADOS CSV ERROR]', err);
@@ -354,7 +354,7 @@ const getCensusLockStatus = (req, res) => {
     const tenant = db.prepare(`
       SELECT 
         COALESCE(is_census_locked, 0) as is_census_locked,
-        COALESCE(census_cutoff_date, '2026-11-12T23:59:59') as census_cutoff_date,
+        COALESCE(census_cutoff_date, '2026-11-22T23:59:59') as census_cutoff_date,
         census_locked_at, census_locked_by, census_lock_reason
       FROM tenant_settings 
       WHERE id = 'current_tenant'
@@ -367,7 +367,7 @@ const getCensusLockStatus = (req, res) => {
       reason: tenant ? tenant.census_lock_reason : null,
       census_lock: {
         is_locked: isLocked,
-        cutoff_date: tenant ? tenant.census_cutoff_date : '2026-11-12T23:59:59',
+        cutoff_date: tenant ? tenant.census_cutoff_date : '2026-11-22T23:59:59',
         locked_at: tenant ? tenant.census_locked_at : null,
         locked_by: tenant ? tenant.census_locked_by : null,
         reason: tenant ? tenant.census_lock_reason : null
@@ -542,7 +542,7 @@ const generateMinisterialActa = (req, res) => {
       institution: tenant.entity_name || 'MIPPCI',
       short_name: tenant.entity_short_name || 'MIPPCI',
       campaign_date: '2026-11-27',
-      census_cutoff_date: tenant.census_cutoff_date || '2026-11-12T23:59:59',
+      census_cutoff_date: tenant.census_cutoff_date || '2026-11-22T23:59:59',
       generated_at: nowIso,
       generated_by: generatedBy,
       metrics: {

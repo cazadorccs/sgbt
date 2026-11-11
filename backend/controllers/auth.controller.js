@@ -440,7 +440,7 @@ const login = async (req, res) => {
           enrollment_status: 'precargado'
         },
         onboarding_token: onboardingToken,
-        deadline_date: '2026-11-12',
+        deadline_date: '2026-11-22',
         campaign_date: '2026-11-27',
         message: 'Por motivos de seguridad, debe formalizar su registro y asignar su contraseña de acceso institucional.'
       });
@@ -736,7 +736,7 @@ const checkEnrollmentStatus = async (req, res) => {
     res.json({
       success: true,
       found: true,
-      deadline_date: '2026-11-12',
+      deadline_date: '2026-11-22',
       campaign_date: '2026-11-27',
       worker: {
         id: worker.id,
@@ -778,18 +778,18 @@ const enrollBeneficiary = async (req, res) => {
   const cleanDoc = document_id.trim().toUpperCase();
   const digitsOnly = cleanDoc.replace(/[^0-9]/g, '');
 
-  // Verificación de Congelamiento / Cierre del Padrón (Fase 5 - Cierre 12/Nov)
+  // Verificación de Congelamiento / Cierre del Padrón (Fase 5 - Cierre 22/Nov)
   try {
     const tenant = db.prepare("SELECT is_census_locked, census_cutoff_date FROM tenant_settings WHERE id = 'current_tenant'").get();
     const isLocked = tenant && tenant.is_census_locked === 1;
-    const cutoffDate = (tenant && tenant.census_cutoff_date) ? new Date(tenant.census_cutoff_date) : new Date('2026-11-12T23:59:59');
+    const cutoffDate = (tenant && tenant.census_cutoff_date) ? new Date(tenant.census_cutoff_date) : new Date('2026-11-22T23:59:59');
     const isPastCutoff = new Date() > cutoffDate;
 
     if (isLocked || (isPastCutoff && tenant && tenant.is_census_locked !== 0)) {
       return res.status(423).json({
-        error: '¡PERÍODO DE FORMALIZACIÓN CERRADO! El censo previo para la Gran Jornada cerró el 12 de Noviembre de 2026. Comuníquese con la Dirección General de Gestión Humana (RRHH).',
+        error: '¡PERÍODO DE FORMALIZACIÓN CERRADO! El censo previo para la Gran Jornada cerró el 22 de Noviembre de 2026. Comuníquese con la Dirección General de Gestión Humana (RRHH).',
         code: 'CENSUS_LOCKED',
-        deadline_date: '2026-11-12'
+        deadline_date: '2026-11-22'
       });
     }
   } catch (e) {
