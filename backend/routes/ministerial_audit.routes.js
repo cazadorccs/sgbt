@@ -11,6 +11,9 @@ const { authenticate, requireRole } = require('../middleware/auth.middleware');
 // 1. Estadísticas, KPIs gerenciales y semaforización de formalización por dirección
 router.get('/audit/ministerial/stats', authenticate, controller.getMinisterialMonitorStats);
 
+// 1B. Inspección nominal de integrantes de una dependencia específica
+router.get('/audit/ministerial/departments/:id/workers', authenticate, controller.listDepartmentWorkers);
+
 // 2. Directorio nominal y búsqueda de rezagados (personal sin clave / selfie)
 router.get('/audit/ministerial/rezagados', authenticate, controller.listRezagados);
 

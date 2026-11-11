@@ -13,6 +13,10 @@
     filteredRezagados: [],
     allDepartments: [],
     isCensusLocked: false,
+    expandedDepts: new Set(),
+    deptWorkersCache: new Map(),
+    loadingDepts: new Set(),
+    currentDeptFilterQuery: '',
 
     init() {
       console.log('⚖️ [MinisterialAudit] Inicializando Módulo de Auditoría Ministerial v5.0...');
@@ -68,7 +72,19 @@
       if (inputFilterDepts) {
         inputFilterDepts.addEventListener('input', (e) => {
           const query = e.target.value.toLowerCase().trim();
+          this.currentDeptFilterQuery = query;
           this.renderDepartments(query);
+        });
+      }
+
+      // Despliegue interactivo de integrantes por Dependencia (Event Delegation)
+      const deptsTbody = document.getElementById('ministerialDeptsTableBody');
+      if (deptsTbody) {
+        deptsTbody.addEventListener('click', (e) => {
+          const toggleBtn = e.target.closest('.dept-inspect-toggle');
+          if (toggleBtn && toggleBtn.dataset.deptId) {
+            this.toggleDepartmentInspection(toggleBtn.dataset.deptId);
+          }
         });
       }
 
@@ -128,8 +144,9 @@
             this.monitorData = statsData.monitor;
             this.isCensusLocked = !!statsData.monitor.census_lock.is_locked;
             this.allDepartments = statsData.monitor.departments || [];
+            this.deptWorkersCache.clear();
             this.renderStats(statsData.monitor);
-            this.renderDepartments();
+            this.renderDepartments(this.currentDeptFilterQuery);
             this.populateDeptFilterSelect(this.allDepartments);
             this.renderActasHistory(statsData.monitor.latest_acta);
           }
@@ -219,7 +236,127 @@
       }
     },
 
+    async toggleDepartmentInspection(deptId) {
+      if (this.expandedDepts.has(deptId)) {
+        this.expandedDepts.delete(deptId);
+        this.renderDepartments(this.currentDeptFilterQuery);
+        return;
+      }
+
+      this.expandedDepts.add(deptId);
+
+      if (!this.deptWorkersCache.has(deptId)) {
+        this.loadingDepts.add(deptId);
+        this.renderDepartments(this.currentDeptFilterQuery);
+
+        try {
+          const headers = this.getHeaders();
+          const res = await fetch(`/api/v1/audit/ministerial/departments/${encodeURIComponent(deptId)}/workers`, { headers });
+          if (!res.ok) {
+            throw new Error(`Error HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          if (data.success) {
+            this.deptWorkersCache.set(deptId, { workers: data.workers || [] });
+          } else {
+            throw new Error(data.error || 'Error cargando integrantes');
+          }
+        } catch (err) {
+          console.error('❌ [MinisterialAudit] Error inspeccionando dependencia:', err);
+          this.deptWorkersCache.set(deptId, { error: err.message });
+        } finally {
+          this.loadingDepts.delete(deptId);
+        }
+      }
+
+      this.renderDepartments(this.currentDeptFilterQuery);
+    },
+
+    renderDepartmentInspectionRow(dept) {
+      const isLoading = this.loadingDepts.has(dept.id);
+      const cached = this.deptWorkersCache.get(dept.id);
+
+      let contentHtml = '';
+      if (isLoading) {
+        contentHtml = `
+          <div style="padding: 1rem; text-align: center; color: #64748b; font-size: 0.78rem;">
+            ⏳ Cargando lista nominal de integrantes de <strong>${window.escapeHtml(dept.name)}</strong>...
+          </div>
+        `;
+      } else if (cached && cached.error) {
+        contentHtml = `
+          <div style="padding: 0.85rem; text-align: center; color: #dc2626; font-size: 0.78rem;">
+            ⚠️ No se pudieron cargar los integrantes: ${window.escapeHtml(cached.error)}
+          </div>
+        `;
+      } else {
+        const workers = (cached && Array.isArray(cached.workers)) ? cached.workers : [];
+        if (workers.length === 0) {
+          contentHtml = `
+            <div style="padding: 1rem; text-align: center; color: #64748b; font-size: 0.78rem;">
+              No hay integrantes activos registrados en esta dependencia.
+            </div>
+          `;
+        } else {
+          const rowsHtml = workers.map((w, idx) => {
+            const isFormalized = w.enrollment_status === 'registrado';
+            const statusBadge = isFormalized
+              ? '<span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 700; font-size: 0.68rem;">✅ Formalizado</span>'
+              : '<span class="badge" style="background: #fef3c7; color: #b45309; font-weight: 700; font-size: 0.68rem;">⏳ Precargado</span>';
+            return `
+              <tr>
+                <td class="text-mono" style="width: 56px; font-weight: 700; color: #64748b;" data-tabular="true">${idx + 1}</td>
+                <td style="font-weight: 600;">${window.escapeHtml(w.full_name)}</td>
+                <td class="text-mono" style="font-weight: 600;" data-tabular="true">${window.escapeHtml(w.document_id)}</td>
+                <td style="width: 130px; text-align: right;">${statusBadge}</td>
+              </tr>
+            `;
+          }).join('');
+
+          contentHtml = `
+            <div class="dept-inspect-table-wrap">
+              <table class="dept-inspect-table">
+                <thead>
+                  <tr>
+                    <th style="width: 56px;">N°</th>
+                    <th>Nombre y Apellido</th>
+                    <th>Cédula de Identidad</th>
+                    <th style="width: 130px; text-align: right;">Estatus</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+      }
+
+      const workerCount = cached && Array.isArray(cached.workers) ? cached.workers.length : (dept.total_workers || 0);
+
+      return `
+        <tr class="dept-inspect-row" data-inspect-for="${window.escapeHtml(dept.id)}">
+          <td colspan="7">
+            <div class="dept-inspect-card">
+              <div class="dept-inspect-header">
+                <div>
+                  <strong>👥 Integrantes de:</strong> ${window.escapeHtml(dept.name)}
+                  <span class="text-mono" style="margin-left: 0.4rem; opacity: 0.75;">(${window.escapeHtml(dept.cost_center || dept.code || 'S/C')})</span>
+                </div>
+                <span class="badge" style="background: #e0f2fe; color: #025988; font-weight: 700; font-size: 0.7rem;">
+                  ${workerCount} ${workerCount === 1 ? 'integrante' : 'integrantes'}
+                </span>
+              </div>
+              ${contentHtml}
+            </div>
+          </td>
+        </tr>
+      `;
+    },
+
     renderDepartments(filterQuery = '') {
+      this.currentDeptFilterQuery = filterQuery;
       const tbody = document.getElementById('ministerialDeptsTableBody');
       if (!tbody) return;
 
@@ -258,10 +395,19 @@
           barColor = '#10b981';
         }
 
-        return `
+        const isExpanded = this.expandedDepts.has(dept.id);
+
+        const mainRow = `
           <tr style="border-bottom: 1px solid #f1f5f9;">
             <td style="padding: 0.55rem 0.75rem;">${lightBadge}</td>
-            <td style="padding: 0.55rem 0.75rem; font-weight: 600; color: #1e293b;">${window.escapeHtml(dept.name)}</td>
+            <td style="padding: 0.55rem 0.75rem;">
+              <button type="button" class="dept-inspect-toggle" data-dept-id="${window.escapeHtml(dept.id)}" aria-expanded="${isExpanded ? 'true' : 'false'}" title="Presione para desplegar e inspeccionar la lista de integrantes">
+                <span class="dept-inspect-chevron" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </span>
+                <span>${window.escapeHtml(dept.name)}</span>
+              </button>
+            </td>
             <td style="padding: 0.55rem 0.75rem; color: #64748b;" class="text-mono">${window.escapeHtml(dept.cost_center || dept.code || 'S/C')}</td>
             <td style="padding: 0.55rem 0.75rem; text-align: right; font-weight: 600;">${dept.total_workers || 0}</td>
             <td style="padding: 0.55rem 0.75rem; text-align: right; color: #059669; font-weight: 700;">${dept.formalized_count || 0}</td>
@@ -278,6 +424,8 @@
             </td>
           </tr>
         `;
+
+        return isExpanded ? mainRow + this.renderDepartmentInspectionRow(dept) : mainRow;
       }).join('');
     },
 

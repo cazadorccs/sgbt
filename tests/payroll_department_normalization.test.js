@@ -112,6 +112,25 @@ console.log('  ✅ 3. El trabajador fue asignado al ID canónico existente sin c
 // Limpieza del trabajador de prueba
 db.prepare("DELETE FROM workers WHERE document_id = 'V-99887766'").run();
 
+// 4. Verificar Endpoint de Inspección Desplegable de Integrantes (listDepartmentWorkers)
+console.log('Test 3: Inspección Nominal de Integrantes por Dependencia');
+const { listDepartmentWorkers } = require('../backend/controllers/ministerial_audit.controller');
+let deptWorkersRes = null;
+listDepartmentWorkers(
+  { params: { id: canonicalOtic.id } },
+  {
+    status: (code) => ({ json: (data) => { deptWorkersRes = { code, data }; return deptWorkersRes; } }),
+    json: (data) => { deptWorkersRes = { code: 200, data }; return deptWorkersRes; }
+  }
+);
+
+assert(deptWorkersRes && deptWorkersRes.code === 200, 'listDepartmentWorkers debe responder HTTP 200');
+assert(deptWorkersRes.data.success, 'listDepartmentWorkers debe responder success=true');
+assert(Array.isArray(deptWorkersRes.data.workers) && deptWorkersRes.data.workers.length > 0, 'Debe retornar la lista de integrantes de OTIC');
+assert(deptWorkersRes.data.workers[0].full_name && deptWorkersRes.data.workers[0].document_id, 'Cada integrante debe incluir Nombre y Apellido y Cédula');
+console.log(`  ✅ 4. Inspección desplegable verificada: ${deptWorkersRes.data.workers.length} integrantes recuperados con Nombre y Cédula.`);
+
 console.log('================================================================');
 console.log('🎉 TODAS LAS PRUEBAS DE NORMALIZACIÓN DEPARTAMENTAL PASARON AL 100%');
 console.log('================================================================');
+

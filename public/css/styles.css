@@ -5100,6 +5100,169 @@ body.dark-mode .search-box-clear-btn:hover {
   background-color: rgba(248, 113, 113, 0.15);
 }
 
+/* ============================================================================
+   INSPECCIÓN DESPLEGABLE DE DEPENDENCIAS (SEMÁFORO DE CUMPLIMIENTO)
+   ============================================================================ */
+.dept-inspect-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0.2rem 0.35rem;
+  margin: -0.2rem -0.35rem;
+  border-radius: 6px;
+  text-align: left;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.dept-inspect-toggle:hover {
+  background-color: rgba(2, 132, 199, 0.08);
+  color: #0284c7;
+}
+
+.dept-inspect-toggle[aria-expanded="true"] {
+  color: #0284c7;
+}
+
+.dept-inspect-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.14);
+  color: #475569;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.dept-inspect-toggle[aria-expanded="true"] .dept-inspect-chevron {
+  transform: rotate(90deg);
+  background: #0284c7;
+  color: #ffffff;
+}
+
+.dept-inspect-row td {
+  background: #f8fafc;
+  padding: 0.75rem 1rem 1rem 1rem !important;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.dept-inspect-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.dept-inspect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.76rem;
+}
+
+.dept-inspect-table-wrap {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.dept-inspect-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.dept-inspect-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dept-inspect-table td {
+  padding: 0.42rem 0.75rem !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+  background: transparent !important;
+  color: #1e293b;
+}
+
+.dept-inspect-table tbody tr:hover td {
+  background: rgba(2, 132, 199, 0.04) !important;
+}
+
+/* Soporte Modo Oscuro para Inspección de Dependencias */
+body.dark-mode .dept-inspect-toggle {
+  color: var(--text-main, #f1f5f9);
+}
+
+body.dark-mode .dept-inspect-toggle:hover,
+body.dark-mode .dept-inspect-toggle[aria-expanded="true"] {
+  background-color: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+}
+
+body.dark-mode .dept-inspect-chevron {
+  background: rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+body.dark-mode .dept-inspect-toggle[aria-expanded="true"] .dept-inspect-chevron {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+body.dark-mode .dept-inspect-row td {
+  background: rgba(15, 23, 42, 0.55) !important;
+  border-bottom-color: rgba(51, 65, 85, 0.8) !important;
+}
+
+body.dark-mode .dept-inspect-card {
+  background: #0f172a;
+  border-color: #334155;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body.dark-mode .dept-inspect-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+  color: #e2e8f0;
+}
+
+body.dark-mode .dept-inspect-table th {
+  background: #1e293b;
+  color: #94a3b8;
+  border-bottom-color: #334155;
+}
+
+body.dark-mode .dept-inspect-table td {
+  color: #e2e8f0;
+  border-bottom-color: rgba(51, 65, 85, 0.45) !important;
+}
+
+body.dark-mode .dept-inspect-table tbody tr:hover td {
+  background: rgba(56, 189, 248, 0.08) !important;
+}
+
 
 
 

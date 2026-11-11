@@ -179,6 +179,52 @@ const getMinisterialMonitorStats = (req, res) => {
 };
 
 /**
+ * 1B. Inspección nominal de integrantes de una dependencia específica
+ */
+const listDepartmentWorkers = (req, res) => {
+  try {
+    const deptId = String(req.params.id || '').trim();
+    if (!deptId) {
+      return res.status(400).json({ error: 'ID de departamento requerido' });
+    }
+
+    const department = db.prepare(`
+      SELECT id, code, name, cost_center
+      FROM departments
+      WHERE id = ?
+    `).get(deptId);
+
+    if (!department) {
+      return res.status(404).json({ error: 'Dependencia no encontrada' });
+    }
+
+    const workers = db.prepare(`
+      SELECT
+        w.id,
+        w.document_id,
+        w.full_name,
+        w.enrollment_status,
+        w.worker_type,
+        w.job_title,
+        w.email
+      FROM workers w
+      WHERE w.department_id = ? AND w.status = 'active'
+      ORDER BY w.full_name ASC
+    `).all(deptId);
+
+    return res.json({
+      success: true,
+      department,
+      total: workers.length,
+      workers
+    });
+  } catch (err) {
+    console.error('[MINISTERIAL DEPT WORKERS ERROR]', err);
+    return res.status(500).json({ error: 'Error consultando integrantes de la dependencia: ' + err.message });
+  }
+};
+
+/**
  * 2. Directorio nominal de rezagados (personal sin clave ni selfie)
  */
 const listRezagados = (req, res) => {
@@ -888,6 +934,7 @@ const printMinisterialActaHtml = async (req, res) => {
 
 module.exports = {
   getMinisterialMonitorStats,
+  listDepartmentWorkers,
   listRezagados,
   exportRezagadosCsv,
   getCensusLockStatus,
