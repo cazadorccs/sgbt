@@ -1,0 +1,1364 @@
+{
+  "resumen": {
+    "totalDefinitivo": 1079,
+    "totalNominaAnterior": 1122,
+    "coincidentes": 1058,
+    "nuevosIngresos": 21,
+    "desincorporados": 64,
+    "sobrantesEnDbActual": 79
+  },
+  "nuevosIngresos": [
+    {
+      "nro": "5",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "3974964",
+      "nombre": "VICTOR PE�A",
+      "fechaIngreso": "16/10/2026",
+      "unidad": "DIRECCION GENERAL DE ESTRATEGIA COMUNICACIONAL",
+      "cargo": "APOYO PROFESIONAL I (PRODUCTOR)"
+    },
+    {
+      "nro": "15",
+      "tipo": "OBRERO",
+      "ced": "4975945",
+      "nombre": "ALVARO RODRIGUEZ",
+      "fechaIngreso": "1/9/2014",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "CHOFER"
+    },
+    {
+      "nro": "38",
+      "tipo": "OBRERO",
+      "ced": "6103312",
+      "nombre": "RIVERO ARANGUREN, LUIS",
+      "fechaIngreso": "6/2/2012",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "AYUDANTE  DE SERVICIOS GENERALES"
+    },
+    {
+      "nro": "279",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "12170393",
+      "nombre": "ANGEL DUQUE FERNANDEZ",
+      "fechaIngreso": "11/11/2026",
+      "unidad": "DIRECCION GENERAL DE SEGUIMIENTO Y POLITICAS",
+      "cargo": "ASISTENTE ADMINISTRATIVO"
+    },
+    {
+      "nro": "283",
+      "tipo": "FUNCIONARIO",
+      "ced": "12268966",
+      "nombre": "JUAN CARLOS MARCANO",
+      "fechaIngreso": "2/11/2026",
+      "unidad": "OFIC. ESTRATEGICA DE SEGUIMIENTO Y EVALUACION DE POLITICAS PUBLICAS",
+      "cargo": "DIRECTOR"
+    },
+    {
+      "nro": "312",
+      "tipo": "OBRERO",
+      "ced": "12617531",
+      "nombre": "FRANCISCO ANTONIO CANTILLO ROMERO",
+      "fechaIngreso": "11/11/2026",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "CHOFER"
+    },
+    {
+      "nro": "314",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "12623251",
+      "nombre": "MOTTA SOL�RZANO ALEJANDRA VANESSA",
+      "fechaIngreso": "",
+      "unidad": "OFICINA ESTRATEGICA DE SEGUIMIENTO Y EVALUACION DE POLITICAS PUBLICAS",
+      "cargo": "ANALISTA"
+    },
+    {
+      "nro": "383",
+      "tipo": "OBRERO",
+      "ced": "13597994",
+      "nombre": "INES MARIA ESPARRAGOZA RODRIGUEZ",
+      "fechaIngreso": "19/6/2017",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "ASEADORA"
+    },
+    {
+      "nro": "431",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "14299945",
+      "nombre": "EILYN SARAY MICHELENA",
+      "fechaIngreso": "",
+      "unidad": "DIRECCION DE COMPRAS Y SERVICIOS",
+      "cargo": "ASISTENTE ADMINISTRATIVO"
+    },
+    {
+      "nro": "496",
+      "tipo": "OBRERO",
+      "ced": "15375738",
+      "nombre": "ALBERTO JOSE WILLIAM CARRASQUERO",
+      "fechaIngreso": "",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "MECANICO AUTOMOTRIZ"
+    },
+    {
+      "nro": "559",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "16411595",
+      "nombre": "DANIA MENDOZA RODRIGUEZ",
+      "fechaIngreso": "2/11/2026",
+      "unidad": "DIRECCION GENERAL DE ESTRATEGIA COMUNICACIONAL",
+      "cargo": "ASISTENTE ADMINISTRATIVO"
+    },
+    {
+      "nro": "577",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "16663860",
+      "nombre": "JORGE AVILA",
+      "fechaIngreso": "23/10/2026",
+      "unidad": "DIRECCION DE COMPRAS Y SERVICIOS",
+      "cargo": "ASISTENTE ADMINISTRATIVO"
+    },
+    {
+      "nro": "611",
+      "tipo": "FUNCIONARIO",
+      "ced": "17397796",
+      "nombre": "RONALD BERNARDO MIJARES CONDE",
+      "fechaIngreso": "15/10/2026",
+      "unidad": "OFIC. ESTRATEGICA DE SEGUIMIENTO Y EVALUACION DE POLITICAS PUBLICAS",
+      "cargo": "DIRECTOR"
+    },
+    {
+      "nro": "707",
+      "tipo": "AVP",
+      "ced": "19292575",
+      "nombre": "CORTEZ MARCANO, CAREN ANDREINA",
+      "fechaIngreso": "AYUDANTE DE SERVICIO DE COCINA",
+      "unidad": "DIRECCION GENERAL DEL DESPACHO/AVP",
+      "cargo": "ASISTENTE DE COCINA"
+    },
+    {
+      "nro": "732",
+      "tipo": "AVP",
+      "ced": "19720776",
+      "nombre": "CEBALLO PARABAI, ROSELIN JOSEFER",
+      "fechaIngreso": "COCINERA",
+      "unidad": "DIRECCION GENERAL DEL DESPACHO/AVP",
+      "cargo": "COCINERA"
+    },
+    {
+      "nro": "733",
+      "tipo": "FUNCIONARIO",
+      "ced": "19723983",
+      "nombre": "YOFRE JESUS RODRIGUEZ",
+      "fechaIngreso": "",
+      "unidad": "DIRECCI�N GENERAL DE MEDIOS ALTERNATIVOS  Y COMUNITARIOS",
+      "cargo": "COORDINADOR"
+    },
+    {
+      "nro": "767",
+      "tipo": "OBRERO",
+      "ced": "20588339",
+      "nombre": "HECTOR GONZALEZ GOMEZ",
+      "fechaIngreso": "",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "MECANICO AUTOMOTRIZ"
+    },
+    {
+      "nro": "798",
+      "tipo": "AVP",
+      "ced": "21346486",
+      "nombre": "MARCANO TORRIVILLA ERICKSON JOSE",
+      "fechaIngreso": "CHOFER",
+      "unidad": "DIRECCION GENERAL DEL DESPACHO/AVP",
+      "cargo": "CHOFER"
+    },
+    {
+      "nro": "833",
+      "tipo": "OBRERO",
+      "ced": "23619676",
+      "nombre": "DOUGLAS SILVA ACOSTA",
+      "fechaIngreso": "11/11/2026",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "CHOFER"
+    },
+    {
+      "nro": "937",
+      "tipo": "AVP",
+      "ced": "26911483",
+      "nombre": "GRAU JAIMES, DARIANA GABRIELA",
+      "fechaIngreso": "BACHILLER I",
+      "unidad": "DESPACHO/AVP",
+      "cargo": "ASISTENTE ADMINISTRATIVO"
+    },
+    {
+      "nro": "982",
+      "tipo": "EMPLEADO CONTRATADO",
+      "ced": "28136612",
+      "nombre": "�VILA ROJAS LEONARDO JES�S",
+      "fechaIngreso": "",
+      "unidad": "OFICINA ESTRATEGICA DE SEGUIMIENTO Y EVALUACION DE POLITICAS PUBLICAS",
+      "cargo": "ASISTENTE ADMINISTRATIVO"
+    }
+  ],
+  "desincorporadosNominaAnterior": [
+    {
+      "ced": "3974694",
+      "nombre": "VICTOR PEÑA",
+      "unidad": "DIRECCION GENERAL DE ESTRATEGIA COMUNICACIONAL",
+      "cargo": "",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "6853910",
+      "nombre": "CARLOS JESUS LOPEZ CASTRO",
+      "unidad": "DIRECCION GENERAL DE TRANSMISIONES",
+      "cargo": "OPERADOR DE TRANSPORTE",
+      "fechaIngreso": 42401
+    },
+    {
+      "ced": "11663549",
+      "nombre": "JESUS PEREZ",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "AYUDANTE DE COCINA",
+      "fechaIngreso": 45505
+    },
+    {
+      "ced": "12070781",
+      "nombre": "ALEJANDRO  JOSE  ARMAO  GONZALEZ",
+      "unidad": "DIRECCION DE PUBLICACIONES",
+      "cargo": "COORDINADOR DE EDICIÃ“N",
+      "fechaIngreso": 45901
+    },
+    {
+      "ced": "15099586",
+      "nombre": "YAMIL DE LOS ANGELES RODRIGUEZ COLMENARES",
+      "unidad": "DIRECCION GENERAL DE MEDIOS ALTERNATIVOS Y COMUNITARIOS / COORDINADOR MAC (OIR CARACAS)",
+      "cargo": "COORDINADOR DE LA OIR (DISTRITO CAPITAL)",
+      "fechaIngreso": 45779
+    },
+    {
+      "ced": "17428198",
+      "nombre": "PEÑA MELO, JHONNY ANTONIO",
+      "unidad": "DIRECCION DE PRESUPUESTO",
+      "cargo": "APOYO TECNICO II (ANALISTA)",
+      "fechaIngreso": 40330
+    },
+    {
+      "ced": "17979006",
+      "nombre": "CARLOS EDUARDO HURTADO TRUJILLO",
+      "unidad": "DIRECCION GENERAL DE PRODUCCION DE CONTENIDO",
+      "cargo": "APOYO PROFESIONAL I (DISEÑADOR GRAFICO)",
+      "fechaIngreso": 46034
+    },
+    {
+      "ced": "22112824",
+      "nombre": "MARYURI KATHERINE MORENO RODRIGUEZ",
+      "unidad": "DIRECCION GENERAL DE MEDIOS ALTERNATIVOS Y COMUNITARIOS",
+      "cargo": "COORDINADORA",
+      "fechaIngreso": 45779
+    },
+    {
+      "ced": "29969659",
+      "nombre": "MOISES EDUARDO CHIRINOS GONZALEZ",
+      "unidad": "DIRECCION DE SERVICIOS GENERALES",
+      "cargo": "APOYO ADMINISTRATIVO III (ASISTENTE DE ANALISTA",
+      "fechaIngreso": 44652
+    },
+    {
+      "ced": "8870418",
+      "nombre": "LEONCIO ARAY",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "LOCUTOR DE CABINA",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "10111088",
+      "nombre": "HECTOR EDUARDO PALENCIA MOGOLLON",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "MENSAJERO",
+      "fechaIngreso": 46062
+    },
+    {
+      "ced": "10502028",
+      "nombre": "ALFONSO MARTIN PRIETO BLANCO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "ASISTENTE INTEGRAL",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "11557734",
+      "nombre": "FLERIDA COLUMBA FAJARDO HERNANDEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "DIRECTORA",
+      "fechaIngreso": 44319
+    },
+    {
+      "ced": "12454570",
+      "nombre": "ANGELO PRIETO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "DIRECTOR GENERAL",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "13110679",
+      "nombre": "YOGUAR ALBERTO PEDROZA ROMERO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 45536
+    },
+    {
+      "ced": "13138539",
+      "nombre": "JOSE MANUEL BLANCO DIAZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "VICEPRESIDENCIA",
+      "fechaIngreso": 44319
+    },
+    {
+      "ced": "14032500",
+      "nombre": "WALTER EDUARDO HERNANDEZ MORENO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 45732
+    },
+    {
+      "ced": "14412997",
+      "nombre": "FRANCISCO BRICEÑO BASTIDAS",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 45581
+    },
+    {
+      "ced": "16604455",
+      "nombre": "RUBEN MENDEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "REDACTOR RR.SS",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "16900171",
+      "nombre": "LUISANA CASTRO MATOS",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "PERIODISTA",
+      "fechaIngreso": 45139
+    },
+    {
+      "ced": "17144629",
+      "nombre": "JHOSYREN NATALLY MENDEZ NUÑEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "DIRECTORA",
+      "fechaIngreso": 44335
+    },
+    {
+      "ced": "17651365",
+      "nombre": "GRENNER GONZALEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "PRODUCTOR",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "17802280",
+      "nombre": "ERICKA CRISTINA CLARO FERNÀNDEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "ASISTENTE ADMINISTRATIVO",
+      "fechaIngreso": 45139
+    },
+    {
+      "ced": "18331200",
+      "nombre": "LUIS ALBERTO GOMEZ MORA",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR TECNICO",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "18466961",
+      "nombre": "ROSMARI CAROLINA LOVERA CISNEROS",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "18555336",
+      "nombre": "OMAR ENRIQUE HERGUETA SANCHEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 45352
+    },
+    {
+      "ced": "18810274",
+      "nombre": "MAYERLIN LISSET GALLEGOS SUAREZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "PERIODISTA",
+      "fechaIngreso": 45721
+    },
+    {
+      "ced": "19753770",
+      "nombre": "ANTONIO JOSE VARGAS SALAS",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 45187
+    },
+    {
+      "ced": "19821845",
+      "nombre": "AMBAR ANGELICA ARAUJO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "REDACTORA",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "22021552",
+      "nombre": "PIERINA DESIREE SILVA RAMIREZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "PERIODISTA",
+      "fechaIngreso": 45581
+    },
+    {
+      "ced": "22502885",
+      "nombre": "ELWIN OMAR BERROTERAN",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR DE AUDIO",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "24523212",
+      "nombre": "GREY ANGGELA OROZCO VELEZ",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "COORDINADORA FINANZAS",
+      "fechaIngreso": 45691
+    },
+    {
+      "ced": "26159559",
+      "nombre": "JOSE ALEJANDRO GARCIA",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR DE AUDIO",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "27448168",
+      "nombre": "KEYVER ESCOBAR",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "REDACTOR RR.SS",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "28015690",
+      "nombre": "KEVIN BRICEÑO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "PRODUCTOR",
+      "fechaIngreso": 46266
+    },
+    {
+      "ced": "28309963",
+      "nombre": "DANIEL JOSE CASADIEGO FRANCO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 44683
+    },
+    {
+      "ced": "31425704",
+      "nombre": "FREDDY ISAIAS MANCILLA PAREDES",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "OPERADOR AL ÀIRE",
+      "fechaIngreso": 45581
+    },
+    {
+      "ced": "24906498",
+      "nombre": "YONAIKER PRIETO",
+      "unidad": "RADIO MIRAFLORES",
+      "cargo": "",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "18016764",
+      "nombre": "CARLOS ADRIAN BELTRAN HERNANDEZ",
+      "unidad": "CARAVANA",
+      "cargo": "CONDUCTOR DE LA PRIMERA PATRULLA Y AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "18418426",
+      "nombre": "LUIS GREGORIO ALFONZO PEREZ",
+      "unidad": "CARAVANA",
+      "cargo": "CMDTE DE DESTACAMENTO Nº102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "20622268",
+      "nombre": "LUIS GUILLERMO PAEZ MORA",
+      "unidad": "CARAVANA",
+      "cargo": "ADJUNTO AL  COMANDANTE DE DEST. Y AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "20928225",
+      "nombre": "JOSÉ LUIS TORRES MENDEZ",
+      "unidad": "CARAVANA",
+      "cargo": "CONDUCTOR DE LA PRIMERA PATRULLA Y AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "21335385",
+      "nombre": "LARRY JOSE PARISCA CARPIO",
+      "unidad": "CARAVANA",
+      "cargo": "CONDUTOR  Y AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "22627772",
+      "nombre": "YOHANNYS MARGARITA VILLARROEL FIGUEROA",
+      "unidad": "CARAVANA",
+      "cargo": "AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "25685791",
+      "nombre": "JAVIEL ALEXANDER LIMA FUENMAYOR",
+      "unidad": "CARAVANA",
+      "cargo": "CONDUTOR DE LA SEGUNDA PATRULLA Y AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "25922438",
+      "nombre": "MOISES ALEXANDER ANDRADE BOGADO",
+      "unidad": "CARAVANA",
+      "cargo": "AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "27335361",
+      "nombre": "ALEXANDER DANIEL BRITO RODRIGUEZ",
+      "unidad": "CARAVANA",
+      "cargo": "CONDUCTOR DE LA PRIMERA PATRULLA Y AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "32250460",
+      "nombre": "NAZARETH WILMAR RANGEL GUILLEN",
+      "unidad": "CARAVANA",
+      "cargo": "AGENTE DE PROTECCION DEL DESTACAMENTO Nº 102",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "9467919",
+      "nombre": "BELKYS  NEREIDA  SEVILLA  CACERES",
+      "unidad": "VPSCC",
+      "cargo": "CAMARERA",
+      "fechaIngreso": 41428
+    },
+    {
+      "ced": "9967346",
+      "nombre": "PEREZ MORILLO, CARLOS WLADIMIR",
+      "unidad": "VPSCC",
+      "cargo": "(ASISTENTE DEL MINISTRO)",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "11410654",
+      "nombre": "EMILIANO MONTES",
+      "unidad": "VPSCC",
+      "cargo": "SONIDISTA",
+      "fechaIngreso": 46157
+    },
+    {
+      "ced": "12391946",
+      "nombre": "LILIA MARQUEZ",
+      "unidad": "VPSCC",
+      "cargo": "DIRECTORA GENERAL (E )",
+      "fechaIngreso": 46157
+    },
+    {
+      "ced": "12815088",
+      "nombre": "LEONOR DE LA ROSA LOPEZ ROA",
+      "unidad": "VPSCC",
+      "cargo": "DIRECTORA GENERAL (E )",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "13866425",
+      "nombre": "BENJAMIN EDUARDO MARTINEZ HERNANDEZ",
+      "unidad": "VPSCC",
+      "cargo": "ANALISTA",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "15301170",
+      "nombre": "CARLOS CHIRIVELLA",
+      "unidad": "VPSCC",
+      "cargo": "APOYO TECNICO",
+      "fechaIngreso": 46157
+    },
+    {
+      "ced": "16248106",
+      "nombre": "MARIA ROSALES",
+      "unidad": "VPSCC",
+      "cargo": "EDITORA",
+      "fechaIngreso": 46157
+    },
+    {
+      "ced": "16471683",
+      "nombre": "DAVID MANUEL LAZARO SANCHEZ",
+      "unidad": "VPSCC",
+      "cargo": "ANALISTA",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "17143414",
+      "nombre": "MIGUELANGEL DEL VALLE MACHADO GARCIA",
+      "unidad": "VPSCC",
+      "cargo": "COORDINADOR DE AUDIOVISUALES",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "17693077",
+      "nombre": "DAYANA DURAN",
+      "unidad": "VPSCC",
+      "cargo": "FOTOGRAFA",
+      "fechaIngreso": 46157
+    },
+    {
+      "ced": "17802147",
+      "nombre": "HELYN JOHANA MALAVE LONGA",
+      "unidad": "VPSCC",
+      "cargo": "COORDINADORA DE DESPACHO / PRODUCTORA",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "17982241",
+      "nombre": "ALEJANDRA MARIA ACUÑA PERDIGON",
+      "unidad": "VPSCC",
+      "cargo": "DIRECTORA GENERAL (E )",
+      "fechaIngreso": ""
+    },
+    {
+      "ced": "20330939",
+      "nombre": "OMAR GOITE",
+      "unidad": "VPSCC",
+      "cargo": "CAMAROGRAFO",
+      "fechaIngreso": 46157
+    },
+    {
+      "ced": "20490689",
+      "nombre": "YURBIN SANCHEZ",
+      "unidad": "VPSCC",
+      "cargo": "SECRETARIA",
+      "fechaIngreso": 46152
+    },
+    {
+      "ced": "29565509",
+      "nombre": "XIMENA GONZALEZ",
+      "unidad": "VPSCC",
+      "cargo": "DIRECTORA GENERAL (E )",
+      "fechaIngreso": 46120
+    }
+  ],
+  "sobrantesEnDbActual": [
+    {
+      "id": "fdb4d82c-e11f-4d44-998d-b3cc0fa57d90",
+      "document_id": "V-18456123",
+      "full_name": "Carlos Eduardo Mendoza",
+      "department_id": "7525b779-f005-447f-bda0-0ab3881d7aff",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "594a7451-f3b9-4c58-9a26-78eb132d5300",
+      "document_id": "V-06894321",
+      "full_name": "Hilda Teresa Domínguez",
+      "department_id": "c5bea526-893e-4551-9f2b-ede32bf66989",
+      "worker_type": "jubilado",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "23eb7b65-d7f0-4281-a940-63db5302fdf7",
+      "document_id": "V-12345678",
+      "full_name": "Roberto Alexander Gómez",
+      "department_id": "2be54ab4-b37c-4dce-be96-7aee2885f291",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "d1794f4a-7dfa-47d6-97ed-0aee326a3aa4",
+      "document_id": "V-21555666",
+      "full_name": "Elena Sofía Morales",
+      "department_id": "7525b779-f005-447f-bda0-0ab3881d7aff",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "d8e1ab71-354c-409d-977a-f7fa510ca31e",
+      "document_id": "V-15888999",
+      "full_name": "Andrés David Silva",
+      "department_id": "2be54ab4-b37c-4dce-be96-7aee2885f291",
+      "worker_type": "contratado",
+      "role": "worker",
+      "status": "terminated"
+    },
+    {
+      "id": "03ff49f9-70c7-4177-9d28-ad833563d6f1",
+      "document_id": "V-14111222",
+      "full_name": "Miguel Ángel Torres (Despacho Almacén)",
+      "department_id": "7525b779-f005-447f-bda0-0ab3881d7aff",
+      "worker_type": "activo",
+      "role": "operator",
+      "status": "active"
+    },
+    {
+      "id": "d1388f41-9015-430f-891a-55ebee18fd5c",
+      "document_id": "V-13222333",
+      "full_name": "Lic. Claudia Patricia Vega (Supervisor RRHH)",
+      "department_id": "7525b779-f005-447f-bda0-0ab3881d7aff",
+      "worker_type": "activo",
+      "role": "supervisor",
+      "status": "active"
+    },
+    {
+      "id": "0149e33b-892d-43e3-92e8-f635e7a1d001",
+      "document_id": "V-11123987",
+      "full_name": "Ing. Juan Carlos Rivas (Director Gestión Humana)",
+      "department_id": "7525b779-f005-447f-bda0-0ab3881d7aff",
+      "worker_type": "activo",
+      "role": "admin",
+      "status": "active"
+    },
+    {
+      "id": "fc50937e-b898-4554-9388-d27af8adb2eb",
+      "document_id": "V-6853910",
+      "full_name": "Carlos Jesus Lopez Castro",
+      "department_id": "c5909ec1-8047-4897-b04a-ca4d640a85f9",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "9bd95845-70ba-420a-aff7-0714c21c4cb6",
+      "document_id": "V-11663549",
+      "full_name": "Jesus Perez",
+      "department_id": "18b62d93-52cb-489e-9dcb-d933a8d370ac",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "c04a451b-121e-4368-9d2a-f1bae547af24",
+      "document_id": "V-12070781",
+      "full_name": "Alejandro Jose Armao Gonzalez",
+      "department_id": "3325f7d4-49e1-467c-9402-18cd026b6337",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "588d942d-baa3-4dee-bef1-fbbe83577b52",
+      "document_id": "V-15099586",
+      "full_name": "Yamil de los Angeles Rodriguez Colmenares",
+      "department_id": "8d942346-437a-498c-bd97-cf397d281548",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "a25c5e61-0495-4f2b-ae9e-d318c2e7d2c8",
+      "document_id": "V-17428198",
+      "full_name": "Jhonny Antonio Peña Melo",
+      "department_id": "adec8ba7-6fb2-49da-9a9e-e76b85841968",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "07426c6d-4829-4049-b8fd-5c70c127fd5f",
+      "document_id": "V-17979006",
+      "full_name": "Carlos Eduardo Hurtado Trujillo",
+      "department_id": "fcf8b32e-55c1-464a-aa74-6c9db9fe27a4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "9346340b-6440-424d-839a-db1af1c84565",
+      "document_id": "V-22112824",
+      "full_name": "Maryuri Katherine Moreno Rodriguez",
+      "department_id": "b497f79d-0169-4d44-8fa9-4fe6d6bc8feb",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "252127fb-6995-4b37-bbcd-b77b791d71db",
+      "document_id": "V-29969659",
+      "full_name": "Moises Eduardo Chirinos Gonzalez",
+      "department_id": "18b62d93-52cb-489e-9dcb-d933a8d370ac",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "e1966504-f7bb-4bbc-963f-a4887179cc68",
+      "document_id": "V-8870418",
+      "full_name": "Leoncio Aray",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "51bebb41-b715-4f7a-a97c-8e944d63bd4d",
+      "document_id": "V-10111088",
+      "full_name": "Hector Eduardo Palencia Mogollon",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "fbddc77f-1a93-4a03-8c93-2efba8010c62",
+      "document_id": "V-10502028",
+      "full_name": "Alfonso Martin° Prieto Blanco",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "49e687b4-7ba1-496d-856c-137f0120a0b1",
+      "document_id": "V-11557734",
+      "full_name": "Flerida Columba Fajardo Hernandez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "656670b2-5287-4525-aa36-22f3cfdbcec3",
+      "document_id": "V-12454570",
+      "full_name": "Angelo Prieto",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "ad326a99-ef58-4081-8928-16e5dd6d3905",
+      "document_id": "V-13110679",
+      "full_name": "Yoguar Alberto Pedroza Romero",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "3094c177-deba-434d-bf5e-d34cef80a56e",
+      "document_id": "V-13138539",
+      "full_name": "Jose Manuel Blanco Diaz",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "1d4f1cb3-5f78-496f-b444-09efcc6f3b5b",
+      "document_id": "V-14032500",
+      "full_name": "Walter Eduardo Hernandez Moreno",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "da92a6bf-e572-41c0-bd32-4515d212d074",
+      "document_id": "V-14412997",
+      "full_name": "Francisco Briceño Bastidas",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "102a9ee2-9573-4e6d-a02d-2de0ddcdb7dd",
+      "document_id": "V-16604455",
+      "full_name": "Ruben° Mendez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "d5ad63d5-d0f7-43cc-82c8-e7c16e3da4e0",
+      "document_id": "V-16900171",
+      "full_name": "Luisana Castro Matos",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "b3453dad-3140-42a2-8198-5fc7d05e1396",
+      "document_id": "V-17144629",
+      "full_name": "Jhosyren° Natally Mendez Nuñez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "de87624f-b899-417e-ab9b-48185eccafa1",
+      "document_id": "V-17651365",
+      "full_name": "Grenner Gonzalez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "8cd0e447-c039-43b7-bedc-0b0232c0d468",
+      "document_id": "V-17802280",
+      "full_name": "Ericka Cristina Claro Fernàndez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "42b4d34a-36a4-40e2-8e76-fdffc116e6a8",
+      "document_id": "V-18331200",
+      "full_name": "Luis Alberto Gomez Mora",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "346fe7ce-21d5-4958-ac37-3ffed0fff50d",
+      "document_id": "V-18466961",
+      "full_name": "Rosmari Carolina Lovera Cisneros",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "3579bd25-e23f-4322-b720-70722cc599b5",
+      "document_id": "V-18555336",
+      "full_name": "Omar Enrique Hergueta Sanchez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "a50535e9-f6d9-4560-a8b2-ef5b931d6944",
+      "document_id": "V-18810274",
+      "full_name": "Mayerlin° Lisset Gallegos Suarez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "0b0dd060-e09a-4e8f-8ebb-a7e59c22a247",
+      "document_id": "V-19753770",
+      "full_name": "Antonio Jose Vargas Salas",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "759c84a0-84dc-4ac8-a275-1b40c118cef6",
+      "document_id": "V-19821845",
+      "full_name": "Ambar Angelica Araujo",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "133acf6e-1449-4fe7-a045-287484fc842d",
+      "document_id": "V-22021552",
+      "full_name": "Pierina Desiree Silva Ramirez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "f20748d4-c5f4-414c-97a1-3a93e5a8bd7a",
+      "document_id": "V-22502885",
+      "full_name": "Elwin° Omar Berroteran",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "65dc6ab2-1aed-4bc4-a922-b39576c2462d",
+      "document_id": "V-24523212",
+      "full_name": "Grey Anggela Orozco Velez",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "95e15ae5-fe5e-4ddc-b5d3-a047c0cf0be8",
+      "document_id": "V-26159559",
+      "full_name": "Jose Alejandro Garcia",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "a9aadafc-26aa-4b8d-a7d1-3cb67ed94c9f",
+      "document_id": "V-27448168",
+      "full_name": "Keyver Escobar",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "42b85640-360b-40db-ac30-5cfa7d627966",
+      "document_id": "V-28015690",
+      "full_name": "Kevin° Briceño",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "e9e009f2-b4ec-4a08-8aa5-69de3930f3c2",
+      "document_id": "V-28309963",
+      "full_name": "Daniel Jose Casadiego Franco",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "02293c5b-4d0b-45b3-84c0-5d9b2c430954",
+      "document_id": "V-31425704",
+      "full_name": "Freddy Isaias Mancilla Paredes",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "0ece2767-c5fc-42bc-8546-737f08ec7928",
+      "document_id": "V-24906498",
+      "full_name": "Yonaiker Prieto",
+      "department_id": "779d7157-b459-47ab-8ae0-22ef42f97dd4",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "02b415df-490a-4a4e-89e9-8daa339f9b9f",
+      "document_id": "V-18016764",
+      "full_name": "Carlos Adrian° Beltran° Hernandez",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "83d79d21-fe91-4517-8c4f-76f8e6fdf777",
+      "document_id": "V-18418426",
+      "full_name": "Luis Gregorio Alfonzo Perez",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "937f7195-e40f-4e3e-b9e8-042586fa984c",
+      "document_id": "V-20622268",
+      "full_name": "Luis Guillermo Paez Mora",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "62224125-1065-4d4c-864f-ace535ea7788",
+      "document_id": "V-20928225",
+      "full_name": "José Luis Torres Mendez",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "d89cc9a8-d988-47f8-aac5-3641d9ea8f95",
+      "document_id": "V-21335385",
+      "full_name": "Larry Jose Parisca Carpio",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "d148f548-5793-4d57-8a2a-b5967aa2413b",
+      "document_id": "V-22627772",
+      "full_name": "Yohannys Margarita Villarroel Figueroa",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "9c11fe8e-aa30-4fb5-b4b9-7f9c879c313c",
+      "document_id": "V-25685791",
+      "full_name": "Javiel Alexander Lima Fuenmayor",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "62a4eb22-23c0-467d-b00e-6bff1de33e71",
+      "document_id": "V-25922438",
+      "full_name": "Moises Alexander Andrade Bogado",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "f002b586-9124-451a-94eb-c0bd411303be",
+      "document_id": "V-27335361",
+      "full_name": "Alexander Daniel Brito Rodriguez",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "1ebfa887-b46e-4ba9-8179-ffb1415a3bc0",
+      "document_id": "V-32250460",
+      "full_name": "Nazareth Wilmar Rangel Guillen°",
+      "department_id": "7854e45a-453e-4779-a066-abc96d851997",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "d4c7dfc0-1cef-4bcc-93be-ed4475124524",
+      "document_id": "V-9467919",
+      "full_name": "Belkys Nereida Sevilla Caceres",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "f12f332d-a572-4b83-9e23-25382b8932b6",
+      "document_id": "V-9967346",
+      "full_name": "Carlos Wladimir Perez Morillo",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "a6e5fb72-7c19-4adb-854f-ae4230c6149d",
+      "document_id": "V-11410654",
+      "full_name": "Emiliano Montes",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "131f9bb9-2c4b-4eb6-86dd-d73992dddd33",
+      "document_id": "V-12391946",
+      "full_name": "Lilia Marquez",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "19b64f90-ffd3-47f2-9641-f085ab7dd7ba",
+      "document_id": "V-12815088",
+      "full_name": "Leonor de la Rosa Lopez Roa",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "0d2e552b-8caa-43a8-be7c-cd965d668853",
+      "document_id": "V-13866425",
+      "full_name": "Benjamin° Eduardo Martinez Hernandez",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "fb13cc31-076c-4447-84cb-630d78d16475",
+      "document_id": "V-15301170",
+      "full_name": "Carlos Chirivella",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "7ee77d46-efbb-4532-ba36-4ffab9856756",
+      "document_id": "V-16248106",
+      "full_name": "Maria Rosales",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "885ac45e-844a-4c73-9cd6-150efa49444d",
+      "document_id": "V-16471683",
+      "full_name": "David Manuel Lazaro Sanchez",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "4af3c651-0889-4948-bd43-2bc0a5c4c6c2",
+      "document_id": "V-17143414",
+      "full_name": "Miguelangel del Valle Machado Garcia",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "67f91251-9ce1-4ad2-ab45-d696d710dc52",
+      "document_id": "V-17693077",
+      "full_name": "Dayana Duran",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "89bee7be-73a0-4a76-9d5c-6242710ba227",
+      "document_id": "V-17802147",
+      "full_name": "Helyn° Johana Malave Longa",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "78e56e41-6b81-408a-b75f-9cab5a128844",
+      "document_id": "V-17982241",
+      "full_name": "Alejandra Maria Acuña Perdigon",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "3ac029c6-cce7-47a5-9990-59eccfbcdfb1",
+      "document_id": "V-20330939",
+      "full_name": "Omar Goite",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "c69e9e65-0200-49c2-abcf-24aa393d7498",
+      "document_id": "V-20490689",
+      "full_name": "Yurbin° Sanchez",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "a167fd80-b502-476b-9160-cc9a8208c6b8",
+      "document_id": "V-29565509",
+      "full_name": "Ximena Gonzalez",
+      "department_id": "101e1e66-3350-473a-842f-42a592ec0a06",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "14e29740-eb89-4707-b5aa-5bc35f10e955",
+      "document_id": "V-19876543",
+      "full_name": "Mariana Victoria Delgado",
+      "department_id": "2be54ab4-b37c-4dce-be96-7aee2885f291",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "005297e0-342e-4582-9c6c-097d8e9c618b",
+      "document_id": "V-20123456",
+      "full_name": "José Gregorio Bastidas",
+      "department_id": "35d3d254-1ea9-42af-84ae-7a99204f853e",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "4cdb8c87-cbd5-49e2-9c88-974da4334c61",
+      "document_id": "V-05432198",
+      "full_name": "Pedro Antonio Colmenares",
+      "department_id": "c5bea526-893e-4551-9f2b-ede32bf66989",
+      "worker_type": "jubilado",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "bcebcac6-bf53-4c42-a8a4-fc074dfe5044",
+      "document_id": "V-17654321",
+      "full_name": "Fernando José Zambrano",
+      "department_id": "b1554deb-d017-4430-9e42-1889ce97d181",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "02901d79-b1a6-4ffa-a8e0-03517369584c",
+      "document_id": "V-16555444",
+      "full_name": "Yaritza Coromoto Méndez",
+      "department_id": "2be54ab4-b37c-4dce-be96-7aee2885f291",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "43c84426-704d-49d2-927f-bf0b79d687fc",
+      "document_id": "V-08999888",
+      "full_name": "Carmen Rosa Escalona",
+      "department_id": "c5bea526-893e-4551-9f2b-ede32bf66989",
+      "worker_type": "jubilado",
+      "role": "worker",
+      "status": "active"
+    },
+    {
+      "id": "user_phase5_director",
+      "document_id": "V-99995001",
+      "full_name": "Dr. Carlos Viceministro / Director",
+      "department_id": null,
+      "worker_type": "activo",
+      "role": "admin",
+      "status": "active"
+    },
+    {
+      "id": "049d972b-359f-4a76-a073-a5792bab3721",
+      "document_id": "3974694",
+      "full_name": "VICTOR PEÑA",
+      "department_id": "fe0be55f-ea9b-4604-bf1b-493b9254cbe9",
+      "worker_type": "activo",
+      "role": "worker",
+      "status": "active"
+    }
+  ]
+}

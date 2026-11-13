@@ -67,9 +67,9 @@ const getMinisterialMonitorStats = (req, res) => {
     };
 
     // Padrón General
-    const totalWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active'").get().cnt;
-    const formalizedWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND enrollment_status = 'registrado'").get().cnt;
-    const rezagadosWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL)").get().cnt;
+    const totalWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
+    const formalizedWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND enrollment_status = 'registrado' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
+    const rezagadosWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL) AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
     const workersWithPasskey = db.prepare("SELECT COUNT(DISTINCT worker_id) as cnt FROM passkey_credentials WHERE status = 'active'").get().cnt;
 
     const formalizationPct = totalWorkers > 0 ? Math.round((formalizedWorkers / totalWorkers) * 1000) / 10 : 0;

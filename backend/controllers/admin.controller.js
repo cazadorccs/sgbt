@@ -231,7 +231,7 @@ const getWorkers = (req, res) => {
     };
   });
 
-  const totalCensus = db.prepare("SELECT COUNT(*) as count FROM workers").get()?.count || workers.length;
+  const totalCensus = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get()?.count || workers.length;
   res.json({ total: workers.length, total_census: totalCensus, workers });
 };
 

@@ -515,9 +515,9 @@ const handleBatchImport = (req, res) => {
 
 const getEnrollmentStats = (req, res) => {
   try {
-    const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active'").get().count;
-    const precargados = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL)").get().count;
-    const registrados = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND enrollment_status = 'registrado'").get().count;
+    const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().count;
+    const precargados = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL) AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().count;
+    const registrados = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND enrollment_status = 'registrado' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().count;
     const pct = totalWorkers > 0 ? Math.round((registrados / totalWorkers) * 100) : 0;
 
     res.json({
