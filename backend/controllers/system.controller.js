@@ -6,6 +6,9 @@ const { db, seedDatabase, secureEnclaveSimulator } = require('../db');
 const { testSupabaseConnection, isSupabaseConfigured } = require('../supabase');
 const { getOutboxStats } = require('../services/outbox.service');
 const loggerService = require('../services/logger.service');
+const { cache } = require('../services/cache.service');
+const { dbRouter } = require('../services/db_router.service');
+const { queue } = require('../services/queue.service');
 
 const getStatus = async (req, res) => {
   try {
@@ -46,6 +49,9 @@ const getStatus = async (req, res) => {
       has_admin: hasAdmin,
       tenant: tenantInfo,
       outbox: getOutboxStats(),
+      cache: cache.stats(),
+      db_routing: dbRouter.getMetrics(),
+      queue: queue.getQueueStatus(),
       server_time: new Date().toISOString()
     });
   } catch (err) {
@@ -463,6 +469,41 @@ const clearSystemLogs = (req, res) => {
   }
 };
 
+const getQueueStatus = (req, res) => {
+  try {
+    res.json({
+      success: true,
+      queue: queue.getQueueStatus()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error consultando estado de cola: ' + err.message });
+  }
+};
+
+const drainQueue = async (req, res) => {
+  try {
+    await queue.drain(15000);
+    res.json({
+      success: true,
+      message: 'Cola de tareas procesada y vaciada exitosamente',
+      queue: queue.getQueueStatus()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error vaciando cola de tareas: ' + err.message });
+  }
+};
+
+const getDbRoutingStatus = (req, res) => {
+  try {
+    res.json({
+      success: true,
+      routing: dbRouter.getMetrics()
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error consultando métricas de enrutamiento DB: ' + err.message });
+  }
+};
+
 module.exports = {
   getStatus,
   exportBackup,
@@ -474,5 +515,8 @@ module.exports = {
   streamLogs,
   downloadLogs,
   receiveClientLog,
-  clearSystemLogs
+  clearSystemLogs,
+  getQueueStatus,
+  drainQueue,
+  getDbRoutingStatus
 };

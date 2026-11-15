@@ -7,6 +7,11 @@ const { requireRole } = require('../middleware/auth.middleware');
 router.get('/system/status', systemController.getStatus);
 router.post('/system/demo-mode', requireRole('admin', 'director'), systemController.toggleDemoMode);
 
+// Rutas de Escalabilidad Horizontal, CQRS y Workers Asíncronos (Fases 3 y 4)
+router.get('/system/queue/status', requireRole('admin', 'director'), systemController.getQueueStatus);
+router.post('/system/queue/drain', requireRole('admin', 'director'), systemController.drainQueue);
+router.get('/system/db/routing', requireRole('admin', 'director'), systemController.getDbRoutingStatus);
+
 // Rutas de Auditoría, Logs en Vivo y Diagnóstico Forense (Protegidas por RBAC y Alcance Administrativo)
 router.get('/system/logs', requireRole('admin', 'director'), systemController.getLogs);
 router.get('/system/logs/stream', requireRole('admin', 'director'), systemController.streamLogs);

@@ -150,8 +150,18 @@ function getOutboxStats() {
   }
 }
 
+/**
+ * Encola un ciclo de sincronización Outbox en segundo plano (Fase 4: Background Workers)
+ * @param {number} batchSize
+ */
+function enqueueBackgroundCloudSync(batchSize = 50) {
+  const { queue, JOB_TYPES } = require('./queue.service');
+  return queue.addJob(JOB_TYPES.OUTBOX_SYNC, { batchSize });
+}
+
 module.exports = {
   enqueueEvent,
   processPendingEvents,
-  getOutboxStats
+  getOutboxStats,
+  enqueueBackgroundCloudSync
 };

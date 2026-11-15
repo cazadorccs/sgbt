@@ -179,11 +179,22 @@ async function dispatchPushNotification(payload, targetWorkerId = null) {
   return results;
 }
 
+/**
+ * Encola una notificación Web Push en el sistema de colas asíncrono (Fase 4: Background Workers)
+ * @param {Object} payload
+ * @param {string|null} targetWorkerId
+ */
+function enqueuePushNotification(payload, targetWorkerId = null) {
+  const { queue, JOB_TYPES } = require('./queue.service');
+  return queue.addJob(JOB_TYPES.PUSH_BROADCAST, { payload, targetWorkerId });
+}
+
 module.exports = {
   getVapidPublicKey,
   saveSubscription,
   removeSubscription,
   getActiveSubscriptions,
-  dispatchPushNotification
+  dispatchPushNotification,
+  enqueuePushNotification
 };
 

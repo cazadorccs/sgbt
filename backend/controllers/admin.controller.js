@@ -6,6 +6,7 @@ const { db } = require('../db');
 const { generateOfficialActaHtml } = require('../services/audit.service');
 const { hashPassword, generateMagicLinkToken } = require('../crypto-utils');
 const { cache } = require('../services/cache.service');
+const { dbRouter } = require('../services/db_router.service');
 
 const getKpis = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -213,7 +214,7 @@ const getWorkers = (req, res) => {
 
   sql += ` ORDER BY w.full_name ASC`;
 
-  const rows = db.prepare(sql).all(...params);
+  const rows = dbRouter.queryRead(sql, ...params);
 
   const workers = rows.map(r => {
     let auth_badge = 'pending';
@@ -1213,7 +1214,7 @@ const getDeliveries = (req, res) => {
   sql += ` ORDER BY del.delivered_at DESC LIMIT ?`;
   params.push(parseInt(limit, 10) || 100);
 
-  const deliveries = db.prepare(sql).all(...params);
+  const deliveries = dbRouter.queryRead(sql, ...params);
   res.json({ total: deliveries.length, deliveries });
 };
 
@@ -1262,7 +1263,7 @@ const exportDeliveries = (req, res) => {
 
   sql += ` ORDER BY del.delivered_at DESC`;
 
-  const deliveries = db.prepare(sql).all(...params);
+  const deliveries = dbRouter.queryRead(sql, ...params);
 
   if (exportFormat === 'csv') {
     const headers = ['ID Entrega', 'Fecha/Hora', 'Jornada', 'Cédula', 'Trabajador', 'Departamento', 'Combo', 'Peso (Kg)', 'Método Validación', 'Offline Sync', 'Punto Entrega', 'Supervisor/Operador', 'Motivo Exención', 'Firma Criptográfica'];
