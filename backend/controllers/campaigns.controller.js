@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const { db } = require('../db');
 const { supabase } = require('../supabase');
+const { cache } = require('../services/cache.service');
 
 const SYNC_CAMPAIGNS_STORE_UUID = 'c0000000-ca11-4000-8000-000000000001';
 
@@ -94,9 +95,11 @@ async function syncCampaignsFromCloud() {
   }
 }
 
-const getDistributionPoints = (req, res) => {
+const getDistributionPoints = async (req, res) => {
   try {
-    const points = db.prepare('SELECT id, name, location_code, address, is_active FROM distribution_points WHERE is_active = 1 ORDER BY name ASC').all();
+    const points = await cache.wrap('distribution:points:active', 120, async () => {
+      return db.prepare('SELECT id, name, location_code, address, is_active FROM distribution_points WHERE is_active = 1 ORDER BY name ASC').all();
+    });
     res.json({ success: true, distributionPoints: points });
   } catch (err) {
     console.error('[DISTRIBUTION POINTS GET ERROR]', err);
@@ -104,7 +107,7 @@ const getDistributionPoints = (req, res) => {
   }
 };
 
-const createDistributionPoint = (req, res) => {
+const createDistributionPoint = async (req, res) => {
   const { name, location_code, address } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'El nombre de la sede es obligatorio' });
@@ -123,6 +126,10 @@ const createDistributionPoint = (req, res) => {
       VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
     `).run(id, name.trim(), cleanCode, (address || '').trim());
 
+    await cache.delPattern('distribution:*');
+    await cache.delPattern('tenant:*');
+    await cache.delPattern('campaigns:*');
+
     const created = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE id = ?').get(id);
     res.status(201).json({
       success: true,
@@ -135,7 +142,7 @@ const createDistributionPoint = (req, res) => {
   }
 };
 
-const updateDistributionPoint = (req, res) => {
+const updateDistributionPoint = async (req, res) => {
   const { id } = req.params;
   const { name, location_code, address } = req.body;
 
@@ -161,6 +168,10 @@ const updateDistributionPoint = (req, res) => {
       WHERE id = ?
     `).run(name.trim(), cleanCode, (address || '').trim(), id);
 
+    await cache.delPattern('distribution:*');
+    await cache.delPattern('tenant:*');
+    await cache.delPattern('campaigns:*');
+
     const updated = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE id = ?').get(id);
     res.json({
       success: true,
@@ -175,9 +186,12 @@ const updateDistributionPoint = (req, res) => {
 
 const getCampaigns = async (req, res) => {
   try {
-    await syncCampaignsFromCloud();
     const { status, type } = req.query;
-    let query = `
+    const cacheKey = `campaigns:list:${status || 'all'}:${type || 'all'}`;
+
+    const enriched = await cache.wrap(cacheKey, 60, async () => {
+      await syncCampaignsFromCloud();
+      let query = `
       SELECT 
         c.id, c.name, c.description, c.start_date, c.end_date, c.combo_id, c.target_group, c.distribution_point_id, c.status, c.notification_sent, c.created_at,
         cb.name as combo_name, cb.category as combo_category, cb.icon as combo_icon, cb.items_detail as combo_items, cb.weight_kg as combo_weight,
@@ -200,7 +214,7 @@ const getCampaigns = async (req, res) => {
     const campaigns = db.prepare(query).all(...params);
     const todayStr = new Date().toISOString().split('T')[0];
 
-    const enriched = campaigns.map(camp => {
+    return campaigns.map(camp => {
       // Combos vinculados a esta jornada (multi-combo con su punto/sede respectivo)
       let campCombos = [];
       try {
@@ -358,8 +372,9 @@ const getCampaigns = async (req, res) => {
         acta: actaInfo
       };
     });
+  });
 
-    res.json(enriched);
+  res.json(enriched);
   } catch (err) {
     console.error('[CAMPAIGNS GET ERROR]', err);
     res.status(500).json({ error: 'Error al obtener jornadas de entrega' });
@@ -483,6 +498,10 @@ const createCampaign = async (req, res) => {
 
     await syncCampaignsToCloud();
 
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('combos:*');
+    await cache.delPattern('kpis:*');
+
     res.status(201).json({
       success: true,
       message: `Jornada "${created.name}" planificada con éxito (${generated} asignaciones preparadas)`,
@@ -495,7 +514,7 @@ const createCampaign = async (req, res) => {
   }
 };
 
-const updateCampaign = (req, res) => {
+const updateCampaign = async (req, res) => {
   const { id } = req.params;
   const { name, description, start_date, end_date, combo_id, distribution_point_id, target_group, status } = req.body;
 
@@ -537,6 +556,10 @@ const updateCampaign = (req, res) => {
 
     tx();
     syncCampaignsToCloud().catch(() => {});
+
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('combos:*');
+    await cache.delPattern('kpis:*');
 
     const updated = db.prepare('SELECT * FROM delivery_campaigns WHERE id = ?').get(id);
     res.json({ success: true, message: 'Jornada actualizada con éxito', campaign: updated });
@@ -660,6 +683,10 @@ const updateCampaignStatus = async (req, res) => {
     } else {
       message = `Estado de la jornada "${camp.name}" actualizado a ${status}.`;
     }
+
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('combos:*');
+    await cache.delPattern('kpis:*');
 
     res.json({
       success: true,
@@ -940,6 +967,10 @@ const deleteCampaign = async (req, res) => {
     } catch (logErr) {
       console.warn('[AUDIT LOG ERROR]', logErr.message);
     }
+
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('combos:*');
+    await cache.delPattern('kpis:*');
 
     res.json({
       success: true,

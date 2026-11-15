@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { db } = require('../db');
 const { verifyOfflineSignature } = require('../crypto-utils');
 const { enqueueEvent } = require('./outbox.service');
+const { cache } = require('./cache.service');
 
 // Tolerancia máxima permitida para desfase de reloj (Clock Skew) en sincronización offline (4 horas)
 const MAX_CLOCK_SKEW_MS = 4 * 60 * 60 * 1000;
@@ -189,6 +190,11 @@ function recordDelivery({
       delivered_at: finalDeliveredAt
     });
 
+    try {
+      cache.delPattern('kpis:*').catch(() => {});
+      cache.delPattern('ministerial:*').catch(() => {});
+    } catch (e) {}
+
     return {
       success: true,
       deliveryId: finalDeliveryId,
@@ -260,6 +266,11 @@ function processBatchDeliveries(deliveries = [], defaultPointId = null) {
   });
 
   tx();
+
+  try {
+    cache.delPattern('kpis:*').catch(() => {});
+    cache.delPattern('ministerial:*').catch(() => {});
+  } catch (e) {}
 
   return {
     status: 'completed',
@@ -356,6 +367,11 @@ function recordAtomicDeliveries({
 
   tx();
 
+  try {
+    cache.delPattern('kpis:*').catch(() => {});
+    cache.delPattern('ministerial:*').catch(() => {});
+  } catch (e) {}
+
   return {
     success: true,
     workerId,
@@ -428,6 +444,11 @@ function voidDelivery({ deliveryId, supervisorId, reason }) {
     });
 
     tx();
+
+    try {
+      cache.delPattern('kpis:*').catch(() => {});
+      cache.delPattern('ministerial:*').catch(() => {});
+    } catch (e) {}
 
     // Notificar en outbox
     enqueueEvent('DELIVERY_VOIDED', 'delivery', deliveryId, {

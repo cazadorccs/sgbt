@@ -108,12 +108,24 @@ app.get(/^\/simulador(\/.*)?$/, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/simulador/index.html'));
 });
 
+// Opciones de almacenamiento en caché HTTP y Edge CDN para activos estáticos (Fase 1: Escalabilidad Horizontal)
+const staticCacheOptions = {
+  maxAge: '1d',
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
+    } else if (filePath.match(/\.(css|js|woff2?|ttf|eot|svg|png|jpe?g|webp|ico|mp4)$/i)) {
+      res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+    }
+  }
+};
+
 // Servidor de estáticos (PWA, CSS, JS, Assets)
-app.use(express.static(path.join(__dirname, '../public')));
-app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
-app.use('/docs/diagrams', express.static(path.join(__dirname, '../public/diagrams')));
-app.use('/docs', express.static(path.join(__dirname, '../public/docs')));
-app.use('/docs', express.static(path.join(__dirname, '../docs')));
+app.use(express.static(path.join(__dirname, '../public'), staticCacheOptions));
+app.use('/diagrams', express.static(path.join(__dirname, '../public/diagrams'), staticCacheOptions));
+app.use('/docs/diagrams', express.static(path.join(__dirname, '../public/diagrams'), staticCacheOptions));
+app.use('/docs', express.static(path.join(__dirname, '../public/docs'), staticCacheOptions));
+app.use('/docs', express.static(path.join(__dirname, '../docs'), staticCacheOptions));
 
 const { auditLoggerMiddleware } = require('./middleware/audit_logger.middleware');
 
@@ -161,6 +173,14 @@ app.get('/docs/manual_sistema_interactivo', (req, res) => {
 });
 app.get('/docs/manual_administracion_interactivo', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/docs/manual_administracion_interactivo.html'));
+});
+
+// Cabeceras Anti-Caché para endpoints de la API (Evita retención indebida en CDN/Edge y navegadores)
+app.use('/api', (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
 });
 
 // Soporte de idempotencia en peticiones mutadoras de la API (RFC / Idempotency-Key)

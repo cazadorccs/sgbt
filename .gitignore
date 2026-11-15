@@ -23,6 +23,7 @@ yarn-error.log*
 *.sqlite
 *.sqlite-*
 data/
+~$*
 
 # Python
 __pycache__/

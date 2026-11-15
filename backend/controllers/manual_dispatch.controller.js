@@ -5,6 +5,7 @@
 const crypto = require('crypto');
 const { db } = require('../db');
 const { resetDeliveriesAndSeedToday } = require('../reset-and-seed-today');
+const { cache } = require('../services/cache.service');
 
 function normalizeCedula(input) {
   if (!input) return '';
@@ -237,6 +238,11 @@ const deliverManualCombos = async (req, res) => {
       console.warn('[MANUAL DISPATCH CLOUD PERSIST WARN]', e.message);
     }
 
+    try {
+      await cache.delPattern('kpis:*');
+      await cache.delPattern('ministerial:*');
+    } catch (e) {}
+
     return res.json({
       success: true,
       message: `¡Se entregaron ${strictlyPending.length} combo(s) a ${worker.full_name} (${worker.document_id}) con éxito!`,
@@ -260,7 +266,7 @@ const deliverManualCombos = async (req, res) => {
 };
 
 // 3. Incorporación rápida a nómina y despacho inmediato
-const incorporateAndDeliver = (req, res) => {
+const incorporateAndDeliver = async (req, res) => {
   const {
     document_id,
     full_name,
@@ -397,6 +403,11 @@ const incorporateAndDeliver = (req, res) => {
       LEFT JOIN departments d ON w.department_id = d.id 
       WHERE w.id = ?
     `).get(workerId);
+
+    try {
+      await cache.delPattern('kpis:*');
+      await cache.delPattern('ministerial:*');
+    } catch (e) {}
 
     return res.status(201).json({
       success: true,
@@ -609,6 +620,12 @@ const resetDeliveriesAction = async (req, res) => {
 
   try {
     const result = await resetDeliveriesAndSeedToday();
+    try {
+      await cache.delPattern('kpis:*');
+      await cache.delPattern('ministerial:*');
+      await cache.delPattern('campaigns:*');
+    } catch (e) {}
+
     res.json({
       success: true,
       message: 'Todas las entregas han sido reiniciadas a 0. Asignaciones de hoy preparadas en estado pendiente.',

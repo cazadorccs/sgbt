@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const QRCode = require('qrcode');
 const { db } = require('../db');
 const { generateSha256IntegritySeal } = require('../services/audit.service');
+const { cache } = require('../services/cache.service');
 
 // Prepared statements en caché para auditoría de entregas
 let _stmtDelStats = null;
@@ -49,129 +50,133 @@ function getDeliveriesListStmt() {
 /**
  * 1. KPIs gerenciales y semaforización de formalización por dirección
  */
-const getMinisterialMonitorStats = (req, res) => {
+const getMinisterialMonitorStats = async (req, res) => {
   try {
-    const tenant = db.prepare(`
-      SELECT 
-        entity_name, entity_short_name, slogan, 
-        COALESCE(is_census_locked, 0) as is_census_locked,
-        COALESCE(census_cutoff_date, '2026-11-22T23:59:59') as census_cutoff_date,
-        census_locked_at, census_locked_by, census_lock_reason
-      FROM tenant_settings 
-      WHERE id = 'current_tenant'
-    `).get() || {
-      entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
-      entity_short_name: 'MIPPCI',
-      is_census_locked: 0,
-      census_cutoff_date: '2026-11-22T23:59:59'
-    };
+    const data = await cache.wrap('ministerial:monitor:stats', 30, async () => {
+      const tenant = db.prepare(`
+        SELECT 
+          entity_name, entity_short_name, slogan, 
+          COALESCE(is_census_locked, 0) as is_census_locked,
+          COALESCE(census_cutoff_date, '2026-11-22T23:59:59') as census_cutoff_date,
+          census_locked_at, census_locked_by, census_lock_reason
+        FROM tenant_settings 
+        WHERE id = 'current_tenant'
+      `).get() || {
+        entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+        entity_short_name: 'MIPPCI',
+        is_census_locked: 0,
+        census_cutoff_date: '2026-11-22T23:59:59'
+      };
 
-    // Padrón General
-    const totalWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
-    const formalizedWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND enrollment_status = 'registrado' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
-    const rezagadosWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL) AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
-    const workersWithPasskey = db.prepare("SELECT COUNT(DISTINCT worker_id) as cnt FROM passkey_credentials WHERE status = 'active'").get().cnt;
+      // Padrón General
+      const totalWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
+      const formalizedWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND enrollment_status = 'registrado' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
+      const rezagadosWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL) AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
+      const workersWithPasskey = db.prepare("SELECT COUNT(DISTINCT worker_id) as cnt FROM passkey_credentials WHERE status = 'active'").get().cnt;
 
-    const formalizationPct = totalWorkers > 0 ? Math.round((formalizedWorkers / totalWorkers) * 1000) / 10 : 0;
-    const passkeyAdoptionPct = totalWorkers > 0 ? Math.round((workersWithPasskey / totalWorkers) * 1000) / 10 : 0;
+      const formalizationPct = totalWorkers > 0 ? Math.round((formalizedWorkers / totalWorkers) * 1000) / 10 : 0;
+      const passkeyAdoptionPct = totalWorkers > 0 ? Math.round((workersWithPasskey / totalWorkers) * 1000) / 10 : 0;
 
-    // Desglose con Semaforización por Dependencia / Dirección
-    const depts = db.prepare(`
-      SELECT 
-        d.id, d.code, d.name, d.cost_center,
-        COUNT(w.id) as total_workers,
-        SUM(CASE WHEN w.enrollment_status = 'registrado' THEN 1 ELSE 0 END) as formalized_count,
-        SUM(CASE WHEN w.enrollment_status = 'precargado' OR w.enrollment_status IS NULL THEN 1 ELSE 0 END) as rezagados_count
-      FROM departments d
-      JOIN workers w ON w.department_id = d.id AND w.status = 'active'
-      GROUP BY d.id
-      ORDER BY rezagados_count DESC, total_workers DESC
-    `).all();
+      // Desglose con Semaforización por Dependencia / Dirección
+      const depts = db.prepare(`
+        SELECT 
+          d.id, d.code, d.name, d.cost_center,
+          COUNT(w.id) as total_workers,
+          SUM(CASE WHEN w.enrollment_status = 'registrado' THEN 1 ELSE 0 END) as formalized_count,
+          SUM(CASE WHEN w.enrollment_status = 'precargado' OR w.enrollment_status IS NULL THEN 1 ELSE 0 END) as rezagados_count
+        FROM departments d
+        JOIN workers w ON w.department_id = d.id AND w.status = 'active'
+        GROUP BY d.id
+        ORDER BY rezagados_count DESC, total_workers DESC
+      `).all();
 
-    const departmentsBreakdown = depts.map(d => {
-      const tot = d.total_workers || 0;
-      const form = d.formalized_count || 0;
-      const pct = tot > 0 ? Math.round((form / tot) * 100) : 0;
+      const departmentsBreakdown = depts.map(d => {
+        const tot = d.total_workers || 0;
+        const form = d.formalized_count || 0;
+        const pct = tot > 0 ? Math.round((form / tot) * 100) : 0;
 
-      // Semaforización oficial
-      let trafficLight = 'green';
-      if (pct < 50) {
-        trafficLight = 'red';
-      } else if (pct < 85) {
-        trafficLight = 'yellow';
-      }
+        // Semaforización oficial
+        let trafficLight = 'green';
+        if (pct < 50) {
+          trafficLight = 'red';
+        } else if (pct < 85) {
+          trafficLight = 'yellow';
+        }
+
+        return {
+          id: d.id,
+          code: d.code || 'S/C',
+          name: d.name,
+          cost_center: d.cost_center || '00-00-00',
+          total_workers: tot,
+          formalized_count: form,
+          rezagados_count: d.rezagados_count || 0,
+          formalization_pct: pct,
+          traffic_light: trafficLight
+        };
+      });
+
+      // Auditoría de Seguridad e Incidentes de Colusión Prevenidos
+      const totalDeliveries = db.prepare("SELECT COUNT(*) as cnt FROM deliveries").get().cnt;
+      let blockedIncidents = 0;
+      try {
+        blockedIncidents = db.prepare(`
+          SELECT COUNT(*) as cnt FROM system_activity_logs 
+          WHERE action LIKE '%REJECTED%' OR action LIKE '%DUPLICATE%' OR action LIKE '%FRAUD%'
+        `).get()?.cnt || 0;
+      } catch (e) {}
+
+      // Última Acta Ministerial Generada
+      const latestActa = db.prepare(`
+        SELECT id, acta_number, digital_acta_hash, generated_at, total_workers_census, formalization_pct
+        FROM ministerial_actas
+        ORDER BY generated_at DESC LIMIT 1
+      `).get() || null;
 
       return {
-        id: d.id,
-        code: d.code || 'S/C',
-        name: d.name,
-        cost_center: d.cost_center || '00-00-00',
-        total_workers: tot,
-        formalized_count: form,
-        rezagados_count: d.rezagados_count || 0,
-        formalization_pct: pct,
-        traffic_light: trafficLight
+        success: true,
+        monitor: {
+          dates: {
+            census_cutoff_date: tenant.census_cutoff_date,
+            campaign_date: '2026-11-27',
+            now: new Date().toISOString()
+          },
+          census_lock: {
+            is_locked: tenant.is_census_locked === 1,
+            locked_at: tenant.census_locked_at,
+            locked_by: tenant.census_locked_by,
+            reason: tenant.census_lock_reason
+          },
+          kpis: {
+            total_workers: totalWorkers,
+            formalized_workers: formalizedWorkers,
+            rezagados_workers: rezagadosWorkers,
+            formalized_count: formalizedWorkers,
+            rezagados_count: rezagadosWorkers,
+            formalization_pct: formalizationPct,
+            rezagados_pct: totalWorkers > 0 ? Math.round((rezagadosWorkers / totalWorkers) * 1000) / 10 : 0,
+            workers_with_passkey: workersWithPasskey,
+            passkey_adoption_count: workersWithPasskey,
+            passkey_adoption_pct: passkeyAdoptionPct,
+            total_deliveries: totalDeliveries,
+            security_incidents_blocked: blockedIncidents
+          },
+          census: {
+            total_workers: totalWorkers,
+            formalized_count: formalizedWorkers,
+            rezagados_count: rezagadosWorkers,
+            formalization_pct: formalizationPct,
+            rezagados_pct: totalWorkers > 0 ? Math.round((rezagadosWorkers / totalWorkers) * 1000) / 10 : 0,
+            passkey_adoption_count: workersWithPasskey,
+            passkey_adoption_pct: passkeyAdoptionPct
+          },
+          departments: departmentsBreakdown,
+          latest_acta: latestActa
+        }
       };
     });
 
-    // Auditoría de Seguridad e Incidentes de Colusión Prevenidos
-    const totalDeliveries = db.prepare("SELECT COUNT(*) as cnt FROM deliveries").get().cnt;
-    let blockedIncidents = 0;
-    try {
-      blockedIncidents = db.prepare(`
-        SELECT COUNT(*) as cnt FROM system_activity_logs 
-        WHERE action LIKE '%REJECTED%' OR action LIKE '%DUPLICATE%' OR action LIKE '%FRAUD%'
-      `).get()?.cnt || 0;
-    } catch (e) {}
-
-    // Última Acta Ministerial Generada
-    const latestActa = db.prepare(`
-      SELECT id, acta_number, digital_acta_hash, generated_at, total_workers_census, formalization_pct
-      FROM ministerial_actas
-      ORDER BY generated_at DESC LIMIT 1
-    `).get() || null;
-
-    return res.json({
-      success: true,
-      monitor: {
-        dates: {
-          census_cutoff_date: tenant.census_cutoff_date,
-          campaign_date: '2026-11-27',
-          now: new Date().toISOString()
-        },
-        census_lock: {
-          is_locked: tenant.is_census_locked === 1,
-          locked_at: tenant.census_locked_at,
-          locked_by: tenant.census_locked_by,
-          reason: tenant.census_lock_reason
-        },
-        kpis: {
-          total_workers: totalWorkers,
-          formalized_workers: formalizedWorkers,
-          rezagados_workers: rezagadosWorkers,
-          formalized_count: formalizedWorkers,
-          rezagados_count: rezagadosWorkers,
-          formalization_pct: formalizationPct,
-          rezagados_pct: totalWorkers > 0 ? Math.round((rezagadosWorkers / totalWorkers) * 1000) / 10 : 0,
-          workers_with_passkey: workersWithPasskey,
-          passkey_adoption_count: workersWithPasskey,
-          passkey_adoption_pct: passkeyAdoptionPct,
-          total_deliveries: totalDeliveries,
-          security_incidents_blocked: blockedIncidents
-        },
-        census: {
-          total_workers: totalWorkers,
-          formalized_count: formalizedWorkers,
-          rezagados_count: rezagadosWorkers,
-          formalization_pct: formalizationPct,
-          rezagados_pct: totalWorkers > 0 ? Math.round((rezagadosWorkers / totalWorkers) * 1000) / 10 : 0,
-          passkey_adoption_count: workersWithPasskey,
-          passkey_adoption_pct: passkeyAdoptionPct
-        },
-        departments: departmentsBreakdown,
-        latest_acta: latestActa
-      }
-    });
+    return res.json(data);
   } catch (err) {
     console.error('[MINISTERIAL MONITOR ERROR]', err);
     return res.status(500).json({ error: 'Error obteniendo monitor ministerial: ' + err.message });
@@ -381,7 +386,7 @@ const getCensusLockStatus = (req, res) => {
 /**
  * 5. Congelar o abrir prórroga del censo (Control exclusivo de RRHH / Admin)
  */
-const toggleCensusLock = (req, res) => {
+const toggleCensusLock = async (req, res) => {
   try {
     const { lock, reason } = req.body;
     const shouldLock = lock === true || lock === 1 || lock === 'true';
@@ -401,6 +406,9 @@ const toggleCensusLock = (req, res) => {
       lockedBy,
       reason ? reason.trim() : null
     );
+
+    await cache.delPattern('ministerial:*');
+    await cache.delPattern('tenant:*');
 
     const action = shouldLock ? 'CENSUS_FROZEN_LOCKED' : 'CENSUS_PRORROGA_OPENED';
     console.log(`🔒 [CENSUS LOCK TOGGLED] Padrón institucional: ${shouldLock ? 'CONGELADO (CIERRE FORMAL)' : 'ABIERTO (PRÓRROGA)'} por ${lockedBy}`);
@@ -424,7 +432,7 @@ const toggleCensusLock = (req, res) => {
 /**
  * 6. Generación Oficial del Acta Ministerial Definitiva (SHA-256)
  */
-const generateMinisterialActa = (req, res) => {
+const generateMinisterialActa = async (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const nowIso = new Date().toISOString();
@@ -613,6 +621,8 @@ const generateMinisterialActa = (req, res) => {
     );
 
     console.log(`📜 [MINISTERIAL ACTA GENERATED] ${actaNumber} | Sello SHA-256: ${digitalHash}`);
+
+    await cache.delPattern('ministerial:*');
 
     return res.status(201).json({
       success: true,

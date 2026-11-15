@@ -5,111 +5,121 @@ const crypto = require('crypto');
 const { db } = require('../db');
 const { generateOfficialActaHtml } = require('../services/audit.service');
 const { hashPassword, generateMagicLinkToken } = require('../crypto-utils');
+const { cache } = require('../services/cache.service');
 
 const getKpis = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
 
-  // Resiliencia Serverless (Vercel Cold-Start):
-  // Si no hay entregas en la base local, esperar brevemente a la hidratación asíncrona de Supabase
   try {
-    const localDelCount = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE delivered_at >= datetime('now', '-24 hours')").get()?.c || 0;
-    if (localDelCount === 0) {
-      const { cloudHydrationPromise } = require('../db');
-      if (cloudHydrationPromise) {
-        await Promise.race([
-          cloudHydrationPromise,
-          new Promise((resolve) => setTimeout(resolve, 500))
-        ]);
+    const data = await cache.wrap('kpis:dashboard:today', 30, async () => {
+      // Resiliencia Serverless (Vercel Cold-Start):
+      // Si no hay entregas en la base local, esperar brevemente a la hidratación asíncrona de Supabase
+      try {
+        const localDelCount = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE delivered_at >= datetime('now', '-24 hours')").get()?.c || 0;
+        if (localDelCount === 0) {
+          const { cloudHydrationPromise } = require('../db');
+          if (cloudHydrationPromise) {
+            await Promise.race([
+              cloudHydrationPromise,
+              new Promise((resolve) => setTimeout(resolve, 500))
+            ]);
+          }
+        }
+      } catch (e) {}
+
+      const today = new Date().toISOString().split('T')[0];
+
+      const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().count;
+      const workersWithPasskey = db.prepare(`
+        SELECT COUNT(DISTINCT worker_id) as count
+        FROM passkey_credentials
+        WHERE status = 'active'
+      `).get().count;
+
+      const todayUtc = new Date().toISOString().split('T')[0];
+      const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
+      const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
+
+      // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
+      const totalEntitlementsToday = totalWorkers * activeCombosCount;
+
+      const methodStats = db.prepare(`
+        SELECT 
+          SUM(CASE WHEN verification_method IN ('passkey_qr', 'passkey_nfc') THEN 1 ELSE 0 END) as passkey_qr,
+          SUM(CASE WHEN verification_method = 'passkey_nfc' THEN 1 ELSE 0 END) as passkey_nfc,
+          SUM(CASE WHEN verification_method = 'nfc_card' THEN 1 ELSE 0 END) as nfc_card,
+          SUM(CASE WHEN verification_method = 'supervisor_daily_qr' THEN 1 ELSE 0 END) as supervisor_daily_qr,
+          SUM(CASE WHEN verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as supervisor_override,
+          SUM(CASE WHEN is_offline_sync = 1 THEN 1 ELSE 0 END) as offline_deliveries,
+          COUNT(*) as total_deliveries
+        FROM deliveries d
+        JOIN workers w ON d.worker_id = w.id
+        WHERE (
+          date(d.delivered_at) IN (?, ?)
+          OR date(d.delivered_at, '-4 hours') IN (?, ?)
+          OR substr(d.delivered_at, 1, 10) IN (?, ?)
+          OR d.delivered_at >= datetime('now', '-24 hours')
+        )
+        AND w.document_id NOT IN ('V-00000000', '00000000', '')
+      `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
+
+      const claimedEntitlementsToday = methodStats.total_deliveries || 0;
+
+      const totalDelivered = methodStats.total_deliveries || 0;
+      const offlinePct = totalDelivered > 0 ? Math.round(((methodStats.offline_deliveries || 0) / totalDelivered) * 100) : 0;
+      const adoptionRate = totalWorkers > 0 ? Math.round((workersWithPasskey / totalWorkers) * 100) : 0;
+
+      const recentAlerts = [
+        {
+          type: 'info',
+          title: 'Sincronización Offline Diaria',
+          message: 'Paquete de datos diario precargado para 2 comedores industriales.',
+          timestamp: 'Hoy, 06:00'
+        },
+        {
+          type: 'security',
+          title: 'Restricción Anti-Fraude Activa',
+          message: 'Índice idx_unique_daily_claim activo en PostgreSQL y SQLite.',
+          timestamp: 'En tiempo real'
+        }
+      ];
+
+      if ((methodStats.supervisor_override || 0) > 0) {
+        recentAlerts.unshift({
+          type: 'warning',
+          title: 'Liberaciones Manuales por Supervisor',
+          message: `Se han registrado ${methodStats.supervisor_override} liberaciones por contingencia justificadas con firma biométrica.`,
+          timestamp: 'Hoy'
+        });
       }
-    }
-  } catch (e) {}
 
-  const today = new Date().toISOString().split('T')[0];
-
-  const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().count;
-  const workersWithPasskey = db.prepare(`
-    SELECT COUNT(DISTINCT worker_id) as count
-    FROM passkey_credentials
-    WHERE status = 'active'
-  `).get().count;
-
-  const todayUtc = new Date().toISOString().split('T')[0];
-  const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-  const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
-
-  // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
-  const totalEntitlementsToday = totalWorkers * activeCombosCount;
-
-  const methodStats = db.prepare(`
-    SELECT 
-      SUM(CASE WHEN verification_method IN ('passkey_qr', 'passkey_nfc') THEN 1 ELSE 0 END) as passkey_qr,
-      SUM(CASE WHEN verification_method = 'passkey_nfc' THEN 1 ELSE 0 END) as passkey_nfc,
-      SUM(CASE WHEN verification_method = 'nfc_card' THEN 1 ELSE 0 END) as nfc_card,
-      SUM(CASE WHEN verification_method = 'supervisor_daily_qr' THEN 1 ELSE 0 END) as supervisor_daily_qr,
-      SUM(CASE WHEN verification_method = 'supervisor_override' THEN 1 ELSE 0 END) as supervisor_override,
-      SUM(CASE WHEN is_offline_sync = 1 THEN 1 ELSE 0 END) as offline_deliveries,
-      COUNT(*) as total_deliveries
-    FROM deliveries d
-    JOIN workers w ON d.worker_id = w.id
-    WHERE (
-      date(d.delivered_at) IN (?, ?)
-      OR date(d.delivered_at, '-4 hours') IN (?, ?)
-      OR substr(d.delivered_at, 1, 10) IN (?, ?)
-      OR d.delivered_at >= datetime('now', '-24 hours')
-    )
-    AND w.document_id NOT IN ('V-00000000', '00000000', '')
-  `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
-
-  const claimedEntitlementsToday = methodStats.total_deliveries || 0;
-
-  const totalDelivered = methodStats.total_deliveries || 0;
-  const offlinePct = totalDelivered > 0 ? Math.round(((methodStats.offline_deliveries || 0) / totalDelivered) * 100) : 0;
-  const adoptionRate = totalWorkers > 0 ? Math.round((workersWithPasskey / totalWorkers) * 100) : 0;
-
-  const recentAlerts = [
-    {
-      type: 'info',
-      title: 'Sincronización Offline Diaria',
-      message: 'Paquete de datos diario precargado para 2 comedores industriales.',
-      timestamp: 'Hoy, 06:00'
-    },
-    {
-      type: 'security',
-      title: 'Restricción Anti-Fraude Activa',
-      message: 'Índice idx_unique_daily_claim activo en PostgreSQL y SQLite.',
-      timestamp: 'En tiempo real'
-    }
-  ];
-
-  if ((methodStats.supervisor_override || 0) > 0) {
-    recentAlerts.unshift({
-      type: 'warning',
-      title: 'Liberaciones Manuales por Supervisor',
-      message: `Se han registrado ${methodStats.supervisor_override} liberaciones por contingencia justificadas con firma biométrica.`,
-      timestamp: 'Hoy'
+      return {
+        kpis: {
+          total_active_workers: totalWorkers,
+          workers_with_passkey: workersWithPasskey,
+          passkey_adoption_rate_pct: adoptionRate,
+          combos_assigned_today: totalEntitlementsToday,
+          combos_claimed_today: claimedEntitlementsToday,
+          pending_today: Math.max(0, totalEntitlementsToday - claimedEntitlementsToday),
+          offline_sync_pct: offlinePct,
+          verification_breakdown: {
+            passkey_qr: methodStats.passkey_qr || 0,
+            passkey_nfc: methodStats.passkey_nfc || 0,
+            nfc_card: methodStats.nfc_card || 0,
+            supervisor_override: methodStats.supervisor_override || 0
+          }
+        },
+        alerts: recentAlerts
+      };
     });
-  }
 
-  res.json({
-    kpis: {
-      total_active_workers: totalWorkers,
-      workers_with_passkey: workersWithPasskey,
-      passkey_adoption_rate_pct: adoptionRate,
-      combos_assigned_today: totalEntitlementsToday,
-      combos_claimed_today: claimedEntitlementsToday,
-      pending_today: Math.max(0, totalEntitlementsToday - claimedEntitlementsToday),
-      offline_sync_pct: offlinePct,
-      verification_breakdown: {
-        passkey_qr: methodStats.passkey_qr || 0,
-        passkey_nfc: methodStats.passkey_nfc || 0,
-        nfc_card: methodStats.nfc_card || 0,
-        supervisor_override: methodStats.supervisor_override || 0
-      }
-    },
-    alerts: recentAlerts
-  });
+    res.json(data);
+  } catch (err) {
+    console.error('[KPIS GET ERROR]', err);
+    res.status(500).json({ error: 'Error al calcular indicadores de desempeño' });
+  }
 };
 
 const getWorkers = (req, res) => {
@@ -592,84 +602,92 @@ const assignNfc = async (req, res) => {
 
 const getCombos = async (req, res) => {
   try {
-    const { supabase, isSupabaseConfigured } = require('../supabase');
-    if (isSupabaseConfigured() && supabase) {
-      const { data: remoteCombos, error } = await supabase.from('combos').select('*').order('created_at', { ascending: false });
-      if (!error && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
-        const remoteIds = new Set(remoteCombos.map(r => r.id));
-        const localCombos = db.prepare('SELECT id FROM combos').all();
-        for (const loc of localCombos) {
-          if (!remoteIds.has(loc.id)) {
-            try { 
-              db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(loc.id);
-              db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(loc.id);
-              db.prepare('DELETE FROM combos WHERE id = ?').run(loc.id); 
-            } catch (e) {}
+    const combos = await cache.wrap('combos:catalog', 120, async () => {
+      try {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          const { data: remoteCombos, error } = await supabase.from('combos').select('*').order('created_at', { ascending: false });
+          if (!error && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
+            const remoteIds = new Set(remoteCombos.map(r => r.id));
+            const localCombos = db.prepare('SELECT id FROM combos').all();
+            for (const loc of localCombos) {
+              if (!remoteIds.has(loc.id)) {
+                try { 
+                  db.prepare('DELETE FROM daily_entitlements WHERE combo_id = ?').run(loc.id);
+                  db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(loc.id);
+                  db.prepare('DELETE FROM combos WHERE id = ?').run(loc.id); 
+                } catch (e) {}
+              }
+            }
+
+            for (const c of remoteCombos) {
+              try {
+                db.prepare(`
+                  INSERT INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg, created_at)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                  ON CONFLICT(id) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    category = excluded.category,
+                    calories = excluded.calories,
+                    dietary_info = excluded.dietary_info,
+                    is_active = excluded.is_active
+                `).run(
+                  c.id, c.name, c.description, c.category || 'combo_especial', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ? 1 : 0,
+                  c.description || '', '🍱', 1, 'Mesa 1', 'Ambiente', '1', 14.0, c.created_at || new Date().toISOString()
+                );
+              } catch (e) {}
+            }
           }
         }
+      } catch (err) {}
 
-        for (const c of remoteCombos) {
-          try {
-            db.prepare(`
-              INSERT INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT(id) DO UPDATE SET
-                name = excluded.name,
-                description = excluded.description,
-                category = excluded.category,
-                calories = excluded.calories,
-                dietary_info = excluded.dietary_info,
-                is_active = excluded.is_active
-            `).run(
-              c.id, c.name, c.description, c.category || 'combo_especial', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ? 1 : 0,
-              c.description || '', '🍱', 1, 'Mesa 1', 'Ambiente', '1', 14.0, c.created_at || new Date().toISOString()
-            );
-          } catch (e) {}
-        }
-      }
-    }
-  } catch (err) {}
+      return db.prepare(`
+        SELECT c.*,
+               best_camp.id as campaign_id,
+               best_camp.name as campaign_name,
+               best_camp.status as campaign_status,
+               best_camp.start_date as campaign_start_date,
+               best_camp.end_date as campaign_end_date
+        FROM combos c
+        LEFT JOIN (
+          SELECT 
+            combo_link.combo_id,
+            camp.id,
+            camp.name,
+            camp.status,
+            camp.start_date,
+            camp.end_date,
+            ROW_NUMBER() OVER (
+              PARTITION BY combo_link.combo_id 
+              ORDER BY 
+                CASE camp.status 
+                  WHEN 'en_curso' THEN 1 
+                  WHEN 'programada' THEN 2 
+                  WHEN 'suspendida' THEN 3 
+                  WHEN 'finalizada' THEN 4 
+                  ELSE 5 
+                END,
+                camp.created_at DESC
+            ) as rn
+          FROM (
+            SELECT combo_id, campaign_id FROM campaign_combos
+            UNION
+            SELECT combo_id, id as campaign_id FROM delivery_campaigns WHERE combo_id IS NOT NULL
+            UNION
+            SELECT id as combo_id, campaign_id FROM combos WHERE campaign_id IS NOT NULL
+          ) combo_link
+          JOIN delivery_campaigns camp ON combo_link.campaign_id = camp.id
+        ) best_camp ON best_camp.combo_id = c.id AND best_camp.rn = 1
+        ORDER BY c.created_at DESC
+      `).all();
+    });
 
-  const combos = db.prepare(`
-    SELECT c.*,
-           best_camp.id as campaign_id,
-           best_camp.name as campaign_name,
-           best_camp.status as campaign_status,
-           best_camp.start_date as campaign_start_date,
-           best_camp.end_date as campaign_end_date
-    FROM combos c
-    LEFT JOIN (
-      SELECT 
-        combo_link.combo_id,
-        camp.id,
-        camp.name,
-        camp.status,
-        camp.start_date,
-        camp.end_date,
-        ROW_NUMBER() OVER (
-          PARTITION BY combo_link.combo_id 
-          ORDER BY 
-            CASE camp.status 
-              WHEN 'en_curso' THEN 1 
-              WHEN 'programada' THEN 2 
-              WHEN 'suspendida' THEN 3 
-              WHEN 'finalizada' THEN 4 
-              ELSE 5 
-            END,
-            camp.created_at DESC
-        ) as rn
-      FROM (
-        SELECT combo_id, campaign_id FROM campaign_combos
-        UNION
-        SELECT combo_id, id as campaign_id FROM delivery_campaigns WHERE combo_id IS NOT NULL
-        UNION
-        SELECT id as combo_id, campaign_id FROM combos WHERE campaign_id IS NOT NULL
-      ) combo_link
-      JOIN delivery_campaigns camp ON combo_link.campaign_id = camp.id
-    ) best_camp ON best_camp.combo_id = c.id AND best_camp.rn = 1
-    ORDER BY c.created_at DESC
-  `).all();
-  res.json(combos);
+    res.json(combos);
+  } catch (err) {
+    console.error('[COMBOS GET ERROR]', err);
+    res.status(500).json({ error: 'Error al obtener combos' });
+  }
 };
 
 const createCombo = async (req, res) => {
@@ -744,6 +762,10 @@ const createCombo = async (req, res) => {
       reconcileComboEntitlements(newId, true);
     }
 
+    await cache.delPattern('combos:*');
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('kpis:*');
+
     const created = db.prepare('SELECT * FROM combos WHERE id = ?').get(newId);
     res.status(201).json({
       success: true,
@@ -808,6 +830,10 @@ const deleteCombo = async (req, res) => {
     db.prepare('DELETE FROM campaign_combos WHERE combo_id = ?').run(id);
     db.prepare('DELETE FROM delivery_campaigns WHERE combo_id = ?').run(id);
     db.prepare('DELETE FROM combos WHERE id = ?').run(id);
+
+    await cache.delPattern('combos:*');
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('kpis:*');
 
     res.json({
       success: true,
@@ -908,6 +934,10 @@ const updateCombo = async (req, res) => {
     } catch (e) {
       console.warn('[SUPABASE UPDATE COMBO EXCEPTION]', e.message);
     }
+
+    await cache.delPattern('combos:*');
+    await cache.delPattern('campaigns:*');
+    await cache.delPattern('kpis:*');
 
     res.json({
       success: true,

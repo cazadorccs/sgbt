@@ -2,37 +2,42 @@
 // Controlador para configuración institucional, marca y modo de validación B2G
 
 const { db } = require('../db');
+const { cache } = require('../services/cache.service');
 
-const getSettings = (req, res) => {
+const getSettings = async (req, res) => {
   try {
-    let tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
-    if (!tenant) {
-      tenant = {
-        id: 'current_tenant',
-        entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
-        entity_short_name: 'MIPPCI',
-        slogan: 'Bienestar y Soberanía Alimentaria Institucional',
-        logo_url: '',
-        primary_color: '#0284c7',
-        secondary_color: '#0ea5e9'
+    const data = await cache.wrap('tenant:settings:current_tenant', 600, async () => {
+      let tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
+      if (!tenant) {
+        tenant = {
+          id: 'current_tenant',
+          entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+          entity_short_name: 'MIPPCI',
+          slogan: 'Bienestar y Soberanía Alimentaria Institucional',
+          logo_url: '',
+          primary_color: '#0284c7',
+          secondary_color: '#0ea5e9'
+        };
+      }
+
+      const distributionPoints = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE is_active = 1').all();
+      const departments = db.prepare('SELECT id, code, name FROM departments ORDER BY name ASC').all();
+
+      return {
+        tenant,
+        distributionPoints,
+        departments
       };
-    }
-
-    const distributionPoints = db.prepare('SELECT id, name, location_code, address FROM distribution_points WHERE is_active = 1').all();
-    const departments = db.prepare('SELECT id, code, name FROM departments ORDER BY name ASC').all();
-
-    res.json({
-      tenant,
-      distributionPoints,
-      departments
     });
+
+    res.json(data);
   } catch (err) {
     console.error('[TENANT GET ERROR]', err);
     res.status(500).json({ error: 'Error al obtener configuración del ente' });
   }
 };
 
-const updateSettings = (req, res) => {
+const updateSettings = async (req, res) => {
   const { entity_name, entity_short_name, slogan, logo_url, primary_color, secondary_color, supervisor_qr_mode } = req.body;
 
   if (!entity_name || !entity_name.trim()) {
@@ -66,6 +71,9 @@ const updateSettings = (req, res) => {
       db.prepare("UPDATE tenant_settings SET supervisor_qr_mode = ? WHERE id = 'current_tenant'").run(qrMode);
     }
 
+    // Invalida la caché del tenant de forma inmediata
+    await cache.delPattern('tenant:*');
+
     const updated = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
     res.json({
       success: true,
@@ -78,7 +86,7 @@ const updateSettings = (req, res) => {
   }
 };
 
-const updateValidationMode = (req, res) => {
+const updateValidationMode = async (req, res) => {
   try {
     const { supervisor_qr_mode } = req.body;
     const modeVal = supervisor_qr_mode ? 1 : 0;
@@ -88,6 +96,9 @@ const updateValidationMode = (req, res) => {
       SET supervisor_qr_mode = ?, updated_at = CURRENT_TIMESTAMP 
       WHERE id = 'current_tenant'
     `).run(modeVal);
+
+    // Invalida la caché del tenant de forma inmediata
+    await cache.delPattern('tenant:*');
 
     const updated = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get();
     res.json({
