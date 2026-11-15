@@ -379,7 +379,7 @@ window.loadWorkersDirectory = async function(preservePage = false) {
     const filteredCount = allFilteredWorkers.length;
 
     if (countText) {
-      const isFiltered = Boolean(search || role || department || workerType || shift || status);
+      const isFiltered = Boolean(search || role || department || workerType || shift || (status && status !== 'active'));
       if (isFiltered && filteredCount !== totalCensus) {
         countText.textContent = `${filteredCount.toLocaleString()} de ${totalCensus.toLocaleString()} registros`;
         if (countBadge) countBadge.title = `${filteredCount.toLocaleString()} funcionarios coincidentes con los filtros aplicados (de ${totalCensus.toLocaleString()} en el padrón)`;

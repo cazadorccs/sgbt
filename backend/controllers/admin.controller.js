@@ -32,11 +32,13 @@ const getKpis = async (req, res) => {
 
       const today = new Date().toISOString().split('T')[0];
 
-      const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().count;
+      const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get().count;
       const workersWithPasskey = db.prepare(`
-        SELECT COUNT(DISTINCT worker_id) as count
-        FROM passkey_credentials
-        WHERE status = 'active'
+        SELECT COUNT(DISTINCT pk.worker_id) as count
+        FROM passkey_credentials pk
+        JOIN workers w ON pk.worker_id = w.id
+        WHERE pk.status = 'active' AND w.status = 'active'
+        AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
       `).get().count;
 
       const todayUtc = new Date().toISOString().split('T')[0];
@@ -179,6 +181,11 @@ const getWorkers = (req, res) => {
     WHERE 1=1
   `;
   const params = [today];
+
+  // Excluir cuentas técnicas y de prueba institucionales del padrón general a menos que se busquen explícitamente o include_demo=true
+  if (!search && req.query.include_demo !== 'true') {
+    sql += ` AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')`;
+  }
 
   if (search) {
     const cleanSearch = search.trim();
@@ -979,7 +986,7 @@ function reconcileComboEntitlements(comboId, isActive) {
 }
 
 function getActiveAssignedCountToday() {
-  const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get()?.count || 0;
+  const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get()?.count || 0;
   const activeCombos = db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1").get()?.count || 1;
   return totalWorkers * activeCombos;
 }
