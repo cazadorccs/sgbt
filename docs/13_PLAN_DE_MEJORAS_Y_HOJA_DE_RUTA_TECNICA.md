@@ -107,6 +107,38 @@ El presente documento define el **Plan de Evolución y Recomendaciones Estratég
 
 ---
 
+### Pilar 5: Escalabilidad Horizontal, Caché y Procesamiento Asíncrono
+
+#### 5.1 Desacoplamiento de Estado Total y Optimización Edge CDN (Fase 1)
+- **Justificación Operacional:** Reducción radical del consumo de ancho de banda y latencia de carga en terminales móviles y navegadores de almacén durante jornadas masivas.
+- **Arquitectura de Implementación:**
+  - Cabeceras `Cache-Control` inmutables para assets compilados (`max-age=31536000, immutable`).
+  - Cabeceras `s-maxage=600, stale-while-revalidate=86400` para HTML y manifiestos PWA en Edge CDN (Vercel Edge / Cloudflare).
+  - Blindaje anti-caché estricto (`no-store, no-cache, must-revalidate`) en todas las rutas API (`/api/v1/*`).
+
+#### 5.2 Capa de Caché Distribuido Híbrida Upstash/Redis/Memory (Fase 2)
+- **Justificación Operacional:** Prevención de cuellos de botella en la base de datos ante consultas repetitivas de catálogos y cómputo de métricas en tiempo real.
+- **Arquitectura de Implementación:**
+  - Servicio `cache.service.js` con soporte transparente para Upstash Redis REST (serverless), Redis TCP estándar y memoria local LRU/TTL.
+  - Patrón Cache-Aside orquestado con `wrap(key, ttl, fn)` e invalidación proactiva (`invalidatePattern`).
+  - Integración en endpoints de KPIs (`sgbt:kpis:summary`), catálogo de combos (`sgbt:combos:all`), puntos de distribución y monitor ministerial.
+
+#### 5.3 Segregación de Base de Datos CQRS con Réplicas de Lectura (Fase 3)
+- **Justificación Operacional:** Aislamiento de las transacciones críticas de despacho respecto a las consultas pesadas de auditoría y exportación.
+- **Arquitectura de Implementación:**
+  - Servicio `db_router.service.js` segregando `dbWrite` (nodo primario WAL) y `dbRead` (`readonly: true`).
+  - Enrutamiento estricto de analítica a `queryRead` y transacciones atómicas a `transactionWrite`.
+  - Métrica en tiempo real de operaciones enrutadas y latencias de conexión.
+
+#### 5.4 Sistema de Colas de Mensajes y Background Workers (Fase 4)
+- **Justificación Operacional:** Eliminación de bloqueos en el hilo principal de NodeJS debidos a llamadas de red externa o cálculos criptográficos intensivos.
+- **Arquitectura de Implementación:**
+  - Servicio `queue.service.js` con control de concurrencia (5 workers paralelos), reintentos con retroceso exponencial y método de drenado controlado `drain()`.
+  - Workers dedicados para difusión Web Push VAPID (`PUSH_BROADCAST`), sincronización con la nube (`OUTBOX_SYNC`), actualización de Árbol Merkle (`AUDIT_MERKLE_REFRESH`) y sellos SHA-256 (`GENERATE_ACTA_SEAL`).
+  - Endpoints de observabilidad y control: `/api/v1/system/queue/status`, `/api/v1/system/queue/drain` y `/api/v1/system/db/routing`.
+
+---
+
 ## 3. Matriz de Priorización y Estado de Implementación
 
 | Iniciativa / Capacidad | Impacto Operativo | Complejidad Técnica | Fase | Estado Actual |
@@ -120,7 +152,11 @@ El presente documento define el **Plan de Evolución y Recomendaciones Estratég
 | **Delta Daily-Packs & Compresión Extrema (-99.78%)** | 🔴 Alto | 🟡 Media | Optimización | 🟢 **100% Desplegado** (0.07 ms, 197x speedup) |
 | **Cold-Start Instantáneo Supabase Cloud (< 28 ms)** | 🔴 Alto | 🟡 Media | Optimización | 🟢 **100% Desplegado** (88x mejora en arranque) |
 | **Dashboard de Auditoría de Excepciones** | 🟡 Medio | 🟢 Baja | Fase 2 | 🟢 **100% Desplegado** (`/coseg` logs y filtros) |
-| **Impresión Térmica Bluetooth Directa (ESC/POS)** | 🔴 Alto | 🟡 Media | Fase 4 | ⏳ *Pospuesto por solicitud ministerial* |
+| **Optimización Edge CDN y Headers Anti-Caché** | 🔴 Alto | 🟢 Baja | Escalabilidad F1 | 🟢 **100% Desplegado** (Vercel Edge + RFC 9111) |
+| **Caché Distribuido Híbrido (Upstash / Redis / Memoria)** | 🔴 Alto | 🟡 Media | Escalabilidad F2 | 🟢 **100% Desplegado** (`cache.service.js`) |
+| **Segregación de Base de Datos CQRS (Read Replicas)** | 🔴 Alto | 🟡 Media | Escalabilidad F3 | 🟢 **100% Desplegado** (`db_router.service.js`) |
+| **Colas de Mensajes Asíncronas & Background Workers** | 🔴 Alto | 🟡 Media | Escalabilidad F4 | 🟢 **100% Desplegado** (`queue.service.js`) |
+| **Impresión Térmica Bluetooth Directa (ESC/POS)** | 🔴 Alto | 🟡 Media | Fase Futura | ⏳ *Pospuesto por solicitud ministerial* |
 
 ---
 

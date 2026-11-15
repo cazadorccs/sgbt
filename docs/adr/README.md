@@ -18,6 +18,7 @@ Todas las decisiones se gestionan bajo el estándar de Michael Nygard y las guí
 | [ADR-0008](0008-diseno-responsivo-contencion-modales-y-ergonomia-de-scroll.md) | Diseño Responsivo, Contención Estricta de Modales y Ergonomía de Scroll | **accepted** | 2026-10-25 | UI/UX & Frontend |
 | [ADR-0009](0009-persistencia-criptografica-en-la-nube-supabase.md) | Persistencia Criptográfica Garantizada en la Nube (Supabase Cloud REST) para Entornos Serverless | **accepted** | 2026-10-29 | Arquitectura TI, Seguridad & DevOps |
 | [ADR-0010](0010-segregacion-estricta-credenciales-y-blindaje-api-gateway.md) | Segregación Estricta de Credenciales y Blindaje de Seguridad en API Gateway | **accepted** | 2026-11-07 | Arquitectura TI, Ciberseguridad & DevOps |
+| [ADR-0011](0011-arquitectura-escalado-horizontal-cdn-cache-cqrs-workers.md) | Arquitectura de Escalado Horizontal: Edge CDN, Caché Distribuido, Segregación CQRS y Colas Asíncronas | **accepted** | 2026-11-15 | Arquitectura TI, Infraestructura & DevOps |
 
 ---
 

@@ -998,7 +998,7 @@ paths:
     get:
       tags:
         - Sistema & Diagnóstico
-      summary: Estado del servidor, motor criptográfico y base de datos
+      summary: Estado del servidor, motor criptográfico, base de datos y métricas de escalabilidad
       responses:
         '200':
           description: Telemetría del sistema
@@ -1019,6 +1019,114 @@ paths:
                   timestamp:
                     type: string
                     example: "2026-10-25T06:30:00.000Z"
+                  cache:
+                    type: object
+                    description: Métricas de la capa de caché distribuido híbrido
+                  db_routing:
+                    type: object
+                    description: Métricas de enrutamiento CQRS de lectura y escritura
+                  queue:
+                    type: object
+                    description: Métricas del sistema de colas asíncronas
+
+  /system/queue/status:
+    get:
+      tags:
+        - Sistema & Diagnóstico
+      summary: Estado y métricas operacionales del sistema de colas de fondo
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Estadísticas de colas y workers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      queueLength:
+                        type: integer
+                        example: 0
+                      activeWorkers:
+                        type: integer
+                        example: 0
+                      completedJobs:
+                        type: integer
+                        example: 120
+                      failedJobs:
+                        type: integer
+                        example: 0
+                      delayedJobsCount:
+                        type: integer
+                        example: 0
+                      successRate:
+                        type: string
+                        example: "100.00%"
+
+  /system/queue/drain:
+    post:
+      tags:
+        - Sistema & Diagnóstico
+      summary: Drenado forzado y sincronizado de la cola de mensajes
+      description: Espera hasta que todos los trabajos en cola, activos y diferidos finalicen.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Cola drenada exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Cola de mensajes drenada exitosamente"
+
+  /system/db/routing:
+    get:
+      tags:
+        - Sistema & Diagnóstico
+      summary: Diagnóstico de enrutamiento y latencias de base de datos CQRS
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Métricas de enrutamiento y estado de salud de nodos de BD
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      mode:
+                        type: string
+                        example: "CQRS_PRIMARY_READONLY_REPLICA"
+                      readsRouted:
+                        type: integer
+                        example: 450
+                      writesRouted:
+                        type: integer
+                        example: 85
+                      health:
+                        type: object
 
 components:
   securitySchemes:

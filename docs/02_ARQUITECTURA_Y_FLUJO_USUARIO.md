@@ -5,13 +5,58 @@
 
 ### 1. Vista de Arquitectura de Contenedores y Servicios
 
-El sistema implementa una arquitectura híbrida desacoplada, diseñada para operar en entornos con conectividad inestable o nula, garantizando a la vez consolidación centralizada en la nube.
+El sistema implementa una arquitectura híbrida desacoplada, diseñada para operar en entornos con conectividad inestable o nula, garantizando a la vez consolidación centralizada en la nube y alta concurrencia mediante escalabilidad horizontal:
+
+```mermaid
+flowchart TD
+    subgraph Clientes ["📱 Capa de Clientes"]
+        PWA["PWA Beneficiario / Carnet"]
+        Desk["Mesa Despacho Almacén"]
+        AdminUI["Consola /coseg & Monitores"]
+    end
+
+    subgraph Edge ["🌐 Capa de Borde & CDN"]
+        CDN["Vercel Edge CDN / Cache-Control RFC 9111"]
+        StaticAssets["Assets Inmutables (JS/CSS/WASM)\ns-maxage=604800, immutable"]
+        HtmlCache["HTML / Manifiestos\nstale-while-revalidate=86400"]
+    end
+
+    subgraph AppServer ["🛡️ Servidor de Aplicación (Express API Gateway)"]
+        Routes["API Endpoints /api/v1/*\n(Cache-Control: no-store)"]
+        CacheLayer["⚡ CacheService\n(Upstash Redis REST / TCP / Memoria)"]
+        RouterLayer["🔀 DbRouterService (CQRS)"]
+        QueueLayer["📬 QueueService\n(Concurrencia: 5, Exponential Backoff)"]
+    end
+
+    subgraph Storage ["💾 Capa de Persistencia & Replicación"]
+        DBW["Primario Escritura (SQLite WAL / Supabase)"]
+        DBR["Réplica Lectura (SQLite Readonly WAL / Cloud)"]
+        DBW -.->|"Replicación Asíncrona"| DBR
+    end
+
+    subgraph Workers ["⚙️ Background Workers"]
+        WPush["Worker Web Push (VAPID)"]
+        WSync["Worker Outbox Cloud Sync"]
+        WMerkle["Worker Merkle Tree Refresh"]
+        WSeal["Worker SHA-256 Seal"]
+    end
+
+    Clientes --> CDN
+    CDN --> Routes
+    Routes <--> CacheLayer
+    Routes --> RouterLayer
+    RouterLayer -->|"Escrituras / Transacciones"| DBW
+    RouterLayer -->|"Lecturas / Reportes / KPIs"| DBR
+    Routes --> QueueLayer
+    QueueLayer --> Workers
+```
 
 > [!NOTE] **Diagrama de Arquitectura de Contenedores C4 (Archify v3.2):**
 > La vista estructural de actores, capas PWA, servicios backend y almacenamiento híbrido SQLite WAL + Supabase Cloud se encuentra modelada interactivamente:
 > - 🌐 **Visor Interactivo en Vivo:** [c4-containers.html](diagrams/c4-containers.html) | [Centro de Diagramas SGBT](diagrams/index.html)
 > - 📄 **Especificación Técnica Archify:** [c4-containers.json](diagrams/c4-containers.json)
 > - ⚡ **Flujo Secuencial de Retiro y User Journey:** [user-journey-sequence.html](diagrams/user-journey-sequence.html)
+> - 📜 **Decisión de Arquitectura de Escalado:** Ver [ADR-0011](adr/0011-arquitectura-escalado-horizontal-cdn-cache-cqrs-workers.md) para detalles sobre CDN, Caché Híbrido, CQRS y Workers.
 
 ---
 
