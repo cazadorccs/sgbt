@@ -269,6 +269,17 @@ const getWorkers = (req, res) => {
   res.json({ total: workers.length, total_census: totalCensus, workers });
 };
 
+// Helper canónico de normalización de Cédula de Identidad (V-XXXXXXXX / E-XXXXXXXX)
+const normalizeDocumentId = (doc) => {
+  if (!doc) return '';
+  const clean = String(doc).trim().toUpperCase().replace(/\./g, '');
+  if (/^[VE]-\d+$/.test(clean)) return clean;
+  const digits = clean.replace(/[^0-9]/g, '');
+  if (!digits) return clean;
+  const prefix = clean.startsWith('E') ? 'E-' : 'V-';
+  return `${prefix}${digits}`;
+};
+
 const createWorker = (req, res) => {
   const { document_id, full_name, email, department_id, worker_type, role, has_smartphone, phone_number, shift } = req.body;
 
@@ -276,7 +287,7 @@ const createWorker = (req, res) => {
     return res.status(400).json({ error: 'Cédula y Nombre Completo son obligatorios' });
   }
 
-  const cleanDoc = document_id.trim().toUpperCase();
+  const cleanDoc = normalizeDocumentId(document_id);
   const workerEmail = (email && email.trim()) ? email.trim() : `${cleanDoc.toLowerCase().replace(/[^a-z0-9]/g, '')}@mippci.gob.ve`;
 
   try {

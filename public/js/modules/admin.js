@@ -254,9 +254,13 @@ function renderWorkersPage() {
         `;
       }
 
+      const displayDoc = (w.document_id && !w.document_id.includes('-') && /^\d+$/.test(w.document_id))
+        ? `V-${w.document_id}`
+        : (w.document_id || '');
+
       tr.innerHTML = `
         <td style="text-align: center; vertical-align: middle;">${avatarHtml}</td>
-        <td class="text-mono" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">${w.document_id}</td>
+        <td class="text-mono" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">${displayDoc}</td>
         <td>
           <div style="font-weight: 600; font-size: 0.84rem; line-height: 1.25; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" data-tooltip="${safeWorkerName}" title="${safeWorkerName}">${w.full_name}</div>
           <div style="font-size: 0.72rem; color: var(--text-dim); line-height: 1.2; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" data-tooltip="${w.email}" title="${w.email}">${w.email}</div>
@@ -1273,7 +1277,7 @@ window.openManageUserCredentialsModal = async function(workerId) {
     if (roleSelectEl) {
       roleSelectEl.value = worker.role || 'worker';
       roleSelectEl.onchange = () => {
-        const isPriv = ['admin', 'director', 'supervisor'].includes(roleSelectEl.value) || worker.document_id === '13537582';
+        const isPriv = ['admin', 'director', 'supervisor'].includes(roleSelectEl.value) || worker.document_id === '13537582' || worker.document_id === 'V-13537582';
         const sec = document.getElementById('manageAdminPinSection');
         if (sec) sec.style.display = isPriv ? 'block' : 'none';
       };
@@ -1285,7 +1289,7 @@ window.openManageUserCredentialsModal = async function(workerId) {
     const pinBadge = document.getElementById('badgeAdminPinStatus');
     if (pinInput) pinInput.value = '';
 
-    const isAdminWorker = ['admin', 'director', 'supervisor'].includes(worker.role) || worker.document_id === '13537582';
+    const isAdminWorker = ['admin', 'director', 'supervisor'].includes(worker.role) || worker.document_id === '13537582' || worker.document_id === 'V-13537582';
     if (adminPinSection) {
       adminPinSection.style.display = isAdminWorker ? 'block' : 'none';
     }

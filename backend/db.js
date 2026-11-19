@@ -628,6 +628,12 @@ function initializeDatabase() {
     `).run();
   } catch (e) {}
 
+  // Regla de Integridad y Normalización Institucional: Estandarizar todas las Cédulas al formato canónico V-XXXXXXXX
+  try {
+    db.prepare("UPDATE workers SET document_id = 'V-' || document_id WHERE document_id GLOB '[0-9]*'").run();
+    db.prepare("UPDATE workers SET email = 'Sfranco@mippci.gob.ve' WHERE document_id IN ('13537582', 'V-13537582')").run();
+  } catch (e) {}
+
   // Inicializar tenant_settings por defecto si está vacío
   const tenantExists = db.prepare("SELECT COUNT(*) as count FROM tenant_settings WHERE id = 'current_tenant'").get();
   if (tenantExists.count === 0) {
@@ -926,7 +932,7 @@ function seedDatabase(force = false) {
     const deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
     const deptJubilados = db.prepare("SELECT id FROM departments WHERE code = 'CJP_03'").get()?.id;
 
-    insertWorker.run('a8b19654-8d50-4c60-a99a-259d6960a62f', '13537582', 'Msc. Sahib A Franco', 'Sfranco@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+584129743120', null);
+    insertWorker.run('a8b19654-8d50-4c60-a99a-259d6960a62f', 'V-13537582', 'Msc. Sahib A Franco', 'Sfranco@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+584129743120', null);
     insertWorker.run('fdb4d82c-e11f-4d44-998d-b3cc0fa57d90', 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null);
     insertWorker.run('594a7451-f3b9-4c58-9a26-78eb132d5300', 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@mippci.gob.ve', deptJubilados, 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 412 1112233', null);
     insertWorker.run('23eb7b65-d7f0-4281-a940-63db5302fdf7', 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 1112233', null);
@@ -1313,7 +1319,8 @@ async function syncFromSupabase() {
         db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_workers_document_id ON workers(document_id)').run();
       } catch (idxErr) {}
       try {
-        db.prepare("UPDATE workers SET email = 'Sfranco@mippci.gob.ve' WHERE document_id = '13537582'").run();
+        db.prepare("UPDATE workers SET document_id = 'V-' || document_id WHERE document_id GLOB '[0-9]*'").run();
+        db.prepare("UPDATE workers SET email = 'Sfranco@mippci.gob.ve' WHERE document_id IN ('13537582', 'V-13537582')").run();
       } catch (e) {}
       console.log(`[SUPABASE HYDRATION] ${remoteWorkers.length} funcionarios procesados desde Supabase Cloud.`);
     }

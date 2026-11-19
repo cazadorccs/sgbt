@@ -12,6 +12,16 @@ if (isProduction && !process.env.PAYROLL_WEBHOOK_SECRET) {
 }
 const WEBHOOK_SECRET = process.env.PAYROLL_WEBHOOK_SECRET || 'mippci_bolsa_secure_secret_key_2026';
 
+function normalizeDocumentId(doc) {
+  if (!doc) return '';
+  const clean = String(doc).trim().toUpperCase().replace(/\./g, '');
+  if (/^[VE]-\d+$/.test(clean)) return clean;
+  const digits = clean.replace(/[^0-9]/g, '');
+  if (!digits) return clean;
+  const prefix = clean.startsWith('E') ? 'E-' : 'V-';
+  return `${prefix}${digits}`;
+}
+
 /**
  * Normaliza un nombre de departamento eliminando ruido tipográfico común en OCR / transcripción:
  * - Caracteres parásitos: °, º, ª, *, ~, _, comillas, dobles apóstrofes, acentos circunflejos.
@@ -80,7 +90,7 @@ function parseExcelToWorkers(buffer) {
       if (!row || row.length === 0) continue;
 
       const rawDoc = docIdx >= 0 ? String(row[docIdx] || '').trim() : '';
-      const cleanDoc = rawDoc.replace(/[^0-9]/g, '');
+      const cleanDoc = normalizeDocumentId(rawDoc);
       if (!cleanDoc) continue;
 
       const fullName = nameIdx >= 0 && row[nameIdx] 
@@ -173,9 +183,9 @@ function parseCsvToWorkers(csvText) {
     const cols = parseRow(lines[i]);
     if (cols.length < 2) continue;
 
-    const docId = docIdx >= 0 ? cols[docIdx] : cols[0];
-    const fullName = nameIdx >= 0 ? cols[nameIdx] : (cols[1] || 'Funcionario ' + docId);
-    if (!docId || !docId.trim()) continue;
+    const rawDoc = docIdx >= 0 ? cols[docIdx] : cols[0];
+    const docId = normalizeDocumentId(rawDoc);
+    if (!docId) continue;
 
     let email = emailIdx >= 0 && cols[emailIdx] ? cols[emailIdx] : `${docId.replace(/[^a-zA-Z0-9]/g, '')}@mippci.gob.ve`;
     if (!email.includes('@')) email += '@mippci.gob.ve';
@@ -219,9 +229,11 @@ const handleWebhook = (req, res) => {
     return res.status(400).json({ error: 'Payload de empleado inválido' });
   }
 
+  const cleanDoc = normalizeDocumentId(data.document_id);
+
   const tx = db.transaction(() => {
     let workerId = data.worker_id;
-    let existing = db.prepare('SELECT id FROM workers WHERE document_id = ?').get(data.document_id);
+    let existing = db.prepare('SELECT id FROM workers WHERE document_id = ? OR document_id = ?').get(cleanDoc, data.document_id);
 
     if (existing) {
       workerId = existing.id;
@@ -248,7 +260,7 @@ const handleWebhook = (req, res) => {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         workerId,
-        data.document_id,
+        cleanDoc,
         data.full_name,
         data.email,
         data.shift || 'jornada_continua',
