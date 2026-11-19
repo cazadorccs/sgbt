@@ -490,7 +490,7 @@ const getTodayStatsAndRecent = async (req, res) => {
         WHERE e.status = 'claimed' 
           AND e.valid_date IN (?, ?)
           AND w.document_id IS NOT NULL 
-          AND w.document_id NOT IN ('V-00000000', '00000000', '')
+          AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
           AND d.id IS NULL
       `).all(todayUtc, todayVzla);
 
@@ -513,12 +513,9 @@ const getTodayStatsAndRecent = async (req, res) => {
     }
 
     const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get().c;
-    const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
-    // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
-    const totalAssigned = totalWorkers * activeCombosCount;
 
     // Fuente de verdad unificada para entregas de la jornada:
-    // Captura tanto entregas de Despacho Manual como de Mesas de Despacho por la App (NFC/QR/Supervisor)
+    // Captura únicamente entregas a funcionarios reales (excluye fixtures de pruebas E2E y cuentas técnicas)
     const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id,
@@ -546,10 +543,38 @@ const getTodayStatsAndRecent = async (req, res) => {
         OR (e.id IS NOT NULL AND e.status = 'claimed' AND e.valid_date IN (?, ?))
       )
       AND w.document_id IS NOT NULL 
-      AND w.document_id NOT IN ('V-00000000', '00000000', '')
+      AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
+      AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')
       ORDER BY d.delivered_at DESC
       LIMIT 500
     `).all(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
+
+    // Contar combos entregados directamente de rawDeliveries
+    const totalCombosDelivered = rawDeliveries.length;
+
+    // Verificación estricta de Jornada Activa HOY:
+    // Una jornada solo programa combos si está 'en_curso' y la fecha de hoy está comprendida en su rango [start_date, end_date]
+    const activeCampToday = db.prepare(`
+      SELECT c.id, c.name, c.target_group, c.start_date, c.end_date 
+      FROM delivery_campaigns c
+      WHERE c.status = 'en_curso'
+        AND date(?) >= date(c.start_date)
+        AND date(?) <= date(c.end_date)
+      LIMIT 1
+    `).get(today, today);
+
+    let totalAssigned = 0;
+    if (activeCampToday) {
+      const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
+      const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1);
+      totalAssigned = totalWorkers * activeCombosCount;
+    } else if (totalCombosDelivered > 0) {
+      // Si se realizaron entregas reales fuera de jornada formal, la programación refleja lo despachado
+      totalAssigned = totalCombosDelivered;
+    }
+
+    // Combos Pendientes = Combos Programados Hoy - Combos Entregados
+    const totalPending = Math.max(0, totalAssigned - totalCombosDelivered);
 
     // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
     const groupedMap = new Map();
@@ -582,11 +607,6 @@ const getTodayStatsAndRecent = async (req, res) => {
     }
 
     const recentDeliveries = Array.from(groupedMap.values()).slice(0, 100);
-
-    // Contar combos entregados directamente de rawDeliveries para consistencia 100% con la lista
-    const totalCombosDelivered = rawDeliveries.length;
-    // REGLA OFICIAL: Combos Pendientes = Combos Programados Hoy - Combos Entregados
-    const totalPending = Math.max(0, totalAssigned - totalCombosDelivered);
 
     res.json({
       success: true,

@@ -111,8 +111,8 @@ const getDeliveriesReport = async (req, res) => {
       params.push(operatorParam);
     }
 
-    // Excluir registros con documentos de prueba inválidos si existiesen
-    whereClauses.push(`w.document_id IS NOT NULL AND w.document_id NOT IN ('V-00000000', '00000000', '')`);
+    // Excluir registros con documentos de prueba inválidos o cuentas técnicas
+    whereClauses.push(`w.document_id IS NOT NULL AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '') AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')`);
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
@@ -196,8 +196,15 @@ const getDeliveriesReport = async (req, res) => {
       WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
     `).get()?.c || 1079;
 
-    const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get()?.c || 1;
-    const totalAssignedCombos = totalActiveWorkers * activeCombosCount;
+    const activeCampToday = db.prepare(`
+      SELECT c.id FROM delivery_campaigns c
+      WHERE c.status = 'en_curso'
+        AND date('now') >= date(c.start_date)
+        AND date('now') <= date(c.end_date)
+      LIMIT 1
+    `).get();
+    const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1;
+    const totalAssignedCombos = activeCampToday ? (totalActiveWorkers * activeCombosCount) : 0;
 
     // Desglose de métodos para la selección actual
     const methodsBreakdownSql = `
@@ -364,7 +371,7 @@ const exportDeliveriesCsv = async (req, res) => {
       params.push(operatorParam);
     }
 
-    whereClauses.push(`w.document_id IS NOT NULL AND w.document_id NOT IN ('V-00000000', '00000000', '')`);
+    whereClauses.push(`w.document_id IS NOT NULL AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '') AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')`);
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
     const exportSql = `

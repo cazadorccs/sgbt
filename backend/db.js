@@ -700,6 +700,9 @@ function initializeDatabase() {
       const mainActive = activeCamps.find(c => c.id === '51f3c32c-3b68-40f6-97ed-37f7c8e9441b') || activeCamps[0];
       db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(mainActive.id);
     }
+
+    // Regla de Integridad de Fechas: Campañas futuras (start_date > now) deben estar en estado 'programada', nunca 'en_curso'
+    db.prepare("UPDATE delivery_campaigns SET status = 'programada' WHERE status = 'en_curso' AND date(start_date) > date('now')").run();
   } catch (e) {
     console.warn('[DB INIT] Ajuste de jornadas activas:', e.message);
   }
@@ -1179,6 +1182,8 @@ async function syncFromSupabase() {
                 const keepId = activeCamps[0].id;
                 db.prepare("UPDATE delivery_campaigns SET status = 'suspendida' WHERE status = 'en_curso' AND id != ?").run(keepId);
               }
+              // Regla de Integridad de Fechas: Campañas futuras (start_date > now) deben estar en estado 'programada', nunca 'en_curso'
+              db.prepare("UPDATE delivery_campaigns SET status = 'programada' WHERE status = 'en_curso' AND date(start_date) > date('now')").run();
 
               console.log(`[SUPABASE HYDRATION] ${parsed.campaigns.length} jornadas sincronizadas desde Supabase Cloud.`);
             }

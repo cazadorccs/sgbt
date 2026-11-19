@@ -43,10 +43,16 @@ const getKpis = async (req, res) => {
 
       const todayUtc = new Date().toISOString().split('T')[0];
       const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-      const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
 
-      // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
-      const totalEntitlementsToday = totalWorkers * activeCombosCount;
+      // Verificar si existe una Jornada Activa HOY (en curso y vigente)
+      const activeCampToday = db.prepare(`
+        SELECT c.id, c.name, c.target_group, c.start_date, c.end_date 
+        FROM delivery_campaigns c
+        WHERE c.status = 'en_curso'
+          AND date(?) >= date(c.start_date)
+          AND date(?) <= date(c.end_date)
+        LIMIT 1
+      `).get(todayVzla, todayVzla);
 
       const methodStats = db.prepare(`
         SELECT 
@@ -65,10 +71,20 @@ const getKpis = async (req, res) => {
           OR substr(d.delivered_at, 1, 10) IN (?, ?)
           OR d.delivered_at >= datetime('now', '-24 hours')
         )
-        AND w.document_id NOT IN ('V-00000000', '00000000', '')
+        AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
+        AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')
       `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
 
       const claimedEntitlementsToday = methodStats.total_deliveries || 0;
+
+      let totalEntitlementsToday = 0;
+      if (activeCampToday) {
+        const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
+        const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1);
+        totalEntitlementsToday = totalWorkers * activeCombosCount;
+      } else if (claimedEntitlementsToday > 0) {
+        totalEntitlementsToday = claimedEntitlementsToday;
+      }
 
       const totalDelivered = methodStats.total_deliveries || 0;
       const offlinePct = totalDelivered > 0 ? Math.round(((methodStats.offline_deliveries || 0) / totalDelivered) * 100) : 0;
@@ -987,7 +1003,10 @@ function reconcileComboEntitlements(comboId, isActive) {
 
 function getActiveAssignedCountToday() {
   const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get()?.count || 0;
-  const activeCombos = db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1").get()?.count || 1;
+  const activeCampToday = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' AND date('now') >= date(start_date) AND date('now') <= date(end_date) LIMIT 1").get();
+  if (!activeCampToday) return 0;
+  const campCombos = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
+  const activeCombos = campCombos > 0 ? campCombos : (db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.count || 1);
   return totalWorkers * activeCombos;
 }
 
