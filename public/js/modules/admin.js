@@ -102,9 +102,17 @@ window.refreshPortalData = async function() {
 };
 
 let currentWorkersPage = 1;
-const WORKERS_PER_PAGE = 25;
-const VIRTUAL_WINDOW_SIZE = 25;
+const DEFAULT_WORKERS_PER_PAGE = 25;
+let workersPerPage = DEFAULT_WORKERS_PER_PAGE;
 let allFilteredWorkers = [];
+
+// Cargar preferencia guardada de filas por página si existe
+try {
+  const savedLimit = parseInt(localStorage.getItem('sgbt_workers_per_page'), 10);
+  if ([25, 50, 100, 250, 500, 1500].includes(savedLimit)) {
+    workersPerPage = savedLimit;
+  }
+} catch (e) {}
 
 // Pre-índice de búsqueda acelerado para el padrón (1.138 registros en < 1ms)
 let workersSearchIndex = null;
@@ -120,14 +128,19 @@ function renderWorkersPage() {
   const tbody = document.getElementById('workersTableBody');
   if (!tbody) return;
 
+  const selectSizeEl = document.getElementById('selectWorkersPageSize');
+  if (selectSizeEl && selectSizeEl.value !== String(workersPerPage)) {
+    selectSizeEl.value = String(workersPerPage);
+  }
+
   const total = allFilteredWorkers.length;
-  const totalPages = Math.max(1, Math.ceil(total / WORKERS_PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(total / workersPerPage));
   if (currentWorkersPage > totalPages) currentWorkersPage = totalPages;
   if (currentWorkersPage < 1) currentWorkersPage = 1;
 
-  // Virtual Windowing Slice: Renderiza únicamente la ventana activa (25 filas máx) para 60fps constantes
-  const startIdx = (currentWorkersPage - 1) * VIRTUAL_WINDOW_SIZE;
-  const endIdx = Math.min(startIdx + VIRTUAL_WINDOW_SIZE, total);
+  // Renderiza la ventana activa según el límite seleccionado (25, 50, 100, 250, 500 o Todos)
+  const startIdx = (currentWorkersPage - 1) * workersPerPage;
+  const endIdx = Math.min(startIdx + workersPerPage, total);
   const pageWorkers = allFilteredWorkers.slice(startIdx, endIdx);
 
   tbody.innerHTML = '';
@@ -396,7 +409,7 @@ window.loadWorkersDirectory = async function(preservePage = false) {
     if (!preservePage) {
       currentWorkersPage = 1;
     } else {
-      const totalPages = Math.ceil(allFilteredWorkers.length / WORKERS_PER_PAGE) || 1;
+      const totalPages = Math.ceil(allFilteredWorkers.length / workersPerPage) || 1;
       if (currentWorkersPage > totalPages) currentWorkersPage = totalPages;
     }
     renderWorkersPage();
@@ -917,6 +930,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('filterShiftSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterStatusSelect')?.addEventListener('change', loadWorkersDirectory);
 
+  document.getElementById('selectWorkersPageSize')?.addEventListener('change', (e) => {
+    const val = parseInt(e.target.value, 10) || 25;
+    workersPerPage = val;
+    try {
+      localStorage.setItem('sgbt_workers_per_page', String(val));
+    } catch (err) {}
+    currentWorkersPage = 1;
+    renderWorkersPage();
+  });
+
   document.getElementById('btnPrevWorkersPage')?.addEventListener('click', () => {
     if (currentWorkersPage > 1) {
       currentWorkersPage--;
@@ -925,7 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btnNextWorkersPage')?.addEventListener('click', () => {
-    const totalPages = Math.ceil(allFilteredWorkers.length / WORKERS_PER_PAGE);
+    const totalPages = Math.ceil(allFilteredWorkers.length / workersPerPage);
     if (currentWorkersPage < totalPages) {
       currentWorkersPage++;
       renderWorkersPage();
