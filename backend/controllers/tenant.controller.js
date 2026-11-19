@@ -11,7 +11,7 @@ const getSettings = async (req, res) => {
       if (!tenant) {
         tenant = {
           id: 'current_tenant',
-          entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+          entity_name: 'Sistema de Gestión de Beneficios para los Trabajadores',
           entity_short_name: 'MIPPCI',
           slogan: 'Bienestar y Soberanía Alimentaria Institucional',
           logo_url: '',

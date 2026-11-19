@@ -220,7 +220,7 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
   const actaNumber = `ACTA-${dateStr}-${integrityHash.slice(0, 8).toUpperCase()}`;
   const emissionDate = new Date().toLocaleString('es-VE', { dateStyle: 'full', timeStyle: 'medium' });
 
-  const entityName = tenantInfo.name || 'MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN';
+  const entityName = tenantInfo.name || 'SISTEMA DE GESTIÓN DE BENEFICIOS PARA LOS TRABAJADORES';
   const slogan = tenantInfo.slogan || 'Gobierno Bolivariano de Venezuela';
 
   const deptRows = metrics.departmentBreakdown.map(dept => `

@@ -62,7 +62,7 @@ const getMinisterialMonitorStats = async (req, res) => {
         FROM tenant_settings 
         WHERE id = 'current_tenant'
       `).get() || {
-        entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+        entity_name: 'Sistema de Gestión de Beneficios para los Trabajadores',
         entity_short_name: 'MIPPCI',
         is_census_locked: 0,
         census_cutoff_date: '2026-11-22T23:59:59'
@@ -441,7 +441,7 @@ const generateMinisterialActa = async (req, res) => {
       SELECT entity_name, entity_short_name, slogan, census_cutoff_date 
       FROM tenant_settings WHERE id = 'current_tenant'
     `).get() || {
-      entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+      entity_name: 'Sistema de Gestión de Beneficios para los Trabajadores',
       entity_short_name: 'MIPPCI'
     };
 
@@ -818,7 +818,7 @@ const printMinisterialActaHtml = async (req, res) => {
     <div class="header">
       <div class="header-titles">
         <div style="font-size: 0.7rem; font-weight: 800; color: #64748b; letter-spacing: 0.1em;">REPÚBLICA BOLIVARIANA DE VENEZUELA</div>
-        <h1>${row.institution || 'MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN'}</h1>
+        <h1>${row.institution || 'SISTEMA DE GESTIÓN DE BENEFICIOS PARA LOS TRABAJADORES'}</h1>
         <h2>Acta Definitiva de Consolidación, Rendición y Cierre de Jornada</h2>
         <p>Gobierno Bolivariano &bull; Beneficios Sociales &bull; Control Criptográfico Asimétrico &bull; Despacho Ministerial</p>
       </div>

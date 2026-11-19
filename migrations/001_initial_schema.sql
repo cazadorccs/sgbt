@@ -125,7 +125,7 @@ CREATE TABLE IF NOT EXISTS payroll_sync_logs (
 -- 10. CONFIGURACIÓN INSTITUCIONAL DE MARCA BLANCA / TENANT GUBERNAMENTAL
 CREATE TABLE IF NOT EXISTS tenant_settings (
   id TEXT PRIMARY KEY DEFAULT 'current_tenant',
-  entity_name TEXT NOT NULL DEFAULT 'Ministerio del Poder Popular para la Comunicación y la Información',
+  entity_name TEXT NOT NULL DEFAULT 'Sistema de Gestión de Beneficios para los Trabajadores',
   entity_short_name TEXT NOT NULL DEFAULT 'MIPPCI',
   slogan TEXT NOT NULL DEFAULT 'Bienestar y Soberanía Alimentaria Institucional',
   logo_url TEXT,

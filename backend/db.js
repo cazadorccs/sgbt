@@ -305,7 +305,7 @@ function initializeDatabase() {
     -- 10. CONFIGURACIÓN INSTITUCIONAL DE MARCA BLANCA / TENANT GUBERNAMENTAL
     CREATE TABLE IF NOT EXISTS tenant_settings (
       id TEXT PRIMARY KEY DEFAULT 'current_tenant',
-      entity_name TEXT NOT NULL DEFAULT 'Ministerio del Poder Popular para la Comunicación y la Información',
+      entity_name TEXT NOT NULL DEFAULT 'Sistema de Gestión de Beneficios para los Trabajadores',
       entity_short_name TEXT NOT NULL DEFAULT 'MIPPCI',
       slogan TEXT NOT NULL DEFAULT 'Bienestar y Soberanía Alimentaria Institucional',
       logo_url TEXT,
@@ -639,7 +639,7 @@ function initializeDatabase() {
   if (tenantExists.count === 0) {
     const prodSeed = getProductionSeed();
     const defaultTenant = (prodSeed && prodSeed.tenant_settings && prodSeed.tenant_settings[0]) || {
-      entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+      entity_name: 'Sistema de Gestión de Beneficios para los Trabajadores',
       entity_short_name: 'MIPPCI',
       slogan: 'Bienestar y Soberanía Alimentaria Institucional',
       logo_url: '',
@@ -662,6 +662,11 @@ function initializeDatabase() {
       defaultTenant.is_demo_mode !== undefined ? defaultTenant.is_demo_mode : 0
     );
   }
+
+  // Garantizar título institucional canónico oficial en tenant_settings
+  try {
+    db.prepare("UPDATE tenant_settings SET entity_name = 'Sistema de Gestión de Beneficios para los Trabajadores' WHERE id = 'current_tenant'").run();
+  } catch (e) {}
 
   // Inicializar una campaña fija institucional ÚNICAMENTE si la tabla está absolutamente vacía y sin nube
   const totalCampaigns = db.prepare("SELECT count(*) as count FROM delivery_campaigns").get().count;

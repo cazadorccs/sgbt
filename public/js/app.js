@@ -171,7 +171,7 @@ window.navigateTo = navigateTo;
  */
 window.shareApkViaWhatsApp = function() {
   const apkUrl = 'https://sgbt-bice.vercel.app/download/sgbt-v3.7.apk';
-  const text = `📲 *Sistema SGBT - MIPPCI: APK Oficial Android (v3.7)*\n\nDescarga e instala el aplicativo oficial para terminales de almacén y entrega de beneficios institucionales:\n🔗 ${apkUrl}\n\n_Ministerio del Poder Popular para la Comunicación y la Información_`;
+  const text = `📲 *Sistema SGBT - MIPPCI: APK Oficial Android (v3.7)*\n\nDescarga e instala el aplicativo oficial para terminales de almacén y entrega de beneficios institucionales:\n🔗 ${apkUrl}\n\n_Sistema de Gestión de Beneficios para los Trabajadores_`;
 
   const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
 

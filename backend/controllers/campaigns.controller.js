@@ -824,7 +824,7 @@ const getCampaignActa = (req, res) => {
     const totalTons = Number((totalKg / 1000).toFixed(2));
 
     const tenant = db.prepare("SELECT * FROM tenant_settings WHERE id = 'current_tenant'").get() || {
-      entity_name: 'Ministerio del Poder Popular para la Comunicación y la Información',
+      entity_name: 'Sistema de Gestión de Beneficios para los Trabajadores',
       entity_short_name: 'MIPPCI'
     };
 

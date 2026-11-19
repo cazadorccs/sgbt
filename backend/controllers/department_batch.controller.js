@@ -643,7 +643,7 @@ const dispatchBatchOrder = async (req, res) => {
       // D. Construir Acta Digital Oficial
       const actaObj = {
         title: 'ACTA OFICIAL DE ENTREGA INSTITUCIONAL POR LOTE DEPARTAMENTAL',
-        institution: 'MINISTERIO DEL PODER POPULAR PARA LA COMUNICACIÓN Y LA INFORMACIÓN (MIPPCI)',
+        institution: 'SISTEMA DE GESTIÓN DE BENEFICIOS PARA LOS TRABAJADORES (SGBT)',
         order_number: order.order_number,
         department: {
           id: order.department_id,

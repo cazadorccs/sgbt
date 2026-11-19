@@ -328,7 +328,7 @@ window.setupTenantBranding = function() {
 
   btnReset?.addEventListener('click', () => {
     if (!confirm('¿Restablecer la identidad institucional a los valores estándar de MIPPCI?')) return;
-    document.getElementById('brandingEntityNameInput').value = 'Ministerio del Poder Popular para la Comunicación y la Información';
+    document.getElementById('brandingEntityNameInput').value = 'Sistema de Gestión de Beneficios para los Trabajadores';
     document.getElementById('brandingEntityShortInput').value = 'MIPPCI';
     document.getElementById('brandingSloganInput').value = 'Bienestar y Soberanía Alimentaria Institucional';
     document.getElementById('brandingLogoUrlInput').value = '';
@@ -380,7 +380,7 @@ window.setupTenantBranding = function() {
 
 function getWhatsAppShareTemplates() {
   const origin = window.location.origin || `${window.location.protocol}//${window.location.host}`;
-  const entityName = currentTenantData?.tenant?.entity_name || 'Ministerio del Poder Popular para la Comunicación y la Información';
+  const entityName = currentTenantData?.tenant?.entity_name || 'Sistema de Gestión de Beneficios para los Trabajadores';
   const entityShort = currentTenantData?.tenant?.entity_short_name || 'MIPPCI';
 
   let workerGreeting = 'Estimado(a) trabajador(a):';

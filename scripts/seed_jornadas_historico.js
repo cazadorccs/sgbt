@@ -310,7 +310,7 @@ db.prepare(`
   ) VALUES (
     ?, ?, 'cierre_censo_y_despacho',
     'Acta de Cierre y Conciliación Oficial de Despacho - Jornada 23/10/2026',
-    'Ministerio del Poder Popular para la Comunicación y la Información',
+    'Sistema de Gestión de Beneficios para los Trabajadores',
     '2026-10-23', '2026-10-23',
     ?, ?, 0, 100.0,
     ?, ?, 100.0,
