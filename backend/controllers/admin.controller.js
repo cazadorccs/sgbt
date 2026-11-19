@@ -1124,13 +1124,13 @@ const getAuditStats = (req, res) => {
 
     let totalEligible = 0;
     if (selectedCampaign) {
-      let workerCondition = "status = 'active'";
+      let workerCondition = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
       if (selectedCampaign.target_group === 'activo') workerCondition += " AND worker_type = 'activo'";
       else if (selectedCampaign.target_group === 'jubilado') workerCondition += " AND worker_type IN ('jubilado', 'pensionado')";
       else if (selectedCampaign.target_group === 'contratado') workerCondition += " AND worker_type = 'contratado'";
       totalEligible = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${workerCondition}`).get().count;
     } else {
-      totalEligible = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active'").get().count;
+      totalEligible = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get().count;
     }
 
     const coveragePct = totalEligible > 0 ? Math.min(100, Math.round((totalWorkers / totalEligible) * 100)) : 100;
@@ -1507,7 +1507,7 @@ const reloadCensus = async (req, res) => {
       console.warn('[RELOAD CENSUS] Advertencia sincronizando con Supabase:', sbErr.message);
     }
 
-    const totalWorkers = db.prepare('SELECT COUNT(*) as count FROM workers').get()?.count || 0;
+    const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get()?.count || 0;
     const totalDepts = db.prepare('SELECT COUNT(*) as count FROM departments').get()?.count || 0;
 
     res.json({

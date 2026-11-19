@@ -61,7 +61,7 @@ router.get('/combos', (req, res) => {
       }
 
       // Calcular cantidad programada, entregada y saldo restante con descuento en tiempo real
-      let workerCondition = "status = 'active'";
+      let workerCondition = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
       if (activeCamp.target_group === 'activo') workerCondition += " AND worker_type = 'activo'";
       else if (activeCamp.target_group === 'jubilado') workerCondition += " AND worker_type IN ('jubilado', 'pensionado')";
       else if (activeCamp.target_group === 'contratado') workerCondition += " AND worker_type = 'contratado'";

@@ -193,8 +193,8 @@ const getDeliveriesReport = async (req, res) => {
     // Estadísticas globales consolidadas del universo de funcionarios
     const totalActiveWorkers = db.prepare(`
       SELECT COUNT(*) as c FROM workers 
-      WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')
-    `).get()?.c || 2258;
+      WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
+    `).get()?.c || 1079;
 
     const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get()?.c || 1;
     const totalAssignedCombos = totalActiveWorkers * activeCombosCount;

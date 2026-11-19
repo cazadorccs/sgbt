@@ -512,7 +512,7 @@ const getTodayStatsAndRecent = async (req, res) => {
       console.warn('[DELIVERY AUTO-HEAL WARN]', healErr.message);
     }
 
-    const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND document_id NOT IN ('V-00000000', '00000000', '')").get().c;
+    const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get().c;
     const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1").get().c || 1;
     // REGLA OFICIAL: Combos Programados Hoy = Beneficiarios en Nómina * Combos Activos para la Jornada
     const totalAssigned = totalWorkers * activeCombosCount;

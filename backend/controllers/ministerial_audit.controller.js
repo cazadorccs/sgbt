@@ -446,8 +446,8 @@ const generateMinisterialActa = async (req, res) => {
     };
 
     // 1. Métricas Consolidadas del Padrón Cerrado
-    const totalWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active'").get().cnt;
-    const formalized = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND enrollment_status = 'registrado'").get().cnt;
+    const totalWorkers = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
+    const formalized = db.prepare("SELECT COUNT(*) as cnt FROM workers WHERE status = 'active' AND enrollment_status = 'registrado' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')").get().cnt;
     const rezagados = totalWorkers - formalized;
     const formalizationPct = totalWorkers > 0 ? Math.round((formalized / totalWorkers) * 1000) / 10 : 0;
 
