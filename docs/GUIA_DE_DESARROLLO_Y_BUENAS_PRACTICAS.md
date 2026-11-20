@@ -62,11 +62,26 @@ flowchart TD
   - Tamaños de toque mínimos (44×44 px) y navegación completa por teclado.
 
 ### Principio V: Documentación Conducida por Especificación (Spec-Driven Development)
-* **Si no está documentado, no existe:** Todo proyecto debe contar con una carpeta `docs/` con especificaciones numeradas:
-  - `01_ESPECIFICACION_REQUISITOS_SRS.md`: Requisitos funcionales y no funcionales detallados.
-  - `02_ARQUITECTURA_Y_FLUJO_USUARIO.md`: Diagramas de flujo y topología de red.
-  - `03_ESQUEMA_BASE_DATOS_Y_MODELO.md`: Modelado relacional y restricciones de integridad.
-  - `docs/adr/`: **Architecture Decision Records (ADR)** que registren cada decisión técnica relevante (ej. por qué SQLite local, por qué Zod, por qué Passkeys).
+* **Si no está documentado, no existe:** La base de cualquier desarrollo exitoso (especialmente al trabajar asistido por Agentes de Inteligencia Artificial) es la existencia de especificaciones rigurosas y desacopladas. Antes de generar una sola línea de código, el proyecto debe contar con su corpus documental completo.
+* **Componentes obligatorios de la especificación:**
+  - **Requisitos Funcionales (Historias de Usuario):** Definidas con narrativa clara (*"Como [rol] quiero [acción] para [beneficio]"*) y criterios de aceptación verificables bajo el estándar *Given-When-Then* (Dado-Cuando-Entonces).
+  - **Requisitos No Funcionales (RNF):** Metas explícitas de rendimiento (ej. latencia p95 < 50ms), disponibilidad sin red (Offline-First), criptografía asimétrica, presupuestos de memoria y tamaño de bundle.
+  - **Interfaces y Casos Límite (Edge Cases):** Definición rigurosa de qué ocurre ante pérdida de conexión, tokens expirados, colisiones de concurrencia, datos incompletos o maliciosos, límites de carga y estados vacíos (*empty states*).
+
+#### Inventario Documental Estándar y su Función Frente al Agente de IA:
+
+| Documento | Archivo sugerido | Función frente al agente de IA |
+| :--- | :--- | :--- |
+| **Requisitos del Producto (PRD)** | `PRD.md` o `01_PRD.md` | Explica la visión de negocio, el flujo general y el valor para el usuario antes de bajar al detalle técnico. Evita que la IA implemente funcionalidades innecesarias o desalineadas del objetivo institucional. |
+| **Especificación de Requisitos (SRS)** | `01_ESPECIFICACION_REQUISITOS_SRS.md` | Define las historias de usuario detalladas, requisitos no funcionales, reglas de negocio y criterios de aceptación (*Given-When-Then*). |
+| **Arquitectura y Tech Stack (TRD)** | `ARQUITECTURA_TRD.md` o `02_ARQUITECTURA...` | Fija los lenguajes, frameworks, librerías admitidas, base de datos y estructura de carpetas para que la IA no improvise ni adivine tecnologías ajenas al estándar institucional. |
+| **Flujo de Usuario y Pantallas** | `FLUJO_APLICACION.md` | Describe la navegación paso a paso, rutas, transiciones y los estados posibles de cada vista o componente (carga, vacío, error, éxito). |
+| **Diseño UI/UX y Frontend** | `DISENO_UI_UX.md` | Define la paleta de colores, tipografías, jerarquías visuales, reglas de responsividad, espaciados y directrices de accesibilidad (WCAG 2.2 AA). |
+| **Seguridad y Accesos** | `SEGURIDAD_ACCESOS.md` o `05_GUIA_SEGURIDAD...` | Establece roles (RBAC), matriz de permisos, métodos de autenticación (Passkeys/JWT) y políticas de protección y sanitización de datos. |
+| **Modelo y Base de Datos** | `03_ESQUEMA_BASE_DATOS_Y_MODELO.md` | Define las tablas, tipos de datos, índices únicos, claves foráneas y restricciones de integridad matemática. |
+| **Reglas del Agente / Contexto** | `GEMINI.md` / `CLAUDE.md` / `.cursorrules` | Contiene instrucciones permanentes, convenciones de código, comandos de prueba obligatorios (`npm test`, `node -c`) y el flujo estricto de consultar la especificación antes de programar. |
+| **Lista de Tareas / Backlog** | `TAREAS_IMPLEMENTACION.md` | Desglosa la especificación en tickets pequeños, atómicos y secuenciales para que el agente ejecute y verifique una funcionalidad a la vez con pruebas inmediatas. |
+| **Registro de Decisiones (ADR)** | `docs/adr/ADR-XXXX.md` | Bitácora inmutable que justifica cada elección arquitectónica relevante (contexto, alternativas evaluadas y consecuencias). |
 
 ### Principio VI: Búsqueda y Navegación Instantánea Client-Side
 * Para catálogos, directores o enciclopedias (como en TI-Atlas 3D), preferir **indexación en memoria en el cliente** (`Ctrl+K Pinpointer`) con coincidencia por prefijo y palabras clave curadas.
@@ -105,11 +120,15 @@ mi-proyecto-ti/
 │   └── index.html                  # Shell HTML accesible y semántico
 │
 ├── docs/                           # Ciclo de Vida Documental Obligatorio
-│   ├── 01_ESPECIFICACION_REQUISITOS_SRS.md
-│   ├── 02_ARQUITECTURA_Y_FLUJO_USUARIO.md
-│   ├── 03_ESQUEMA_BASE_DATOS_Y_MODELO.md
-│   ├── 04_DICCIONARIO_DE_DATOS.md
-│   ├── 05_GUIA_SEGURIDAD_Y_PERMISOS.md
+│   ├── PRD.md                      # Visión de Negocio y Requisitos del Producto
+│   ├── 01_ESPECIFICACION_REQUISITOS_SRS.md # Historias de usuario, RNF y casos límite
+│   ├── ARQUITECTURA_TRD.md         # Arquitectura técnica y Tech Stack fijado
+│   ├── FLUJO_APLICACION.md         # Navegación paso a paso, rutas y pantallas
+│   ├── DISENO_UI_UX.md             # Sistema de diseño, paleta, tipografía y accesibilidad
+│   ├── SEGURIDAD_ACCESOS.md        # Matriz RBAC, autenticación y protección de datos
+│   ├── TAREAS_IMPLEMENTACION.md    # Backlog secuencial y atómico para Agentes IA
+│   ├── 03_ESQUEMA_BASE_DATOS_Y_MODELO.md # Tablas, restricciones e índices únicos
+│   ├── 04_DICCIONARIO_DE_DATOS.md  # Catálogo exhaustivo de entidades y campos
 │   └── adr/                        # Registro de Decisiones de Arquitectura (ADR-0001...)
 │
 ├── tests/                          # Suites de Pruebas Automatizadas
