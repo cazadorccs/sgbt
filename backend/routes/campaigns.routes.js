@@ -11,6 +11,7 @@ router.put('/distribution-points/:id', requireRole('admin', 'director'), campaig
 
 // Campañas y Jornadas Institucionales
 router.get('/admin/campaigns', requireRole('admin', 'director', 'supervisor', 'auditor'), campaignsController.getCampaigns);
+router.get('/admin/campaigns/:id', requireRole('admin', 'director', 'supervisor', 'auditor'), campaignsController.getCampaignById);
 router.get('/admin/campaigns/:id/acta', requireRole('admin', 'director', 'supervisor', 'auditor'), campaignsController.getCampaignActa);
 router.post('/admin/campaigns', requireRole('admin', 'director'), campaignsController.createCampaign);
 router.put('/admin/campaigns/:id', requireRole('admin', 'director'), campaignsController.updateCampaign);

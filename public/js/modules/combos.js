@@ -1059,6 +1059,18 @@ window.openCreateCampaignModal = async function() {
   const form = document.getElementById('createCampaignForm');
   if (form) form.reset();
 
+  const editIdInput = document.getElementById('editCampaignId');
+  if (editIdInput) editIdInput.value = '';
+
+  const titleEl = document.getElementById('campaignModalTitleText');
+  if (titleEl) titleEl.textContent = 'Programar Nueva Jornada de Despacho';
+
+  const btnText = document.getElementById('btnSubmitCampaignText');
+  if (btnText) btnText.textContent = 'Publicar Jornada';
+
+  const notifyCheck = document.getElementById('campaignNotifyCheck');
+  if (notifyCheck) notifyCheck.checked = true;
+
   const panel = document.getElementById('distributionPointFormPanel');
   if (panel) panel.style.display = 'none';
 
@@ -1089,6 +1101,141 @@ window.openCreateCampaignModal = async function() {
 
   if (typeof window.renderComboPointsAssignment === 'function') {
     window.renderComboPointsAssignment();
+  }
+
+  modal.classList.add('active');
+};
+
+window.openEditCampaignModal = async function(campaignId) {
+  if (!campaignId) return;
+
+  if (!document.getElementById('createCampaignModalBackdrop') && typeof loadTemplates === 'function') {
+    await loadTemplates();
+  }
+
+  const modal = document.getElementById('createCampaignModalBackdrop');
+  if (!modal) {
+    console.error('Modal #createCampaignModalBackdrop no encontrado');
+    return;
+  }
+
+  // Asegurar inicialización de manejadores
+  if (typeof window.setupCampaignsManagement === 'function') {
+    window.setupCampaignsManagement();
+  }
+  if (typeof window.setupDistributionPointsManagement === 'function') {
+    window.setupDistributionPointsManagement();
+  }
+  if (typeof window.setupCampaignInlineComboManagement === 'function') {
+    window.setupCampaignInlineComboManagement();
+  }
+
+  // Buscar datos de la jornada en caché o API
+  let camp = null;
+  if (window.cachedCampaignsList && Array.isArray(window.cachedCampaignsList)) {
+    camp = window.cachedCampaignsList.find(c => c.id === campaignId);
+  }
+
+  if (!camp) {
+    try {
+      const res = await API.get(`/api/v1/admin/campaigns/${campaignId}`);
+      camp = res.campaign || res;
+    } catch (err) {
+      console.warn('Error al consultar jornada individual:', err.message);
+    }
+  }
+
+  if (!camp) {
+    Toast.error('No se encontró la información de la jornada seleccionada.');
+    return;
+  }
+
+  const form = document.getElementById('createCampaignForm');
+  if (form) form.reset();
+
+  const panel = document.getElementById('distributionPointFormPanel');
+  if (panel) panel.style.display = 'none';
+
+  const comboPanel = document.getElementById('comboFormPanelFromCampaign');
+  if (comboPanel) comboPanel.style.display = 'none';
+
+  const alertBox = document.getElementById('campaignAlertBox');
+  if (alertBox) alertBox.style.display = 'none';
+
+  // Configurar modo edición
+  const editIdInput = document.getElementById('editCampaignId');
+  if (editIdInput) editIdInput.value = camp.id;
+
+  const titleEl = document.getElementById('campaignModalTitleText');
+  if (titleEl) titleEl.textContent = 'Editar Jornada de Despacho';
+
+  const btnText = document.getElementById('btnSubmitCampaignText');
+  if (btnText) btnText.textContent = 'Guardar Cambios';
+
+  // Precargar campos de formulario
+  const nameInput = document.getElementById('campaignNameInput');
+  if (nameInput) nameInput.value = camp.name || '';
+
+  const startInput = document.getElementById('campaignStartDateInput');
+  if (startInput) startInput.value = camp.start_date || '';
+
+  const endInput = document.getElementById('campaignEndDateInput');
+  if (endInput) endInput.value = camp.end_date || '';
+
+  const targetSelect = document.getElementById('campaignTargetSelect');
+  if (targetSelect) targetSelect.value = camp.target_group || 'all';
+
+  const descInput = document.getElementById('campaignDescriptionInput');
+  if (descInput) descInput.value = camp.description || '';
+
+  const notifyCheck = document.getElementById('campaignNotifyCheck');
+  if (notifyCheck) notifyCheck.checked = false;
+
+  await Promise.allSettled([
+    window.populateCampaignCombosSelect(),
+    window.reloadDistributionPoints(camp.distribution_point_id)
+  ]);
+
+  const comboSelect = document.getElementById('campaignComboSelect');
+  if (comboSelect) {
+    if (camp.combos && camp.combos.length > 1) {
+      comboSelect.value = 'all_four_combos';
+    } else if (camp.combos && camp.combos.length === 1) {
+      comboSelect.value = camp.combos[0].id;
+    } else if (camp.combo_id) {
+      comboSelect.value = camp.combo_id;
+    }
+  }
+
+  const pointSelect = document.getElementById('campaignPointSelect');
+  if (pointSelect && camp.distribution_point_id) {
+    pointSelect.value = camp.distribution_point_id;
+  }
+
+  const customCheck = document.getElementById('toggleCustomComboPointsCheck');
+  const defaultNotice = document.getElementById('comboPointsDefaultNotice');
+  const listContainer = document.getElementById('comboPointsListContainer');
+
+  const hasCustomPoints = Boolean(
+    camp.combos && camp.combos.length > 1 && 
+    camp.combos.some(cb => cb.distribution_point_id && cb.distribution_point_id !== camp.distribution_point_id)
+  );
+
+  if (customCheck) customCheck.checked = hasCustomPoints;
+  if (defaultNotice) defaultNotice.style.display = hasCustomPoints ? 'none' : 'flex';
+  if (listContainer) listContainer.style.display = hasCustomPoints ? 'flex' : 'none';
+
+  if (typeof window.renderComboPointsAssignment === 'function') {
+    window.renderComboPointsAssignment();
+  }
+
+  if (hasCustomPoints && listContainer && camp.combos) {
+    camp.combos.forEach(cb => {
+      if (cb.distribution_point_id) {
+        const sel = listContainer.querySelector(`.combo-point-select[data-combo-id="${cb.id}"]`);
+        if (sel) sel.value = cb.distribution_point_id;
+      }
+    });
   }
 
   modal.classList.add('active');
@@ -1183,6 +1330,7 @@ window.loadCampaigns = async function() {
     try {
       const res = await API.get('/api/v1/admin/campaigns');
       campaigns = Array.isArray(res) ? res : (res && res.campaigns ? res.campaigns : []);
+      window.cachedCampaignsList = campaigns;
     } catch (e) {
       console.warn('Error al consultar jornadas:', e.message);
     }
@@ -1411,6 +1559,10 @@ window.loadCampaigns = async function() {
             </div>
             
             <div style="display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap;">
+              <button type="button" class="btn btn-outline btn-edit-campaign" data-id="${c.id}" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; color: var(--primary); border-color: rgba(2, 132, 199, 0.4); background: rgba(2, 132, 199, 0.05); display: inline-flex; align-items: center; gap: 0.25rem;" title="Editar programación y datos de la jornada">
+                <svg class="icon-svg icon-xs" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>Editar</span>
+              </button>
               ${c.status === 'programada' ? `
                 <button type="button" class="btn btn-primary btn-status-campaign" data-id="${c.id}" data-name="${(c.name || '').replace(/"/g, '&quot;')}" data-status="en_curso" style="font-size: 0.75rem; padding: 0.3rem 0.65rem;" title="Activar esta jornada (suspenderá cualquier otra activa)">
                   ▶️ Activar e Iniciar
@@ -1593,6 +1745,14 @@ window.loadCampaigns = async function() {
       });
     });
 
+    // Eventos para editar jornada programada o suspendida
+    document.querySelectorAll('.btn-edit-campaign').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        window.openEditCampaignModal(id);
+      });
+    });
+
   } catch (err) {
     console.error('Error cargando jornadas:', err);
   }
@@ -1637,6 +1797,14 @@ window.setupCampaignsManagement = function() {
   });
 
   const closeModal = () => {
+    const editIdInput = document.getElementById('editCampaignId');
+    if (editIdInput) editIdInput.value = '';
+    const titleEl = document.getElementById('campaignModalTitleText');
+    if (titleEl) titleEl.textContent = 'Programar Nueva Jornada de Despacho';
+    const btnText = document.getElementById('btnSubmitCampaignText');
+    if (btnText) btnText.textContent = 'Publicar Jornada';
+    const notifyCheck = document.getElementById('campaignNotifyCheck');
+    if (notifyCheck) notifyCheck.checked = true;
     const ptPanel = document.getElementById('distributionPointFormPanel');
     if (ptPanel) ptPanel.style.display = 'none';
     const cbPanel = document.getElementById('comboFormPanelFromCampaign');
@@ -1652,7 +1820,10 @@ window.setupCampaignsManagement = function() {
       e.stopPropagation();
     }
 
-    const originalBtnContent = submitBtn ? submitBtn.innerHTML : 'Publicar Jornada';
+    const editId = document.getElementById('editCampaignId')?.value;
+    const isEditing = Boolean(editId);
+
+    const originalBtnContent = submitBtn ? submitBtn.innerHTML : (isEditing ? 'Guardar Cambios' : 'Publicar Jornada');
     const name = document.getElementById('campaignNameInput')?.value.trim();
     const start_date = startInput?.value;
     const end_date = endInput?.value;
@@ -1685,7 +1856,7 @@ window.setupCampaignsManagement = function() {
     if (alertBox) alertBox.style.display = 'none';
     if (submitBtn) {
       submitBtn.disabled = true;
-      submitBtn.innerHTML = '⏳ <span>Publicando Jornada...</span>';
+      submitBtn.innerHTML = isEditing ? '⏳ <span>Guardando Cambios...</span>' : '⏳ <span>Publicando Jornada...</span>';
     }
 
     try {
@@ -1735,11 +1906,18 @@ window.setupCampaignsManagement = function() {
 
       payload.combo_point_assignments = combo_point_assignments;
 
-      const data = await API.post('/api/v1/admin/campaigns', payload, { timeout: 35000 });
+      let data;
+      if (isEditing) {
+        data = await API.put(`/api/v1/admin/campaigns/${editId}`, payload, { timeout: 35000 });
+      } else {
+        data = await API.post('/api/v1/admin/campaigns', payload, { timeout: 35000 });
+      }
 
-      if (notify_workers && data.campaign?.id) {
+      const targetCampaignId = data?.campaign?.id || editId;
+
+      if (notify_workers && targetCampaignId) {
         try {
-          await API.post(`/api/v1/admin/campaigns/${data.campaign.id}/notify`, {});
+          await API.post(`/api/v1/admin/campaigns/${targetCampaignId}/notify`, {});
         } catch (notifErr) {
           console.warn('Aviso de notificación opcional:', notifErr.message);
         }
@@ -1747,7 +1925,7 @@ window.setupCampaignsManagement = function() {
 
       closeModal();
       
-      // Conmutar a la vista activa para garantizar visualización inmediata de la jornada creada
+      // Conmutar a la vista activa para garantizar visualización inmediata de la jornada
       if (typeof window.switchCampaignsView === 'function') {
         window.switchCampaignsView('active');
       } else {
@@ -1757,15 +1935,17 @@ window.setupCampaignsManagement = function() {
 
       if (typeof loadNotifications === 'function') await loadNotifications();
       playAudioFeedback('success');
-      Toast.success(`¡Jornada "${name}" planificada y agregada al cronograma exitosamente!`);
+      Toast.success(isEditing 
+        ? `¡Jornada "${name}" actualizada con éxito!` 
+        : `¡Jornada "${name}" planificada y agregada al cronograma exitosamente!`);
 
     } catch (err) {
       console.error('[CAMPAIGN ERROR]', err);
       if (alertBox) {
-        alertBox.textContent = err.message || 'Error al programar la jornada.';
+        alertBox.textContent = err.message || (isEditing ? 'Error al actualizar la jornada.' : 'Error al programar la jornada.');
         alertBox.style.display = 'block';
       }
-      Toast.error(err.message || 'Error al programar la jornada.');
+      Toast.error(err.message || (isEditing ? 'Error al actualizar la jornada.' : 'Error al programar la jornada.'));
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
