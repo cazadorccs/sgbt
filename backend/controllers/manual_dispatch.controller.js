@@ -7,6 +7,10 @@ const { db } = require('../db');
 const { resetDeliveriesAndSeedToday } = require('../reset-and-seed-today');
 const { cache } = require('../services/cache.service');
 
+function getTodayVzla() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
+}
+
 function normalizeCedula(input) {
   if (!input) return '';
   const trimmed = input.toString().trim().toUpperCase();
@@ -28,7 +32,7 @@ const searchWorkerByCedula = (req, res) => {
   }
 
   const { digits, formatted, raw } = normalizeCedula(query);
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayVzla();
 
   try {
     // Buscar trabajador por coincidencia de cédula (exacta, formateada o dígitos)
@@ -111,7 +115,7 @@ const searchWorkerByCedula = (req, res) => {
 // 2. Despachar / Entregar combos manualmente y descontar
 const deliverManualCombos = async (req, res) => {
   const { worker_id, entitlement_ids, quantity, note, supervisor_id } = req.body;
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayVzla();
 
   if (!worker_id) {
     return res.status(400).json({ error: 'worker_id es requerido' });
@@ -287,7 +291,7 @@ const incorporateAndDeliver = async (req, res) => {
 
   const { digits, formatted } = normalizeCedula(document_id);
   const cleanName = full_name.trim();
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayVzla();
 
   try {
     // Verificar si ya existe
@@ -428,8 +432,7 @@ const incorporateAndDeliver = async (req, res) => {
 
 // 4. Estadísticas del día y lista de despachos recientes
 const getTodayStatsAndRecent = async (req, res) => {
-  const todayUtc = new Date().toISOString().split('T')[0];
-  const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
+  const todayVzla = getTodayVzla();
   const today = todayVzla;
 
   try {
@@ -437,36 +440,56 @@ const getTodayStatsAndRecent = async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // Hidratación reactiva desde Supabase Cloud si estamos en serverless y no hay entregas locales
+    // Resiliencia Serverless (Vercel Cold-Start):
+    // Esperar brevemente la hidratación inicial desde Supabase o hidratar entregas si la BD local está vacía
     try {
-      const localCount = db.prepare("SELECT COUNT(*) as c FROM deliveries WHERE delivered_at >= datetime('now', '-24 hours')").get()?.c || 0;
+      const localCount = db.prepare(`
+        SELECT COUNT(*) as c FROM deliveries 
+        WHERE date(delivered_at, '-4 hours') = ? OR delivered_at = ?
+      `).get(todayVzla, todayVzla)?.c || 0;
+
       if (localCount === 0) {
-        const { supabase, isSupabaseConfigured } = require('../supabase');
-        if (isSupabaseConfigured() && supabase) {
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 800));
-          const queryPromise = supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(60);
-          const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
-          if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
-            const insRemoteDelivery = db.prepare(`
-              INSERT OR IGNORE INTO deliveries (
-                id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-                verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `);
-            for (const d of remoteDeliveries) {
-              insRemoteDelivery.run(
-                d.id,
-                d.entitlement_id,
-                d.worker_id,
-                d.distribution_point_id,
-                d.delivered_by_user_id,
-                d.verification_method || 'passkey_qr',
-                d.signature_proof,
-                d.challenge_nonce,
-                d.is_offline_sync ? 1 : 0,
-                d.delivered_at,
-                d.campaign_id
-              );
+        const { cloudHydrationPromise } = require('../db');
+        if (cloudHydrationPromise) {
+          await Promise.race([
+            cloudHydrationPromise,
+            new Promise((resolve) => setTimeout(resolve, 600))
+          ]);
+        }
+
+        const countAfterHydration = db.prepare(`
+          SELECT COUNT(*) as c FROM deliveries 
+          WHERE date(delivered_at, '-4 hours') = ? OR delivered_at = ?
+        `).get(todayVzla, todayVzla)?.c || 0;
+
+        if (countAfterHydration === 0) {
+          const { supabase, isSupabaseConfigured } = require('../supabase');
+          if (isSupabaseConfigured() && supabase) {
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 800));
+            const queryPromise = supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(60);
+            const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
+            if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
+              const insRemoteDelivery = db.prepare(`
+                INSERT OR IGNORE INTO deliveries (
+                  id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+                  verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `);
+              for (const d of remoteDeliveries) {
+                insRemoteDelivery.run(
+                  d.id,
+                  d.entitlement_id,
+                  d.worker_id,
+                  d.distribution_point_id,
+                  d.delivered_by_user_id,
+                  d.verification_method || 'passkey_qr',
+                  d.signature_proof,
+                  d.challenge_nonce,
+                  d.is_offline_sync ? 1 : 0,
+                  d.delivered_at,
+                  d.campaign_id || null
+                );
+              }
             }
           }
         }
@@ -475,47 +498,16 @@ const getTodayStatsAndRecent = async (req, res) => {
       // Ignorar fallback silenciosamente
     }
 
-    // Auto-reconciliación de integridad garantizada:
-    // Si existen entitlements reclamados para la jornada de hoy (UTC o VET) sin fila en deliveries,
-    // se crea la fila correspondiente únicamente para trabajadores reales con cédula válida.
+    // Saneamiento estricto anti-simulaciones:
+    // Eliminar cualquier entrega sintética AUTO_INTEGRITY_SYNC si existiera en SQLite
     try {
-      const distPoint = db.prepare("SELECT id FROM distribution_points WHERE id = '5b0f10e3-7eac-4872-bf96-74ecd359be7e' OR is_active = 1 LIMIT 1").get();
-      const defaultDistId = distPoint ? distPoint.id : '5b0f10e3-7eac-4872-bf96-74ecd359be7e';
-
-      const missingDeliveries = db.prepare(`
-        SELECT e.id as entitlement_id, e.worker_id, e.combo_id, e.valid_date, e.created_at
-        FROM daily_entitlements e
-        JOIN workers w ON e.worker_id = w.id
-        LEFT JOIN deliveries d ON d.entitlement_id = e.id
-        WHERE e.status = 'claimed' 
-          AND e.valid_date IN (?, ?)
-          AND w.document_id IS NOT NULL 
-          AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
-          AND d.id IS NULL
-      `).all(todayUtc, todayVzla);
-
-      if (missingDeliveries.length > 0) {
-        const insFixDelivery = db.prepare(`
-          INSERT OR IGNORE INTO deliveries (
-            id, entitlement_id, worker_id, distribution_point_id,
-            verification_method, signature_proof, challenge_nonce,
-            override_reason, is_offline_sync, delivered_at
-          ) VALUES (?, ?, ?, ?, 'supervisor_override', 'AUTO_INTEGRITY_SYNC', ?, 'Reconciliación automática de despacho', 0, COALESCE(?, CURRENT_TIMESTAMP))
-        `);
-
-        for (const m of missingDeliveries) {
-          const newDelId = crypto.randomUUID();
-          insFixDelivery.run(newDelId, m.entitlement_id, m.worker_id, defaultDistId, crypto.randomBytes(8).toString('hex'), m.created_at || new Date().toISOString());
-        }
-      }
-    } catch (healErr) {
-      console.warn('[DELIVERY AUTO-HEAL WARN]', healErr.message);
-    }
+      db.prepare("DELETE FROM deliveries WHERE signature_proof = 'AUTO_INTEGRITY_SYNC'").run();
+    } catch (cleanErr) {}
 
     const totalWorkers = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get().c;
 
-    // Fuente de verdad unificada para entregas de la jornada:
-    // Captura únicamente entregas a funcionarios reales (excluye fixtures de pruebas E2E y cuentas técnicas)
+    // Fuente de verdad unificada para entregas REALES de la jornada de hoy (Hora Venezuela):
+    // Excluye fixtures E2E, cuentas técnicas y entregas sintéticas (AUTO_INTEGRITY_SYNC)
     const rawDeliveries = db.prepare(`
       SELECT 
         d.id as delivery_id,
@@ -536,18 +528,17 @@ const getTodayStatsAndRecent = async (req, res) => {
       LEFT JOIN departments dep ON w.department_id = dep.id
       LEFT JOIN workers sup ON d.delivered_by_user_id = sup.id
       WHERE (
-        date(d.delivered_at) IN (?, ?)
-        OR date(d.delivered_at, '-4 hours') IN (?, ?)
-        OR substr(d.delivered_at, 1, 10) IN (?, ?)
-        OR d.delivered_at >= datetime('now', '-24 hours')
-        OR (e.id IS NOT NULL AND e.status = 'claimed' AND e.valid_date IN (?, ?))
+        date(d.delivered_at, '-4 hours') = ?
+        OR d.delivered_at = ?
       )
       AND w.document_id IS NOT NULL 
       AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
-      AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')
+      AND d.id NOT LIKE 'e2e-%'
+      AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%'
+      AND COALESCE(d.signature_proof, '') != 'AUTO_INTEGRITY_SYNC'
       ORDER BY d.delivered_at DESC
       LIMIT 500
-    `).all(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
+    `).all(todayVzla, todayVzla);
 
     // Contar combos entregados directamente de rawDeliveries
     const totalCombosDelivered = rawDeliveries.length;
@@ -565,11 +556,17 @@ const getTodayStatsAndRecent = async (req, res) => {
 
     let totalAssigned = 0;
     if (activeCampToday) {
+      let campWorkersCond = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
+      if (activeCampToday.target_group === 'activo') campWorkersCond += " AND worker_type = 'activo'";
+      else if (activeCampToday.target_group === 'jubilado') campWorkersCond += " AND worker_type IN ('jubilado', 'pensionado')";
+      else if (activeCampToday.target_group === 'contratado') campWorkersCond += " AND worker_type = 'contratado'";
+
+      const eligibleCampWorkers = db.prepare(`SELECT COUNT(*) as c FROM workers WHERE ${campWorkersCond}`).get()?.c || totalWorkers;
       const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
       const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1);
-      totalAssigned = totalWorkers * activeCombosCount;
+      totalAssigned = eligibleCampWorkers * activeCombosCount;
     } else if (totalCombosDelivered > 0) {
-      // Si se realizaron entregas reales fuera de jornada formal, la programación refleja lo despachado
+      // Si se realizaron entregas reales fuera de jornada formal, la programación refleja únicamente lo despachado
       totalAssigned = totalCombosDelivered;
     }
 

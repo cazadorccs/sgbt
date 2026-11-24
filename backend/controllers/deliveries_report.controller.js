@@ -111,8 +111,8 @@ const getDeliveriesReport = async (req, res) => {
       params.push(operatorParam);
     }
 
-    // Excluir registros con documentos de prueba inválidos o cuentas técnicas
-    whereClauses.push(`w.document_id IS NOT NULL AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '') AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')`);
+    // Excluir registros con documentos de prueba inválidos, cuentas técnicas o entregas sintéticas
+    whereClauses.push(`w.document_id IS NOT NULL AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '') AND d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%' AND COALESCE(d.signature_proof, '') != 'AUTO_INTEGRITY_SYNC'`);
 
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 

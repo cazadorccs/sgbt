@@ -108,10 +108,9 @@ async function runAudit() {
   }
 
   // 4. Proceso 3: Despacho y Entrega de Beneficios (deliveries + daily_entitlements)
+  const auditEntId = crypto.randomUUID();
+  const auditDelId = crypto.randomUUID();
   try {
-    const auditEntId = crypto.randomUUID();
-    const auditDelId = crypto.randomUUID();
-
     const success = await persistDeliveries([{
       id: auditDelId,
       entitlement_id: auditEntId,
@@ -135,10 +134,6 @@ async function runAudit() {
       .eq('id', auditEntId)
       .single();
 
-    // Limpieza
-    await supabase.from('deliveries').delete().eq('id', auditDelId);
-    await supabase.from('daily_entitlements').delete().eq('id', auditEntId);
-
     const validDelivery = success && Boolean(delRow) && entRow?.status === 'claimed';
     results.push({
       test: 'Proceso 3: Despacho Criptográfico y Liquidación (deliveries)',
@@ -146,6 +141,9 @@ async function runAudit() {
     });
   } catch (e) {
     results.push({ test: 'Proceso 3: Despacho Criptográfico y Liquidación', passed: false, error: e.message });
+  } finally {
+    await supabase.from('deliveries').delete().eq('id', auditDelId).catch(() => {});
+    await supabase.from('daily_entitlements').delete().eq('id', auditEntId).catch(() => {});
   }
 
   // 5. Proceso 4: Tarjetas Físicas NFC / RFID

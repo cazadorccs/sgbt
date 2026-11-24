@@ -134,28 +134,29 @@ async function persistDeliveries(deliveries) {
   if (!Array.isArray(deliveries) || deliveries.length === 0) return true;
 
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
 
-    // 1. Asegurar que los entitlements asociados se marquen 'claimed' en Supabase sin sobreescribir su fecha válida
+    // 1. Asegurar que los entitlements asociados existan en Supabase ANTES del insert en deliveries (por FK),
+    // dejándolos inicialmente en 'pending' si son nuevos para no dejar huérfanos 'claimed' si deliveries falla
+    const entIdsToMarkClaimed = [];
     for (const d of deliveries) {
       const entId = d.entitlement_id;
       if (entId) {
+        entIdsToMarkClaimed.push(entId);
         try {
-          const { data: existingEnt } = await supabase.from('daily_entitlements').select('id, valid_date').eq('id', entId).maybeSingle();
-          if (existingEnt) {
-            await supabase.from('daily_entitlements').update({ status: 'claimed' }).eq('id', entId);
-          } else {
+          const { data: existingEnt } = await supabase.from('daily_entitlements').select('id').eq('id', entId).maybeSingle();
+          if (!existingEnt) {
             await supabase.from('daily_entitlements').insert([{
               id: entId,
               worker_id: d.worker_id,
               combo_id: d.combo_id || DEFAULT_COMBO_ID,
               valid_date: d.valid_date || today,
               shift: 'jornada_continua',
-              status: 'claimed'
+              status: 'pending'
             }]);
           }
         } catch (entErr) {
-          console.warn('[CLOUD PERSIST] Advertencia al actualizar entitlement:', entErr.message);
+          console.warn('[CLOUD PERSIST] Advertencia al preparar entitlement:', entErr.message);
         }
       }
     }
@@ -201,6 +202,15 @@ async function persistDeliveries(deliveries) {
     if (delError) {
       console.warn('[CLOUD PERSIST] Advertencia al persistir entregas en Supabase:', delError.message);
       return false;
+    }
+
+    // 3. Solo DESPUÉS de confirmar inserción en deliveries, marcar entitlements como 'claimed'
+    if (entIdsToMarkClaimed.length > 0) {
+      try {
+        await supabase.from('daily_entitlements').update({ status: 'claimed' }).in('id', entIdsToMarkClaimed);
+      } catch (markErr) {
+        console.warn('[CLOUD PERSIST] Advertencia al marcar entitlements claimed:', markErr.message);
+      }
     }
 
     console.log(`[CLOUD PERSIST] ✅ ${deliveryRecords.length} despacho(s) persistido(s) en Supabase Cloud`);
@@ -287,7 +297,7 @@ async function clearDeliveriesInCloud() {
       console.warn('[CLOUD RESET WARN] Advertencia al limpiar entregas en Supabase:', delError.message);
     }
 
-    // Restaurar daily_entitlements a status = 'pending'
+    // Restaurar daily_entitlements de hoy (UTC o VET) a status = 'pending'
     const { error: entError } = await supabase
       .from('daily_entitlements')
       .update({ status: 'pending' })

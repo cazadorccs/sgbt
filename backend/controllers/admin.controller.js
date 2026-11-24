@@ -66,22 +66,28 @@ const getKpis = async (req, res) => {
         FROM deliveries d
         JOIN workers w ON d.worker_id = w.id
         WHERE (
-          date(d.delivered_at) IN (?, ?)
-          OR date(d.delivered_at, '-4 hours') IN (?, ?)
-          OR substr(d.delivered_at, 1, 10) IN (?, ?)
-          OR d.delivered_at >= datetime('now', '-24 hours')
+          date(d.delivered_at, '-4 hours') = ?
+          OR d.delivered_at = ?
         )
         AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
-        AND (d.id NOT LIKE 'e2e-%' AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%')
-      `).get(todayUtc, todayVzla, todayUtc, todayVzla, todayUtc, todayVzla);
+        AND d.id NOT LIKE 'e2e-%'
+        AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%'
+        AND COALESCE(d.signature_proof, '') != 'AUTO_INTEGRITY_SYNC'
+      `).get(todayVzla, todayVzla);
 
       const claimedEntitlementsToday = methodStats.total_deliveries || 0;
 
       let totalEntitlementsToday = 0;
       if (activeCampToday) {
+        let campWorkersCond = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
+        if (activeCampToday.target_group === 'activo') campWorkersCond += " AND worker_type = 'activo'";
+        else if (activeCampToday.target_group === 'jubilado') campWorkersCond += " AND worker_type IN ('jubilado', 'pensionado')";
+        else if (activeCampToday.target_group === 'contratado') campWorkersCond += " AND worker_type = 'contratado'";
+
+        const eligibleCampWorkers = db.prepare(`SELECT COUNT(*) as c FROM workers WHERE ${campWorkersCond}`).get()?.c || totalWorkers;
         const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
         const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1);
-        totalEntitlementsToday = totalWorkers * activeCombosCount;
+        totalEntitlementsToday = eligibleCampWorkers * activeCombosCount;
       } else if (claimedEntitlementsToday > 0) {
         totalEntitlementsToday = claimedEntitlementsToday;
       }
@@ -1013,12 +1019,20 @@ function reconcileComboEntitlements(comboId, isActive) {
 }
 
 function getActiveAssignedCountToday() {
+  const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
   const totalWorkers = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get()?.count || 0;
-  const activeCampToday = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' AND date('now') >= date(start_date) AND date('now') <= date(end_date) LIMIT 1").get();
+  const activeCampToday = db.prepare("SELECT id, target_group FROM delivery_campaigns WHERE status = 'en_curso' AND date(?) >= date(start_date) AND date(?) <= date(end_date) LIMIT 1").get(todayVzla, todayVzla);
   if (!activeCampToday) return 0;
+
+  let campWorkersCond = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
+  if (activeCampToday.target_group === 'activo') campWorkersCond += " AND worker_type = 'activo'";
+  else if (activeCampToday.target_group === 'jubilado') campWorkersCond += " AND worker_type IN ('jubilado', 'pensionado')";
+  else if (activeCampToday.target_group === 'contratado') campWorkersCond += " AND worker_type = 'contratado'";
+
+  const eligibleWorkers = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${campWorkersCond}`).get()?.count || totalWorkers;
   const campCombos = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
   const activeCombos = campCombos > 0 ? campCombos : (db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.count || 1);
-  return totalWorkers * activeCombos;
+  return eligibleWorkers * activeCombos;
 }
 
 const toggleComboStatus = async (req, res) => {

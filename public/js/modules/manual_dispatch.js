@@ -972,7 +972,8 @@ window.ManualDispatch = (function() {
     loadDepartmentsList,
     loadTodaySummary,
     openRecentDeliveriesModal,
-    closeRecentDeliveriesModal
+    closeRecentDeliveriesModal,
+    handleResetDeliveries
   };
 })();
 

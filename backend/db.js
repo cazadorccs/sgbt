@@ -1449,38 +1449,12 @@ async function syncFromSupabase() {
       console.log(`[SUPABASE HYDRATION] ${remoteDeliveries.length} entregas sincronizadas desde Supabase Cloud.`);
     }
 
-    // Auto-reconciliación de integridad: si existen daily_entitlements 'claimed' para la jornada
-    // pero no cuentan con fila en deliveries (ej. hidratación asíncrona o fallback en Vercel),
-    // creamos el registro en deliveries para garantizar concordancia 100% entre contadores y modales
+    // Saneamiento estricto anti-simulaciones:
+    // Nunca fabricar entregas sintéticas (AUTO_INTEGRITY_SYNC) a partir de derechos huérfanos.
+    // Si existiera alguna entrega sintética previa en SQLite, eliminarla para preservar la integridad real.
     try {
-      const orphanedClaimed = db.prepare(`
-        SELECT e.id as entitlement_id, e.worker_id, e.created_at
-        FROM daily_entitlements e
-        JOIN workers w ON e.worker_id = w.id
-        LEFT JOIN deliveries d ON d.entitlement_id = e.id
-        WHERE e.status = 'claimed' 
-          AND e.valid_date IN (?, ?) 
-          AND w.document_id NOT IN ('V-00000000', '00000000', '')
-          AND w.document_id IS NOT NULL
-          AND d.id IS NULL
-      `).all(todayUtc, todayVzla);
-
-      if (orphanedClaimed.length > 0) {
-        const insAutoDelivery = db.prepare(`
-          INSERT OR IGNORE INTO deliveries (
-            id, entitlement_id, worker_id, distribution_point_id,
-            verification_method, signature_proof, challenge_nonce,
-            override_reason, is_offline_sync, delivered_at
-          ) VALUES (?, ?, ?, '5b0f10e3-7eac-4872-bf96-74ecd359be7e', 'supervisor_override', 'AUTO_INTEGRITY_SYNC', ?, 'Reconciliación automática de despacho', 0, COALESCE(?, CURRENT_TIMESTAMP))
-        `);
-        for (const orphan of orphanedClaimed) {
-          insAutoDelivery.run(crypto.randomUUID(), orphan.entitlement_id, orphan.worker_id, crypto.randomBytes(8).toString('hex'), orphan.created_at || new Date().toISOString());
-        }
-        console.log(`[INTEGRITY SYNC] ${orphanedClaimed.length} entregas auto-conciliadas para mantener 100% consistencia.`);
-      }
-    } catch (reconcileErr) {
-      console.warn('[INTEGRITY SYNC WARNING]', reconcileErr.message);
-    }
+      db.prepare("DELETE FROM deliveries WHERE signature_proof = 'AUTO_INTEGRITY_SYNC'").run();
+    } catch (e) {}
 
     // Hidratar tarjetas NFC vinculadas desde Supabase Cloud
     const { data: remoteNfc, error: nfcErr } = await supabase.from('nfc_cards').select('*');
