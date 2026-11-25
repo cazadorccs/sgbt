@@ -98,26 +98,6 @@
      */
     _notifyModuleClose: function(modalId) {
       switch (modalId) {
-        case 'createDepartmentBatchModalBackdrop':
-          if (window.DepartmentBatches && typeof window.DepartmentBatches.closeCreateModal === 'function') {
-            window.DepartmentBatches.closeCreateModal();
-          }
-          break;
-        case 'reviewDepartmentBatchModalBackdrop':
-          if (window.DepartmentBatches && typeof window.DepartmentBatches.closeReviewModal === 'function') {
-            window.DepartmentBatches.closeReviewModal();
-          }
-          break;
-        case 'dispatchDepartmentBatchModalBackdrop':
-          if (window.DepartmentBatches && typeof window.DepartmentBatches.closeDispatchModal === 'function') {
-            window.DepartmentBatches.closeDispatchModal();
-          }
-          break;
-        case 'departmentBatchActaModalBackdrop':
-          if (window.DepartmentBatches && typeof window.DepartmentBatches.closeActaModal === 'function') {
-            window.DepartmentBatches.closeActaModal();
-          }
-          break;
         case 'systemLogsModal':
           if (typeof window.closeSystemLogsModal === 'function') {
             window.closeSystemLogsModal();

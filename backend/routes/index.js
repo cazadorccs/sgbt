@@ -18,6 +18,7 @@ const departmentBatchRoutes = require('./department_batch.routes');
 const ministerialAuditRoutes = require('./ministerial_audit.routes');
 const deliveriesReportRoutes = require('./deliveries_report.routes');
 const simulationRoutes = require('./simulation.routes');
+const operadorRoutes = require('./operador.routes');
 
 router.use('/', systemRoutes);
 router.use('/', authRoutes);
@@ -33,5 +34,6 @@ router.use('/', departmentBatchRoutes);
 router.use('/', ministerialAuditRoutes);
 router.use('/', deliveriesReportRoutes);
 router.use('/', simulationRoutes);
+router.use('/', operadorRoutes);
 
 module.exports = router;

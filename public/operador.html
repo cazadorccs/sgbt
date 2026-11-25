@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es-VE">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Puesto de Supervisión & Despacho Manual - Operador</title>
+  <meta name="theme-color" content="#0f172a">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; }
+    .app { width: 100%; max-width: 420px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 1.5rem; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .card.login { max-width: 340px; }
+    h1 { font-size: 1.1rem; font-weight: 700; color: #38bdf8; text-align: center; margin-bottom: 0.5rem; letter-spacing: 0.05em; text-transform: uppercase; }
+    h2 { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; margin-bottom: 1rem; text-align: center; }
+    .label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 0.4rem; display: block; font-weight: 600; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 0.85rem 1rem; background: #0f172a; border: 1.5px solid #334155; border-radius: 10px; color: #f8fafc; font-size: 1rem; outline: none; transition: border-color 0.2s; }
+    input:focus { border-color: #38bdf8; }
+    button { width: 100%; padding: 0.85rem 1rem; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; border-radius: 10px; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; transition: transform 0.1s, opacity 0.2s; margin-top: 0.5rem; }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; background: #475569; }
+    button.approbar { background: linear-gradient(135deg, #059669, #047857); }
+    button.approbar:disabled { background: #64748b; }
+    .hidden { display: none !important; }
+    .alert { padding: 0.85rem 1rem; border-radius: 10px; margin: 1rem 0; font-size: 0.85rem; display: none; text-align: center; }
+    .alert.error { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; }
+    .alert.success { background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; color: #86efac; }
+    .alert.info { background: rgba(2, 132, 199, 0.15); border: 1px solid #0284c7; color: #7dd3fc; }
+    .worker-info { margin: 1rem 0; padding: 1rem; background: #0f172a; border: 1px solid #334155; border-radius: 10px; }
+    .worker-name { font-size: 1.15rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.25rem; word-break: break-word; }
+    .worker-doc { font-size: 0.8rem; font-family: monospace; color: #94a3b8; margin-bottom: 0.25rem; }
+    .worker-dept { font-size: 0.78rem; color: #64748b; margin-bottom: 0.75rem; }
+    .pendiente-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; border-radius: 999px; color: #fbbf24; font-size: 0.85rem; font-weight: 700; }
+    .entregado-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; background: rgba(34, 197, 94, 0.15); border: 1px solid #22c55e; border-radius: 999px; color: #86efac; font-size: 0.85rem; font-weight: 700; }
+    .completado { color: #22c55e; font-weight: 700; }
+    .footer { margin-top: 1.5rem; text-align: center; font-size: 0.68rem; color: #64748b; }
+    .btn-secundario { width: 100%; padding: 0.75rem 1rem; background: transparent; border: 1.5px solid #334155; border-radius: 10px; color: #94a3b8; font-size: 0.9rem; font-weight: 600; cursor: pointer; margin-top: 0.75rem; }
+    .btn-secundario:hover { border-color: #64748b; color: #cbd5e1; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sesion-info { font-size: 0.7rem; color: #94a3b8; margin-top: 0.5rem; text-align: center; }
+    .sesion-info b { color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- PANEL DE LOGIN DEL OPERADOR -->
+    <div class="card login" id="panelLogin">
+      <h1>Puesto de Despacho</h1>
+      <h2>Acceso de Operador</h2>
+      <div class="alert error" id="msgError"></div>
+      <span class="label">Cédula de Identidad del Operador</span>
+      <input type="text" id="inputOperadorCedula" placeholder="Ej: V-11111111" maxlength="20" autocomplete="off">
+      <button id="btnLoginOperador">Ingresar como Operador</button>
+      <div class="sesion-info">Sistema SGBT MIPPCI &middot; Rol: Operador de Despacho</div>
+    </div>
+
+    <!-- PANEL DE DESPACHO (se muestra tras login) -->
+    <div class="card hidden" id="panelDespacho">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h1 style="margin: 0;">Despacho Manual</h1>
+        <button class="btn-secundario" id="btnCerrarSesion">Cerrar Sesión</button>
+      </div>
+      <div class="alert error" id="msgErrorDespacho"></div>
+      <div class="alert success" id="msgExito"></div>
+      <div class="alert info" id="msgInfo"></div>
+
+      <span class="label">Cédula del Funcionario</span>
+      <input type="text" id="inputCedulaTrabajador" placeholder="Ej: V-12345678" maxlength="20" autocomplete="off">
+
+      <div id="btnBuscarContainer" style="margin-top: 0.5rem;">
+        <button id="btnBuscarTrabajador">Buscar Funcionario</button>
+      </div>
+
+      <!-- Info del trabajador encontrado (oculta hasta buscar) -->
+      <div class="worker-info hidden" id="infoTrabajador">
+        <div class="worker-name" id="nombreTrabajador"></div>
+        <div class="worker-doc" id="docTrabajador"></div>
+        <div class="worker-dept" id="deptoTrabajador"></div>
+        <div style="margin-top: 0.75rem;" id="estadoPendientes"></div>
+      </div>
+
+      <div id="btnAprobarContainer" class="hidden" style="margin-top: 1rem;">
+        <button class="approbar" id="btnAprobarEntrega">✓ Aprobar Entrega y Descontar</button>
+      </div>
+
+      <div class="footer">Sistema de Gestión de Beneficios para los Trabajadores &middot; MIPPCI</div>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================================
+    // API CLIENT MINIMAL (sin dependencias externas)
+    // ============================================================================
+    const API_BASE = window.location.origin;
+    const TOKEN_KEY = 'sgbt_session_token';
+
+    function apiRequest(url, options = {}) {
+      const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+      const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+      if (token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
+      options.headers = headers;
+      options.credentials = 'include';
+      return fetch(url, options).then(async res => {
+        const text = await res.text();
+        let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
+        if (!res.ok) throw new Error(data.error || `Error HTTP ${res.status}`);
+        return data;
+      });
+    }
+
+    function $ (id) { return document.getElementById(id); }
+    function show(id) { $(id).classList.remove('hidden'); }
+    function hide(id) { $(id).classList.add('hidden'); }
+    function setText(id, txt) { const el = $(id); if (el) el.textContent = txt; }
+
+    function mostrarAlerta(id, texto, tipo = 'error') {
+      const el = $(id);
+      el.className = 'alert ' + (tipo === 'error' ? 'error' : tipo === 'success' ? 'success' : 'info');
+      el.textContent = texto;
+      el.style.display = 'block';
+      setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function limpiarAlertas() {
+      ['msgError','msgErrorDespacho','msgExito','msgInfo'].forEach(id => hide(id));
+    }
+
+    // ============================================================================
+    // ESTADO
+    // ============================================================================
+    let currentOperador = null;
+    let currentWorker = null;
+
+    // ============================================================================
+    // LOGIN
+    // ============================================================================
+    $('btnLoginOperador').addEventListener('click', async () => {
+      const cedula = $('inputOperadorCedula').value.trim();
+      if (!cedula) { mostrarAlerta('msgError', 'Ingrese su Cédula de Identidad'); return; }
+      limpiarAlertas();
+      const btn = $('btnLoginOperador');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Ingresando...';
+      try {
+        const res = await apiRequest(`${API_BASE}/api/v1/operador/login`, {
+          method: 'POST',
+          body: JSON.stringify({ document_id: cedula })
+        });
+        if (res.success && res.token) {
+          sessionStorage.setItem(TOKEN_KEY, res.token);
+          localStorage.setItem(TOKEN_KEY, res.token);
+          currentOperador = res.operador;
+          hide('panelLogin');
+          show('panelDespacho');
+          setText('nombreTrabajador', '');
+          setText('docTrabajador', '');
+          setText('deptoTrabajador', '');
+          setText('estadoPendientes', '');
+          hide('infoTrabajador');
+          hide('btnAprobarContainer');
+          $('inputCedulaTrabajador').value = '';
+          $('inputCedulaTrabajador').focus();
+        } else {
+          mostrarAlerta('msgError', res.error || 'Error de autenticación');
+        }
+      } catch (err) {
+        mostrarAlerta('msgError', err.message);
+      } finally {
+        btn.disabled = false; btn.innerHTML = 'Ingresar como Operador';
+      }
+    });
+
+    $('inputOperadorCedula').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); $('btnLoginOperador').click(); }
+    });
+
+    // ============================================================================
+    // BUSCAR TRABAJADOR
+    // ============================================================================
+    $('btnBuscarTrabajador').addEventListener('click', async () => {
+      const cedula = $('inputCedulaTrabajador').value.trim();
+      if (!cedula) { mostrarAlerta('msgErrorDespacho', 'Ingrese la cédula del funcionario'); return; }
+      limpiarAlertas();
+      const btn = $('btnBuscarTrabajador');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Buscando...';
+      try {
+        const res = await apiRequest(`${API_BASE}/api/v1/operador/search/${encodeURIComponent(cedula)}`);
+        if (!res.found) {
+          hide('infoTrabajador');
+          hide('btnAprobarContainer');
+          currentWorker = null;
+          mostrarAlerta('msgInfo', res.message || 'Funcionario no encontrado', 'info');
+          return;
+        }
+        currentWorker = res.worker;
+        setText('nombreTrabajador', res.worker.full_name);
+        setText('docTrabajador', res.worker.document_id);
+        setText('deptoTrabajador', res.worker.department_name);
+        const s = res.summary;
+        const estadoEl = $('estadoPendientes');
+        if (s.is_fully_delivered) {
+          estadoEl.innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
+          hide('btnAprobarContainer');
+        } else if (s.has_pending) {
+          estadoEl.innerHTML = `<span class="pendiente-badge">${s.pending_combos} combo(s) pendiente(s) de ${s.total_combos} asignado(s)</span>`;
+          show('btnAprobarContainer');
+        } else {
+          estadoEl.innerHTML = '<span class="entregado-badge">Sin asignaciones para hoy</span>';
+          hide('btnAprobarContainer');
+        }
+        show('infoTrabajador');
+        mostrarAlerta('msgExito', `Funcionario localizado: ${res.worker.full_name}`, 'success');
+      } catch (err) {
+        mostrarAlerta('msgErrorDespacho', err.message);
+      } finally {
+        btn.disabled = false; btn.innerHTML = 'Buscar Funcionario';
+      }
+    });
+
+    $('inputCedulaTrabajador').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); $('btnBuscarTrabajador').click(); }
+    });
+
+    // ============================================================================
+    // APROBAR ENTREGA (Despachar todos los pendientes)
+    // ============================================================================
+    $('btnAprobarEntrega').addEventListener('click', async () => {
+      if (!currentWorker) return;
+      limpiarAlertas();
+      const btn = $('btnAprobarEntrega');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Procesando Despacho...';
+      try {
+        const res = await apiRequest(`${API_BASE}/api/v1/operador/deliver`, {
+          method: 'POST',
+          body: JSON.stringify({
+            worker_id: currentWorker.id,
+            note: 'Despacho aprobado desde Puesto de Supervisión Manual'
+          })
+        });
+        if (res.success) {
+          mostrarAlerta('msgExito', res.message, 'success');
+          // Refrescar estado del trabajador
+          const cedula = currentWorker.document_id;
+          const res2 = await apiRequest(`${API_BASE}/api/v1/operador/search/${encodeURIComponent(cedula)}`);
+          if (res2.found && res2.summary.is_fully_delivered) {
+            setText('estadoPendientes', '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>');
+            hide('btnAprobarContainer');
+          }
+        } else {
+          mostrarAlerta('msgErrorDespacho', res.error || 'Error al procesar la entrega');
+        }
+      } catch (err) {
+        mostrarAlerta('msgErrorDespacho', err.message);
+      } finally {
+        btn.disabled = false; btn.innerHTML = '✓ Aprobar Entrega y Descontar';
+      }
+    });
+
+    // ============================================================================
+    // CERRAR SESIÓN
+    // ============================================================================
+    $('btnCerrarSesion').addEventListener('click', () => {
+      sessionStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
+      currentOperador = null;
+      currentWorker = null;
+      hide('panelDespacho');
+      show('panelLogin');
+      $('inputOperadorCedula').value = '';
+      $('inputOperadorCedula').focus();
+      limpiarAlertas();
+    });
+
+    // Verificar si ya hay sesión activa al cargar
+    (function() {
+      const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+      if (token) {
+        // Token presente, ir directo al despacho
+        hide('panelLogin');
+        show('panelDespacho');
+      }
+    })();
+  </script>
+</body>
+</html>

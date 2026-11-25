@@ -76,9 +76,6 @@ window.refreshPortalData = async function() {
         typeof loadNotifications === 'function' ? loadNotifications() : Promise.resolve(),
         loadAuditStats(),
         loadAuditDeliveries(),
-        (window.DepartmentBatches && typeof window.DepartmentBatches.loadData === 'function')
-          ? window.DepartmentBatches.loadData()
-          : Promise.resolve(),
         (window.MinisterialAudit && typeof window.MinisterialAudit.loadData === 'function')
           ? window.MinisterialAudit.loadData()
           : Promise.resolve(),

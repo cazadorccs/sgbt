@@ -199,6 +199,22 @@ function initializeDatabase() {
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
 
+    -- OPERADORES DEL PUESTO DE SUPERVISIÓN Y DESPACHO MANUAL
+    -- Tabla independiente: NO se sincroniza con Supabase, por lo que persiste localmente.
+    CREATE TABLE IF NOT EXISTS operadores_puesto_autorizados (
+      id TEXT PRIMARY KEY,
+      document_id TEXT UNIQUE NOT NULL,
+      full_name TEXT NOT NULL,
+      mesa TEXT NOT NULL DEFAULT '',
+      role TEXT NOT NULL DEFAULT 'operator',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+    INSERT OR IGNORE INTO operadores_puesto_autorizados (id, document_id, full_name, mesa, role, status) VALUES
+      ('op-001', 'V-11111111', 'Operador Mesa 1', 'Mesa 1', 'operator', 'active'),
+      ('op-002', 'V-22222222', 'Operador Mesa 2', 'Mesa 2', 'operator', 'active'),
+      ('op-003', 'V-33333333', 'Operador Mesa 3', 'Mesa 3', 'operator', 'active');
+
     -- 3. CREDENCIALES PASSKEY (FIDO2 / WEBAUTHN - ECDSA P-256)
     CREATE TABLE IF NOT EXISTS passkey_credentials (
       id TEXT PRIMARY KEY,

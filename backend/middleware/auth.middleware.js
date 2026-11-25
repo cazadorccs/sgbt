@@ -87,11 +87,19 @@ function authenticate(req, res, next) {
   }
 
   try {
-    const worker = db.prepare(`
+    let worker = db.prepare(`
       SELECT id, document_id, full_name, email, role, status, worker_type
       FROM workers
       WHERE id = ?
     `).get(result.payload.sub);
+
+    if (!worker || worker.status !== 'active') {
+      worker = db.prepare(`
+        SELECT id, document_id, full_name, NULL as email, role, status, 'operador_puesto' as worker_type
+        FROM operadores_puesto_autorizados
+        WHERE id = ? AND status = 'active'
+      `).get(result.payload.sub);
+    }
 
     if (worker && worker.status === 'active') {
       req.user = worker;
@@ -204,11 +212,19 @@ function requireRole(...allowedRoles) {
       }
 
       try {
-        const worker = db.prepare(`
+        let worker = db.prepare(`
           SELECT id, document_id, full_name, email, role, status, worker_type
           FROM workers
           WHERE id = ?
         `).get(result.payload.sub);
+
+        if (!worker || worker.status !== 'active') {
+          worker = db.prepare(`
+            SELECT id, document_id, full_name, NULL as email, role, status, 'operador_puesto' as worker_type
+            FROM operadores_puesto_autorizados
+            WHERE id = ? AND status = 'active'
+          `).get(result.payload.sub);
+        }
 
         if (!worker || worker.status !== 'active') {
           return res.status(401).json({
