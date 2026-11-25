@@ -764,6 +764,7 @@ const dispatchBatchOrder = async (req, res) => {
         createdDeliveryIds.push(dId);
 
         nominalBeneficiaries.push({
+          entitlement_id: item.entitlement.id,
           worker_id: item.worker.id,
           document_id: item.worker.document_id,
           full_name: item.worker.full_name,

@@ -82,51 +82,28 @@
         comboSelect.addEventListener('change', () => this.updateCreateProjection());
       }
 
-      // 5. Modal Revisión RRHH
-      const btnCloseReview = document.getElementById('btnCloseReviewBatchModal');
-      if (btnCloseReview) btnCloseReview.addEventListener('click', () => this.closeReviewModal());
-
-      const btnApprove = document.getElementById('btnApproveBatchOrder');
-      if (btnApprove) {
-        btnApprove.addEventListener('click', () => this.submitReviewOrder('approve'));
-      }
-      const btnReject = document.getElementById('btnRejectBatchOrder');
-      if (btnReject) {
-        btnReject.addEventListener('click', () => this.submitReviewOrder('reject'));
-      }
-
-      // 6. Modal Despacho en Almacén
-      const btnCloseDispatch = document.getElementById('btnCloseDispatchBatchModal');
-      const btnCancelDispatch = document.getElementById('btnCancelDispatchBatchModal');
-      if (btnCloseDispatch) btnCloseDispatch.addEventListener('click', () => this.closeDispatchModal());
-      if (btnCancelDispatch) btnCancelDispatch.addEventListener('click', () => this.closeDispatchModal());
-
-      const btnConfirmDispatch = document.getElementById('btnConfirmBatchDispatch');
-      if (btnConfirmDispatch) {
-        btnConfirmDispatch.addEventListener('click', () => this.submitDispatchOrder());
-      }
-
-      // 7. Modal Acta Digital Oficial
-      const btnCloseActa = document.getElementById('btnCloseBatchActaModal');
-      const btnCloseActaBtn = document.getElementById('btnCloseBatchActaModalBtn');
-      if (btnCloseActa) btnCloseActa.addEventListener('click', () => this.closeActaModal());
-      if (btnCloseActaBtn) btnCloseActaBtn.addEventListener('click', () => this.closeActaModal());
-
-      const btnPrintActa = document.getElementById('btnPrintBatchActa');
-      if (btnPrintActa) {
-        btnPrintActa.addEventListener('click', () => this.printActa());
-      }
-
-      // 8. Respaldo delegado por si los elementos se inyectaron asíncronamente
+      // 5–8. Delegación universal para modales inyectados asíncronamente desde templates/modals.html
       document.addEventListener('click', (e) => {
         if (e.target.closest('#btnCloseCreateBatchModal, #btnCancelCreateBatchModal')) {
           this.closeCreateModal();
         } else if (e.target.closest('#btnCloseReviewBatchModal')) {
           this.closeReviewModal();
+        } else if (e.target.closest('#btnApproveBatchOrder')) {
+          e.preventDefault();
+          this.submitReviewOrder('approve');
+        } else if (e.target.closest('#btnRejectBatchOrder')) {
+          e.preventDefault();
+          this.submitReviewOrder('reject');
         } else if (e.target.closest('#btnCloseDispatchBatchModal, #btnCancelDispatchBatchModal')) {
           this.closeDispatchModal();
+        } else if (e.target.closest('#btnConfirmBatchDispatch')) {
+          e.preventDefault();
+          this.submitDispatchOrder();
         } else if (e.target.closest('#btnCloseBatchActaModal, #btnCloseBatchActaModalBtn')) {
           this.closeActaModal();
+        } else if (e.target.closest('#btnPrintBatchActa')) {
+          e.preventDefault();
+          this.printActa();
         }
       });
 
