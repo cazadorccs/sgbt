@@ -10,6 +10,7 @@
   const DepartmentBatches = {
     currentOrders: [],
     departments: [],
+    entes: [],
     combos: [],
     currentOrderInReview: null,
     currentOrderInDispatch: null,
@@ -251,8 +252,9 @@
     loadDepartments: async function() {
       try {
         const res = await API.get('/api/v1/department-batches/departments');
-        if (res && res.success && res.departments) {
-          this.departments = res.departments;
+        if (res && res.success) {
+          this.departments = res.departments || [];
+          this.entes = res.entes || [];
           this.renderCoverageList(this.departments);
         }
       } catch (e) {
@@ -443,21 +445,12 @@
       await Promise.all(tasks);
 
       if (deptSelect) {
-        const unitDepts = this.departments.filter(d => !d.is_ente_group && (d.total_workers || 0) > 0);
-        const enteGroups = this.departments.filter(d => d.is_ente_group && (d.total_workers || 0) > 0);
+        const enteGroups = (this.entes && this.entes.length > 0)
+          ? this.entes.filter(e => (e.total_workers || 0) > 0)
+          : this.departments.filter(d => d.is_ente_group && (d.total_workers || 0) > 0);
 
-        let optionsHtml = '<option value="">Seleccione una Dependencia o Ente...</option>';
-        if (unitDepts.length > 0) {
-          optionsHtml += '<optgroup label="🏢 Direcciones y Unidades de Adscripción">' +
-            unitDepts.map(d => `<option value="${window.escapeHtml(d.id)}">${window.escapeHtml(d.name)} (${d.total_workers} funcionarios)</option>`).join('') +
-            '</optgroup>';
-        }
-        if (enteGroups.length > 0) {
-          optionsHtml += '<optgroup label="🏛️ Entes Institucionales (Personal adscrito por Ente)">' +
-            enteGroups.map(d => `<option value="${window.escapeHtml(d.id)}">${window.escapeHtml(d.ente || d.name)} — ${d.total_workers} beneficiarios</option>`).join('') +
-            '</optgroup>';
-        }
-        deptSelect.innerHTML = optionsHtml;
+        deptSelect.innerHTML = '<option value="">Seleccione un Ente...</option>' +
+          enteGroups.map(e => `<option value="${window.escapeHtml(e.id)}">${window.escapeHtml(e.ente || e.name)} (${e.total_workers} beneficiarios)</option>`).join('');
       }
 
       // Cargar combos activos
@@ -484,7 +477,7 @@
         return;
       }
 
-      const dept = this.departments.find(d => d.id === deptId);
+      const dept = [...(this.entes || []), ...(this.departments || [])].find(d => d.id === deptId);
       if (!dept) return;
 
       const workersCount = dept.total_workers || 0;

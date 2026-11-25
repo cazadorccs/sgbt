@@ -10,9 +10,10 @@ const { notifyDeliveryStream } = require('../services/sse.service');
 const { enqueueEvent } = require('../services/outbox.service');
 
 const ENTE_SCOPE_PREFIX = 'ente:';
+const DEMO_WORKERS_EXCLUDE = "('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
 
 /**
- * Determina si un identificador de dependencia corresponde a un Ente sin unidad de adscripción.
+ * Determina si un identificador de lote corresponde a un Ente institucional.
  */
 function isEnteScopeId(scopeId) {
   return typeof scopeId === 'string' && scopeId.startsWith(ENTE_SCOPE_PREFIX);
@@ -27,7 +28,7 @@ function extractEnteName(scopeId) {
 }
 
 /**
- * Resuelve una dependencia tradicional o un grupo por Ente sin departamento específico.
+ * Resuelve una dependencia tradicional o un Ente institucional completo.
  */
 function resolveBatchScope(scopeId) {
   if (!scopeId) return null;
@@ -45,7 +46,7 @@ function resolveBatchScope(scopeId) {
       isEnte: true,
       id: `${ENTE_SCOPE_PREFIX}${enteName}`,
       code: safeCode,
-      name: `[Ente] ${enteName} (Personal adscrito sin unidad)`,
+      name: enteName,
       enteName
     };
   }
@@ -54,8 +55,8 @@ function resolveBatchScope(scopeId) {
 }
 
 /**
- * Garantiza registro paraguas en `departments` cuando un lote corresponde a un Ente sin unidad,
- * preservando intacto `workers.department_id = NULL` para mantener "Sin Asignar" en nómina.
+ * Garantiza registro paraguas en `departments` cuando un lote corresponde a un Ente institucional,
+ * preservando intacto `workers.department_id` para mantener la unidad de adscripción original en nómina.
  */
 function ensureEnteUmbrellaDepartment(scope) {
   if (!scope || !scope.isEnte) return;
@@ -66,7 +67,7 @@ function ensureEnteUmbrellaDepartment(scope) {
 }
 
 /**
- * Obtiene trabajadores activos pertenecientes a un departamento o Ente sin unidad de adscripción.
+ * Obtiene trabajadores activos pertenecientes a un departamento o Ente institucional completo.
  */
 function getActiveWorkersByScope(scopeId, columns = 'id, document_id, full_name, worker_type') {
   if (isEnteScopeId(scopeId)) {
@@ -75,14 +76,16 @@ function getActiveWorkersByScope(scopeId, columns = 'id, document_id, full_name,
       SELECT ${columns}
       FROM workers
       WHERE COALESCE(NULLIF(TRIM(ente), ''), 'MIPPCI') = ?
-        AND (department_id IS NULL OR TRIM(department_id) = '')
         AND status = 'active'
+        AND document_id NOT IN ${DEMO_WORKERS_EXCLUDE}
     `).all(enteName);
   }
   return db.prepare(`
     SELECT ${columns}
     FROM workers
-    WHERE department_id = ? AND status = 'active'
+    WHERE department_id = ?
+      AND status = 'active'
+      AND document_id NOT IN ${DEMO_WORKERS_EXCLUDE}
   `).all(scopeId);
 }
 
@@ -207,14 +210,15 @@ const listDepartmentsWithStats = async (req, res) => {
           WHERE bo.department_id = d.id AND bo.status IN ('pending_review', 'approved')
         ) as active_orders_count
       FROM departments d
-      INNER JOIN workers w ON w.department_id = d.id AND w.status = 'active'
+      INNER JOIN workers w ON w.department_id = d.id AND w.status = 'active' AND w.document_id NOT IN ${DEMO_WORKERS_EXCLUDE}
       LEFT JOIN daily_entitlements e ON e.worker_id = w.id AND date(e.valid_date) = date(?)
       WHERE d.id NOT LIKE 'ente:%'
       GROUP BY d.id
       HAVING COUNT(DISTINCT w.id) > 0
+      ORDER BY total_workers DESC, d.name ASC
     `).all(today);
 
-    // B. Entes Institucionales cuyos trabajadores tienen Unidad de Adscripción vacía (department_id IS NULL)
+    // B. Todos los Entes Institucionales con el total completo de sus beneficiarios activos
     const enteGroupsRaw = db.prepare(`
       SELECT
         COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI') as ente_name,
@@ -224,12 +228,13 @@ const listDepartmentsWithStats = async (req, res) => {
       FROM workers w
       LEFT JOIN daily_entitlements e ON e.worker_id = w.id AND date(e.valid_date) = date(?)
       WHERE w.status = 'active'
-        AND (w.department_id IS NULL OR TRIM(w.department_id) = '')
+        AND w.document_id NOT IN ${DEMO_WORKERS_EXCLUDE}
       GROUP BY ente_name
       HAVING COUNT(DISTINCT w.id) > 0
+      ORDER BY total_workers DESC, ente_name ASC
     `).all(today);
 
-    const enteGroups = enteGroupsRaw.map(g => {
+    const entes = enteGroupsRaw.map(g => {
       const scope = resolveBatchScope(`${ENTE_SCOPE_PREFIX}${g.ente_name}`);
       const activeOrdersCount = db.prepare(`
         SELECT COUNT(*) as cnt
@@ -240,7 +245,7 @@ const listDepartmentsWithStats = async (req, res) => {
       return {
         id: scope.id,
         code: scope.code,
-        name: scope.name,
+        name: g.ente_name,
         cost_center: 'CC-ENTE',
         is_ente_group: 1,
         ente: g.ente_name,
@@ -251,17 +256,12 @@ const listDepartmentsWithStats = async (req, res) => {
       };
     });
 
-    const depts = [...realDepts, ...enteGroups].sort((a, b) => {
-      if ((b.total_workers || 0) !== (a.total_workers || 0)) {
-        return (b.total_workers || 0) - (a.total_workers || 0);
-      }
-      return String(a.name || '').localeCompare(String(b.name || ''));
-    });
-
     return res.json({
       success: true,
-      count: depts.length,
-      departments: depts
+      count: realDepts.length,
+      departments: realDepts,
+      entes_count: entes.length,
+      entes
     });
   } catch (err) {
     console.error('[LIST DEPTS ERROR]', err);
@@ -270,7 +270,7 @@ const listDepartmentsWithStats = async (req, res) => {
 };
 
 /**
- * 3. Listado nominal de beneficiarios adscritos a una dependencia o Ente sin unidad
+ * 3. Listado nominal de beneficiarios adscritos a una dependencia o Ente institucional
  */
 const getDepartmentBeneficiaries = (req, res) => {
   try {
@@ -279,17 +279,17 @@ const getDepartmentBeneficiaries = (req, res) => {
 
     const scope = resolveBatchScope(id);
     if (!scope) {
-      return res.status(404).json({ error: 'Dependencia o Dirección no encontrada' });
+      return res.status(404).json({ error: 'Dependencia o Ente no encontrado' });
     }
 
     const scopeFilter = scope.isEnte
-      ? `COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI') = ? AND (w.department_id IS NULL OR TRIM(w.department_id) = '') AND w.status = 'active'`
-      : `w.department_id = ? AND w.status = 'active'`;
+      ? `COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI') = ? AND w.status = 'active' AND w.document_id NOT IN ${DEMO_WORKERS_EXCLUDE}`
+      : `w.department_id = ? AND w.status = 'active' AND w.document_id NOT IN ${DEMO_WORKERS_EXCLUDE}`;
     const scopeParam = scope.isEnte ? scope.enteName : scope.id;
 
     const workers = db.prepare(`
       SELECT 
-        w.id, w.document_id, w.full_name, w.email, w.ente, w.worker_type, w.job_title, w.role,
+        w.id, w.document_id, w.full_name, w.email, w.ente, d.name as department_name, w.worker_type, w.job_title, w.role,
         CASE 
           WHEN EXISTS (
             SELECT 1 FROM daily_entitlements e 
@@ -309,6 +309,7 @@ const getDepartmentBeneficiaries = (req, res) => {
           LIMIT 1
         ) as batch_order_id
       FROM workers w
+      LEFT JOIN departments d ON w.department_id = d.id
       WHERE ${scopeFilter}
       ORDER BY w.full_name ASC
     `).all(today, today, today, scopeParam);
