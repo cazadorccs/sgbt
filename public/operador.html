@@ -44,6 +44,17 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .sesion-info { font-size: 0.7rem; color: #94a3b8; margin-top: 0.5rem; text-align: center; }
     .sesion-info b { color: #38bdf8; }
+
+    /* Barra de Estado de Red y Sincronización */
+    .net-status-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; background: #0b1329; padding: 0.55rem 0.8rem; border: 1px solid #1e293b; border-radius: 10px; margin-bottom: 0.85rem; font-size: 0.76rem; }
+    .net-indicator { display: flex; align-items: center; gap: 0.45rem; font-weight: 700; }
+    .net-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; transition: background 0.3s; }
+    .net-dot.online { background: #22c55e; box-shadow: 0 0 8px rgba(34, 197, 94, 0.7); }
+    .net-dot.offline { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.7); animation: pulseOffline 1.5s infinite; }
+    @keyframes pulseOffline { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .badge-queue { background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; padding: 0.2rem 0.55rem; border-radius: 999px; font-weight: 700; font-size: 0.72rem; }
+    .btn-sync-mini { width: auto; padding: 0.3rem 0.65rem; font-size: 0.72rem; margin: 0; background: #0284c7; border-radius: 6px; font-weight: 700; color: #fff; cursor: pointer; border: none; }
+    .btn-sync-mini:hover { background: #0369a1; }
   </style>
 </head>
 <body>
@@ -52,6 +63,16 @@
     <div class="card login" id="panelLogin">
       <h1>Puesto de Despacho</h1>
       <h2>Acceso de Operador</h2>
+
+      <!-- Estado de Red en Login -->
+      <div class="net-status-bar">
+        <div class="net-indicator">
+          <span class="net-dot online" id="loginNetDot"></span>
+          <span id="loginNetText" style="color: #86efac;">En Línea</span>
+        </div>
+        <div id="loginPadronInfo" style="font-size: 0.7rem; color: #94a3b8;">SGBT MIPPCI</div>
+      </div>
+
       <div class="alert error" id="msgError"></div>
       <span class="label">Cédula de Identidad del Operador</span>
       <input type="text" id="inputOperadorCedula" placeholder="Ej: V-11111111" maxlength="20" autocomplete="off">
@@ -61,10 +82,26 @@
 
     <!-- PANEL DE DESPACHO (se muestra tras login) -->
     <div class="card hidden" id="panelDespacho">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
         <h1 style="margin: 0;">Despacho Manual</h1>
-        <button class="btn-secundario" id="btnCerrarSesion">Cerrar Sesión</button>
+        <button class="btn-secundario" id="btnCerrarSesion" style="width: auto; margin: 0; padding: 0.4rem 0.75rem; font-size: 0.78rem;">Cerrar Sesión</button>
       </div>
+
+      <!-- BARRA DE ESTADO DE CONEXIÓN Y MODO OFFLINE EN MESA -->
+      <div class="net-status-bar" id="statusBarDespacho">
+        <div class="net-indicator">
+          <span class="net-dot online" id="despachoNetDot"></span>
+          <span id="despachoNetText" style="color: #86efac;">🟢 En Línea</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.4rem;">
+          <span id="offlineQueueBadge" class="badge-queue hidden">📦 0 por sincronizar</span>
+          <button id="btnSyncNow" class="btn-sync-mini hidden" title="Sincronizar despachos acumulados con el servidor">🔄 Sincronizar</button>
+        </div>
+      </div>
+      <div id="padronStatusInfo" style="font-size: 0.68rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 0.75rem; text-align: right;">
+        Cargando padrón local...
+      </div>
+
       <div class="alert error" id="msgErrorDespacho"></div>
       <div class="alert success" id="msgExito"></div>
       <div class="alert info" id="msgInfo"></div>
@@ -94,7 +131,7 @@
 
   <script>
     // ============================================================================
-    // API CLIENT MINIMAL (sin dependencias externas)
+    // API CLIENT MINIMAL (sin dependencias externas) CON TIMEOUT DE RED
     // ============================================================================
     // Silenciar errores asíncronos generados por extensiones del navegador (QuillBot, traductores, etc.)
     window.addEventListener('unhandledrejection', (event) => {
@@ -106,23 +143,35 @@
     const API_BASE = window.location.origin;
     const TOKEN_KEY = 'sgbt_session_token';
 
-    function apiRequest(url, options = {}) {
+    function apiRequest(url, options = {}, timeoutMs = 8000) {
       const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
       const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
       if (token && !headers['Authorization']) headers['Authorization'] = `Bearer ${token}`;
       options.headers = headers;
       options.credentials = 'include';
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      options.signal = controller.signal;
+
       return fetch(url, options).then(async res => {
+        clearTimeout(timer);
         const text = await res.text();
         let data; try { data = JSON.parse(text); } catch { data = { raw: text }; }
         if (!res.ok) throw new Error(data.error || `Error HTTP ${res.status}`);
         return data;
+      }).catch(err => {
+        clearTimeout(timer);
+        if (err.name === 'AbortError') {
+          throw new Error('Timeout de red (Sin respuesta del servidor)');
+        }
+        throw err;
       });
     }
 
     function $ (id) { return document.getElementById(id); }
-    function show(id) { $(id).classList.remove('hidden'); }
-    function hide(id) { $(id).classList.add('hidden'); }
+    function show(id) { $(id)?.classList.remove('hidden'); }
+    function hide(id) { $(id)?.classList.add('hidden'); }
     function setText(id, txt) {
       const el = $(id);
       if (!el) return;
@@ -132,17 +181,14 @@
         el.textContent = txt;
       }
     }
-    function setHtml(id, html) {
-      const el = $(id);
-      if (el) el.innerHTML = html;
-    }
 
     function mostrarAlerta(id, texto, tipo = 'error') {
       const el = $(id);
+      if (!el) return;
       el.className = 'alert ' + (tipo === 'error' ? 'error' : tipo === 'success' ? 'success' : 'info');
       el.textContent = texto;
       el.style.display = 'block';
-      setTimeout(() => { el.style.display = 'none'; }, 5000);
+      setTimeout(() => { if (el) el.style.display = 'none'; }, 6000);
     }
 
     function limpiarAlertas() {
@@ -150,10 +196,346 @@
     }
 
     // ============================================================================
-    // ESTADO
+    // MOTOR DE PERSISTENCIA LOCAL OFFLINE (IndexedDB + Fallback LocalStorage)
+    // ============================================================================
+    const OperatorDB = (function() {
+      const DB_NAME = 'sgbt_operador_db';
+      const DB_VERSION = 1;
+      let dbInstance = null;
+
+      function open() {
+        return new Promise((resolve) => {
+          if (dbInstance) return resolve(dbInstance);
+          if (!('indexedDB' in window)) return resolve(null);
+          try {
+            const req = indexedDB.open(DB_NAME, DB_VERSION);
+            req.onupgradeneeded = (e) => {
+              const db = e.target.result;
+              if (!db.objectStoreNames.contains('workers')) {
+                const ws = db.createObjectStore('workers', { keyPath: 'id' });
+                ws.createIndex('document_id', 'document_id', { unique: false });
+              }
+              if (!db.objectStoreNames.contains('queue')) {
+                db.createObjectStore('queue', { keyPath: 'id' });
+              }
+            };
+            req.onsuccess = (e) => { dbInstance = e.target.result; resolve(dbInstance); };
+            req.onerror = () => resolve(null);
+          } catch (e) {
+            resolve(null);
+          }
+        });
+      }
+
+      async function guardarPadron(workers) {
+        if (!Array.isArray(workers)) return;
+        try {
+          localStorage.setItem('sgbt_padron_cache', JSON.stringify(workers.slice(0, 1500)));
+        } catch (e) {}
+
+        const db = await open();
+        if (!db) return;
+        return new Promise((resolve) => {
+          try {
+            const tx = db.transaction(['workers'], 'readwrite');
+            const store = tx.objectStore('workers');
+            workers.forEach(w => store.put(w));
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => resolve(false);
+          } catch (e) {
+            resolve(false);
+          }
+        });
+      }
+
+      async function buscarTrabajadorLocal(query) {
+        const trimmed = String(query || '').trim().toUpperCase();
+        const digits = trimmed.replace(/[^0-9]/g, '');
+
+        // 1. Probar en IndexedDB
+        const db = await open();
+        if (db) {
+          const res = await new Promise((resolve) => {
+            try {
+              const tx = db.transaction(['workers'], 'readonly');
+              const store = tx.objectStore('workers');
+              const req = store.getAll();
+              req.onsuccess = () => {
+                const list = req.result || [];
+                const found = list.find(w => {
+                  const wDoc = String(w.document_id || '').toUpperCase();
+                  const wDigits = wDoc.replace(/[^0-9]/g, '');
+                  return wDoc === trimmed || (digits && wDigits === digits);
+                });
+                resolve(found || null);
+              };
+              req.onerror = () => resolve(null);
+            } catch (e) {
+              resolve(null);
+            }
+          });
+          if (res) return res;
+        }
+
+        // 2. Fallback localStorage
+        try {
+          const raw = localStorage.getItem('sgbt_padron_cache');
+          if (raw) {
+            const list = JSON.parse(raw);
+            const found = list.find(w => {
+              const wDoc = String(w.document_id || '').toUpperCase();
+              const wDigits = wDoc.replace(/[^0-9]/g, '');
+              return wDoc === trimmed || (digits && wDigits === digits);
+            });
+            return found || null;
+          }
+        } catch (e) {}
+
+        return null;
+      }
+
+      async function marcarEntregadoEnPadron(workerId) {
+        // En localStorage
+        try {
+          const raw = localStorage.getItem('sgbt_padron_cache');
+          if (raw) {
+            const list = JSON.parse(raw);
+            const idx = list.findIndex(w => w.id === workerId);
+            if (idx !== -1) {
+              list[idx].is_delivered = 1;
+              localStorage.setItem('sgbt_padron_cache', JSON.stringify(list));
+            }
+          }
+        } catch (e) {}
+
+        // En IndexedDB
+        const db = await open();
+        if (!db) return;
+        try {
+          const tx = db.transaction(['workers'], 'readwrite');
+          const store = tx.objectStore('workers');
+          const req = store.get(workerId);
+          req.onsuccess = () => {
+            if (req.result) {
+              const w = req.result;
+              w.is_delivered = 1;
+              store.put(w);
+            }
+          };
+        } catch (e) {}
+      }
+
+      async function encolarEntrega(delivery) {
+        if (!delivery.id) delivery.id = 'del_op_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+        delivery.created_at = new Date().toISOString();
+
+        // Fallback localStorage
+        try {
+          const qRaw = localStorage.getItem('sgbt_op_queue') || '[]';
+          const q = JSON.parse(qRaw);
+          q.push(delivery);
+          localStorage.setItem('sgbt_op_queue', JSON.stringify(q));
+        } catch (e) {}
+
+        // IndexedDB
+        const db = await open();
+        if (!db) return delivery;
+        return new Promise((resolve) => {
+          try {
+            const tx = db.transaction(['queue'], 'readwrite');
+            tx.objectStore('queue').put(delivery);
+            tx.oncomplete = () => resolve(delivery);
+            tx.onerror = () => resolve(delivery);
+          } catch (e) {
+            resolve(delivery);
+          }
+        });
+      }
+
+      async function obtenerEntregasPendientes() {
+        const map = new Map();
+
+        // 1. LocalStorage
+        try {
+          const qRaw = localStorage.getItem('sgbt_op_queue') || '[]';
+          const q = JSON.parse(qRaw);
+          q.forEach(d => { if (d && d.id) map.set(d.id, d); });
+        } catch (e) {}
+
+        // 2. IndexedDB
+        const db = await open();
+        if (db) {
+          await new Promise((resolve) => {
+            try {
+              const tx = db.transaction(['queue'], 'readonly');
+              const req = tx.objectStore('queue').getAll();
+              req.onsuccess = () => {
+                (req.result || []).forEach(d => { if (d && d.id) map.set(d.id, d); });
+                resolve();
+              };
+              req.onerror = () => resolve();
+            } catch (e) {
+              resolve();
+            }
+          });
+        }
+
+        return Array.from(map.values());
+      }
+
+      async function eliminarEntregas(ids) {
+        if (!ids || ids.length === 0) return;
+        const set = new Set(ids);
+
+        // LocalStorage
+        try {
+          const qRaw = localStorage.getItem('sgbt_op_queue') || '[]';
+          const q = JSON.parse(qRaw).filter(d => !set.has(d.id));
+          localStorage.setItem('sgbt_op_queue', JSON.stringify(q));
+        } catch (e) {}
+
+        // IndexedDB
+        const db = await open();
+        if (!db) return;
+        try {
+          const tx = db.transaction(['queue'], 'readwrite');
+          const store = tx.objectStore('queue');
+          ids.forEach(id => store.delete(id));
+        } catch (e) {}
+      }
+
+      return {
+        guardarPadron,
+        buscarTrabajadorLocal,
+        marcarEntregadoEnPadron,
+        encolarEntrega,
+        obtenerEntregasPendientes,
+        eliminarEntregas
+      };
+    })();
+
+    // ============================================================================
+    // ESTADO GENERAL & CONTROLADOR DE RED
     // ============================================================================
     let currentOperador = null;
     let currentWorker = null;
+    let isSyncing = false;
+
+    async function actualizarEstadoRedUI() {
+      const isOnline = navigator.onLine;
+      const pendingQueue = await OperatorDB.obtenerEntregasPendientes();
+      const queueCount = pendingQueue.length;
+
+      // Dots e indicadores
+      const loginDot = $('loginNetDot');
+      const loginText = $('loginNetText');
+      const despDot = $('despachoNetDot');
+      const despText = $('despachoNetText');
+      const queueBadge = $('offlineQueueBadge');
+      const btnSync = $('btnSyncNow');
+
+      if (isOnline) {
+        if (loginDot) { loginDot.className = 'net-dot online'; }
+        if (loginText) { loginText.textContent = 'En Línea'; loginText.style.color = '#86efac'; }
+        if (despDot) { despDot.className = 'net-dot online'; }
+        if (despText) { despText.textContent = '🟢 En Línea (Conectado a Vercel)'; despText.style.color = '#86efac'; }
+      } else {
+        if (loginDot) { loginDot.className = 'net-dot offline'; }
+        if (loginText) { loginText.textContent = 'Sin Conexión (Offline)'; loginText.style.color = '#fca5a5'; }
+        if (despDot) { despDot.className = 'net-dot offline'; }
+        if (despText) { despText.textContent = '🔴 Modo Offline (Guardando Local)'; despText.style.color = '#fca5a5'; }
+      }
+
+      if (queueCount > 0) {
+        if (queueBadge) {
+          queueBadge.textContent = `📦 ${queueCount} por sincronizar`;
+          queueBadge.classList.remove('hidden');
+        }
+        if (btnSync && isOnline && !isSyncing) {
+          btnSync.classList.remove('hidden');
+        }
+      } else {
+        if (queueBadge) queueBadge.classList.add('hidden');
+        if (btnSync) btnSync.classList.add('hidden');
+      }
+    }
+
+    // Descargar padrón completo de la jornada para operar sin internet
+    async function descargarPadronOffline() {
+      if (!navigator.onLine) {
+        $('padronStatusInfo').textContent = '📋 Operando con padrón local en memoria.';
+        return;
+      }
+      try {
+        const res = await apiRequest(`${API_BASE}/api/v1/operador/pack-offline`, {}, 12000);
+        if (res && res.success && Array.isArray(res.workers)) {
+          await OperatorDB.guardarPadron(res.workers);
+          const txt = `📋 Padrón local: ${res.workers.length} funcionarios listos`;
+          setText('padronStatusInfo', txt);
+          setText('loginPadronInfo', `${res.workers.length} funcionarios listos`);
+        }
+      } catch (err) {
+        console.warn('[OPERADOR PADRON ERR]', err.message);
+        setText('padronStatusInfo', '📋 Padrón local activo');
+      }
+    }
+
+    // Sincronizar cola acumulada hacia Vercel
+    async function sincronizarColaOffline() {
+      if (!navigator.onLine || isSyncing) return;
+      const pending = await OperatorDB.obtenerEntregasPendientes();
+      if (!pending || pending.length === 0) return;
+
+      isSyncing = true;
+      const btnSync = $('btnSyncNow');
+      if (btnSync) {
+        btnSync.disabled = true;
+        btnSync.innerHTML = '<span class="spinner" style="width:12px;height:12px;"></span> Sincronizando...';
+      }
+
+      try {
+        const res = await apiRequest(`${API_BASE}/api/v1/operador/sync-batch`, {
+          method: 'POST',
+          body: JSON.stringify({ deliveries: pending })
+        }, 15000);
+
+        if (res && res.success) {
+          const ids = pending.map(d => d.id);
+          await OperatorDB.eliminarEntregas(ids);
+          mostrarAlerta('msgExito', `✅ Sincronizados ${res.processed} despachos con el servidor central.`, 'success');
+          // Actualizar padrón más fresco
+          await descargarPadronOffline();
+        }
+      } catch (err) {
+        console.warn('[SYNC BATCH ERROR]', err.message);
+      } finally {
+        isSyncing = false;
+        if (btnSync) {
+          btnSync.disabled = false;
+          btnSync.innerHTML = '🔄 Sincronizar';
+        }
+        await actualizarEstadoRedUI();
+      }
+    }
+
+    // Eventos de conectividad
+    window.addEventListener('online', async () => {
+      await actualizarEstadoRedUI();
+      mostrarAlerta('msgInfo', '🟢 Conexión a internet restablecida. Iniciando sincronización...', 'info');
+      await sincronizarColaOffline();
+    });
+
+    window.addEventListener('offline', async () => {
+      await actualizarEstadoRedUI();
+      mostrarAlerta('msgErrorDespacho', '🔴 Sin internet: Se activó el Modo Offline. Los despachos se guardarán en esta laptop.', 'error');
+    });
+
+    // Auto-sincronización cada 20 segundos si hay conexión
+    setInterval(() => {
+      if (navigator.onLine) sincronizarColaOffline();
+    }, 20000);
+
+    $('btnSyncNow')?.addEventListener('click', sincronizarColaOffline);
 
     // ============================================================================
     // LOGIN
@@ -183,6 +565,10 @@
           hide('btnAprobarContainer');
           $('inputCedulaTrabajador').value = '';
           $('inputCedulaTrabajador').focus();
+
+          // Descargar padrón inmediatamente
+          await descargarPadronOffline();
+          await actualizarEstadoRedUI();
         } else {
           mostrarAlerta('msgError', res.error || 'Error de autenticación');
         }
@@ -198,16 +584,53 @@
     });
 
     // ============================================================================
-    // BUSCAR TRABAJADOR
+    // BUSCAR TRABAJADOR (Híbrido: Online / Offline Resiliente)
     // ============================================================================
+    async function buscarTrabajadorLocalHandler(cedula) {
+      const localWorker = await OperatorDB.buscarTrabajadorLocal(cedula);
+      if (!localWorker) {
+        hide('infoTrabajador');
+        hide('btnAprobarContainer');
+        currentWorker = null;
+        mostrarAlerta('msgInfo', `Funcionario con cédula "${cedula}" no encontrado en la nómina institucional local.`, 'info');
+        return;
+      }
+
+      currentWorker = localWorker;
+      setText('nombreTrabajador', localWorker.full_name);
+      setText('docTrabajador', localWorker.document_id);
+      setText('deptoTrabajador', localWorker.department_name || 'Sin Dirección');
+
+      const estadoEl = $('estadoPendientes');
+      if (localWorker.is_delivered) {
+        estadoEl.innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
+        hide('btnAprobarContainer');
+        mostrarAlerta('msgInfo', `⚠️ El funcionario ${localWorker.full_name} ya retiró sus combos hoy. No puede duplicar entrega.`, 'info');
+      } else {
+        estadoEl.innerHTML = '';
+        show('btnAprobarContainer');
+        mostrarAlerta('msgExito', `Modo Offline: Funcionario localizado localmente (${localWorker.full_name})`, 'success');
+      }
+      show('infoTrabajador');
+    }
+
     $('btnBuscarTrabajador').addEventListener('click', async () => {
       const cedula = $('inputCedulaTrabajador').value.trim();
       if (!cedula) { mostrarAlerta('msgErrorDespacho', 'Ingrese la cédula del funcionario'); return; }
       limpiarAlertas();
       const btn = $('btnBuscarTrabajador');
       btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Buscando...';
+
+      // Si no hay internet de entrada, ir directo a local
+      if (!navigator.onLine) {
+        await buscarTrabajadorLocalHandler(cedula);
+        btn.disabled = false; btn.innerHTML = 'Buscar Funcionario';
+        return;
+      }
+
+      // Intentar online con timeout de 6s
       try {
-        const res = await apiRequest(`${API_BASE}/api/v1/operador/search/${encodeURIComponent(cedula)}`);
+        const res = await apiRequest(`${API_BASE}/api/v1/operador/search/${encodeURIComponent(cedula)}`, {}, 6000);
         if (!res.found) {
           hide('infoTrabajador');
           hide('btnAprobarContainer');
@@ -215,6 +638,7 @@
           mostrarAlerta('msgInfo', res.message || 'Funcionario no encontrado', 'info');
           return;
         }
+
         currentWorker = res.worker;
         setText('nombreTrabajador', res.worker.full_name);
         setText('docTrabajador', res.worker.document_id);
@@ -224,8 +648,8 @@
         if (s.is_fully_delivered) {
           estadoEl.innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
           hide('btnAprobarContainer');
+          await OperatorDB.marcarEntregadoEnPadron(res.worker.id);
         } else if (s.has_pending) {
-          // El operador no ve conteos ni badges de pendientes antes de despachar
           estadoEl.innerHTML = '';
           show('btnAprobarContainer');
         } else {
@@ -235,7 +659,9 @@
         show('infoTrabajador');
         mostrarAlerta('msgExito', `Funcionario localizado: ${res.worker.full_name}`, 'success');
       } catch (err) {
-        mostrarAlerta('msgErrorDespacho', err.message);
+        console.warn('[BUSQUEDA ONLINE FALLO, USANDO LOCAL]', err.message);
+        // Fallback transparente a base de datos local
+        await buscarTrabajadorLocalHandler(cedula);
       } finally {
         btn.disabled = false; btn.innerHTML = 'Buscar Funcionario';
       }
@@ -246,13 +672,48 @@
     });
 
     // ============================================================================
-    // APROBAR ENTREGA (Despachar todos los pendientes)
+    // APROBAR ENTREGA (Online con Fallback Offline Inmediato)
     // ============================================================================
+    async function aprobarEntregaOffline(worker) {
+      const offDelivery = {
+        id: 'del_op_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
+        worker_id: worker.id,
+        document_id: worker.document_id,
+        full_name: worker.full_name,
+        delivered_at: new Date().toISOString(),
+        note: 'Despacho registrado en modo offline por operador de mesa'
+      };
+
+      await OperatorDB.encolarEntrega(offDelivery);
+      await OperatorDB.marcarEntregadoEnPadron(worker.id);
+      worker.is_delivered = 1;
+
+      mostrarAlerta('msgExito', `✓ Despacho registrado localmente para ${worker.full_name}. Se sincronizará automáticamente al conectarse a internet.`, 'success');
+      $('estadoPendientes').innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy (Guardado local)</span>';
+      hide('btnAprobarContainer');
+
+      await actualizarEstadoRedUI();
+
+      setTimeout(() => {
+        $('inputCedulaTrabajador').value = '';
+        $('inputCedulaTrabajador').focus();
+      }, 2500);
+    }
+
     $('btnAprobarEntrega').addEventListener('click', async () => {
       if (!currentWorker) return;
       limpiarAlertas();
       const btn = $('btnAprobarEntrega');
       btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Procesando Despacho...';
+
+      // Si estamos sin conexión, registrar en local
+      if (!navigator.onLine) {
+        await aprobarEntregaOffline(currentWorker);
+        btn.disabled = false; btn.innerHTML = '✓ Aprobar Entrega y Descontar';
+        return;
+      }
+
+      // Intentar online
       try {
         const res = await apiRequest(`${API_BASE}/api/v1/operador/deliver`, {
           method: 'POST',
@@ -260,13 +721,13 @@
             worker_id: currentWorker.id,
             note: 'Despacho aprobado desde Puesto de Supervisión Manual'
           })
-        });
+        }, 8000);
+
         if (res.success) {
           mostrarAlerta('msgExito', res.message, 'success');
-          // Refrescar estado del trabajador a entregado
           $('estadoPendientes').innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
           hide('btnAprobarContainer');
-          // Limpiar input y enfocar para el siguiente funcionario
+          await OperatorDB.marcarEntregadoEnPadron(currentWorker.id);
           setTimeout(() => {
             $('inputCedulaTrabajador').value = '';
             $('inputCedulaTrabajador').focus();
@@ -275,7 +736,9 @@
           mostrarAlerta('msgErrorDespacho', res.error || 'Error al procesar la entrega');
         }
       } catch (err) {
-        mostrarAlerta('msgErrorDespacho', err.message);
+        console.warn('[ENTREGA ONLINE FALLO, GUARDANDO EN COLA OFFLINE]', err.message);
+        // Si falló por red/timeout, guardar offline para no parar la mesa
+        await aprobarEntregaOffline(currentWorker);
       } finally {
         btn.disabled = false; btn.innerHTML = '✓ Aprobar Entrega y Descontar';
       }
@@ -296,13 +759,15 @@
       limpiarAlertas();
     });
 
-    // Verificar si ya hay sesión activa al cargar
-    (function() {
+    // Inicialización al cargar la página
+    (async function init() {
+      await actualizarEstadoRedUI();
       const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
       if (token) {
-        // Token presente, ir directo al despacho
         hide('panelLogin');
         show('panelDespacho');
+        await descargarPadronOffline();
+        await sincronizarColaOffline();
       }
     })();
   </script>

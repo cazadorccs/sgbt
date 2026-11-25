@@ -360,8 +360,185 @@ const operadorDeliver = async (req, res) => {
   }
 };
 
+// 4. Descargar padrón completo de la jornada para operar sin conexión (Modo Offline)
+const operadorOfflinePack = (req, res) => {
+  const today = getTodayVzla();
+  try {
+    const workers = db.prepare(`
+      SELECT w.id, w.document_id, w.full_name, w.worker_type,
+             COALESCE(d.name, 'Sin Dirección') as department_name,
+             CASE WHEN EXISTS (
+               SELECT 1 FROM daily_entitlements de
+               JOIN combos c ON de.combo_id = c.id
+               WHERE de.worker_id = w.id AND de.valid_date = ? AND de.status = 'claimed' AND c.is_active = 1
+             ) THEN 1 ELSE 0 END as is_delivered
+      FROM workers w
+      LEFT JOIN departments d ON w.department_id = d.id
+      WHERE w.status = 'active'
+      ORDER BY w.full_name ASC
+    `).all(today);
+
+    return res.json({
+      success: true,
+      today,
+      total_workers: workers.length,
+      workers
+    });
+  } catch (err) {
+    console.error('[OPERADOR OFFLINE PACK ERROR]', err);
+    return res.status(500).json({ error: 'Error generando padrón offline: ' + err.message });
+  }
+};
+
+// 5. Sincronizar lote de entregas diferidas realizadas sin conexión
+const operadorSyncBatch = async (req, res) => {
+  const { deliveries } = req.body || {};
+  const today = getTodayVzla();
+
+  if (!Array.isArray(deliveries) || deliveries.length === 0) {
+    return res.json({ success: true, processed: 0, already_delivered: 0, total: 0 });
+  }
+
+  let processed = 0;
+  let alreadyDelivered = 0;
+  const errors = [];
+  const distPoint = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+  const distPointId = distPoint ? distPoint.id : '550e8400-e29b-41d4-a716-446655440000';
+  const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+  const campaignId = activeCamp ? activeCamp.id : null;
+
+  for (const item of deliveries) {
+    const workerId = item.worker_id || item.workerId;
+    const docId = item.document_id || item.documentId;
+    if (!workerId && !docId) continue;
+
+    try {
+      let worker = null;
+      if (workerId) {
+        worker = db.prepare("SELECT id, document_id, full_name, worker_type FROM workers WHERE id = ?").get(workerId);
+      }
+      if (!worker && docId) {
+        const { formatted, raw, digits } = normalizeCedula(docId);
+        worker = db.prepare("SELECT id, document_id, full_name, worker_type FROM workers WHERE document_id = ? OR document_id = ? OR REPLACE(document_id, 'V-', '') = ? LIMIT 1").get(formatted, raw, digits);
+      }
+      if (!worker) {
+        errors.push({ docId, error: 'Trabajador no encontrado en el servidor' });
+        continue;
+      }
+
+      // Asegurar entitlements si faltan
+      try {
+        const { ensureTodayEntitlementsForWorker } = require('./manual_dispatch.controller');
+        if (typeof ensureTodayEntitlementsForWorker === 'function') {
+          ensureTodayEntitlementsForWorker(worker.id, today);
+        }
+      } catch (e) {}
+
+      // Buscar combos pendientes
+      let pendSql = `
+        SELECT MIN(e.id) as id, e.combo_id, c.name as combo_name
+        FROM daily_entitlements e
+        JOIN combos c ON e.combo_id = c.id
+        WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
+      `;
+      const pendParams = [worker.id, today];
+      if (activeCamp) {
+        pendSql += ` AND (e.campaign_id = ? OR e.combo_id IN (
+          SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
+          UNION
+          SELECT combo_id FROM delivery_campaigns WHERE id = ? AND combo_id IS NOT NULL
+        ))`;
+        pendParams.push(activeCamp.id, activeCamp.id, activeCamp.id);
+      }
+      pendSql += ` GROUP BY e.combo_id ORDER BY c.created_at ASC, c.id ASC LIMIT 4`;
+      const strictlyPending = db.prepare(pendSql).all(...pendParams);
+
+      if (strictlyPending.length === 0) {
+        alreadyDelivered++;
+        continue;
+      }
+
+      const deliveredItems = [];
+      const tx = db.transaction(() => {
+        for (const ent of strictlyPending) {
+          const deliveryId = crypto.randomUUID();
+          const nonce = crypto.randomBytes(8).toString('hex');
+          const deliveredAt = item.delivered_at || new Date().toISOString();
+
+          db.prepare(`
+            INSERT INTO deliveries (
+              id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+              verification_method, signature_proof, challenge_nonce, supervisor_id,
+              override_reason, is_offline_sync, delivered_at, campaign_id
+            ) VALUES (?, ?, ?, ?, ?, 'manual_operador_offline', ?, ?, ?, ?, 1, ?, ?)
+          `).run(
+            deliveryId,
+            ent.id,
+            worker.id,
+            distPointId,
+            item.delivered_by_user_id || null,
+            'OFFLINE_SYNC_' + Date.now(),
+            nonce,
+            item.delivered_by_user_id || null,
+            item.note || 'Sincronización diferida desde Puesto de Operador Offline',
+            deliveredAt,
+            campaignId
+          );
+
+          db.prepare(`
+            UPDATE daily_entitlements 
+            SET status = 'claimed' 
+            WHERE worker_id = ? AND valid_date = ? AND combo_id = ?
+          `).run(worker.id, today, ent.combo_id);
+
+          deliveredItems.push({
+            delivery_id: deliveryId,
+            entitlement_id: ent.id,
+            combo_id: ent.combo_id
+          });
+        }
+      });
+      tx();
+
+      // Respaldo en Supabase
+      try {
+        const { persistDeliveries } = require('../services/cloud_sync.service');
+        await persistDeliveries(deliveredItems.map(d => ({
+          id: d.delivery_id,
+          entitlement_id: d.entitlement_id,
+          worker_id: worker.id,
+          combo_id: d.combo_id,
+          verification_method: 'manual_operador_offline',
+          delivered_at: item.delivered_at || new Date().toISOString()
+        })));
+      } catch (e) {}
+
+      processed++;
+    } catch (errOne) {
+      console.warn(`[SYNC ONE ERR] Error sincronizando ${docId}:`, errOne.message);
+      errors.push({ docId, error: errOne.message });
+    }
+  }
+
+  try {
+    await cache.delPattern('kpis:*');
+    await cache.delPattern('ministerial:*');
+  } catch (e) {}
+
+  return res.json({
+    success: true,
+    total: deliveries.length,
+    processed,
+    already_delivered: alreadyDelivered,
+    errors: errors.length > 0 ? errors : undefined,
+    message: `Sincronización finalizada: ${processed} despachos procesados, ${alreadyDelivered} ya estaban registrados.`
+  });
+};
+
 module.exports = {
   operadorLogin,
   operadorSearchWorker,
-  operadorDeliver
+  operadorDeliver,
+  operadorOfflinePack,
+  operadorSyncBatch
 };

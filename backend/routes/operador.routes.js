@@ -17,4 +17,10 @@ router.get('/operador/search', requireRole('operator', 'distributor'), controlle
 // Despachar / entregar todos los combos pendientes (descontar en panel principal)
 router.post('/operador/deliver', requireRole('operator', 'distributor'), controller.operadorDeliver);
 
+// Descargar padrón para funcionamiento offline en mesas de despacho
+router.get('/operador/pack-offline', requireRole('operator', 'distributor'), controller.operadorOfflinePack);
+
+// Sincronizar lote de entregas diferidas realizadas sin conexión
+router.post('/operador/sync-batch', requireRole('operator', 'distributor'), controller.operadorSyncBatch);
+
 module.exports = router;
