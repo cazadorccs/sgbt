@@ -476,18 +476,17 @@ const getTodayStatsAndRecent = async (req, res) => {
       const nowMs = Date.now();
       const shouldSyncCloud = localCount === 0 || (nowMs - lastSummaryCloudSyncMs > 5000);
       if (shouldSyncCloud) {
-        const { supabase, isSupabaseConfigured } = require('../supabase');
+        const { supabase, isSupabaseConfigured, fetchAllRows } = require('../supabase');
         if (isSupabaseConfigured() && supabase) {
           lastSummaryCloudSyncMs = nowMs;
           const startOfTodayVzlaUtc = `${todayVzla}T04:00:00.000Z`;
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 3500));
-          const queryPromise = supabase
-            .from('deliveries')
-            .select('*')
-            .gte('delivered_at', startOfTodayVzlaUtc)
-            .order('delivered_at', { ascending: false })
-            .limit(5000);
-          const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 6000));
+          const queryPromise = fetchAllRows('deliveries', {
+            orderBy: 'delivered_at',
+            ascending: false,
+            filters: (q) => q.gte('delivered_at', startOfTodayVzlaUtc)
+          });
+          const remoteDeliveries = await Promise.race([queryPromise, timeoutPromise]);
           if (Array.isArray(remoteDeliveries)) {
             if (remoteDeliveries.length === 0) {
               db.prepare('DELETE FROM deliveries').run();

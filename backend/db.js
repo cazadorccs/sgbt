@@ -1167,7 +1167,7 @@ const SYNC_WORKERS_META_STORE_UUID = 'c0000000-ca11-4000-8000-000000000002';
 
 async function syncWorkersMetaToCloud() {
   try {
-    const { supabase, isSupabaseConfigured } = require('./supabase');
+    const { supabase, isSupabaseConfigured, fetchAllRows } = require('./supabase');
     if (!isSupabaseConfigured() || !supabase) return false;
     const rows = db.prepare("SELECT document_id, ente, job_title, hire_date FROM workers WHERE status = 'active' OR ente IS NOT NULL").all();
     const metaMap = {};
@@ -1199,7 +1199,7 @@ async function syncWorkersMetaToCloud() {
 // Función de sincronización bidireccional / hidratación con Supabase Cloud
 async function syncFromSupabase() {
   try {
-    const { supabase, isSupabaseConfigured } = require('./supabase');
+    const { supabase, isSupabaseConfigured, fetchAllRows } = require('./supabase');
     if (!isSupabaseConfigured() || !supabase) return;
 
     // 0. Hidratar departamentos desde Supabase Cloud
@@ -1505,8 +1505,10 @@ async function syncFromSupabase() {
     // Hidratar asignaciones de la jornada (daily_entitlements) de hoy (soportando UTC y Zona Horaria Venezuela)
     const todayUtc = new Date().toISOString().split('T')[0];
     const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
-    const { data: remoteEntitlements, error: entErr } = await supabase.from('daily_entitlements').select('*').in('valid_date', [todayUtc, todayVzla]);
-    if (!entErr && Array.isArray(remoteEntitlements) && remoteEntitlements.length > 0) {
+    const remoteEntitlements = await fetchAllRows('daily_entitlements', {
+      filters: (q) => q.in('valid_date', [todayUtc, todayVzla])
+    });
+    if (Array.isArray(remoteEntitlements) && remoteEntitlements.length > 0) {
       const insertRemoteEnt = db.prepare(`
         INSERT OR REPLACE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -1530,8 +1532,11 @@ async function syncFromSupabase() {
     }
 
     // Hidratar y reconciliar entregas registradas en Supabase Cloud para que Vercel Serverless las reconozca de inmediato
-    const { data: remoteDeliveries, error: delErr } = await supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(5000);
-    if (!delErr && Array.isArray(remoteDeliveries)) {
+    const remoteDeliveries = await fetchAllRows('deliveries', {
+      orderBy: 'delivered_at',
+      ascending: false
+    });
+    if (Array.isArray(remoteDeliveries)) {
       if (remoteDeliveries.length === 0) {
         db.prepare('DELETE FROM deliveries').run();
         db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE status = 'claimed'").run();

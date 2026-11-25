@@ -112,9 +112,44 @@ async function testSupabaseConnection() {
   return { connected: false, mode: 'unconfigured' };
 }
 
+/**
+ * Recupera todas las filas paginadas de una tabla en Supabase Cloud
+ * superando la restricción estricta de 1000 filas (max-rows) de PostgREST.
+ */
+async function fetchAllRows(tableName, options = {}) {
+  if (!supabase) return [];
+  const pageSize = options.pageSize || 1000;
+  const maxPages = options.maxPages || 10; // Hasta 10,000 registros
+  let results = [];
+  let page = 0;
+
+  while (page < maxPages) {
+    let q = supabase
+      .from(tableName)
+      .select(options.select || '*')
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (options.orderBy) {
+      q = q.order(options.orderBy, { ascending: options.ascending ?? false });
+    }
+    if (options.filters && typeof options.filters === 'function') {
+      q = options.filters(q);
+    }
+
+    const { data, error } = await q;
+    if (error || !Array.isArray(data) || data.length === 0) break;
+    results = results.concat(data);
+    if (data.length < pageSize) break;
+    page++;
+  }
+
+  return results;
+}
+
 module.exports = {
   supabase,
   pgPool,
   isSupabaseConfigured,
-  testSupabaseConnection
+  testSupabaseConnection,
+  fetchAllRows
 };
