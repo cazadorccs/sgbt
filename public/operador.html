@@ -55,6 +55,8 @@
     .badge-queue { background: rgba(245, 158, 11, 0.2); border: 1px solid #f59e0b; color: #fbbf24; padding: 0.2rem 0.55rem; border-radius: 999px; font-weight: 700; font-size: 0.72rem; }
     .btn-sync-mini { width: auto; padding: 0.3rem 0.65rem; font-size: 0.72rem; margin: 0; background: #0284c7; border-radius: 6px; font-weight: 700; color: #fff; cursor: pointer; border: none; }
     .btn-sync-mini:hover { background: #0369a1; }
+    #btnClearCedula:hover { background: rgba(239, 68, 68, 0.25) !important; color: #fca5a5 !important; }
+    #btnClearCedula:active { transform: translateY(-50%) scale(0.9) !important; }
   </style>
 </head>
 <body>
@@ -107,7 +109,12 @@
       <div class="alert info" id="msgInfo"></div>
 
       <span class="label">Cédula del Funcionario</span>
-      <input type="text" id="inputCedulaTrabajador" placeholder="Ej: V-12345678" maxlength="20" autocomplete="off">
+      <div style="position: relative; width: 100%;">
+        <input type="text" id="inputCedulaTrabajador" placeholder="Ej: V-12345678" maxlength="20" autocomplete="off" style="padding-right: 2.75rem;">
+        <button type="button" id="btnClearCedula" class="hidden" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; padding: 0; margin: 0; background: rgba(148, 163, 184, 0.2); border: none; border-radius: 50%; color: #94a3b8; font-size: 1.15rem; font-weight: 700; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, color 0.15s;" title="Limpiar cédula" aria-label="Limpiar cédula">
+          &times;
+        </button>
+      </div>
 
       <div id="btnBuscarContainer" style="margin-top: 0.5rem;">
         <button id="btnBuscarTrabajador">Buscar Funcionario</button>
@@ -691,8 +698,21 @@
       }
     });
 
+    function toggleClearBtn() {
+      const inputEl = $('inputCedulaTrabajador');
+      const btnClear = $('btnClearCedula');
+      if (inputEl && btnClear) {
+        if (inputEl.value.trim().length > 0) {
+          btnClear.classList.remove('hidden');
+        } else {
+          btnClear.classList.add('hidden');
+        }
+      }
+    }
+
     // Si el operador altera o borra el campo de cédula, restablecer para buscar de nuevo
     $('inputCedulaTrabajador').addEventListener('input', () => {
+      toggleClearBtn();
       if (currentWorker) {
         const val = $('inputCedulaTrabajador').value.trim();
         const docDigits = String(currentWorker.document_id || '').replace(/[^0-9]/g, '');
@@ -706,6 +726,22 @@
       }
     });
 
+    // Botón para limpiar campo con X
+    $('btnClearCedula')?.addEventListener('click', () => {
+      const inputEl = $('inputCedulaTrabajador');
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.focus();
+      }
+      toggleClearBtn();
+      currentWorker = null;
+      hide('infoTrabajador');
+      hide('btnAprobarContainer');
+      show('btnBuscarContainer');
+      setText('estadoPendientes', '');
+      limpiarAlertas();
+    });
+
     // Botón para cancelar y buscar otro funcionario
     $('btnCancelarBusqueda')?.addEventListener('click', () => {
       currentWorker = null;
@@ -717,6 +753,7 @@
         inputEl.value = '';
         inputEl.focus();
       }
+      toggleClearBtn();
     });
 
     // ============================================================================
@@ -752,6 +789,7 @@
         inputEl.value = '';
         inputEl.focus();
       }
+      toggleClearBtn();
 
       await actualizarEstadoRedUI();
 
@@ -804,6 +842,7 @@
             inputEl.value = '';
             inputEl.focus();
           }
+          toggleClearBtn();
 
           // Sincronización y actualización automática en segundo plano cada vez que se aprueba una entrega
           sincronizarColaOffline().catch(() => {});
