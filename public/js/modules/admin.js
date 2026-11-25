@@ -597,6 +597,90 @@ window.loadAuditStats = async function() {
         });
       }
     }
+
+    // Renderizado exclusivo para Super Administrador: Desglose por Operador / Mesa
+    const opSection = document.getElementById('panelAuditOperatorsSection');
+    const opGrid = document.getElementById('auditOperatorsGrid');
+    const opBadge = document.getElementById('auditOperatorsSummaryBadge');
+
+    const userRole = (window.STATE?.user?.role) || (window.STATE?.role) || localStorage.getItem('sgbt_session_role') || localStorage.getItem('user_role') || '';
+    const userDoc = (window.STATE?.user?.document_id) || '';
+    const isSuperAdmin = userRole === 'admin' || userDoc === 'V-99995001';
+
+    if (opSection) {
+      if (!isSuperAdmin) {
+        opSection.style.display = 'none';
+      } else {
+        opSection.style.display = 'block';
+        if (opGrid) {
+          opGrid.innerHTML = '';
+          const opsList = data.operators_breakdown || [];
+          if (opBadge) opBadge.textContent = `${opsList.length} operadores registrados`;
+
+          if (opsList.length === 0) {
+            opGrid.innerHTML = '<div style="color: #64748b; font-size: 0.8rem; text-align: center; padding: 1.5rem; grid-column: 1 / -1;">No hay registros de operadores en esta jornada.</div>';
+          } else {
+            opsList.forEach(op => {
+              const card = document.createElement('div');
+              card.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; border-left: 4px solid #0284c7; box-shadow: 0 1px 3px rgba(0,0,0,0.03);';
+
+              let timeStr = 'Sin horario registrado';
+              if (op.first_delivery_at && op.last_delivery_at) {
+                let d1Str = op.first_delivery_at;
+                let d2Str = op.last_delivery_at;
+                if (typeof d1Str === 'string' && !d1Str.endsWith('Z') && !d1Str.includes('+')) d1Str = d1Str.replace(' ', 'T') + 'Z';
+                if (typeof d2Str === 'string' && !d2Str.endsWith('Z') && !d2Str.includes('+')) d2Str = d2Str.replace(' ', 'T') + 'Z';
+                const d1 = new Date(d1Str);
+                const d2 = new Date(d2Str);
+                const t1 = !isNaN(d1) ? d1.toLocaleTimeString('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+                const t2 = !isNaN(d2) ? d2.toLocaleTimeString('es-VE', { timeZone: 'America/Caracas', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
+                timeStr = t1 === t2 ? `Activo: ${t1}` : `Desde ${t1} hasta ${t2}`;
+              }
+
+              const offlineBadge = (op.offline_count > 0)
+                ? `<span style="background: rgba(245, 158, 11, 0.15); color: #b45309; border: 1px solid #fde68a; font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 9999px;">📶 ${op.offline_count} offline</span>`
+                : `<span style="background: rgba(34, 197, 94, 0.15); color: #15803d; border: 1px solid #bbf7d0; font-size: 0.68rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 9999px;">🟢 Online</span>`;
+
+              const opName = typeof escapeHtml === 'function' ? escapeHtml(op.operator_name) : op.operator_name;
+              const opDoc = typeof escapeHtml === 'function' ? escapeHtml(op.operator_document) : op.operator_document;
+              const opMesa = typeof escapeHtml === 'function' ? escapeHtml(op.operator_mesa) : op.operator_mesa;
+
+              card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.35rem;">
+                  <div>
+                    <div style="font-weight: 800; font-size: 0.88rem; color: #0f172a;">${opName}</div>
+                    <div style="font-size: 0.72rem; color: #64748b; font-family: monospace;">${opDoc} &middot; <strong style="color: #0284c7;">${opMesa}</strong></div>
+                  </div>
+                  ${offlineBadge}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 0.6rem 0; background: #ffffff; padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid #edf2f7;">
+                  <div>
+                    <div style="font-size: 0.68rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Beneficiarios</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #0284c7;">${(op.beneficiaries_count || 0).toLocaleString()}</div>
+                    <div style="font-size: 0.68rem; color: #64748b;">atendidos</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 0.68rem; color: #64748b; text-transform: uppercase; font-weight: 700;">Combos Totales</div>
+                    <div style="font-size: 1.15rem; font-weight: 800; color: #16a34a;">${(op.combos_count || 0).toLocaleString()}</div>
+                    <div style="font-size: 0.68rem; color: #16a34a; font-weight: 600;">${op.total_tons} t (${op.total_kg} kg)</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-bottom: 0.25rem;">
+                  <span>🕒 ${timeStr}</span>
+                  <strong>${op.percentage}% del total</strong>
+                </div>
+                <div style="height: 6px; background: #e2e8f0; border-radius: 9999px; overflow: hidden;">
+                  <div style="width: ${op.percentage}%; height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); border-radius: 9999px;"></div>
+                </div>
+              `;
+              opGrid.appendChild(card);
+            });
+          }
+        }
+      }
+    }
   } catch (err) {
     console.error('Error cargando estadísticas de auditoría:', err);
   }

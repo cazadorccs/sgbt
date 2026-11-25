@@ -556,6 +556,10 @@
           sessionStorage.setItem(TOKEN_KEY, res.token);
           localStorage.setItem(TOKEN_KEY, res.token);
           currentOperador = res.operador;
+          try {
+            sessionStorage.setItem('sgbt_operador_info', JSON.stringify(res.operador));
+            localStorage.setItem('sgbt_operador_info', JSON.stringify(res.operador));
+          } catch (e) {}
           hide('panelLogin');
           show('panelDespacho');
           setText('nombreTrabajador', '');
@@ -724,6 +728,7 @@
         worker_id: worker.id,
         document_id: worker.document_id,
         full_name: worker.full_name,
+        delivered_by_user_id: currentOperador ? currentOperador.id : null,
         delivered_at: new Date().toISOString(),
         note: 'Despacho registrado en modo offline por operador de mesa'
       };
@@ -777,6 +782,7 @@
           method: 'POST',
           body: JSON.stringify({
             worker_id: workerToDeliver.id,
+            delivered_by_user_id: currentOperador ? currentOperador.id : null,
             note: 'Despacho aprobado desde Puesto de Supervisión Manual'
           })
         }, 5000);
@@ -833,6 +839,10 @@
       await actualizarEstadoRedUI();
       const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
       if (token) {
+        try {
+          const rawOp = sessionStorage.getItem('sgbt_operador_info') || localStorage.getItem('sgbt_operador_info');
+          if (rawOp) currentOperador = JSON.parse(rawOp);
+        } catch (e) {}
         hide('panelLogin');
         show('panelDespacho');
         await descargarPadronOffline();

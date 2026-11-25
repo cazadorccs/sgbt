@@ -1227,6 +1227,34 @@ const getAuditStats = (req, res) => {
       ORDER BY start_date DESC, created_at DESC
     `).all();
 
+    // Desglose de rendimiento por Operador / Mesa para Auditoría
+    const operatorsBreakdown = db.prepare(`
+      SELECT 
+        COALESCE(opa.full_name, w_op.full_name, 'Mesa de Despacho Central') as operator_name,
+        COALESCE(opa.document_id, w_op.document_id, 'N/A') as operator_document,
+        COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
+        COUNT(DISTINCT del.worker_id) as beneficiaries_count,
+        COUNT(del.id) as combos_count,
+        ROUND(SUM(COALESCE(c.weight_kg, 14.0)), 1) as total_kg,
+        ROUND(SUM(COALESCE(c.weight_kg, 14.0)) / 1000.0, 3) as total_tons,
+        SUM(CASE WHEN del.is_offline_sync = 1 THEN 1 ELSE 0 END) as offline_count,
+        MIN(del.delivered_at) as first_delivery_at,
+        MAX(del.delivered_at) as last_delivery_at
+      FROM deliveries del
+      LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
+      LEFT JOIN workers w_op ON (del.delivered_by_user_id = w_op.id OR del.delivered_by_user_id = w_op.document_id)
+      JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      JOIN combos c ON ent.combo_id = c.id
+      WHERE ${whereClause}
+      GROUP BY COALESCE(opa.id, w_op.id, del.delivered_by_user_id)
+      ORDER BY combos_count DESC
+    `).all(...params);
+
+    const operatorsWithPct = operatorsBreakdown.map(op => ({
+      ...op,
+      percentage: totalCombos > 0 ? Math.round((op.combos_count / totalCombos) * 100) : 0
+    }));
+
     res.json({
       success: true,
       selected_campaign: selectedCampaign,
@@ -1241,6 +1269,7 @@ const getAuditStats = (req, res) => {
       },
       combos_breakdown: combosWithPct,
       departments_breakdown: deptBreakdown,
+      operators_breakdown: operatorsWithPct,
       methods_breakdown: {
         passkey_qr: methodStats ? (methodStats.passkey_qr || 0) : 0,
         nfc_card: methodStats ? (methodStats.nfc_card || 0) : 0,

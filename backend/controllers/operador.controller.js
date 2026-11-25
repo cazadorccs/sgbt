@@ -194,6 +194,7 @@ const operadorSearchWorker = (req, res) => {
 const operadorDeliver = async (req, res) => {
   const { worker_id, note, delivered_by_user_id } = req.body || {};
   const today = getTodayVzla();
+  const operatorUserId = (req.user && (req.user.id || req.user.sub)) || delivered_by_user_id || null;
 
   if (!worker_id) {
     return res.status(400).json({ error: 'worker_id es requerido' });
@@ -281,10 +282,10 @@ const operadorDeliver = async (req, res) => {
           ent.id,
           worker.id,
           distPointId,
-          delivered_by_user_id || null,
+          operatorUserId,
           'OPERADOR_DESPATCH_' + Date.now(),
           nonce,
-          delivered_by_user_id || null,
+          operatorUserId,
           note || 'Despacho por operador de puesto de supervisión',
           campaignId
         );
@@ -465,6 +466,8 @@ const operadorSyncBatch = async (req, res) => {
           const nonce = crypto.randomBytes(8).toString('hex');
           const deliveredAt = item.delivered_at || new Date().toISOString();
 
+          const opUserId = item.delivered_by_user_id || (req.user && (req.user.id || req.user.sub)) || null;
+
           db.prepare(`
             INSERT INTO deliveries (
               id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
@@ -476,10 +479,10 @@ const operadorSyncBatch = async (req, res) => {
             ent.id,
             worker.id,
             distPointId,
-            item.delivered_by_user_id || null,
+            opUserId,
             'OFFLINE_SYNC_' + Date.now(),
             nonce,
-            item.delivered_by_user_id || null,
+            opUserId,
             item.note || 'Sincronización diferida desde Puesto de Operador Offline',
             deliveredAt,
             campaignId
