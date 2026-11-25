@@ -29,6 +29,10 @@ router.post('/audit/ministerial/census-lock', authenticate, requireRole('admin',
 // 6. Generador Oficial de Acta Ministerial Definitiva (Jornada 27/Nov con Sello SHA-256)
 router.post('/audit/ministerial/acta', authenticate, requireRole('admin', 'director'), controller.generateMinisterialActa);
 
+// 6B. Acta Ministerial Provisional de Beneficiarios por Departamento y Ente (Previa a la Definitiva)
+router.get('/audit/ministerial/acta-provisional/print', authenticate, controller.printProvisionalActaHtml);
+router.get('/audit/ministerial/acta-provisional', authenticate, controller.getProvisionalActaData);
+
 // 7. Consulta e Impresión de Acta Ministerial Definitiva (por ID o 'latest')
 router.get('/audit/ministerial/acta/latest/print', authenticate, controller.printMinisterialActaHtml);
 router.get('/audit/ministerial/acta/latest', authenticate, controller.getMinisterialActa);

@@ -987,6 +987,488 @@ const printMinisterialActaHtml = async (req, res) => {
   }
 };
 
+/**
+ * 9. Obtención de Datos para el Acta Ministerial Provisional
+ * Consolida el balance general, resumen por ente, y lista completa de trabajadores beneficiados
+ * agrupados por Ente y Departamento con Cédula, Nombres y Apellidos.
+ */
+const getProvisionalActaData = async (req, res) => {
+  try {
+    const padronTotalRow = db.prepare(`
+      SELECT COUNT(DISTINCT id) as cnt 
+      FROM workers 
+      WHERE status = 'active' 
+        AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')
+    `).get();
+    const totalPadron = padronTotalRow ? padronTotalRow.cnt : 0;
+
+    // Resumen de entregas totales
+    const delStats = db.prepare(`
+      SELECT 
+        COUNT(DISTINCT del.worker_id) as total_delivered_workers,
+        COUNT(del.id) as total_delivered_combos,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_weight_kg,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as total_weight_tons
+      FROM deliveries del
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON ent.combo_id = c.id
+    `).get() || { total_delivered_workers: 0, total_delivered_combos: 0, total_weight_kg: 0, total_weight_tons: 0 };
+
+    // Padrón oficial por Ente
+    const padronByEnteRows = db.prepare(`
+      SELECT COALESCE(w.ente, 'MIPPCI') as ente, COUNT(DISTINCT w.id) as padron_count
+      FROM workers w
+      WHERE w.status = 'active'
+        AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')
+      GROUP BY COALESCE(w.ente, 'MIPPCI')
+    `).all();
+    const padronMap = new Map();
+    padronByEnteRows.forEach(r => padronMap.set(r.ente, r.padron_count));
+
+    // Beneficiarios atendidos por Ente
+    const deliveredByEnteRows = db.prepare(`
+      SELECT 
+        COALESCE(w.ente, 'MIPPCI') as ente,
+        COUNT(DISTINCT del.worker_id) as delivered_workers,
+        COUNT(del.id) as delivered_combos,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as weight_kg,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as weight_tons
+      FROM deliveries del
+      JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON ent.combo_id = c.id
+      GROUP BY COALESCE(w.ente, 'MIPPCI')
+      ORDER BY delivered_workers DESC
+    `).all();
+
+    const entesSummary = deliveredByEnteRows.map(row => {
+      const padron = padronMap.get(row.ente) || row.delivered_workers;
+      const coveragePct = padron > 0 ? Math.round((row.delivered_workers / padron) * 1000) / 10 : 0;
+      return {
+        ente: row.ente,
+        padron_count: padron,
+        delivered_workers: row.delivered_workers,
+        delivered_combos: row.delivered_combos,
+        weight_kg: row.weight_kg,
+        weight_tons: row.weight_tons,
+        coverage_pct: coveragePct
+      };
+    });
+
+    // Listado Nominal detallado de trabajadores beneficiados
+    const workersNominalRows = db.prepare(`
+      SELECT 
+        w.id,
+        w.document_id,
+        w.full_name,
+        COALESCE(w.ente, 'MIPPCI') as ente,
+        COALESCE(d.name, 'SIN ASIGNAR / GENERAL') as dept_name,
+        COUNT(del.id) as combos_count,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_worker_kg,
+        MIN(del.delivered_at) as first_delivery_at
+      FROM deliveries del
+      JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN departments d ON w.department_id = d.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON ent.combo_id = c.id
+      GROUP BY w.id
+      ORDER BY ente ASC, dept_name ASC, w.full_name ASC
+    `).all();
+
+    // Estructurar jerárquicamente por Ente -> Departamento -> Beneficiarios
+    const treeByEnte = {};
+    for (const w of workersNominalRows) {
+      if (!treeByEnte[w.ente]) {
+        treeByEnte[w.ente] = {
+          ente: w.ente,
+          total_workers: 0,
+          total_combos: 0,
+          total_kg: 0,
+          departments: {}
+        };
+      }
+      const eNode = treeByEnte[w.ente];
+      eNode.total_workers++;
+      eNode.total_combos += w.combos_count;
+      eNode.total_kg += w.total_worker_kg;
+
+      if (!eNode.departments[w.dept_name]) {
+        eNode.departments[w.dept_name] = {
+          dept_name: w.dept_name,
+          workers_count: 0,
+          combos_count: 0,
+          workers: []
+        };
+      }
+      const dNode = eNode.departments[w.dept_name];
+      dNode.workers_count++;
+      dNode.combos_count += w.combos_count;
+      dNode.workers.push({
+        document_id: w.document_id,
+        full_name: w.full_name,
+        combos_count: w.combos_count,
+        weight_kg: w.total_worker_kg,
+        delivered_at: w.first_delivery_at
+      });
+    }
+
+    const coverageGlobal = totalPadron > 0 
+      ? Math.round((delStats.total_delivered_workers / totalPadron) * 1000) / 10 
+      : 0;
+
+    const provisionalActaNumber = `ACTA-PROV-${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date()).replace(/-/g, '').slice(2)}-${delStats.total_delivered_workers}`;
+
+    return res.json({
+      success: true,
+      acta_provisional: {
+        acta_number: provisionalActaNumber,
+        title: 'Acta Ministerial Provisional de Beneficiarios y Despacho por Dependencia y Ente',
+        institution: 'Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)',
+        generated_at: new Date().toISOString(),
+        generated_by: (req.user && req.user.full_name) ? `${req.user.full_name} (${req.user.document_id})` : 'Despacho Ministerial / Gestión Humana',
+        kpis: {
+          total_padron: totalPadron,
+          delivered_workers: delStats.total_delivered_workers,
+          delivered_combos: delStats.total_delivered_combos,
+          total_weight_tons: delStats.total_weight_tons,
+          coverage_pct: coverageGlobal
+        },
+        entes_summary: entesSummary,
+        tree: Object.values(treeByEnte).map(e => ({
+          ente: e.ente,
+          total_workers: e.total_workers,
+          total_combos: e.total_combos,
+          total_kg: Math.round(e.total_kg * 10) / 10,
+          departments: Object.values(e.departments)
+        }))
+      }
+    });
+  } catch (err) {
+    console.error('[GET PROVISIONAL ACTA DATA ERROR]', err);
+    return res.status(500).json({ error: 'Error generando acta provisional: ' + err.message });
+  }
+};
+
+/**
+ * 10. Impresión Oficial / PDF del Acta Ministerial Provisional
+ * Incluye lista completa nominal con cédula, nombres y apellidos por departamento y total por ente.
+ */
+const printProvisionalActaHtml = async (req, res) => {
+  try {
+    const padronTotalRow = db.prepare(`
+      SELECT COUNT(DISTINCT id) as cnt 
+      FROM workers 
+      WHERE status = 'active' 
+        AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')
+    `).get();
+    const totalPadron = padronTotalRow ? padronTotalRow.cnt : 0;
+
+    const delStats = db.prepare(`
+      SELECT 
+        COUNT(DISTINCT del.worker_id) as total_delivered_workers,
+        COUNT(del.id) as total_delivered_combos,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_weight_kg,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as total_weight_tons
+      FROM deliveries del
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON ent.combo_id = c.id
+    `).get() || { total_delivered_workers: 0, total_delivered_combos: 0, total_weight_kg: 0, total_weight_tons: 0 };
+
+    const padronByEnteRows = db.prepare(`
+      SELECT COALESCE(w.ente, 'MIPPCI') as ente, COUNT(DISTINCT w.id) as padron_count
+      FROM workers w
+      WHERE w.status = 'active'
+        AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000')
+      GROUP BY COALESCE(w.ente, 'MIPPCI')
+    `).all();
+    const padronMap = new Map();
+    padronByEnteRows.forEach(r => padronMap.set(r.ente, r.padron_count));
+
+    const deliveredByEnteRows = db.prepare(`
+      SELECT 
+        COALESCE(w.ente, 'MIPPCI') as ente,
+        COUNT(DISTINCT del.worker_id) as delivered_workers,
+        COUNT(del.id) as delivered_combos,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as weight_kg,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as weight_tons
+      FROM deliveries del
+      JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON ent.combo_id = c.id
+      GROUP BY COALESCE(w.ente, 'MIPPCI')
+      ORDER BY delivered_workers DESC
+    `).all();
+
+    const workersNominalRows = db.prepare(`
+      SELECT 
+        w.id,
+        w.document_id,
+        w.full_name,
+        COALESCE(w.ente, 'MIPPCI') as ente,
+        COALESCE(d.name, 'SIN ASIGNAR / GENERAL') as dept_name,
+        COUNT(del.id) as combos_count,
+        ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_worker_kg,
+        MIN(del.delivered_at) as first_delivery_at
+      FROM deliveries del
+      JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN departments d ON w.department_id = d.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON ent.combo_id = c.id
+      GROUP BY w.id
+      ORDER BY ente ASC, dept_name ASC, w.full_name ASC
+    `).all();
+
+    const treeByEnte = {};
+    for (const w of workersNominalRows) {
+      if (!treeByEnte[w.ente]) {
+        treeByEnte[w.ente] = {
+          ente: w.ente,
+          total_workers: 0,
+          total_combos: 0,
+          total_kg: 0,
+          departments: {}
+        };
+      }
+      const eNode = treeByEnte[w.ente];
+      eNode.total_workers++;
+      eNode.total_combos += w.combos_count;
+      eNode.total_kg += w.total_worker_kg;
+
+      if (!eNode.departments[w.dept_name]) {
+        eNode.departments[w.dept_name] = {
+          dept_name: w.dept_name,
+          workers_count: 0,
+          combos_count: 0,
+          workers: []
+        };
+      }
+      const dNode = eNode.departments[w.dept_name];
+      dNode.workers_count++;
+      dNode.combos_count += w.combos_count;
+      dNode.workers.push(w);
+    }
+
+    const todayDate = new Intl.DateTimeFormat('es-VE', { dateStyle: 'full', timeStyle: 'medium', timeZone: 'America/Caracas' }).format(new Date());
+    const provisionalNumber = `ACTA-PROV-${new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date()).replace(/-/g, '').slice(2)}-${delStats.total_delivered_workers}`;
+
+    const qrText = `MIPPCI-ACTA-PROVISIONAL:${provisionalNumber}:BENEFICIARIOS:${delStats.total_delivered_workers}:COMBOS:${delStats.total_delivered_combos}`;
+    let qrDataUrl = '';
+    try {
+      qrDataUrl = await QRCode.toDataURL(qrText, { width: 100, margin: 1, errorCorrectionLevel: 'M' });
+    } catch (e) {}
+
+    // Generar tablas de desglose
+    let treeHtml = '';
+    for (const e of Object.values(treeByEnte)) {
+      const padronEnte = padronMap.get(e.ente) || e.total_workers;
+      const covEnte = padronEnte > 0 ? Math.round((e.total_workers / padronEnte) * 100) : 0;
+      treeHtml += `
+        <div style="margin-top: 1.5rem; page-break-inside: avoid;">
+          <div style="background: #0f172a; color: white; padding: 0.6rem 0.85rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700;">
+            <span>🏢 ENTE: ${e.ente}</span>
+            <span style="font-size: 0.78rem; font-weight: 600; color: #38bdf8;">
+              Total Beneficiados: ${e.total_workers} / ${padronEnte} (${covEnte}%) • Combos: ${e.total_combos} • ${(e.total_kg / 1000).toFixed(2)} t
+            </span>
+          </div>
+      `;
+
+      for (const d of Object.values(e.departments)) {
+        treeHtml += `
+          <div style="margin-top: 0.85rem; margin-bottom: 0.5rem;">
+            <div style="background: #f1f5f9; padding: 0.35rem 0.6rem; border-left: 4px solid #0284c7; font-size: 0.78rem; font-weight: 700; color: #1e293b; display: flex; justify-content: space-between;">
+              <span>📁 ${d.dept_name}</span>
+              <span style="color: #64748b;">${d.workers_count} funcionario(s) • ${d.combos_count} combos</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-top: 0.35rem; font-size: 0.74rem;">
+              <thead>
+                <tr style="background: #f8fafc; border-bottom: 1.5px solid #cbd5e1; text-align: left; color: #475569;">
+                  <th style="padding: 0.35rem 0.5rem; width: 40px;">#</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 110px;">Cédula</th>
+                  <th style="padding: 0.35rem 0.5rem;">Nombres y Apellidos</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 70px; text-align: center;">Combos</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 80px; text-align: right;">Peso (kg)</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 140px; text-align: right;">Fecha/Hora Entrega</th>
+                </tr>
+              </thead>
+              <tbody>
+        `;
+
+        d.workers.forEach((w, idx) => {
+          const dtStr = w.first_delivery_at ? new Date(w.first_delivery_at).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' }) : '--';
+          treeHtml += `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+              <td style="padding: 0.3rem 0.5rem; color: #94a3b8;">${idx + 1}</td>
+              <td style="padding: 0.3rem 0.5rem; font-weight: 700; font-family: monospace; color: #0284c7;">${w.document_id}</td>
+              <td style="padding: 0.3rem 0.5rem; font-weight: 600; color: #0f172a;">${w.full_name}</td>
+              <td style="padding: 0.3rem 0.5rem; text-align: center; font-weight: 700;">${w.combos_count}</td>
+              <td style="padding: 0.3rem 0.5rem; text-align: right; color: #166534;">${w.total_worker_kg} kg</td>
+              <td style="padding: 0.3rem 0.5rem; text-align: right; color: #64748b; font-size: 0.7rem;">${dtStr}</td>
+            </tr>
+          `;
+        });
+
+        treeHtml += `
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      treeHtml += `</div>`;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Acta Ministerial Provisional - ${provisionalNumber}</title>
+  <style>
+    @page { size: letter; margin: 1cm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.4; margin: 0; padding: 1.25rem; background: #f8fafc; }
+    .page-container { max-width: 900px; margin: 0 auto; background: #ffffff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .header { border-bottom: 2px solid #0f172a; padding-bottom: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-titles h1 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0 0 0.2rem 0; text-transform: uppercase; }
+    .header-titles h2 { font-size: 0.88rem; font-weight: 700; color: #0284c7; margin: 0 0 0.2rem 0; text-transform: uppercase; }
+    .header-titles p { font-size: 0.74rem; color: #64748b; margin: 0; }
+    .badge-acta { text-align: right; }
+    .badge-acta .num { font-size: 0.92rem; font-weight: 800; color: #b45309; background: #fef3c7; border: 1px solid #fde68a; padding: 0.35rem 0.75rem; border-radius: 6px; display: inline-block; }
+    .badge-acta .date { font-size: 0.72rem; color: #64748b; margin-top: 0.35rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem; text-align: center; }
+    .kpi-box .val { font-size: 1.35rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .kpi-box .lbl { font-size: 0.68rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.3rem; }
+    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 2.5rem; text-align: center; page-break-inside: avoid; }
+    .sig-line { border-top: 1.5px solid #64748b; margin-top: 2rem; padding-top: 0.4rem; }
+    .sig-line .name { font-weight: 700; font-size: 0.76rem; color: #0f172a; }
+    .sig-line .title { font-size: 0.66rem; color: #64748b; margin-top: 0.15rem; }
+    .print-actions { text-align: right; margin-bottom: 1rem; }
+    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .btn-print:hover { background: #0369a1; }
+    @media print {
+      body { background: #ffffff; padding: 0; }
+      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      .print-actions { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-actions">
+    <button class="btn-print" onclick="window.print()">🖨️ Imprimir Acta Provisional (PDF)</button>
+  </div>
+  <div class="page-container">
+    <div class="header">
+      <div class="header-titles">
+        <h1>República Bolivariana de Venezuela</h1>
+        <h2>Ministerio del Poder Popular para la Comunicación y la Información (MIPPCI)</h2>
+        <p>Sistema de Gestión de Beneficios para los Trabajadores (SGBT) • Auditoría Ministerial Previa</p>
+      </div>
+      <div class="badge-acta">
+        <div class="num">📜 ${provisionalNumber}</div>
+        <div class="date">Emisión: ${todayDate}</div>
+      </div>
+    </div>
+
+    <div style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.76rem; color: #92400e;">
+      <strong>⚠️ ACTA MINISTERIAL PROVISIONAL DE BENEFICIARIOS Y CARGA DESPACHADA:</strong><br>
+      Este instrumento refleja el balance preliminar en tiempo real de los despachos efectivamente materializados, ordenados nominalmente por Ente y Dependencia adscrita con sus respectivos totales para verificación previa a la emisión del Acta Ministerial Definitiva.
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-box">
+        <div class="val">${delStats.total_delivered_workers} / ${totalPadron}</div>
+        <div class="lbl">Beneficiarios Atendidos</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #0284c7;">${delStats.total_delivered_combos}</div>
+        <div class="lbl">Combos Entregados</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #166534;">${delStats.total_weight_tons} t</div>
+        <div class="lbl">Toneladas Entregadas</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #b45309;">${totalPadron > 0 ? Math.round((delStats.total_delivered_workers / totalPadron) * 100) : 0}%</div>
+        <div class="lbl">Cobertura Global</div>
+      </div>
+    </div>
+
+    <!-- RESUMEN CONSOLIDADO POR ENTE -->
+    <div style="margin-bottom: 1.5rem;">
+      <div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin-bottom: 0.5rem;">
+        Totalización y Consolidado General por Ente
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.76rem;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 1.5px solid #cbd5e1; text-align: left; color: #334155;">
+            <th style="padding: 0.4rem 0.6rem;">Ente / Dependencia Superior</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Padrón Oficial</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Beneficiados Atendidos</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">% Cobertura</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Combos Despachados</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Toneladas (t)</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${deliveredByEnteRows.map(r => {
+            const padron = padronMap.get(r.ente) || r.delivered_workers;
+            const cov = padron > 0 ? Math.round((r.delivered_workers / padron) * 100) : 0;
+            return `
+              <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 0.4rem 0.6rem; font-weight: 700; color: #0f172a;">🏢 ${r.ente}</td>
+                <td style="padding: 0.4rem 0.6rem; text-align: right; color: #64748b;">${padron}</td>
+                <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 700; color: #0284c7;">${r.delivered_workers}</td>
+                <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 700; color: #166534;">${cov}%</td>
+                <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 700;">${r.delivered_combos}</td>
+                <td style="padding: 0.4rem 0.6rem; text-align: right; color: #64748b;">${r.weight_tons} t</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DESGLOSE NOMINAL DETALLADO -->
+    <div style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin-top: 1.5rem; margin-bottom: 0.5rem;">
+      Listado Nominal de Trabajadores Beneficiados por Departamento y Ente
+    </div>
+    ${treeHtml}
+
+    <!-- SELLO Y FIRMAS -->
+    <div style="display: flex; gap: 1rem; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.85rem; margin-top: 2rem; page-break-inside: avoid;">
+      <div style="flex: 1; font-size: 0.72rem; color: #334155;">
+        <strong>Certificación Provisional de Despacho:</strong><br>
+        Documento preliminar emitido para fines de verificación previa al cierre definitivo de la jornada. Sello QR de validación interna SGBT.
+      </div>
+      ${qrDataUrl ? `<div><img src="${qrDataUrl}" width="80" height="80" alt="QR Provisional" style="border: 1px solid #cbd5e1; border-radius: 4px; padding: 2px; background: white;" /></div>` : ''}
+    </div>
+
+    <div class="signatures">
+      <div class="sig-line">
+        <div class="name">Despacho de Gestión Humana</div>
+        <div class="title">Dirección General de RRHH</div>
+      </div>
+      <div class="sig-line">
+        <div class="name">Responsable de Almacén y Despacho</div>
+        <div class="title">Comisión de Alimentación</div>
+      </div>
+      <div class="sig-line">
+        <div class="name">Inspectoría y Control de Calidad</div>
+        <div class="title">Auditoría Interna SGBT</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (err) {
+    console.error('[PRINT PROVISIONAL ACTA ERROR]', err);
+    return res.status(500).send('Error generando acta provisional para impresión: ' + err.message);
+  }
+};
+
 module.exports = {
   getMinisterialMonitorStats,
   listDepartmentWorkers,
@@ -996,5 +1478,7 @@ module.exports = {
   toggleCensusLock,
   generateMinisterialActa,
   getMinisterialActa,
-  printMinisterialActaHtml
+  printMinisterialActaHtml,
+  getProvisionalActaData,
+  printProvisionalActaHtml
 };

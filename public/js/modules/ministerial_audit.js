@@ -61,6 +61,12 @@
         btnGenerateActa.addEventListener('click', () => this.generateActa());
       }
 
+      // Botón Ver / Emitir Acta Ministerial Provisional (Previa a la Definitiva)
+      const btnViewProvisional = document.getElementById('btnViewProvisionalActa');
+      if (btnViewProvisional) {
+        btnViewProvisional.addEventListener('click', () => this.viewProvisionalActa());
+      }
+
       // Botón Ver Última Acta Emitida
       const btnViewLatest = document.getElementById('btnViewLatestActaHeader');
       if (btnViewLatest) {
@@ -120,6 +126,34 @@
       const btnPrint = document.getElementById('btnPrintMinisterialActaModal');
       if (btnPrint) {
         btnPrint.addEventListener('click', () => this.printActa());
+      }
+
+      // Controles Modal Acta Provisional
+      const btnCloseProv = document.getElementById('btnCloseProvisionalActaModal');
+      const btnCloseProvBtn = document.getElementById('btnCloseProvisionalActaModalBtn');
+      const provModalBackdrop = document.getElementById('provisionalActaModalBackdrop');
+
+      if (btnCloseProv) {
+        btnCloseProv.addEventListener('click', () => {
+          provModalBackdrop?.classList.remove('active');
+        });
+      }
+      if (btnCloseProvBtn) {
+        btnCloseProvBtn.addEventListener('click', () => {
+          provModalBackdrop?.classList.remove('active');
+        });
+      }
+
+      const btnPrintProv = document.getElementById('btnPrintProvisionalActaModal');
+      if (btnPrintProv) {
+        btnPrintProv.addEventListener('click', () => this.printProvisionalActa());
+      }
+
+      const inputFilterNominal = document.getElementById('inputFilterProvNominal');
+      if (inputFilterNominal) {
+        inputFilterNominal.addEventListener('input', (e) => {
+          this.filterProvisionalNominal(e.target.value.toLowerCase().trim());
+        });
       }
     },
 
@@ -797,6 +831,134 @@
     printActaDirect(actaId) {
       const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
       window.open(`/api/v1/audit/ministerial/acta/${encodeURIComponent(actaId || 'latest')}/print?session_token=${encodeURIComponent(token)}`, '_blank');
+    },
+
+    async viewProvisionalActa() {
+      try {
+        if (typeof window.showToast === 'function') {
+          window.showToast('Cargando balance y nómina nominal del Acta Provisional...', 'info');
+        }
+        const headers = this.getHeaders();
+        const res = await fetch('/api/v1/audit/ministerial/acta-provisional', { headers });
+        if (!res.ok) throw new Error('Error al consultar datos del acta provisional');
+        const data = await res.json();
+        if (!data.success || !data.acta_provisional) throw new Error('Datos provisionales no disponibles');
+
+        const act = data.acta_provisional;
+        this.provisionalTree = act.tree || [];
+
+        // Inyectar Metadatos y KPIs
+        document.getElementById('provActaNumber').textContent = act.acta_number || '--';
+        document.getElementById('provActaDate').textContent = act.generated_at ? new Date(act.generated_at).toLocaleString('es-VE') : '--';
+        document.getElementById('provActaBy').textContent = act.generated_by || 'Despacho Ministerial / Gestión Humana';
+
+        const kpis = act.kpis || {};
+        document.getElementById('provActaTotalWorkers').textContent = Number(kpis.delivered_workers || 0).toLocaleString();
+        document.getElementById('provActaCoveragePct').textContent = `${kpis.coverage_pct || 0}% de ${Number(kpis.total_padron || 0).toLocaleString()} en padrón`;
+        document.getElementById('provActaTotalCombos').textContent = Number(kpis.delivered_combos || 0).toLocaleString();
+        document.getElementById('provActaTotalTons').textContent = Number(kpis.total_weight_tons || 0).toFixed(2);
+        document.getElementById('provActaPadronTotal').textContent = Number(kpis.total_padron || 0).toLocaleString();
+
+        // Renderizar tabla resumen por Ente
+        const entesTbody = document.getElementById('provActaEntesTableBody');
+        if (entesTbody) {
+          entesTbody.innerHTML = (act.entes_summary || []).map(r => `
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+              <td style="padding: 0.35rem 0.5rem; font-weight: 700; color: #f8fafc;">🏢 ${window.escapeHtml(r.ente)}</td>
+              <td style="padding: 0.35rem 0.5rem; text-align: right; color: #94a3b8;">${r.padron_count || 0}</td>
+              <td style="padding: 0.35rem 0.5rem; text-align: right; font-weight: 700; color: #38bdf8;">${r.delivered_workers || 0}</td>
+              <td style="padding: 0.35rem 0.5rem; text-align: right; font-weight: 700; color: #34d399;">${r.coverage_pct || 0}%</td>
+              <td style="padding: 0.35rem 0.5rem; text-align: right; font-weight: 700; color: #fbbf24;">${r.delivered_combos || 0}</td>
+              <td style="padding: 0.35rem 0.5rem; text-align: right; color: #c084fc;">${r.weight_tons || 0} t</td>
+            </tr>
+          `).join('');
+        }
+
+        // Renderizar listado nominal
+        this.renderProvisionalNominalTree(this.provisionalTree);
+
+        // Mostrar Modal
+        const modalBackdrop = document.getElementById('provisionalActaModalBackdrop');
+        if (modalBackdrop) modalBackdrop.classList.add('active');
+
+      } catch (err) {
+        console.error('❌ Error visualizando acta provisional:', err);
+        if (typeof window.showToast === 'function') {
+          window.showToast(err.message, 'error');
+        }
+      }
+    },
+
+    renderProvisionalNominalTree(tree, filterQuery = '') {
+      const container = document.getElementById('provActaNominalContainer');
+      if (!container) return;
+
+      if (!tree || tree.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: 0.75rem;">No hay despachos registrados para mostrar.</div>';
+        return;
+      }
+
+      let html = '';
+      tree.forEach(enteNode => {
+        let deptsHtml = '';
+        let totalWorkersInEnteAfterFilter = 0;
+
+        (enteNode.departments || []).forEach(dept => {
+          const matchingWorkers = filterQuery 
+            ? (dept.workers || []).filter(w => w.document_id.toLowerCase().includes(filterQuery) || w.full_name.toLowerCase().includes(filterQuery))
+            : (dept.workers || []);
+
+          if (matchingWorkers.length > 0) {
+            totalWorkersInEnteAfterFilter += matchingWorkers.length;
+            deptsHtml += `
+              <div style="margin-top: 0.5rem; background: rgba(0, 0, 0, 0.25); border-left: 3px solid #0284c7; border-radius: 4px; padding: 0.4rem 0.6rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 0.25rem;">
+                  <span>📁 ${window.escapeHtml(dept.dept_name)}</span>
+                  <span style="color: #94a3b8;">${matchingWorkers.length} funcionario(s)</span>
+                </div>
+                <table style="width: 100%; font-size: 0.68rem; border-collapse: collapse;">
+                  <tbody>
+                    ${matchingWorkers.map((w, idx) => `
+                      <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.04);">
+                        <td style="padding: 0.2rem 0.35rem; width: 30px; color: #64748b;">${idx + 1}</td>
+                        <td style="padding: 0.2rem 0.35rem; width: 95px; font-weight: 700; font-family: monospace; color: #38bdf8;">${w.document_id}</td>
+                        <td style="padding: 0.2rem 0.35rem; font-weight: 600; color: #f8fafc;">${window.escapeHtml(w.full_name)}</td>
+                        <td style="padding: 0.2rem 0.35rem; width: 60px; text-align: center; color: #fbbf24; font-weight: 700;">${w.combos_count} combos</td>
+                        <td style="padding: 0.2rem 0.35rem; width: 65px; text-align: right; color: #34d399;">${w.weight_kg} kg</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          }
+        });
+
+        if (totalWorkersInEnteAfterFilter > 0 || !filterQuery) {
+          html += `
+            <div style="margin-bottom: 0.75rem; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 0.6rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 0.3rem;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #fbbf24;">🏢 ${window.escapeHtml(enteNode.ente)}</span>
+                <span style="font-size: 0.68rem; color: #94a3b8; font-weight: 600;">
+                  Subtotal: <strong style="color: #38bdf8;">${totalWorkersInEnteAfterFilter}</strong> beneficiados • <strong style="color: #fbbf24;">${enteNode.total_combos}</strong> combos
+                </span>
+              </div>
+              ${deptsHtml || '<div style="font-size: 0.68rem; color: #64748b; padding: 0.4rem;">Sin coincidencias en esta dependencia.</div>'}
+            </div>
+          `;
+        }
+      });
+
+      container.innerHTML = html || '<div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.72rem;">No se encontraron beneficiarios que coincidan con la búsqueda.</div>';
+    },
+
+    filterProvisionalNominal(query) {
+      this.renderProvisionalNominalTree(this.provisionalTree, query);
+    },
+
+    printProvisionalActa() {
+      const token = sessionStorage.getItem('sgbt_session_token') || localStorage.getItem('sgbt_session_token') || '';
+      window.open(`/api/v1/audit/ministerial/acta-provisional/print?session_token=${encodeURIComponent(token)}`, '_blank');
     },
 
     async verifyBeneficiaryMerkle(docId) {

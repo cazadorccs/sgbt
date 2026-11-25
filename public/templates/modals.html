@@ -2666,6 +2666,123 @@
 </div>
 
 <!-- ======================================================================
+     MODAL 16B: ACTA MINISTERIAL PROVISIONAL DE BENEFICIARIOS Y CARGA
+     Desglose Nominal por Departamento y Ente previo al Acta Definitiva
+     ====================================================================== -->
+<div id="provisionalActaModalBackdrop" class="modal-backdrop">
+  <div class="modal-dialog" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
+    
+    <!-- ENCABEZADO -->
+    <div style="text-align: center; border-bottom: 2px solid #f59e0b; padding-bottom: 0.85rem; margin-bottom: 1rem; position: relative;">
+      <button id="btnCloseProvisionalActaModal" type="button" class="modal-close-btn" title="Cerrar modal" aria-label="Cerrar" style="position: absolute; right: 0; top: 0;">
+        <svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <span style="font-size: 1.5rem;">🇻🇪</span>
+        <div style="font-size: 0.7rem; font-weight: 800; letter-spacing: 0.1em; color: #cbd5e1; text-transform: uppercase;">
+          República Bolivariana de Venezuela • MIPPCI
+        </div>
+      </div>
+      <div style="font-size: 0.95rem; font-weight: 800; color: #fbbf24; letter-spacing: 0.03em;">
+        ACTA MINISTERIAL PROVISIONAL DE BENEFICIARIOS Y DESPACHO
+      </div>
+      <div style="font-size: 0.72rem; color: #94a3b8; margin-top: 0.15rem;">
+        Listado Nominal de Beneficiados por Departamento y Ente • Cédula, Nombres y Apellidos
+      </div>
+    </div>
+
+    <!-- CUERPO DESPLAZABLE -->
+    <div style="overflow-y: auto; padding-right: 0.35rem; flex: 1;">
+      
+      <!-- METADATOS Y ADVERTENCIA -->
+      <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem; font-size: 0.74rem; color: #fde68a; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+          <strong>Documento Preliminar Oficial:</strong> <span id="provActaNumber" class="text-mono" style="font-weight: 800; color: #fff;">ACTA-PROV-CARGANDO</span><br>
+          <span style="font-size: 0.68rem; color: #cbd5e1;">Emisión: <span id="provActaDate">--</span> • Generado por: <span id="provActaBy">--</span></span>
+        </div>
+        <span class="badge" style="background: #b45309; color: #fef3c7; font-size: 0.65rem;">
+          ⚖️ Auditoría Ministerial Previa
+        </span>
+      </div>
+
+      <!-- KPIS GENERALES -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.65rem; margin-bottom: 0.85rem;">
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.6rem; text-align: center;">
+          <span style="font-size: 0.65rem; color: #fbbf24; text-transform: uppercase; font-weight: 700;">Beneficiarios Atendidos</span>
+          <div id="provActaTotalWorkers" style="font-size: 1.25rem; font-weight: 800; color: #fbbf24; margin-top: 0.15rem;">0</div>
+          <span id="provActaCoveragePct" style="font-size: 0.65rem; color: #94a3b8;">0% del padrón</span>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 8px; padding: 0.6rem; text-align: center;">
+          <span style="font-size: 0.65rem; color: #38bdf8; text-transform: uppercase; font-weight: 700;">Combos Entregados</span>
+          <div id="provActaTotalCombos" style="font-size: 1.25rem; font-weight: 800; color: #38bdf8; margin-top: 0.15rem;">0</div>
+          <span style="font-size: 0.65rem; color: #64748b;">Paquetes</span>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(52, 211, 153, 0.25); border-radius: 8px; padding: 0.6rem; text-align: center;">
+          <span style="font-size: 0.65rem; color: #34d399; text-transform: uppercase; font-weight: 700;">Tonelaje Entregado</span>
+          <div id="provActaTotalTons" style="font-size: 1.25rem; font-weight: 800; color: #34d399; margin-top: 0.15rem;">0.00</div>
+          <span style="font-size: 0.65rem; color: #64748b;">Toneladas</span>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px; padding: 0.6rem; text-align: center;">
+          <span style="font-size: 0.65rem; color: #c084fc; text-transform: uppercase; font-weight: 700;">Padrón Activo</span>
+          <div id="provActaPadronTotal" style="font-size: 1.25rem; font-weight: 800; color: #c084fc; margin-top: 0.15rem;">0</div>
+          <span style="font-size: 0.65rem; color: #64748b;">Nómina General</span>
+        </div>
+      </div>
+
+      <!-- RESUMEN TABULAR POR ENTE -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; margin-bottom: 0.4rem; display: flex; justify-content: space-between;">
+          <span>🏛️ Consolidado de Despacho y Padrón Totalizado por Ente</span>
+          <span style="color: #fbbf24;">Resumen Institucional</span>
+        </div>
+        <table style="width: 100%; font-size: 0.72rem; border-collapse: collapse;">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255, 255, 255, 0.1); color: #94a3b8; text-align: left;">
+              <th style="padding: 0.35rem 0.5rem;">Ente</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Padrón</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Beneficiados</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Cobertura</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Combos</th>
+              <th style="padding: 0.35rem 0.5rem; text-align: right;">Toneladas</th>
+            </tr>
+          </thead>
+          <tbody id="provActaEntesTableBody">
+            <!-- Inyección dinámica -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- LISTADO NOMINAL JERÁRQUICO POR DEPARTAMENTO -->
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+          <span>📋 Desglose Nominal por Dependencia (Cédula, Nombres y Apellidos)</span>
+          <input type="text" id="inputFilterProvNominal" placeholder="🔍 Filtrar por cédula o nombre..." style="background: rgba(0,0,0,0.3); border: 1px solid #475569; border-radius: 4px; padding: 0.25rem 0.5rem; font-size: 0.68rem; color: #fff; width: 220px;">
+        </div>
+        <div id="provActaNominalContainer" style="max-height: 280px; overflow-y: auto;">
+          <!-- Inyección dinámica jerárquica -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTONES DE ACCIÓN DEL MODAL PROVISIONAL -->
+    <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 0.75rem; margin-top: 0.5rem; display: flex; gap: 0.65rem;">
+      <button type="button" id="btnPrintProvisionalActaModal" class="btn btn-primary" style="flex: 1; padding: 0.65rem; font-weight: 700; background: linear-gradient(135deg, #d97706, #b45309); border: 1px solid #f59e0b; color: #fff;">
+        🖨️ Imprimir / Exportar Acta Provisional Completa (PDF)
+      </button>
+      <button type="button" id="btnCloseProvisionalActaModalBtn" class="btn btn-outline" style="padding: 0.65rem 1rem;">
+        Cerrar
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ======================================================================
      MODAL 17: VERIFICACIÓN DE SEGUNDO FACTOR (MFA / 2FA - TOTP RFC 6238)
      ====================================================================== -->
 <div id="mfaVerificationModalBackdrop" class="modal-backdrop">
