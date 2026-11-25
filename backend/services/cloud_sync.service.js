@@ -144,33 +144,57 @@ async function persistDeliveries(deliveries) {
   try {
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
 
-    // 1. Asegurar que los entitlements asociados existan en Supabase ANTES del insert en deliveries (por FK),
-    // dejándolos inicialmente en 'pending' si son nuevos para no dejar huérfanos 'claimed' si deliveries falla
+    // 1. Resolver los entitlement_id reales en Supabase para evitar conflictos de UUID
     const entIdsToMarkClaimed = [];
     for (const d of deliveries) {
-      const entId = d.entitlement_id;
-      if (entId) {
-        entIdsToMarkClaimed.push(entId);
-        try {
-          const { data: existingEnt } = await supabase.from('daily_entitlements').select('id').eq('id', entId).maybeSingle();
-          if (!existingEnt) {
-            await supabase.from('daily_entitlements').insert([{
-              id: entId,
+      try {
+        let resolvedEntId = d.entitlement_id;
+        const { data: existingEnt } = await supabase
+          .from('daily_entitlements')
+          .select('id')
+          .eq('worker_id', d.worker_id)
+          .eq('valid_date', d.valid_date || today)
+          .eq('combo_id', d.combo_id || DEFAULT_COMBO_ID)
+          .maybeSingle();
+
+        if (existingEnt && existingEnt.id) {
+          resolvedEntId = existingEnt.id;
+        } else {
+          const newEntId = d.entitlement_id || crypto.randomUUID();
+          const { data: createdEnt } = await supabase
+            .from('daily_entitlements')
+            .upsert([{
+              id: newEntId,
               worker_id: d.worker_id,
               combo_id: d.combo_id || DEFAULT_COMBO_ID,
               valid_date: d.valid_date || today,
               shift: 'jornada_continua',
               status: 'pending'
-            }]);
+            }], { onConflict: 'worker_id,valid_date,shift,combo_id' })
+            .select('id')
+            .maybeSingle();
+          if (createdEnt && createdEnt.id) {
+            resolvedEntId = createdEnt.id;
           }
-        } catch (entErr) {
-          console.warn('[CLOUD PERSIST] Advertencia al preparar entitlement:', entErr.message);
         }
+        d.entitlement_id = resolvedEntId;
+        entIdsToMarkClaimed.push(resolvedEntId);
+      } catch (entErr) {
+        console.warn('[CLOUD PERSIST] Advertencia al preparar entitlement:', entErr.message);
       }
     }
 
     // 2. Preparar e insertar las entregas con validación estricta de esquema Supabase (UUID y ENUM)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const validDistPoints = new Set([
+      '5b0f10e3-7eac-4872-bf96-74ecd359be7e',
+      '76bd5b30-1537-4e66-8617-04a33e34b639',
+      'b12f492f-ebb3-430f-bc20-26ca4aa5b865',
+      'f641deb9-9123-415e-8cd1-ea01b8a7d367',
+      '94df5c9d-0eb8-4603-859d-447309a0e9ca',
+      '550e8400-e29b-41d4-a716-446655440001'
+    ]);
+
     const deliveryRecords = deliveries.map(d => {
       // Normalizar ID a UUID válido
       const deliveryId = (d.id && uuidRegex.test(d.id)) ? d.id : crypto.randomUUID();
@@ -187,7 +211,7 @@ async function persistDeliveries(deliveries) {
       }
 
       // Asegurar punto de distribución válido existente en Supabase
-      const distId = (d.distribution_point_id && uuidRegex.test(d.distribution_point_id))
+      const distId = (d.distribution_point_id && validDistPoints.has(d.distribution_point_id))
         ? d.distribution_point_id
         : DEFAULT_DISTRIBUTION_POINT_ID;
 

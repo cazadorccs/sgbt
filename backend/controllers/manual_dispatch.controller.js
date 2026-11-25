@@ -488,57 +488,35 @@ const getTodayStatsAndRecent = async (req, res) => {
             .order('delivered_at', { ascending: false })
             .limit(5000);
           const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
-          if (Array.isArray(remoteDeliveries)) {
-            if (remoteDeliveries.length === 0) {
-              // Si en Supabase Cloud no hay entregas de hoy (ej: reseteo a 0 de la jornada),
-              // SQLite local en Vercel debe limpiar entregas locales para mantener sincronía total con la nube.
-              db.prepare("DELETE FROM deliveries WHERE id NOT LIKE 'e2e-%' AND id NOT LIKE 'test-%' AND COALESCE(signature_proof, '') NOT LIKE '%TEST%'").run();
-              db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE valid_date = ? AND status = 'claimed'").run(today);
-            } else {
-              const insRemoteDelivery = db.prepare(`
-                INSERT OR IGNORE INTO deliveries (
-                  id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-                  verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              `);
-              const markClaimedStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
-              const remoteIds = new Set(remoteDeliveries.map(d => d.id));
-
-              // Eliminar entregas locales huérfanas de hoy que ya no existen en Supabase (ej: tras reset en nube)
-              const localDeliveriesToday = db.prepare(`
-                SELECT id FROM deliveries 
-                WHERE (date(delivered_at, '-4 hours') = ? OR delivered_at = ?)
-                  AND id NOT LIKE 'e2e-%'
-                  AND COALESCE(signature_proof, '') NOT LIKE '%TEST%'
-              `).all(todayVzla, todayVzla);
-              for (const loc of localDeliveriesToday) {
-                if (!remoteIds.has(loc.id)) {
-                  try { db.prepare("DELETE FROM deliveries WHERE id = ?").run(loc.id); } catch (e) {}
+          if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
+            const insRemoteDelivery = db.prepare(`
+              INSERT OR IGNORE INTO deliveries (
+                id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+                verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const markClaimedStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+            const syncTx = db.transaction((list) => {
+              for (const d of list) {
+                insRemoteDelivery.run(
+                  d.id,
+                  d.entitlement_id,
+                  d.worker_id,
+                  d.distribution_point_id,
+                  d.delivered_by_user_id,
+                  d.verification_method || 'passkey_qr',
+                  d.signature_proof,
+                  d.challenge_nonce,
+                  d.is_offline_sync ? 1 : 0,
+                  d.delivered_at,
+                  d.campaign_id || null
+                );
+                if (d.entitlement_id) {
+                  markClaimedStmt.run(d.entitlement_id);
                 }
               }
-
-              const syncTx = db.transaction((list) => {
-                for (const d of list) {
-                  insRemoteDelivery.run(
-                    d.id,
-                    d.entitlement_id,
-                    d.worker_id,
-                    d.distribution_point_id,
-                    d.delivered_by_user_id,
-                    d.verification_method || 'passkey_qr',
-                    d.signature_proof,
-                    d.challenge_nonce,
-                    d.is_offline_sync ? 1 : 0,
-                    d.delivered_at,
-                    d.campaign_id || null
-                  );
-                  if (d.entitlement_id) {
-                    markClaimedStmt.run(d.entitlement_id);
-                  }
-                }
-              });
-              syncTx(remoteDeliveries);
-            }
+            });
+            syncTx(remoteDeliveries);
           }
         }
       }
