@@ -2150,12 +2150,36 @@
           </div>
 
           <div id="createBatchMembersPreview" style="margin-top: 0.65rem; border-top: 1px dashed rgba(56, 189, 248, 0.25); padding-top: 0.55rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; gap: 0.5rem;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: #bae6fd; text-transform: uppercase;">☑️ Seleccione Delegado Receptor Acreditado (Responsable del Retiro): *</span>
-              <span id="createBatchMembersCountBadge" style="font-size: 0.68rem; color: #94a3b8;">Cargando...</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; gap: 0.5rem; flex-wrap: wrap;">
+              <span style="font-size: 0.72rem; font-weight: 800; color: #bae6fd; text-transform: uppercase;">
+                👥 Beneficiarios a Retirar & Delegado Responsable: *
+              </span>
+              <span id="createBatchMembersCountBadge" style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 0.15rem 0.5rem; border-radius: 999px;">
+                0 seleccionados
+              </span>
             </div>
-            <input type="text" id="createBatchMemberSearch" class="form-input" placeholder="🔍 Filtrar integrante por nombre o cédula para marcar check..." autocomplete="off" style="font-size: 0.76rem; padding: 0.35rem 0.6rem; margin-bottom: 0.4rem;" />
-            <div id="createBatchMembersList" style="max-height: 185px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.28rem; font-size: 0.72rem; padding-right: 0.2rem;"></div>
+
+            <!-- Selector de Cantidad Exacta y Acciones Rápidas -->
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.45rem; flex-wrap: wrap; background: rgba(15, 23, 42, 0.5); padding: 0.4rem 0.55rem; border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.15);">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 0.72rem; color: #cbd5e1; font-weight: 600;">Cantidad exacta:</span>
+                <input type="number" id="createBatchExactCountInput" min="1" placeholder="Ej: 8" style="width: 72px; padding: 0.22rem 0.45rem; font-size: 0.76rem; border-radius: 4px; background: rgba(2, 6, 23, 0.8); border: 1px solid #38bdf8; color: #f8fafc; font-weight: 700; text-align: center;" onkeydown="if(event.key==='Enter'){event.preventDefault(); window.DepartmentBatches && window.DepartmentBatches.applyExactCount();}" />
+                <button type="button" class="btn btn-outline" id="btnApplyBatchExactCount" style="padding: 0.22rem 0.55rem; font-size: 0.7rem; border-color: #38bdf8; color: #38bdf8;" onclick="window.DepartmentBatches && window.DepartmentBatches.applyExactCount()">
+                  ⚡ Aplicar
+                </button>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <button type="button" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="window.DepartmentBatches && window.DepartmentBatches.selectAllMembers(true)">
+                  ☑️ Todos
+                </button>
+                <button type="button" class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.68rem;" onclick="window.DepartmentBatches && window.DepartmentBatches.selectAllMembers(false)">
+                  ◻️ Ninguno
+                </button>
+              </div>
+            </div>
+
+            <input type="text" id="createBatchMemberSearch" class="form-input" placeholder="🔍 Filtrar integrante por nombre o cédula..." autocomplete="off" style="font-size: 0.76rem; padding: 0.35rem 0.6rem; margin-bottom: 0.4rem;" />
+            <div id="createBatchMembersList" style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.28rem; font-size: 0.72rem; padding-right: 0.2rem;"></div>
           </div>
         </div>
 

@@ -443,7 +443,8 @@ const createBatchOrder = async (req, res) => {
       delegate_name,
       delegate_document_id,
       delegate_phone,
-      notes
+      notes,
+      selected_worker_ids
     } = req.body;
 
     if (!department_id) {
@@ -481,6 +482,16 @@ const createBatchOrder = async (req, res) => {
       return res.status(400).json({ error: 'La dependencia seleccionada no tiene funcionarios activos registrados.' });
     }
 
+    // Filtrar por selección explícita de beneficiarios si fue provista
+    let targetWorkers = activeWorkers;
+    if (Array.isArray(selected_worker_ids) && selected_worker_ids.length > 0) {
+      const selectedSet = new Set(selected_worker_ids.map(String));
+      targetWorkers = activeWorkers.filter(w => selectedSet.has(String(w.id)));
+      if (targetWorkers.length === 0) {
+        return res.status(400).json({ error: 'Ninguno de los beneficiarios seleccionados pertenece o está activo en esta dependencia.' });
+      }
+    }
+
     // 2. Asegurar y consultar entitlements para hoy
     const activeCombos = combo_id 
       ? db.prepare("SELECT id, name, weight_kg FROM combos WHERE id = ? AND is_active = 1 AND name NOT LIKE '__SYSTEM_%'").all(combo_id)
@@ -490,8 +501,8 @@ const createBatchOrder = async (req, res) => {
       return res.status(400).json({ error: 'No se encontraron combos alimenticios activos en el catálogo.' });
     }
 
-    // Auto-poblar entitlements si aún no estaban generados
-    for (const w of activeWorkers) {
+    // Auto-poblar entitlements si aún no estaban generados para los trabajadores objetivo
+    for (const w of targetWorkers) {
       for (const c of activeCombos) {
         db.prepare(`
           INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
@@ -506,7 +517,7 @@ const createBatchOrder = async (req, res) => {
     let totalCombosToDeliver = 0;
     let totalWeightKg = 0;
 
-    for (const w of activeWorkers) {
+    for (const w of targetWorkers) {
       let workerEnts = db.prepare(`
         SELECT e.id, e.combo_id, c.weight_kg 
         FROM daily_entitlements e
@@ -524,7 +535,7 @@ const createBatchOrder = async (req, res) => {
 
     if (eligibleWorkers.length === 0) {
       return res.status(409).json({
-        error: 'Todos los funcionarios adscritos a esta dependencia ya retiraron sus beneficios para la jornada de hoy.'
+        error: 'Todos los funcionarios seleccionados adscritos a esta dependencia ya retiraron sus beneficios para la jornada de hoy.'
       });
     }
 
@@ -535,13 +546,17 @@ const createBatchOrder = async (req, res) => {
     const claimToken = `DLG-MIPPCI-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
     const requestedBy = (req.user && req.user.id) || null;
+    const initialActaData = JSON.stringify({
+      selected_worker_ids: eligibleWorkers.map(w => w.id)
+    });
 
     db.prepare(`
       INSERT INTO department_batch_orders (
         id, order_number, department_id, combo_id, total_beneficiaries, total_combos,
         total_weight_kg, delegate_name, delegate_document_id, delegate_phone,
-        delegate_claim_token, status, requested_by, requested_at, review_notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, CURRENT_TIMESTAMP, ?)
+        delegate_claim_token, status, requested_by, requested_at, review_notes,
+        digital_acta_data
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_review', ?, CURRENT_TIMESTAMP, ?, ?)
     `).run(
       orderId,
       orderNumber,
@@ -555,7 +570,8 @@ const createBatchOrder = async (req, res) => {
       delegate_phone ? delegate_phone.trim() : null,
       claimToken,
       requestedBy,
-      notes ? notes.trim() : null
+      notes ? notes.trim() : null,
+      initialActaData
     );
 
     logBatchActivity('ORDER_CREATED', { orderId, orderNumber, department_id }, {
@@ -702,7 +718,22 @@ const dispatchBatchOrder = async (req, res) => {
     const dispatchedBy = (req.user && req.user.id) || null;
 
     // 2. Obtener trabajadores de la dependencia (o Ente) y asegurar derechos en contenedor serverless si no existen aún
-    const activeWorkers = getActiveWorkersByScope(order.department_id, 'id, document_id, full_name, worker_type');
+    let activeWorkers = getActiveWorkersByScope(order.department_id, 'id, document_id, full_name, worker_type');
+
+    // Respetar la selección específica de beneficiarios si fue registrada en la orden
+    let selectedWorkerIds = null;
+    if (order.digital_acta_data) {
+      try {
+        const parsedActa = typeof order.digital_acta_data === 'string' ? JSON.parse(order.digital_acta_data) : order.digital_acta_data;
+        if (parsedActa && Array.isArray(parsedActa.selected_worker_ids) && parsedActa.selected_worker_ids.length > 0) {
+          selectedWorkerIds = new Set(parsedActa.selected_worker_ids.map(String));
+        }
+      } catch (e) {}
+    }
+
+    if (selectedWorkerIds && selectedWorkerIds.size > 0) {
+      activeWorkers = activeWorkers.filter(w => selectedWorkerIds.has(String(w.id)));
+    }
     const dispatchCombos = order.combo_id
       ? db.prepare("SELECT id FROM combos WHERE id = ? AND is_active = 1 AND name NOT LIKE '__SYSTEM_%'").all(order.combo_id)
       : db.prepare("SELECT id FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%' ORDER BY created_at ASC").all();
@@ -888,6 +919,7 @@ const dispatchBatchOrder = async (req, res) => {
           total_combos: eligibleDeliveries.length,
           total_weight_kg: order.total_weight_kg
         },
+        selected_worker_ids: Array.from(affectedWorkerIds),
         dispatched_at: nowIso,
         dispatched_by: dispatchedBy,
         reviewed_by: order.reviewed_by,
