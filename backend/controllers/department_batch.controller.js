@@ -1110,12 +1110,25 @@ const deleteBatchOrder = async (req, res) => {
       return res.status(404).json({ error: 'Orden de lote departamental no encontrada' });
     }
 
+    // Si la orden ya fue despachada, limpiar entregas asociadas y restaurar los derechos a 'pending'
     if (order.status === 'dispatched') {
-      return res.status(400).json({ error: 'No se puede eliminar una orden ya despachada.' });
+      try {
+        const relatedDeliveries = db.prepare('SELECT id, entitlement_id FROM deliveries WHERE batch_order_id = ?').all(id);
+        if (relatedDeliveries && relatedDeliveries.length > 0) {
+          const entIds = relatedDeliveries.map(d => d.entitlement_id).filter(Boolean);
+          if (entIds.length > 0) {
+            const placeholders = entIds.map(() => '?').join(',');
+            db.prepare(`UPDATE daily_entitlements SET status = 'pending', batch_order_id = NULL WHERE id IN (${placeholders})`).run(...entIds);
+          }
+          db.prepare('DELETE FROM deliveries WHERE batch_order_id = ?').run(id);
+        }
+      } catch (cleanupErr) {
+        console.warn('[DELETE BATCH ORDER DELIVERIES CLEANUP WARN]', cleanupErr.message);
+      }
     }
 
     db.prepare('DELETE FROM department_batch_orders WHERE id = ?').run(id);
-    await syncBatchOrdersToCloud(db).catch(() => {});
+    await syncBatchOrdersToCloud(db, { deletedOrderId: id }).catch(() => {});
 
     logBatchActivity('ORDER_DELETED', { id, orderNumber: order.order_number }, {}, req);
 

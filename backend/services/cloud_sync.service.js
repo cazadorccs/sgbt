@@ -558,10 +558,20 @@ async function syncBatchOrdersFromCloud(dbInstance) {
 
 /**
  * Persiste órdenes de lotes departamentales en Supabase Cloud con merge idempotente multi-contenedor.
+ * Soporta exclusión explícita de órdenes eliminadas (options.deletedOrderId / options.deletedOrderIds)
+ * para evitar su resurrección automática.
  */
-async function syncBatchOrdersToCloud(dbInstance) {
+async function syncBatchOrdersToCloud(dbInstance, options = {}) {
   if (!dbInstance || !isSupabaseConfigured() || !supabase) return false;
   if (!circuitBreaker.canAttempt()) return false;
+
+  const deletedSet = new Set();
+  if (options && options.deletedOrderId) {
+    deletedSet.add(String(options.deletedOrderId));
+  }
+  if (options && Array.isArray(options.deletedOrderIds)) {
+    options.deletedOrderIds.forEach(id => deletedSet.add(String(id)));
+  }
 
   try {
     let remoteOrders = [];
@@ -584,10 +594,12 @@ async function syncBatchOrdersToCloud(dbInstance) {
 
     const mergedMap = new Map();
     for (const r of remoteOrders) {
-      if (r && r.id) mergedMap.set(r.id, r);
+      if (r && r.id && !deletedSet.has(String(r.id))) {
+        mergedMap.set(r.id, r);
+      }
     }
     for (const l of localOrders) {
-      if (!l || !l.id) continue;
+      if (!l || !l.id || deletedSet.has(String(l.id))) continue;
       const existing = mergedMap.get(l.id);
       const winner = resolveBatchOrderWinner(existing, l);
       mergedMap.set(l.id, {
@@ -603,6 +615,15 @@ async function syncBatchOrdersToCloud(dbInstance) {
 
     const finalOrders = Array.from(mergedMap.values()).slice(0, 200);
     const finalUmbrella = Array.from(umbrellaMap.values());
+
+    // Si se especificaron órdenes eliminadas, asegurar que se purguen de la base local
+    if (deletedSet.size > 0) {
+      for (const delId of deletedSet) {
+        try {
+          dbInstance.prepare('DELETE FROM department_batch_orders WHERE id = ?').run(delId);
+        } catch (delErr) {}
+      }
+    }
 
     // Aplicar también cualquier actualización remota faltante hacia SQLite local
     applyBatchSnapshotToLocalDb(dbInstance, finalOrders, finalUmbrella);
