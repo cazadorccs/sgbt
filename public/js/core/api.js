@@ -43,9 +43,15 @@ window.API = {
   },
 
   async request(url, options = {}) {
-    const timeoutMs = typeof options.timeout === 'number' ? options.timeout : 8000;
+    const timeoutMs = typeof options.timeout === 'number' ? options.timeout : 18000;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    const timeoutId = setTimeout(() => {
+      try {
+        controller.abort(new DOMException(`Tiempo de espera agotado (${timeoutMs}ms)`, 'TimeoutError'));
+      } catch (e) {
+        controller.abort();
+      }
+    }, timeoutMs);
 
     try {
       // Inyección automática del Token Criptográfico de Sesión Institucional (RBAC)
@@ -91,15 +97,22 @@ window.API = {
       clearTimeout(timeoutId);
 
       // Detección de fallos de conectividad o timeout en redes móviles intermitentes
-      if (err.name === 'AbortError') {
-        err.isTimeout = true;
-        err.isNetworkError = true;
-        err.message = `Tiempo de espera agotado (${timeoutMs}ms). Red móvil o Wi-Fi lenta.`;
-      } else if (err instanceof TypeError || (err.message && (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed')))) {
+      if (err && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
+        const abortErr = new Error(`Tiempo de espera agotado (${timeoutMs}ms). Red móvil o servidor en arranque.`);
+        abortErr.name = err.name;
+        abortErr.isTimeout = true;
+        abortErr.isNetworkError = true;
+        if (!options.silent) {
+          console.warn(`[API TIMEOUT] URL: ${url}:`, abortErr.message);
+        }
+        throw abortErr;
+      } else if (err instanceof TypeError || (err && err.message && (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed')))) {
         err.isNetworkError = true;
       }
 
-      console.error(`[API FETCH ERROR] URL: ${url}:`, err.message || err);
+      if (!options.silent) {
+        console.error(`[API FETCH ERROR] URL: ${url}:`, (err && err.message) || err);
+      }
       throw err;
     }
   }

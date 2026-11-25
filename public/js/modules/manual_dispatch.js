@@ -7,13 +7,17 @@ window.ManualDispatch = (function() {
   let currentWorkerData = null;
   let departmentsCache = [];
   let cachedGroupedDeliveries = [];
+  let summaryInFlight = null;
+  let departmentsInFlight = null;
 
   // Inicialización del módulo
   async function init() {
     setupEventListeners();
     if (window.API && window.API.hasToken()) {
-      await loadDepartmentsList();
-      await loadTodaySummary();
+      await Promise.all([
+        loadDepartmentsList(),
+        loadTodaySummary()
+      ]);
     }
   }
 
@@ -160,49 +164,65 @@ window.ManualDispatch = (function() {
       });
     }
 
-    // Carga inicial proactiva de datos de entregas y departamentos (solo con sesión activa)
-    if (window.API && window.API.hasToken()) {
-      loadTodaySummary();
-      loadDepartmentsList();
-    }
+    // Carga proactiva manejada de forma única desde init() con candado anti-duplicidad
   }
 
   // Cargar lista de departamentos para el select de incorporación
   async function loadDepartmentsList() {
     if (window.API && !window.API.hasToken()) return;
-    try {
-      const res = await API.get('/api/v1/admin/workers');
-      // Extraer departamentos únicos de los trabajadores existentes
-      if (res && res.departments) {
-        departmentsCache = res.departments;
+    if (departmentsCache.length > 0) return;
+    if (departmentsInFlight) return departmentsInFlight;
+
+    departmentsInFlight = (async () => {
+      try {
+        const res = await API.get('/api/v1/department-batches/departments', { timeout: 20000, silent: true });
+        if (res && Array.isArray(res.departments)) {
+          departmentsCache = res.departments;
+        }
+      } catch (e) {
+        if (!e || !e.isTimeout) {
+          console.warn('Error cargando departamentos:', (e && e.message) || e);
+        }
+      } finally {
+        departmentsInFlight = null;
       }
-    } catch (e) {
-      console.warn('Error cargando departamentos:', e);
-    }
+    })();
+
+    return departmentsInFlight;
   }
 
-  // Cargar resumen de hoy y despachos recientes
+  // Cargar resumen de hoy y despachos recientes (con protección anti-solapamiento)
   async function loadTodaySummary() {
     if (window.API && !window.API.hasToken()) return;
-    try {
-      const data = await API.get('/api/v1/manual-dispatch/today-summary?_t=' + Date.now());
-      if (data && data.stats) {
-        const elWorkers = document.getElementById('manualKpiWorkers');
-        const elAssigned = document.getElementById('manualKpiAssigned');
-        const elDelivered = document.getElementById('manualKpiDelivered');
-        const elPending = document.getElementById('manualKpiPending');
+    if (summaryInFlight) return summaryInFlight;
 
-        if (elWorkers) elWorkers.textContent = data.stats.total_workers;
-        if (elAssigned) elAssigned.textContent = data.stats.combos_assigned_today;
-        if (elDelivered) elDelivered.textContent = data.stats.combos_delivered_today;
-        if (elPending) elPending.textContent = data.stats.combos_pending_today;
+    summaryInFlight = (async () => {
+      try {
+        const data = await API.get('/api/v1/manual-dispatch/today-summary?_t=' + Date.now(), { timeout: 20000, silent: true });
+        if (data && data.stats) {
+          const elWorkers = document.getElementById('manualKpiWorkers');
+          const elAssigned = document.getElementById('manualKpiAssigned');
+          const elDelivered = document.getElementById('manualKpiDelivered');
+          const elPending = document.getElementById('manualKpiPending');
 
-        // Renderizar tabla de entregas recientes
-        renderRecentDeliveries(data.recent_deliveries || []);
+          if (elWorkers) elWorkers.textContent = data.stats.total_workers;
+          if (elAssigned) elAssigned.textContent = data.stats.combos_assigned_today;
+          if (elDelivered) elDelivered.textContent = data.stats.combos_delivered_today;
+          if (elPending) elPending.textContent = data.stats.combos_pending_today;
+
+          // Renderizar tabla de entregas recientes
+          renderRecentDeliveries(data.recent_deliveries || []);
+        }
+      } catch (err) {
+        if (!err || !err.isTimeout) {
+          console.warn('Error cargando resumen manual:', (err && err.message) || err);
+        }
+      } finally {
+        summaryInFlight = null;
       }
-    } catch (err) {
-      console.warn('Error cargando resumen manual:', err);
-    }
+    })();
+
+    return summaryInFlight;
   }
 
   // Renderizar despachos recientes simplificados y agrupados por funcionario
