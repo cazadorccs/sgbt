@@ -2,18 +2,21 @@
 const crypto = require('crypto');
 const { db } = require('./db');
 const { supabase, isSupabaseConfigured } = require('./supabase');
-const { clearDeliveriesInCloud } = require('./services/cloud_sync.service');
+const { clearDeliveriesInCloud, clearBatchOrdersInCloud } = require('./services/cloud_sync.service');
 
 async function resetDeliveriesAndSeedToday() {
   const todayUtc = new Date().toISOString().split('T')[0];
   const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
   const today = todayVzla;
   
-  // 1. Eliminar entregas previas y liberar candados de dispositivos
+  // 1. Eliminar entregas previas, lotes departamentales y liberar candados de dispositivos
   const delResult = db.prepare('DELETE FROM deliveries').run();
-  try {
-    db.prepare('DELETE FROM device_locks').run();
-  } catch (e) {}
+  try { db.prepare('DELETE FROM device_locks').run(); } catch (e) {}
+  
+  // Limpiar órdenes de lotes departamentales locales para nueva jornada
+  try { db.prepare('DELETE FROM department_batch_orders').run(); } catch (e) {
+    console.warn('[RESET] No se pudo limpiar department_batch_orders local:', e.message);
+  }
   
   // 2. Obtener todos los combos activos del catálogo institucional
   const activeCombos = db.prepare("SELECT id, name FROM combos WHERE is_active = 1").all();
@@ -48,7 +51,14 @@ async function resetDeliveriesAndSeedToday() {
     try {
       await clearDeliveriesInCloud();
     } catch (sbErr) {
-      console.warn('[RESET] No se pudo sincronizar reseteo a Supabase:', sbErr.message);
+      console.warn('[RESET] No se pudo sincronizar reseteo de entregas a Supabase:', sbErr.message);
+    }
+
+    // Limpiar también el store de órdenes de lotes departamentales en la nube
+    try {
+      await clearBatchOrdersInCloud();
+    } catch (sbErr) {
+      console.warn('[RESET] No se pudo limpiar store de lotes en Supabase:', sbErr.message);
     }
   }
 

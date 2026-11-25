@@ -324,6 +324,42 @@ async function clearDeliveriesInCloud() {
 }
 
 /**
+ * Elimina todas las órdenes de lotes departamentales del store en Supabase Cloud
+ * dejando un store vacío listo para una nueva jornada.
+ */
+async function clearBatchOrdersInCloud() {
+  if (!isSupabaseConfigured() || !supabase) return false;
+
+  try {
+    const { error } = await supabase.from('combos').upsert({
+      id: SYNC_BATCH_ORDERS_STORE_UUID,
+      name: SYNC_BATCH_ORDERS_STORE_NAME,
+      category: 'bolsa_viveres',
+      description: JSON.stringify({
+        version: 1,
+        updated_at: new Date().toISOString(),
+        orders: [],
+        umbrella_departments: []
+      }),
+      calories: 0,
+      dietary_info: 'Cloud Department Batch Orders Store',
+      is_active: false
+    }, { onConflict: 'id' });
+
+    if (error) {
+      console.warn('[BATCH CLOUD RESET WARN] Error al limpiar store de lotes en Supabase:', error.message);
+      return false;
+    }
+
+    console.log('[BATCH CLOUD RESET] ✅ Store de órdenes de lotes departamentales vaciado en Supabase Cloud');
+    return true;
+  } catch (err) {
+    console.warn('[BATCH CLOUD RESET ERROR] Fallo al vaciar store de lotes:', err.message);
+    return false;
+  }
+}
+
+/**
  * Resuelve deterministamente qué copia de una orden de lote departamental prevalece
  * entre dos contenedores serverless según rango de estado y marca de tiempo.
  */
@@ -584,6 +620,7 @@ module.exports = {
   persistNfcCard,
   revokeNfcCard,
   clearDeliveriesInCloud,
+  clearBatchOrdersInCloud,
   syncBatchOrdersFromCloud,
   syncBatchOrdersToCloud
 };
