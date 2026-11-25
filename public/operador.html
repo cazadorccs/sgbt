@@ -123,6 +123,7 @@
 
       <div id="btnAprobarContainer" class="hidden" style="margin-top: 1rem;">
         <button class="approbar" id="btnAprobarEntrega">✓ Aprobar Entrega y Descontar</button>
+        <button type="button" id="btnCancelarBusqueda" class="btn-secundario" style="margin-top: 0.5rem; font-size: 0.8rem; padding: 0.45rem 0.75rem;">← Buscar otra cédula</button>
       </div>
 
       <div class="footer">Sistema de Gestión de Beneficios para los Trabajadores &middot; MIPPCI</div>
@@ -605,9 +606,11 @@
       if (localWorker.is_delivered) {
         estadoEl.innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
         hide('btnAprobarContainer');
+        show('btnBuscarContainer');
         mostrarAlerta('msgInfo', `⚠️ El funcionario ${localWorker.full_name} ya retiró sus combos hoy. No puede duplicar entrega.`, 'info');
       } else {
         estadoEl.innerHTML = '';
+        hide('btnBuscarContainer');
         show('btnAprobarContainer');
         mostrarAlerta('msgExito', `Modo Offline: Funcionario localizado localmente (${localWorker.full_name})`, 'success');
       }
@@ -634,6 +637,7 @@
         if (!res.found) {
           hide('infoTrabajador');
           hide('btnAprobarContainer');
+          show('btnBuscarContainer');
           currentWorker = null;
           mostrarAlerta('msgInfo', res.message || 'Funcionario no encontrado', 'info');
           return;
@@ -648,13 +652,16 @@
         if (s.is_fully_delivered) {
           estadoEl.innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
           hide('btnAprobarContainer');
+          show('btnBuscarContainer');
           await OperatorDB.marcarEntregadoEnPadron(res.worker.id);
         } else if (s.has_pending) {
           estadoEl.innerHTML = '';
+          hide('btnBuscarContainer');
           show('btnAprobarContainer');
         } else {
           estadoEl.innerHTML = '<span class="entregado-badge">Sin asignaciones para hoy</span>';
           hide('btnAprobarContainer');
+          show('btnBuscarContainer');
         }
         show('infoTrabajador');
         mostrarAlerta('msgExito', `Funcionario localizado: ${res.worker.full_name}`, 'success');
@@ -667,8 +674,45 @@
       }
     });
 
+    // Enter inteligente: si ya se encontró el funcionario, Enter aprueba directamente la entrega
     $('inputCedulaTrabajador').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); $('btnBuscarTrabajador').click(); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const aprobarVisible = $('btnAprobarContainer') && !$('btnAprobarContainer').classList.contains('hidden');
+        if (currentWorker && aprobarVisible) {
+          $('btnAprobarEntrega').click();
+        } else {
+          $('btnBuscarTrabajador').click();
+        }
+      }
+    });
+
+    // Si el operador altera o borra el campo de cédula, restablecer para buscar de nuevo
+    $('inputCedulaTrabajador').addEventListener('input', () => {
+      if (currentWorker) {
+        const val = $('inputCedulaTrabajador').value.trim();
+        const docDigits = String(currentWorker.document_id || '').replace(/[^0-9]/g, '');
+        const valDigits = val.replace(/[^0-9]/g, '');
+        if (docDigits !== valDigits) {
+          currentWorker = null;
+          hide('infoTrabajador');
+          hide('btnAprobarContainer');
+          show('btnBuscarContainer');
+        }
+      }
+    });
+
+    // Botón para cancelar y buscar otro funcionario
+    $('btnCancelarBusqueda')?.addEventListener('click', () => {
+      currentWorker = null;
+      hide('infoTrabajador');
+      hide('btnAprobarContainer');
+      show('btnBuscarContainer');
+      const inputEl = $('inputCedulaTrabajador');
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.focus();
+      }
     });
 
     // ============================================================================
@@ -690,9 +734,10 @@
 
       mostrarAlerta('msgExito', `✓ Despacho registrado localmente para ${worker.full_name}.`, 'success');
 
-      // Ocultar ficha del funcionario y botón inmediatamente para pasar sin demora al siguiente
+      // Ocultar ficha del funcionario y botón de entrega; restaurar botón buscar para el siguiente
       hide('infoTrabajador');
       hide('btnAprobarContainer');
+      show('btnBuscarContainer');
       setText('estadoPendientes', '');
       currentWorker = null;
 
@@ -740,9 +785,10 @@
           mostrarAlerta('msgExito', res.message, 'success');
           await OperatorDB.marcarEntregadoEnPadron(workerToDeliver.id);
 
-          // Ocultar ficha de entrega y botón inmediatamente para agilizar la fila
+          // Ocultar ficha de entrega; restaurar botón buscar para la siguiente persona
           hide('infoTrabajador');
           hide('btnAprobarContainer');
+          show('btnBuscarContainer');
           setText('estadoPendientes', '');
           currentWorker = null;
 
