@@ -344,19 +344,31 @@
 
         // Acciones permitidas según estado y rol
         let actionsHtml = '';
-        if (order.status === 'pending_review') {
-          actionsHtml = `
-            <button class="btn btn-outline" onclick="window.DepartmentBatches.openReviewModal('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #f59e0b; color: #fbbf24;" title="Revisar y Autorizar Solicitud">
-              ⚖️ Revisar
-            </button>
-          `;
-        } else if (order.status === 'approved') {
-          actionsHtml = `
-            <button class="btn btn-primary" onclick="window.DepartmentBatches.openDispatchModal('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; background: linear-gradient(135deg, #059669, #047857); border-color: #34d399;" title="Ejecutar Despacho en Almacén">
-              📦 Despachar
-            </button>
-          `;
-        } else if (order.status === 'dispatched') {
+         if (order.status === 'pending_review') {
+           actionsHtml = `
+             <button class="btn btn-outline" onclick="window.DepartmentBatches.openReviewModal('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #f59e0b; color: #fbbf24;" title="Revisar y Autorizar Solicitud">
+               ⚖️ Revisar
+             </button>
+             <button class="btn btn-outline" onclick="window.DepartmentBatches.editDelegate('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #38bdf8; color: #38bdf8;" title="Editar Delegado Receptor">
+               ✏️ Editar
+             </button>
+             <button class="btn btn-outline" onclick="window.DepartmentBatches.deleteOrder('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #ef4444; color: #fca5a5;" title="Eliminar Orden">
+               🗑️ Eliminar
+             </button>
+           `;
+         } else if (order.status === 'approved') {
+           actionsHtml = `
+             <button class="btn btn-primary" onclick="window.DepartmentBatches.openDispatchModal('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; background: linear-gradient(135deg, #059669, #047857); border-color: #34d399;" title="Ejecutar Despacho en Almacén">
+               📦 Despachar
+             </button>
+             <button class="btn btn-outline" onclick="window.DepartmentBatches.editDelegate('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #38bdf8; color: #38bdf8;" title="Editar Delegado Receptor">
+               ✏️ Editar
+             </button>
+             <button class="btn btn-outline" onclick="window.DepartmentBatches.deleteOrder('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #ef4444; color: #fca5a5;" title="Eliminar Orden">
+               🗑️ Eliminar
+             </button>
+           `;
+         } else if (order.status === 'dispatched') {
           actionsHtml = `
             <button class="btn btn-outline" onclick="window.DepartmentBatches.viewActa('${order.id}')" style="padding: 0.25rem 0.6rem; font-size: 0.72rem; border-color: #38bdf8; color: #38bdf8;" title="Ver Acta Oficial de Entrega con Sello SHA-256">
               📜 Ver Acta
@@ -969,6 +981,55 @@
     closeActaModal: function() {
       const modal = document.getElementById('departmentBatchActaModalBackdrop');
       if (modal) modal.classList.remove('active');
+    },
+
+    /**
+     * Editar Delegado Receptor de una orden
+     */
+    editDelegate: async function(orderId) {
+      const order = this.currentOrders.find(o => o.id === orderId);
+      if (!order) return;
+      const name = window.prompt('Nombre del Delegado Receptor:', order.delegate_name || '');
+      if (name === null) return;
+      const doc = window.prompt('Cédula del Delegado Receptor:', order.delegate_document_id || '');
+      if (doc === null) return;
+      const phone = window.prompt('Teléfono del Delegado Receptor:', order.delegate_phone || '');
+      if (phone === null) return;
+      try {
+        const res = await API.patch(`/api/v1/department-batches/orders/${orderId}`, {
+          delegate_name: name,
+          delegate_document_id: doc,
+          delegate_phone: phone
+        });
+        if (res && res.success) {
+          if (typeof window.showToast === 'function') window.showToast(res.message, 'success');
+          await this.loadData();
+        } else {
+          throw new Error(res.error || 'Error actualizando');
+        }
+      } catch (err) {
+        if (typeof window.showToast === 'function') window.showToast(err.message || 'Error actualizando orden', 'error');
+      }
+    },
+
+    /**
+     * Eliminar una orden de lote
+     */
+    deleteOrder: async function(orderId) {
+      const order = this.currentOrders.find(o => o.id === orderId);
+      if (!order) return;
+      if (!window.confirm(`¿Eliminar la orden ${order.order_number}? Esta acción no se puede deshacer.`)) return;
+      try {
+        const res = await API.delete(`/api/v1/department-batches/orders/${orderId}`);
+        if (res && res.success) {
+          if (typeof window.showToast === 'function') window.showToast(res.message, 'success');
+          await this.loadData();
+        } else {
+          throw new Error(res.error || 'Error eliminando');
+        }
+      } catch (err) {
+        if (typeof window.showToast === 'function') window.showToast(err.message || 'Error eliminando orden', 'error');
+      }
     },
 
     /**

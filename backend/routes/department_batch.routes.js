@@ -27,6 +27,11 @@ router.post('/department-batches/orders/:id/review', authenticate, requireRole('
 router.post('/department-batches/orders/:id/dispatch', authenticate, requireRole('operator', 'supervisor', 'admin', 'director'), controller.dispatchBatchOrder);
 router.post('/department-batches/dispatch-by-token', authenticate, requireRole('operator', 'supervisor', 'admin', 'director'), controller.dispatchBatchOrder);
 
+// - Editar / Eliminar orden (solo si no despachada)
+router.patch('/department-batches/orders/:id', authenticate, requireRole('admin', 'director', 'supervisor', 'operator'), controller.updateBatchOrder);
+router.put('/department-batches/orders/:id', authenticate, requireRole('admin', 'director', 'supervisor', 'operator'), controller.updateBatchOrder);
+router.delete('/department-batches/orders/:id', authenticate, requireRole('admin', 'director', 'supervisor'), controller.deleteBatchOrder);
+
 // 5. Acta Digital Oficial de Entrega con Sello Criptográfico SHA-256
 router.get('/department-batches/orders/:id/acta', authenticate, controller.getBatchOrderActa);
 

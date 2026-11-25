@@ -1045,6 +1045,87 @@ const getBatchOrderActa = async (req, res) => {
   }
 };
 
+/**
+ * 9. Actualizar datos del Delegado Receptor de una orden (solo si no ha sido despachada)
+ */
+const updateBatchOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { delegate_name, delegate_document_id, delegate_phone, notes } = req.body;
+
+    await ensureBatchHydrated();
+    let order = findBatchOrderWithDetails({ id });
+    if (!order && isSupabaseConfigured()) {
+      await syncBatchOrdersFromCloud(db);
+      order = findBatchOrderWithDetails({ id });
+    }
+
+    if (!order) {
+      return res.status(404).json({ error: 'Orden de lote departamental no encontrada' });
+    }
+
+    if (order.status === 'dispatched') {
+      return res.status(400).json({ error: 'No se puede editar una orden ya despachada.' });
+    }
+
+    const updates = [];
+    const params = [];
+    if (delegate_name) { updates.push('delegate_name = ?'); params.push(delegate_name.trim()); }
+    if (delegate_document_id) { updates.push('delegate_document_id = ?'); params.push(delegate_document_id.trim().toUpperCase()); }
+    if (delegate_phone !== undefined) { updates.push('delegate_phone = ?'); params.push(delegate_phone ? delegate_phone.trim() : null); }
+    if (notes !== undefined) { updates.push('review_notes = ?'); params.push(notes ? notes.trim() : null); }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No se proporcionaron campos para actualizar.' });
+    }
+
+    params.push(id);
+    db.prepare(`UPDATE department_batch_orders SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+    await syncBatchOrdersToCloud(db).catch(() => {});
+
+    logBatchActivity('ORDER_UPDATED', { id, orderNumber: order.order_number }, { fields: Object.keys(req.body) }, req);
+
+    return res.json({ success: true, message: `Orden ${order.order_number} actualizada exitosamente.` });
+  } catch (err) {
+    console.error('[UPDATE BATCH ORDER ERROR]', err);
+    return res.status(500).json({ error: 'Error actualizando orden de lote: ' + err.message });
+  }
+};
+
+/**
+ * 10. Eliminar una orden de lote (solo si no ha sido despachada)
+ */
+const deleteBatchOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await ensureBatchHydrated();
+    let order = findBatchOrderWithDetails({ id });
+    if (!order && isSupabaseConfigured()) {
+      await syncBatchOrdersFromCloud(db);
+      order = findBatchOrderWithDetails({ id });
+    }
+
+    if (!order) {
+      return res.status(404).json({ error: 'Orden de lote departamental no encontrada' });
+    }
+
+    if (order.status === 'dispatched') {
+      return res.status(400).json({ error: 'No se puede eliminar una orden ya despachada.' });
+    }
+
+    db.prepare('DELETE FROM department_batch_orders WHERE id = ?').run(id);
+    await syncBatchOrdersToCloud(db).catch(() => {});
+
+    logBatchActivity('ORDER_DELETED', { id, orderNumber: order.order_number }, {}, req);
+
+    return res.json({ success: true, message: `Orden ${order.order_number} eliminada exitosamente.` });
+  } catch (err) {
+    console.error('[DELETE BATCH ORDER ERROR]', err);
+    return res.status(500).json({ error: 'Error eliminando orden de lote: ' + err.message });
+  }
+};
+
 module.exports = {
   getDepartmentBatchStats,
   listDepartmentsWithStats,
@@ -1053,5 +1134,7 @@ module.exports = {
   createBatchOrder,
   reviewBatchOrder,
   dispatchBatchOrder,
-  getBatchOrderActa
+  getBatchOrderActa,
+  updateBatchOrder,
+  deleteBatchOrder
 };
