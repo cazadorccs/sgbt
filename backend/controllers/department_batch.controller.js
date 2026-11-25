@@ -5,9 +5,86 @@
 // ============================================================================
 
 const crypto = require('crypto');
-const { db } = require('../db');
+const { db, cloudHydrationPromise } = require('../db');
 const { notifyDeliveryStream } = require('../services/sse.service');
 const { enqueueEvent } = require('../services/outbox.service');
+
+const ENTE_SCOPE_PREFIX = 'ente:';
+
+/**
+ * Determina si un identificador de dependencia corresponde a un Ente sin unidad de adscripción.
+ */
+function isEnteScopeId(scopeId) {
+  return typeof scopeId === 'string' && scopeId.startsWith(ENTE_SCOPE_PREFIX);
+}
+
+/**
+ * Extrae el nombre canónico del Ente a partir del scopeId (`ente:<NOMBRE>`).
+ */
+function extractEnteName(scopeId) {
+  if (!isEnteScopeId(scopeId)) return '';
+  return scopeId.slice(ENTE_SCOPE_PREFIX.length).trim();
+}
+
+/**
+ * Resuelve una dependencia tradicional o un grupo por Ente sin departamento específico.
+ */
+function resolveBatchScope(scopeId) {
+  if (!scopeId) return null;
+  if (isEnteScopeId(scopeId)) {
+    const enteName = extractEnteName(scopeId);
+    if (!enteName) return null;
+    const safeCode = 'ENTE_' + enteName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Z0-9]+/gi, '_')
+      .replace(/^_+|_+$/g, '')
+      .toUpperCase()
+      .slice(0, 24);
+    return {
+      isEnte: true,
+      id: `${ENTE_SCOPE_PREFIX}${enteName}`,
+      code: safeCode,
+      name: `[Ente] ${enteName} (Personal adscrito sin unidad)`,
+      enteName
+    };
+  }
+  const dept = db.prepare('SELECT id, code, name, cost_center FROM departments WHERE id = ?').get(scopeId);
+  return dept ? { isEnte: false, ...dept } : null;
+}
+
+/**
+ * Garantiza registro paraguas en `departments` cuando un lote corresponde a un Ente sin unidad,
+ * preservando intacto `workers.department_id = NULL` para mantener "Sin Asignar" en nómina.
+ */
+function ensureEnteUmbrellaDepartment(scope) {
+  if (!scope || !scope.isEnte) return;
+  db.prepare(`
+    INSERT OR IGNORE INTO departments (id, code, name, cost_center)
+    VALUES (?, ?, ?, 'CC-ENTE')
+  `).run(scope.id, scope.code, scope.name);
+}
+
+/**
+ * Obtiene trabajadores activos pertenecientes a un departamento o Ente sin unidad de adscripción.
+ */
+function getActiveWorkersByScope(scopeId, columns = 'id, document_id, full_name, worker_type') {
+  if (isEnteScopeId(scopeId)) {
+    const enteName = extractEnteName(scopeId);
+    return db.prepare(`
+      SELECT ${columns}
+      FROM workers
+      WHERE COALESCE(NULLIF(TRIM(ente), ''), 'MIPPCI') = ?
+        AND (department_id IS NULL OR TRIM(department_id) = '')
+        AND status = 'active'
+    `).all(enteName);
+  }
+  return db.prepare(`
+    SELECT ${columns}
+    FROM workers
+    WHERE department_id = ? AND status = 'active'
+  `).all(scopeId);
+}
 
 /**
  * Registra actividades en el log de auditoría del sistema
@@ -45,7 +122,25 @@ const getDepartmentBatchStats = (req, res) => {
   try {
     const today = new Date().toISOString().split('T')[0];
 
-    const totalDepts = db.prepare("SELECT COUNT(*) as cnt FROM departments").get().cnt;
+    const totalRealDepts = db.prepare(`
+      SELECT COUNT(*) as cnt FROM (
+        SELECT d.id
+        FROM departments d
+        JOIN workers w ON w.department_id = d.id AND w.status = 'active'
+        WHERE d.id NOT LIKE 'ente:%'
+        GROUP BY d.id
+      )
+    `).get().cnt;
+    const totalEnteGroups = db.prepare(`
+      SELECT COUNT(*) as cnt FROM (
+        SELECT COALESCE(NULLIF(TRIM(ente), ''), 'MIPPCI') as ente_key
+        FROM workers
+        WHERE status = 'active' AND (department_id IS NULL OR TRIM(department_id) = '')
+        GROUP BY ente_key
+      )
+    `).get().cnt;
+    const totalDepts = totalRealDepts + totalEnteGroups;
+
     const pendingOrders = db.prepare("SELECT COUNT(*) as cnt FROM department_batch_orders WHERE status = 'pending_review'").get().cnt;
     const approvedOrders = db.prepare("SELECT COUNT(*) as cnt FROM department_batch_orders WHERE status = 'approved'").get().cnt;
     const dispatchedOrders = db.prepare("SELECT COUNT(*) as cnt FROM department_batch_orders WHERE status = 'dispatched'").get().cnt;
@@ -59,7 +154,7 @@ const getDepartmentBatchStats = (req, res) => {
     const combosStock = db.prepare(`
       SELECT id, name, category, icon, stock, weight_kg
       FROM combos
-      WHERE is_active = 1
+      WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'
       ORDER BY created_at ASC
     `).all();
 
@@ -82,15 +177,27 @@ const getDepartmentBatchStats = (req, res) => {
 };
 
 /**
- * 2. Listado de dependencias / direcciones con conteo de trabajadores y estado de hoy
+ * 2. Listado de dependencias / direcciones y entes con conteo de trabajadores y estado de hoy
  */
-const listDepartmentsWithStats = (req, res) => {
+const listDepartmentsWithStats = async (req, res) => {
   try {
+    // En arranque en frío serverless, asegurar hidratación inicial si hay menos de 100 trabajadores locales
+    const localCount = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active'").get()?.c || 0;
+    if (localCount < 100 && cloudHydrationPromise) {
+      await Promise.race([
+        cloudHydrationPromise,
+        new Promise((resolve) => setTimeout(resolve, 4000))
+      ]);
+    }
+
     const today = new Date().toISOString().split('T')[0];
 
-    const depts = db.prepare(`
+    // A. Dependencias / Unidades de Adscripción con trabajadores activos (> 0)
+    const realDepts = db.prepare(`
       SELECT 
         d.id, d.code, d.name, d.cost_center,
+        0 as is_ente_group,
+        '' as ente,
         COUNT(DISTINCT w.id) as total_workers,
         COUNT(DISTINCT CASE WHEN e.status = 'pending' THEN w.id END) as pending_workers_today,
         COUNT(DISTINCT CASE WHEN e.status = 'claimed' THEN w.id END) as claimed_workers_today,
@@ -100,11 +207,56 @@ const listDepartmentsWithStats = (req, res) => {
           WHERE bo.department_id = d.id AND bo.status IN ('pending_review', 'approved')
         ) as active_orders_count
       FROM departments d
-      LEFT JOIN workers w ON w.department_id = d.id AND w.status = 'active'
+      INNER JOIN workers w ON w.department_id = d.id AND w.status = 'active'
       LEFT JOIN daily_entitlements e ON e.worker_id = w.id AND date(e.valid_date) = date(?)
+      WHERE d.id NOT LIKE 'ente:%'
       GROUP BY d.id
-      ORDER BY total_workers DESC, d.name ASC
+      HAVING COUNT(DISTINCT w.id) > 0
     `).all(today);
+
+    // B. Entes Institucionales cuyos trabajadores tienen Unidad de Adscripción vacía (department_id IS NULL)
+    const enteGroupsRaw = db.prepare(`
+      SELECT
+        COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI') as ente_name,
+        COUNT(DISTINCT w.id) as total_workers,
+        COUNT(DISTINCT CASE WHEN e.status = 'pending' THEN w.id END) as pending_workers_today,
+        COUNT(DISTINCT CASE WHEN e.status = 'claimed' THEN w.id END) as claimed_workers_today
+      FROM workers w
+      LEFT JOIN daily_entitlements e ON e.worker_id = w.id AND date(e.valid_date) = date(?)
+      WHERE w.status = 'active'
+        AND (w.department_id IS NULL OR TRIM(w.department_id) = '')
+      GROUP BY ente_name
+      HAVING COUNT(DISTINCT w.id) > 0
+    `).all(today);
+
+    const enteGroups = enteGroupsRaw.map(g => {
+      const scope = resolveBatchScope(`${ENTE_SCOPE_PREFIX}${g.ente_name}`);
+      const activeOrdersCount = db.prepare(`
+        SELECT COUNT(*) as cnt
+        FROM department_batch_orders
+        WHERE department_id = ? AND status IN ('pending_review', 'approved')
+      `).get(scope.id)?.cnt || 0;
+
+      return {
+        id: scope.id,
+        code: scope.code,
+        name: scope.name,
+        cost_center: 'CC-ENTE',
+        is_ente_group: 1,
+        ente: g.ente_name,
+        total_workers: g.total_workers,
+        pending_workers_today: g.pending_workers_today,
+        claimed_workers_today: g.claimed_workers_today,
+        active_orders_count: activeOrdersCount
+      };
+    });
+
+    const depts = [...realDepts, ...enteGroups].sort((a, b) => {
+      if ((b.total_workers || 0) !== (a.total_workers || 0)) {
+        return (b.total_workers || 0) - (a.total_workers || 0);
+      }
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    });
 
     return res.json({
       success: true,
@@ -118,21 +270,26 @@ const listDepartmentsWithStats = (req, res) => {
 };
 
 /**
- * 3. Listado nominal de beneficiarios adscritos a una dependencia
+ * 3. Listado nominal de beneficiarios adscritos a una dependencia o Ente sin unidad
  */
 const getDepartmentBeneficiaries = (req, res) => {
   try {
-    const { id } = req.params;
+    const id = decodeURIComponent(req.params.id || '');
     const today = new Date().toISOString().split('T')[0];
 
-    const dept = db.prepare("SELECT id, code, name FROM departments WHERE id = ?").get(id);
-    if (!dept) {
+    const scope = resolveBatchScope(id);
+    if (!scope) {
       return res.status(404).json({ error: 'Dependencia o Dirección no encontrada' });
     }
 
+    const scopeFilter = scope.isEnte
+      ? `COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI') = ? AND (w.department_id IS NULL OR TRIM(w.department_id) = '') AND w.status = 'active'`
+      : `w.department_id = ? AND w.status = 'active'`;
+    const scopeParam = scope.isEnte ? scope.enteName : scope.id;
+
     const workers = db.prepare(`
       SELECT 
-        w.id, w.document_id, w.full_name, w.email, w.worker_type, w.job_title, w.role,
+        w.id, w.document_id, w.full_name, w.email, w.ente, w.worker_type, w.job_title, w.role,
         CASE 
           WHEN EXISTS (
             SELECT 1 FROM daily_entitlements e 
@@ -152,13 +309,13 @@ const getDepartmentBeneficiaries = (req, res) => {
           LIMIT 1
         ) as batch_order_id
       FROM workers w
-      WHERE w.department_id = ? AND w.status = 'active'
+      WHERE ${scopeFilter}
       ORDER BY w.full_name ASC
-    `).all(today, today, id);
+    `).all(today, today, today, scopeParam);
 
     return res.json({
       success: true,
-      department: dept,
+      department: scope,
       total_workers: workers.length,
       workers
     });
@@ -238,10 +395,11 @@ const createBatchOrder = (req, res) => {
       return res.status(400).json({ error: 'Debe indicar los datos del Delegado Receptor acreditado (Nombre y Cédula)' });
     }
 
-    const dept = db.prepare("SELECT id, name, code FROM departments WHERE id = ?").get(department_id);
+    const dept = resolveBatchScope(department_id);
     if (!dept) {
       return res.status(404).json({ error: 'Dependencia no encontrada en el sistema' });
     }
+    ensureEnteUmbrellaDepartment(dept);
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -250,7 +408,7 @@ const createBatchOrder = (req, res) => {
       SELECT id, order_number, status 
       FROM department_batch_orders 
       WHERE department_id = ? AND status IN ('pending_review', 'approved')
-    `).get(department_id);
+    `).get(dept.id);
 
     if (activeOrder) {
       return res.status(409).json({
@@ -258,12 +416,8 @@ const createBatchOrder = (req, res) => {
       });
     }
 
-    // 1. Obtener trabajadores activos de la dependencia
-    const activeWorkers = db.prepare(`
-      SELECT id, document_id, full_name 
-      FROM workers 
-      WHERE department_id = ? AND status = 'active'
-    `).all(department_id);
+    // 1. Obtener trabajadores activos de la dependencia o Ente sin unidad
+    const activeWorkers = getActiveWorkersByScope(dept.id, 'id, document_id, full_name');
 
     if (!activeWorkers || activeWorkers.length === 0) {
       return res.status(400).json({ error: 'La dependencia seleccionada no tiene funcionarios activos registrados.' });
@@ -271,8 +425,8 @@ const createBatchOrder = (req, res) => {
 
     // 2. Asegurar y consultar entitlements para hoy
     const activeCombos = combo_id 
-      ? db.prepare("SELECT id, name, weight_kg FROM combos WHERE id = ? AND is_active = 1").all(combo_id)
-      : db.prepare("SELECT id, name, weight_kg FROM combos WHERE is_active = 1 ORDER BY created_at ASC").all();
+      ? db.prepare("SELECT id, name, weight_kg FROM combos WHERE id = ? AND is_active = 1 AND name NOT LIKE '__SYSTEM_%'").all(combo_id)
+      : db.prepare("SELECT id, name, weight_kg FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%' ORDER BY created_at ASC").all();
 
     if (!activeCombos || activeCombos.length === 0) {
       return res.status(400).json({ error: 'No se encontraron combos alimenticios activos en el catálogo.' });
@@ -488,12 +642,8 @@ const dispatchBatchOrder = async (req, res) => {
 
     const dispatchedBy = (req.user && req.user.id) || null;
 
-    // 2. Obtener trabajadores de la dependencia y sus entitlements pendientes
-    const activeWorkers = db.prepare(`
-      SELECT id, document_id, full_name, worker_type 
-      FROM workers 
-      WHERE department_id = ? AND status = 'active'
-    `).all(order.department_id);
+    // 2. Obtener trabajadores de la dependencia (o Ente sin unidad) y sus entitlements pendientes
+    const activeWorkers = getActiveWorkersByScope(order.department_id, 'id, document_id, full_name, worker_type');
 
     const checkDelivery = db.prepare("SELECT id FROM deliveries WHERE worker_id = ? AND entitlement_id = ?");
     const eligibleDeliveries = [];

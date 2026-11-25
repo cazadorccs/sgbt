@@ -63,16 +63,19 @@
       if (btnCancelCreate) btnCancelCreate.addEventListener('click', () => this.closeCreateModal());
 
       const createForm = document.getElementById('createBatchOrderForm');
-      if (createForm) {
+      if (createForm && !createForm._hasBatchListener) {
+        createForm._hasBatchListener = true;
         createForm.addEventListener('submit', (e) => this.submitCreateOrder(e));
       }
 
       const deptSelect = document.getElementById('createBatchDeptSelect');
-      if (deptSelect) {
+      if (deptSelect && !deptSelect._hasBatchListener) {
+        deptSelect._hasBatchListener = true;
         deptSelect.addEventListener('change', () => this.updateCreateProjection());
       }
       const comboSelect = document.getElementById('createBatchComboSelect');
-      if (comboSelect) {
+      if (comboSelect && !comboSelect._hasBatchListener) {
+        comboSelect._hasBatchListener = true;
         comboSelect.addEventListener('change', () => this.updateCreateProjection());
       }
 
@@ -121,6 +124,18 @@
           this.closeDispatchModal();
         } else if (e.target.closest('#btnCloseBatchActaModal, #btnCloseBatchActaModalBtn')) {
           this.closeActaModal();
+        }
+      });
+
+      document.addEventListener('change', (e) => {
+        if (e.target && (e.target.id === 'createBatchDeptSelect' || e.target.id === 'createBatchComboSelect') && !e.target._hasBatchListener) {
+          this.updateCreateProjection();
+        }
+      });
+
+      document.addEventListener('submit', (e) => {
+        if (e.target && e.target.id === 'createBatchOrderForm' && !e.target._hasBatchListener) {
+          this.submitCreateOrder(e);
         }
       });
 
@@ -400,32 +415,57 @@
       const modal = document.getElementById('createDepartmentBatchModalBackdrop');
       if (!modal) return;
 
-      // Cargar lista de dependencias si aún no se tiene
-      if (this.departments.length === 0) {
-        await this.loadDepartments();
-      }
-
+      // Mostrar modal de inmediato con indicador de carga y refrescar dependencias reales
       const deptSelect = document.getElementById('createBatchDeptSelect');
       if (deptSelect) {
-        deptSelect.innerHTML = '<option value="">Seleccione una Dependencia...</option>' +
-          this.departments.map(d => `<option value="${d.id}">${window.escapeHtml(d.name)} (${d.total_workers} funcionarios)</option>`).join('');
-      }
-
-      // Cargar combos
-      const comboSelect = document.getElementById('createBatchComboSelect');
-      if (comboSelect) {
-        comboSelect.innerHTML = '<option value="">Todos los Combos Activos de la Jornada</option>' +
-          this.combos.map(c => `<option value="${c.id}">${c.icon || '📦'} ${window.escapeHtml(c.name)} (${c.weight_kg || 14} kg)</option>`).join('');
+        deptSelect.innerHTML = '<option value="">Cargando dependencias y entes con personal activo...</option>';
       }
 
       // Resetear campos
-      document.getElementById('createBatchDelegateName').value = '';
-      document.getElementById('createBatchDelegateDoc').value = '';
-      document.getElementById('createBatchDelegatePhone').value = '';
-      document.getElementById('createBatchNotes').value = '';
-      document.getElementById('createBatchSummaryBox').style.display = 'none';
+      const delName = document.getElementById('createBatchDelegateName');
+      const delDoc = document.getElementById('createBatchDelegateDoc');
+      const delPhone = document.getElementById('createBatchDelegatePhone');
+      const notesEl = document.getElementById('createBatchNotes');
+      const summaryBox = document.getElementById('createBatchSummaryBox');
+      if (delName) delName.value = '';
+      if (delDoc) delDoc.value = '';
+      if (delPhone) delPhone.value = '';
+      if (notesEl) notesEl.value = '';
+      if (summaryBox) summaryBox.style.display = 'none';
 
       modal.classList.add('active');
+
+      // Refrescar catálogo de combos (si aún no está cargado) y dependencias en vivo
+      const tasks = [this.loadDepartments()];
+      if (!this.combos || this.combos.length === 0) {
+        tasks.push(this.loadStats());
+      }
+      await Promise.all(tasks);
+
+      if (deptSelect) {
+        const unitDepts = this.departments.filter(d => !d.is_ente_group && (d.total_workers || 0) > 0);
+        const enteGroups = this.departments.filter(d => d.is_ente_group && (d.total_workers || 0) > 0);
+
+        let optionsHtml = '<option value="">Seleccione una Dependencia o Ente...</option>';
+        if (unitDepts.length > 0) {
+          optionsHtml += '<optgroup label="🏢 Direcciones y Unidades de Adscripción">' +
+            unitDepts.map(d => `<option value="${window.escapeHtml(d.id)}">${window.escapeHtml(d.name)} (${d.total_workers} funcionarios)</option>`).join('') +
+            '</optgroup>';
+        }
+        if (enteGroups.length > 0) {
+          optionsHtml += '<optgroup label="🏛️ Entes Institucionales (Personal adscrito por Ente)">' +
+            enteGroups.map(d => `<option value="${window.escapeHtml(d.id)}">${window.escapeHtml(d.ente || d.name)} — ${d.total_workers} beneficiarios</option>`).join('') +
+            '</optgroup>';
+        }
+        deptSelect.innerHTML = optionsHtml;
+      }
+
+      // Cargar combos activos
+      const comboSelect = document.getElementById('createBatchComboSelect');
+      if (comboSelect) {
+        comboSelect.innerHTML = '<option value="">Todos los Combos Activos de la Jornada</option>' +
+          this.combos.map(c => `<option value="${window.escapeHtml(c.id)}">${c.icon || '📦'} ${window.escapeHtml(c.name)} (${c.weight_kg || 14} kg)</option>`).join('');
+      }
     },
 
     closeCreateModal: function() {
@@ -434,9 +474,9 @@
     },
 
     /**
-     * Actualiza proyección en vivo de beneficiarios y combos al seleccionar dependencia
+     * Actualiza proyección en vivo de beneficiarios, combos e integrantes al seleccionar dependencia/ente
      */
-    updateCreateProjection: function() {
+    updateCreateProjection: async function() {
       const deptId = document.getElementById('createBatchDeptSelect')?.value;
       const summaryBox = document.getElementById('createBatchSummaryBox');
       if (!deptId) {
@@ -450,13 +490,15 @@
       const workersCount = dept.total_workers || 0;
       const comboId = document.getElementById('createBatchComboSelect')?.value;
 
-      let combosPerWorker = 2; // Víveres + Proteico por defecto
-      let avgWeightPerWorker = 28.5;
+      let combosPerWorker = Math.max(1, (this.combos || []).length);
+      let avgWeightPerWorker = (this.combos && this.combos.length > 0)
+        ? this.combos.reduce((acc, item) => acc + (Number(item.weight_kg) || 14), 0)
+        : 14.5;
 
       if (comboId) {
         const c = this.combos.find(item => item.id === comboId);
         combosPerWorker = 1;
-        avgWeightPerWorker = c ? (c.weight_kg || 14) : 14;
+        avgWeightPerWorker = c ? (Number(c.weight_kg) || 14) : 14;
       }
 
       const totalCombos = workersCount * combosPerWorker;
@@ -471,6 +513,55 @@
       if (elKg) elKg.textContent = `${totalWeight} kg`;
 
       if (summaryBox) summaryBox.style.display = 'block';
+
+      await this.loadDepartmentMembersPreview(deptId);
+    },
+
+    /**
+     * Carga la lista nominal de integrantes de la dependencia o Ente seleccionado en el modal
+     */
+    loadDepartmentMembersPreview: async function(deptId) {
+      const listEl = document.getElementById('createBatchMembersList');
+      const countBadge = document.getElementById('createBatchMembersCountBadge');
+      if (!listEl) return;
+
+      this._activeMembersFetchScope = deptId;
+      if (countBadge) countBadge.textContent = 'Consultando integrantes...';
+      listEl.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 0.45rem;">Cargando nómina de la dependencia...</div>';
+
+      try {
+        const res = await API.get(`/api/v1/department-batches/departments/${encodeURIComponent(deptId)}/beneficiaries`);
+        if (this._activeMembersFetchScope !== deptId) return;
+
+        const workers = (res && res.success && Array.isArray(res.workers)) ? res.workers : [];
+        if (countBadge) countBadge.textContent = `${workers.length} integrante(s) activo(s)`;
+
+        if (workers.length === 0) {
+          listEl.innerHTML = '<div style="color: #fca5a5; text-align: center; padding: 0.45rem;">No hay funcionarios activos en esta selección.</div>';
+          return;
+        }
+
+        listEl.innerHTML = workers.map((w, idx) => {
+          let stBadge = '<span style="color:#38bdf8;">Pendiente</span>';
+          if (w.daily_status === 'claimed') stBadge = '<span style="color:#34d399;">Entregado</span>';
+          const sub = [w.ente || 'MIPPCI', w.job_title || w.worker_type].filter(Boolean).join(' · ');
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; background:rgba(15,23,42,0.55); border:1px solid rgba(148,163,184,0.12); border-radius:6px; padding:0.3rem 0.5rem;">
+              <div style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <span style="color:#64748b; font-size:0.65rem;">${idx + 1}.</span>
+                <strong style="color:#e2e8f0;">${window.escapeHtml(w.full_name)}</strong>
+                <span style="color:#94a3b8; font-family:monospace;">(${window.escapeHtml(w.document_id)})</span>
+                ${sub ? `<span style="color:#64748b; font-size:0.66rem;"> · ${window.escapeHtml(sub)}</span>` : ''}
+              </div>
+              <div style="flex-shrink:0; font-size:0.66rem; font-weight:700;">${stBadge}</div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        if (this._activeMembersFetchScope !== deptId) return;
+        if (countBadge) countBadge.textContent = 'Error consultando';
+        listEl.innerHTML = `<div style="color:#fca5a5; padding:0.4rem;">Error cargando integrantes: ${window.escapeHtml(e.message || 'Error de red')}</div>`;
+      }
     },
 
     /**
