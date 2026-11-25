@@ -6,8 +6,60 @@
 
 const crypto = require('crypto');
 const { db, cloudHydrationPromise } = require('../db');
+const { isSupabaseConfigured } = require('../supabase');
 const { notifyDeliveryStream } = require('../services/sse.service');
 const { enqueueEvent } = require('../services/outbox.service');
+const { persistDeliveries, syncBatchOrdersFromCloud, syncBatchOrdersToCloud } = require('../services/cloud_sync.service');
+
+/**
+ * Garantiza que la tabla local de lotes departamentales esté hidratada desde Supabase Cloud
+ * en entornos serverless multi-contenedor.
+ */
+async function ensureBatchHydrated(forceCloudSync = false) {
+  try {
+    const localOrdersCount = db.prepare('SELECT COUNT(*) as c FROM department_batch_orders').get()?.c || 0;
+    if (localOrdersCount === 0 && cloudHydrationPromise) {
+      await Promise.race([
+        cloudHydrationPromise,
+        new Promise((resolve) => setTimeout(resolve, 2500))
+      ]);
+    }
+    if ((forceCloudSync || localOrdersCount === 0) && isSupabaseConfigured()) {
+      await Promise.race([
+        syncBatchOrdersFromCloud(db),
+        new Promise((resolve) => setTimeout(resolve, 3500))
+      ]);
+    }
+  } catch (e) {}
+}
+
+/**
+ * Consulta una orden de lote por ID o token con LEFT JOIN resiliente para Entes (`ente:*`).
+ */
+function findBatchOrderWithDetails({ id = null, delegateToken = null }) {
+  const baseSql = `
+    SELECT 
+      bo.*,
+      COALESCE(d.name, REPLACE(bo.department_id, 'ente:', '')) as department_name,
+      COALESCE(d.code, 'ENTE') as department_code,
+      COALESCE(d.cost_center, 'CC-ENTE') as cost_center,
+      w_req.full_name as requested_by_name, w_req.document_id as requested_by_doc,
+      w_rev.full_name as reviewed_by_name, w_rev.document_id as reviewed_by_doc,
+      w_disp.full_name as dispatched_by_name, w_disp.document_id as dispatched_by_doc
+    FROM department_batch_orders bo
+    LEFT JOIN departments d ON bo.department_id = d.id
+    LEFT JOIN workers w_req ON bo.requested_by = w_req.id
+    LEFT JOIN workers w_rev ON bo.reviewed_by = w_rev.id
+    LEFT JOIN workers w_disp ON bo.dispatched_by = w_disp.id
+  `;
+  if (id) {
+    return db.prepare(`${baseSql} WHERE bo.id = ?`).get(id);
+  }
+  if (delegateToken) {
+    return db.prepare(`${baseSql} WHERE bo.delegate_claim_token = ?`).get(String(delegateToken).trim());
+  }
+  return null;
+}
 
 const ENTE_SCOPE_PREFIX = 'ente:';
 const DEMO_WORKERS_EXCLUDE = "('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
@@ -121,8 +173,9 @@ function logBatchActivity(action, payload, details = {}, req = {}) {
 /**
  * 1. Métricas generales del módulo de entregas masivas
  */
-const getDepartmentBatchStats = (req, res) => {
+const getDepartmentBatchStats = async (req, res) => {
   try {
+    await ensureBatchHydrated();
     const today = new Date().toISOString().split('T')[0];
 
     const totalRealDepts = db.prepare(`
@@ -329,20 +382,23 @@ const getDepartmentBeneficiaries = (req, res) => {
 /**
  * 4. Listado de órdenes de entrega masiva (con filtros por estado)
  */
-const listBatchOrders = (req, res) => {
+const listBatchOrders = async (req, res) => {
   try {
+    await ensureBatchHydrated(isSupabaseConfigured());
     const { status, department_id } = req.query;
 
     let query = `
       SELECT 
         bo.*,
-        d.name as department_name, d.code as department_code, d.cost_center,
+        COALESCE(d.name, REPLACE(bo.department_id, 'ente:', '')) as department_name,
+        COALESCE(d.code, 'ENTE') as department_code,
+        COALESCE(d.cost_center, 'CC-ENTE') as cost_center,
         c.name as combo_name, c.icon as combo_icon,
         w_req.full_name as requested_by_name,
         w_rev.full_name as reviewed_by_name,
         w_disp.full_name as dispatched_by_name
       FROM department_batch_orders bo
-      JOIN departments d ON bo.department_id = d.id
+      LEFT JOIN departments d ON bo.department_id = d.id
       LEFT JOIN combos c ON bo.combo_id = c.id
       LEFT JOIN workers w_req ON bo.requested_by = w_req.id
       LEFT JOIN workers w_rev ON bo.reviewed_by = w_rev.id
@@ -378,8 +434,9 @@ const listBatchOrders = (req, res) => {
 /**
  * 5. Crear solicitud de lote departamental (Stage 1: Solicitud de Lote)
  */
-const createBatchOrder = (req, res) => {
+const createBatchOrder = async (req, res) => {
   try {
+    await ensureBatchHydrated(isSupabaseConfigured());
     const {
       department_id,
       combo_id,
@@ -506,6 +563,9 @@ const createBatchOrder = (req, res) => {
       totalCombos: totalCombosToDeliver
     }, req);
 
+    // Respaldo garantizado en Supabase Cloud para multi-instancia Vercel Serverless
+    await syncBatchOrdersToCloud(db).catch(() => {});
+
     console.log(`📋 [BATCH ORDER CREATED] Orden ${orderNumber} para ${dept.name} (${eligibleWorkers.length} beneficiarios, ${totalCombosToDeliver} combos)`);
 
     return res.status(201).json({
@@ -533,7 +593,7 @@ const createBatchOrder = (req, res) => {
 /**
  * 6. Revisar y autorizar lote departamental (Stage 2: Revisión RRHH)
  */
-const reviewBatchOrder = (req, res) => {
+const reviewBatchOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const { action, review_notes } = req.body;
@@ -542,12 +602,12 @@ const reviewBatchOrder = (req, res) => {
       return res.status(400).json({ error: 'Acción de revisión no válida. Valores permitidos: "approve" o "reject"' });
     }
 
-    const order = db.prepare(`
-      SELECT bo.*, d.name as department_name
-      FROM department_batch_orders bo
-      JOIN departments d ON bo.department_id = d.id
-      WHERE bo.id = ?
-    `).get(id);
+    await ensureBatchHydrated();
+    let order = findBatchOrderWithDetails({ id });
+    if (!order && isSupabaseConfigured()) {
+      await syncBatchOrdersFromCloud(db);
+      order = findBatchOrderWithDetails({ id });
+    }
 
     if (!order) {
       return res.status(404).json({ error: 'Orden de lote departamental no encontrada' });
@@ -562,11 +622,19 @@ const reviewBatchOrder = (req, res) => {
     const reviewerId = (req.user && req.user.id) || null;
     const newStatus = action === 'approve' ? 'approved' : 'rejected';
 
-    db.prepare(`
+    const updateRes = db.prepare(`
       UPDATE department_batch_orders
       SET status = ?, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, review_notes = ?
-      WHERE id = ?
+      WHERE id = ? AND status = 'pending_review'
     `).run(newStatus, reviewerId, review_notes ? review_notes.trim() : null, id);
+
+    if (!updateRes || updateRes.changes === 0) {
+      return res.status(409).json({
+        error: `La orden ${order.order_number} cambió de estado concurrentemente. Recargue e intente nuevamente.`
+      });
+    }
+
+    await syncBatchOrdersToCloud(db).catch(() => {});
 
     logBatchActivity(action === 'approve' ? 'ORDER_APPROVED' : 'ORDER_REJECTED', { id, orderNumber: order.order_number }, {
       reviewerId,
@@ -597,23 +665,13 @@ const reviewBatchOrder = (req, res) => {
 const dispatchBatchOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { delegate_token, distribution_point_id, notes } = req.body;
+    const { delegate_token, distribution_point_id } = req.body;
 
-    let order = null;
-    if (id) {
-      order = db.prepare(`
-        SELECT bo.*, d.name as department_name, d.code as department_code
-        FROM department_batch_orders bo
-        JOIN departments d ON bo.department_id = d.id
-        WHERE bo.id = ?
-      `).get(id);
-    } else if (delegate_token) {
-      order = db.prepare(`
-        SELECT bo.*, d.name as department_name, d.code as department_code
-        FROM department_batch_orders bo
-        JOIN departments d ON bo.department_id = d.id
-        WHERE bo.delegate_claim_token = ?
-      `).get(delegate_token.trim());
+    await ensureBatchHydrated();
+    let order = findBatchOrderWithDetails({ id, delegateToken: delegate_token });
+    if (!order && isSupabaseConfigured()) {
+      await syncBatchOrdersFromCloud(db);
+      order = findBatchOrderWithDetails({ id, delegateToken: delegate_token });
     }
 
     if (!order) {
@@ -643,8 +701,26 @@ const dispatchBatchOrder = async (req, res) => {
 
     const dispatchedBy = (req.user && req.user.id) || null;
 
-    // 2. Obtener trabajadores de la dependencia (o Ente sin unidad) y sus entitlements pendientes
+    // 2. Obtener trabajadores de la dependencia (o Ente) y asegurar derechos en contenedor serverless si no existen aún
     const activeWorkers = getActiveWorkersByScope(order.department_id, 'id, document_id, full_name, worker_type');
+    const dispatchCombos = order.combo_id
+      ? db.prepare("SELECT id FROM combos WHERE id = ? AND is_active = 1 AND name NOT LIKE '__SYSTEM_%'").all(order.combo_id)
+      : db.prepare("SELECT id FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%' ORDER BY created_at ASC").all();
+
+    if (activeWorkers.length > 0 && dispatchCombos.length > 0) {
+      const insEnt = db.prepare(`
+        INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+        VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
+      `);
+      const prepEntTx = db.transaction(() => {
+        for (const w of activeWorkers) {
+          for (const c of dispatchCombos) {
+            insEnt.run(crypto.randomUUID(), w.id, c.id, today);
+          }
+        }
+      });
+      prepEntTx();
+    }
 
     const checkDelivery = db.prepare("SELECT id FROM deliveries WHERE worker_id = ? AND entitlement_id = ?");
     const eligibleDeliveries = [];
@@ -834,9 +910,8 @@ const dispatchBatchOrder = async (req, res) => {
 
     tx();
 
-    // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT
+    // Persistencia Criptográfica en la Nube (Supabase Cloud) con AWAIT para entregas y orden despachada
     try {
-      const { persistDeliveries } = require('../services/cloud_sync.service');
       const deliveriesToPersist = nominalBeneficiaries.map(nb => ({
         id: nb.delivery_id,
         entitlement_id: nb.entitlement_id,
@@ -848,7 +923,10 @@ const dispatchBatchOrder = async (req, res) => {
         combo_id: nb.combo_id,
         delivered_at: nowIso
       }));
-      await persistDeliveries(deliveriesToPersist);
+      await Promise.all([
+        persistDeliveries(deliveriesToPersist),
+        syncBatchOrdersToCloud(db)
+      ]);
     } catch (cloudErr) {
       console.warn('[BATCH DISPATCH CLOUD PERSIST WARN]', cloudErr.message);
     }
@@ -894,24 +972,16 @@ const dispatchBatchOrder = async (req, res) => {
 /**
  * 8. Consulta y descarga de Acta Digital Oficial con firma SHA-256
  */
-const getBatchOrderActa = (req, res) => {
+const getBatchOrderActa = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const order = db.prepare(`
-      SELECT 
-        bo.*,
-        d.name as department_name, d.code as department_code, d.cost_center,
-        w_req.full_name as requested_by_name, w_req.document_id as requested_by_doc,
-        w_rev.full_name as reviewed_by_name, w_rev.document_id as reviewed_by_doc,
-        w_disp.full_name as dispatched_by_name, w_disp.document_id as dispatched_by_doc
-      FROM department_batch_orders bo
-      JOIN departments d ON bo.department_id = d.id
-      LEFT JOIN workers w_req ON bo.requested_by = w_req.id
-      LEFT JOIN workers w_rev ON bo.reviewed_by = w_rev.id
-      LEFT JOIN workers w_disp ON bo.dispatched_by = w_disp.id
-      WHERE bo.id = ?
-    `).get(id);
+    await ensureBatchHydrated();
+    let order = findBatchOrderWithDetails({ id });
+    if (!order && isSupabaseConfigured()) {
+      await syncBatchOrdersFromCloud(db);
+      order = findBatchOrderWithDetails({ id });
+    }
 
     if (!order) {
       return res.status(404).json({ error: 'Orden de lote no encontrada' });
@@ -923,7 +993,7 @@ const getBatchOrderActa = (req, res) => {
     } catch (e) {}
 
     // Consultar todos los beneficiarios incluidos en el acta
-    const beneficiaries = db.prepare(`
+    let beneficiaries = db.prepare(`
       SELECT w.id, w.document_id, w.full_name, w.worker_type, w.job_title, del.delivered_at, del.id as delivery_id, c.name as combo_name
       FROM deliveries del
       JOIN workers w ON del.worker_id = w.id
@@ -932,6 +1002,10 @@ const getBatchOrderActa = (req, res) => {
       WHERE del.batch_order_id = ?
       ORDER BY w.full_name ASC
     `).all(id);
+
+    if ((!beneficiaries || beneficiaries.length === 0) && parsedActa && Array.isArray(parsedActa.deliveries_sample)) {
+      beneficiaries = parsedActa.deliveries_sample;
+    }
 
     return res.json({
       success: true,

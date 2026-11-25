@@ -2,103 +2,99 @@
 // MODULE: ADMIN PORTAL, GOVERNANCE, AUDIT LOG & SECURITY DOSSIER
 // ============================================================================
 
+let portalRefreshInFlight = null;
+
 window.refreshPortalData = async function() {
   if (window.API && !window.API.hasToken()) return;
-  try {
-    // 1. KPIs
-    const kpiData = await API.get('/api/v1/admin/kpis?_t=' + Date.now());
-    const { kpis, alerts } = kpiData;
+  if (portalRefreshInFlight) return portalRefreshInFlight;
 
-    const elTotalWorkers = document.getElementById('kpiTotalWorkers');
-    const elAssignedToday = document.getElementById('kpiAssignedToday');
-    const elClaimedRatio = document.getElementById('kpiClaimedRatio');
-    const elPasskeyAdoption = document.getElementById('kpiPasskeyAdoption');
-    const elPasskeyCount = document.getElementById('kpiPasskeyCount');
-    const elOfflinePct = document.getElementById('kpiOfflinePct');
+  portalRefreshInFlight = (async () => {
+    try {
+      // 1. KPIs críticos del tablero
+      const kpiData = await API.get('/api/v1/admin/kpis?_t=' + Date.now(), { timeout: 25000 });
+      const { kpis, alerts } = kpiData;
 
-    if (elTotalWorkers) elTotalWorkers.textContent = kpis.total_active_workers;
-    if (elAssignedToday) elAssignedToday.textContent = kpis.combos_assigned_today;
-    if (elClaimedRatio) elClaimedRatio.textContent = `${kpis.combos_claimed_today} entregados hoy (${kpis.pending_today} pendientes)`;
-    if (elPasskeyAdoption) elPasskeyAdoption.textContent = `${kpis.passkey_adoption_rate_pct}%`;
-    if (elPasskeyCount) elPasskeyCount.textContent = `${kpis.workers_with_passkey} credenciales activas`;
-    if (elOfflinePct) elOfflinePct.textContent = `${kpis.offline_sync_pct}%`;
+      const elTotalWorkers = document.getElementById('kpiTotalWorkers');
+      const elAssignedToday = document.getElementById('kpiAssignedToday');
+      const elClaimedRatio = document.getElementById('kpiClaimedRatio');
+      const elPasskeyAdoption = document.getElementById('kpiPasskeyAdoption');
+      const elPasskeyCount = document.getElementById('kpiPasskeyCount');
+      const elOfflinePct = document.getElementById('kpiOfflinePct');
 
-    // Barras de progreso de verificación
-    const totalDel = kpis.combos_claimed_today || 1;
-    const b = kpis.verification_breakdown || { passkey_qr: 0, nfc_card: 0, supervisor_override: 0 };
-    const passkeyPct = Math.round((b.passkey_qr / totalDel) * 100) || 0;
-    const nfcPct = Math.round((b.nfc_card / totalDel) * 100) || 0;
-    const supPct = Math.round((b.supervisor_override / totalDel) * 100) || 0;
+      if (elTotalWorkers) elTotalWorkers.textContent = kpis.total_active_workers;
+      if (elAssignedToday) elAssignedToday.textContent = kpis.combos_assigned_today;
+      if (elClaimedRatio) elClaimedRatio.textContent = `${kpis.combos_claimed_today} entregados hoy (${kpis.pending_today} pendientes)`;
+      if (elPasskeyAdoption) elPasskeyAdoption.textContent = `${kpis.passkey_adoption_rate_pct}%`;
+      if (elPasskeyCount) elPasskeyCount.textContent = `${kpis.workers_with_passkey} credenciales activas`;
+      if (elOfflinePct) elOfflinePct.textContent = `${kpis.offline_sync_pct}%`;
 
-    const barCountPasskey = document.getElementById('barCountPasskey');
-    const barFillPasskey = document.getElementById('barFillPasskey');
-    const barCountNfc = document.getElementById('barCountNfc');
-    const barFillNfc = document.getElementById('barFillNfc');
-    const barCountSupervisor = document.getElementById('barCountSupervisor');
-    const barFillSupervisor = document.getElementById('barFillSupervisor');
+      // Barras de progreso de verificación
+      const totalDel = kpis.combos_claimed_today || 1;
+      const b = kpis.verification_breakdown || { passkey_qr: 0, nfc_card: 0, supervisor_override: 0 };
+      const passkeyPct = Math.round((b.passkey_qr / totalDel) * 100) || 0;
+      const nfcPct = Math.round((b.nfc_card / totalDel) * 100) || 0;
+      const supPct = Math.round((b.supervisor_override / totalDel) * 100) || 0;
 
-    if (barCountPasskey) barCountPasskey.textContent = `${b.passkey_qr} entregas (${passkeyPct}%)`;
-    if (barFillPasskey) barFillPasskey.style.width = `${passkeyPct}%`;
-    if (barCountNfc) barCountNfc.textContent = `${b.nfc_card} entregas (${nfcPct}%)`;
-    if (barFillNfc) barFillNfc.style.width = `${nfcPct}%`;
-    if (barCountSupervisor) barCountSupervisor.textContent = `${b.supervisor_override} entregas (${supPct}%)`;
-    if (barFillSupervisor) barFillSupervisor.style.width = `${supPct}%`;
+      const barCountPasskey = document.getElementById('barCountPasskey');
+      const barFillPasskey = document.getElementById('barFillPasskey');
+      const barCountNfc = document.getElementById('barCountNfc');
+      const barFillNfc = document.getElementById('barFillNfc');
+      const barCountSupervisor = document.getElementById('barCountSupervisor');
+      const barFillSupervisor = document.getElementById('barFillSupervisor');
 
-    // Alertas
-    const alertsContainer = document.getElementById('dashboardAlertsList');
-    if (alertsContainer && alerts) {
-      alertsContainer.innerHTML = '';
-      alerts.forEach(a => {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert-box alert-${a.type === 'warning' ? 'warning' : a.type === 'danger' ? 'danger' : 'info'}`;
-        alertDiv.innerHTML = `
-          <div>
-            <strong>${a.title}</strong>
-            <p style="font-size: 0.75rem; margin-top: 0.2rem;">${a.message}</p>
-            <span style="font-size: 0.65rem; opacity: 0.7;">${a.timestamp}</span>
-          </div>
-        `;
-        alertsContainer.appendChild(alertDiv);
-      });
+      if (barCountPasskey) barCountPasskey.textContent = `${b.passkey_qr} entregas (${passkeyPct}%)`;
+      if (barFillPasskey) barFillPasskey.style.width = `${passkeyPct}%`;
+      if (barCountNfc) barCountNfc.textContent = `${b.nfc_card} entregas (${nfcPct}%)`;
+      if (barFillNfc) barFillNfc.style.width = `${nfcPct}%`;
+      if (barCountSupervisor) barCountSupervisor.textContent = `${b.supervisor_override} entregas (${supPct}%)`;
+      if (barFillSupervisor) barFillSupervisor.style.width = `${supPct}%`;
+
+      // Alertas
+      const alertsContainer = document.getElementById('dashboardAlertsList');
+      if (alertsContainer && alerts) {
+        alertsContainer.innerHTML = '';
+        alerts.forEach(a => {
+          const alertDiv = document.createElement('div');
+          alertDiv.className = `alert-box alert-${a.type === 'warning' ? 'warning' : a.type === 'danger' ? 'danger' : 'info'}`;
+          alertDiv.innerHTML = `
+            <div>
+              <strong>${a.title}</strong>
+              <p style="font-size: 0.75rem; margin-top: 0.2rem;">${a.message}</p>
+              <span style="font-size: 0.65rem; opacity: 0.7;">${a.timestamp}</span>
+            </div>
+          `;
+          alertsContainer.appendChild(alertDiv);
+        });
+      }
+
+      // 2. Cargas del resto de submódulos en paralelo no bloqueante
+      const bgTasks = [
+        loadWorkersDirectory(),
+        typeof loadCombosCatalog === 'function' ? loadCombosCatalog() : Promise.resolve(),
+        typeof loadCampaigns === 'function' ? loadCampaigns() : Promise.resolve(),
+        typeof loadTenantSettings === 'function' ? loadTenantSettings() : Promise.resolve(),
+        typeof loadNotifications === 'function' ? loadNotifications() : Promise.resolve(),
+        loadAuditStats(),
+        loadAuditDeliveries(),
+        (window.DepartmentBatches && typeof window.DepartmentBatches.loadData === 'function')
+          ? window.DepartmentBatches.loadData()
+          : Promise.resolve(),
+        (window.MinisterialAudit && typeof window.MinisterialAudit.loadData === 'function')
+          ? window.MinisterialAudit.loadData()
+          : Promise.resolve(),
+        (typeof window.loadManualDispatchStats === 'function')
+          ? window.loadManualDispatchStats()
+          : Promise.resolve()
+      ];
+      await Promise.allSettled(bgTasks);
+    } catch (err) {
+      console.error('Error cargando datos del portal:', err);
+    } finally {
+      portalRefreshInFlight = null;
     }
+  })();
 
-    // 2. Directorio de Trabajadores
-    await loadWorkersDirectory();
-
-    // 3. Catálogo de Combos
-    if (typeof loadCombosCatalog === 'function') await loadCombosCatalog();
-
-    // 4. Planificación de Jornadas de Despacho
-    if (typeof loadCampaigns === 'function') await loadCampaigns();
-
-    // 5. Configuración Institucional y Marca
-    if (typeof loadTenantSettings === 'function') await loadTenantSettings();
-
-    // 6. Notificaciones y Avisos de Jornadas
-    if (typeof loadNotifications === 'function') await loadNotifications();
-
-    // 7. Auditoría de Entregas & Estadísticas por Jornada
-    await loadAuditStats();
-    await loadAuditDeliveries();
-
-    // 8. Lotes Departamentales Institucionales (Fase 4)
-    if (window.DepartmentBatches && typeof window.DepartmentBatches.loadData === 'function') {
-      await window.DepartmentBatches.loadData();
-    }
-
-    // 9. Monitor de Formalización Previa y Auditoría Ministerial (Fase 5)
-    if (window.MinisterialAudit && typeof window.MinisterialAudit.loadData === 'function') {
-      await window.MinisterialAudit.loadData();
-    }
-
-    // 10. Resumen de Despacho Manual en Vivo (Combos Entregados / Pendientes Hoy)
-    if (typeof window.loadManualDispatchStats === 'function') {
-      window.loadManualDispatchStats().catch(() => {});
-    }
-
-  } catch (err) {
-    console.error('Error cargando datos del portal:', err);
-  }
+  return portalRefreshInFlight;
 };
 
 let currentWorkersPage = 1;

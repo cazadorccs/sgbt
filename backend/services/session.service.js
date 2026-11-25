@@ -119,6 +119,9 @@ function createDeviceSession({ workerId, role, scope, documentId, deviceId, devi
   };
 }
 
+const sessionActivityThrottle = new Map();
+const SESSION_ACTIVITY_THROTTLE_MS = 120000;
+
 /**
  * Valida la sesión activa en base de datos y actualiza el timestamp de última actividad
  */
@@ -158,12 +161,17 @@ function validateAndUpdateDeviceSession(jti, incomingDeviceId = null) {
       }
     }
 
-    // Actualizar última actividad periódicamente (con throttle)
-    db.prepare(`
-      UPDATE user_device_sessions
-      SET last_active_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(jti);
+    // Actualizar última actividad periódicamente (con throttle real de 2 minutos para evitar I/O WASM en cada GET)
+    const nowMs = Date.now();
+    const lastUpdatedMs = sessionActivityThrottle.get(jti) || 0;
+    if (nowMs - lastUpdatedMs >= SESSION_ACTIVITY_THROTTLE_MS) {
+      sessionActivityThrottle.set(jti, nowMs);
+      db.prepare(`
+        UPDATE user_device_sessions
+        SET last_active_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).run(jti);
+    }
 
     return { valid: true, session };
   } catch (err) {

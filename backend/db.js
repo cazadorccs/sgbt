@@ -87,12 +87,14 @@ const db = {
         }
         const changes = rawDb.getRowsModified();
         let lastInsertRowid = 0;
-        try {
-          const res = rawDb.exec('SELECT last_insert_rowid() as id');
-          if (res.length && res[0].values.length) {
-            lastInsertRowid = res[0].values[0][0];
-          }
-        } catch (e) {}
+        if (/^\s*INSERT\b/i.test(sql)) {
+          try {
+            const res = rawDb.exec('SELECT last_insert_rowid() as id');
+            if (res.length && res[0].values.length) {
+              lastInsertRowid = res[0].values[0][0];
+            }
+          } catch (e) {}
+        }
 
         // Persistir copia en /tmp en Vercel (programada de forma debounced para no bloquear el CPU)
         if (isVercel && rawDb) {
@@ -587,6 +589,7 @@ function initializeDatabase() {
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_ente ON workers(ente);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_department ON workers(department_id);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_deliveries_delivered_at ON deliveries(delivered_at);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_worker_date ON daily_entitlements(worker_id, valid_date);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_combo ON daily_entitlements(combo_id);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_passkey_credentials_worker ON passkey_credentials(worker_id, status);"); } catch (e) {}
@@ -843,9 +846,12 @@ function seedDatabase(force = false) {
   // 1. Departamentos
   if (productionSeed && Array.isArray(productionSeed.departments)) {
     const insertDept = db.prepare('INSERT OR IGNORE INTO departments (id, code, name, cost_center) VALUES (?, ?, ?, ?)');
-    for (const d of productionSeed.departments) {
-      insertDept.run(d.id, d.code, d.name, d.cost_center || null);
-    }
+    const seedDeptsTx = db.transaction((depts) => {
+      for (const d of depts) {
+        insertDept.run(d.id, d.code, d.name, d.cost_center || null);
+      }
+    });
+    seedDeptsTx(productionSeed.departments);
   } else {
     let deptGestionHumana = db.prepare("SELECT id FROM departments WHERE code = 'DGGH_01'").get()?.id;
     if (!deptGestionHumana) {
@@ -890,12 +896,15 @@ function seedDatabase(force = false) {
 
   if (productionSeed && Array.isArray(productionSeed.combos)) {
     const insertCombo = db.prepare('INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active, items_detail, icon, mesa_number, mesa_name, conservation, target_qty, weight_kg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const c of productionSeed.combos) {
-      insertCombo.run(
-        c.id, c.name, c.description, c.category || 'bolsa_viveres', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ?? 1,
-        c.items_detail || '', c.icon || '🍱', c.mesa_number || 1, c.mesa_name || '', c.conservation || 'Ambiente', c.target_qty || '1', c.weight_kg || 14.0
-      );
-    }
+    const seedCombosTx = db.transaction((combosList) => {
+      for (const c of combosList) {
+        insertCombo.run(
+          c.id, c.name, c.description, c.category || 'bolsa_viveres', c.calories || 0, c.dietary_info || 'Estándar', c.is_active ?? 1,
+          c.items_detail || '', c.icon || '🍱', c.mesa_number || 1, c.mesa_name || '', c.conservation || 'Ambiente', c.target_qty || '1', c.weight_kg || 14.0
+        );
+      }
+    });
+    seedCombosTx(productionSeed.combos);
   } else {
     const insertCombo = db.prepare('INSERT OR IGNORE INTO combos (id, name, description, category, calories, dietary_info, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)');
     insertCombo.run(comboViveres, 'Bolsa de Víveres Secos (12 rubros)', 'Harina de maíz, arroz, pasta, caraotas negras, aceite comestible, azúcar, leche en polvo', 'bolsa_viveres', 12000, 'Alimentos no perecederos', 1);
@@ -1018,19 +1027,22 @@ function seedDatabase(force = false) {
     const allActiveWorkers = db.prepare("SELECT id, shift FROM workers WHERE status = 'active'").all();
     const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get() || { id: comboViveres };
     const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get() || { id: comboProteico };
+    const existingPairs = new Set(
+      db.prepare("SELECT worker_id, shift FROM daily_entitlements WHERE valid_date = ?").all(today)
+        .map(r => `${r.worker_id}|${r.shift}`)
+    );
 
-    for (const w of allActiveWorkers) {
-      // Estación 1: Bulto Víveres Secos
-      const ex1 = db.prepare("SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? AND shift = 'estacion_1'").get(w.id, today);
-      if (!ex1) {
-        insertEntitlement.run(crypto.randomUUID(), w.id, vCombo.id, today, 'estacion_1', 'pending');
+    const seedEntTx = db.transaction((workersList) => {
+      for (const w of workersList) {
+        if (!existingPairs.has(`${w.id}|estacion_1`)) {
+          insertEntitlement.run(crypto.randomUUID(), w.id, vCombo.id, today, 'estacion_1', 'pending');
+        }
+        if (!existingPairs.has(`${w.id}|estacion_2`)) {
+          insertEntitlement.run(crypto.randomUUID(), w.id, pCombo.id, today, 'estacion_2', 'pending');
+        }
       }
-      // Estación 2: Combo Proteico Fresco (Cadena de Frío)
-      const ex2 = db.prepare("SELECT id FROM daily_entitlements WHERE worker_id = ? AND valid_date = ? AND shift = 'estacion_2'").get(w.id, today);
-      if (!ex2) {
-        insertEntitlement.run(crypto.randomUUID(), w.id, pCombo.id, today, 'estacion_2', 'pending');
-      }
-    }
+    });
+    seedEntTx(allActiveWorkers);
   } catch (entErr) {
     console.warn('[DB SEED] Aviso asignando derechos diarios por estaciones:', entErr.message);
   }
@@ -1273,9 +1285,9 @@ async function syncFromSupabase() {
 
         const remoteCombos = rawRemoteCombos.filter(r =>
           r.id !== 'c0000000-ca11-4000-8000-000000000001' &&
-          r.name !== '__SYSTEM_CAMPAIGNS_STORE__' &&
+          r.id !== 'c0000000-ca11-4000-8000-000000000003' &&
           r.id !== SYNC_WORKERS_META_STORE_UUID &&
-          r.name !== '__SYSTEM_WORKERS_ENTE_STORE__'
+          !String(r.name || '').startsWith('__SYSTEM_')
         );
         const remoteIds = new Set(remoteCombos.map(r => r.id));
         const localCombos = db.prepare("SELECT id FROM combos WHERE name NOT LIKE '__SYSTEM_%'").all();
@@ -1509,30 +1521,40 @@ async function syncFromSupabase() {
           verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
-      for (const d of remoteDeliveries) {
-        try {
-          insertRemoteDelivery.run(
-            d.id,
-            d.entitlement_id,
-            d.worker_id,
-            d.distribution_point_id,
-            d.delivered_by_user_id,
-            d.verification_method || 'passkey_qr',
-            d.signature_proof,
-            d.challenge_nonce,
-            d.is_offline_sync ? 1 : 0,
-            d.delivered_at,
-            d.campaign_id
-          );
+      const markClaimedStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+      const txDeliveries = db.transaction((delList) => {
+        for (const d of delList) {
+          try {
+            insertRemoteDelivery.run(
+              d.id,
+              d.entitlement_id,
+              d.worker_id,
+              d.distribution_point_id,
+              d.delivered_by_user_id,
+              d.verification_method || 'passkey_qr',
+              d.signature_proof,
+              d.challenge_nonce,
+              d.is_offline_sync ? 1 : 0,
+              d.delivered_at,
+              d.campaign_id
+            );
 
-          if (d.entitlement_id) {
-            try {
-              db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?").run(d.entitlement_id);
-            } catch (e) {}
-          }
-        } catch (e) {}
-      }
+            if (d.entitlement_id) {
+              markClaimedStmt.run(d.entitlement_id);
+            }
+          } catch (e) {}
+        }
+      });
+      txDeliveries(remoteDeliveries);
       console.log(`[SUPABASE HYDRATION] ${remoteDeliveries.length} entregas sincronizadas desde Supabase Cloud.`);
+    }
+
+    // Hidratar órdenes de lotes departamentales desde Supabase Cloud
+    try {
+      const { syncBatchOrdersFromCloud } = require('./services/cloud_sync.service');
+      await syncBatchOrdersFromCloud(db);
+    } catch (batchHydErr) {
+      console.warn('[SUPABASE HYDRATION WARN] Lotes departamentales:', batchHydErr.message);
     }
 
     // Saneamiento estricto anti-simulaciones:

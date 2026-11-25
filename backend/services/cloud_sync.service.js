@@ -43,6 +43,14 @@ const circuitBreaker = {
 
 const DEFAULT_DISTRIBUTION_POINT_ID = '5b0f10e3-7eac-4872-bf96-74ecd359be7e'; // Almacén Central - Sótano 1
 const DEFAULT_COMBO_ID = 'c1a2b3c4-1111-2222-3333-444455556666'; // Canasta Básica MIPPCI
+const SYNC_BATCH_ORDERS_STORE_UUID = 'c0000000-ca11-4000-8000-000000000003';
+const SYNC_BATCH_ORDERS_STORE_NAME = '__SYSTEM_BATCH_ORDERS_STORE__';
+const BATCH_STATUS_RANK = {
+  pending_review: 1,
+  approved: 3,
+  rejected: 3,
+  dispatched: 4
+};
 
 /**
  * Persiste la formalización de un beneficiario (foto, teléfono y hash de contraseña)
@@ -315,12 +323,268 @@ async function clearDeliveriesInCloud() {
   }
 }
 
+/**
+ * Resuelve deterministamente qué copia de una orden de lote departamental prevalece
+ * entre dos contenedores serverless según rango de estado y marca de tiempo.
+ */
+function resolveBatchOrderWinner(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  const rankA = BATCH_STATUS_RANK[a.status] || 0;
+  const rankB = BATCH_STATUS_RANK[b.status] || 0;
+  if (rankA !== rankB) return rankA > rankB ? a : b;
+
+  const tsA = Date.parse(a.dispatched_at || a.reviewed_at || a.requested_at || 0) || 0;
+  const tsB = Date.parse(b.dispatched_at || b.reviewed_at || b.requested_at || 0) || 0;
+  return tsA >= tsB ? a : b;
+}
+
+/**
+ * Compacta `digital_acta_data` para almacenamiento ligero en el store JSON de la nube.
+ */
+function compactActaDataForStore(rawActa) {
+  if (!rawActa) return null;
+  try {
+    const parsed = typeof rawActa === 'string' ? JSON.parse(rawActa) : rawActa;
+    if (parsed && Array.isArray(parsed.deliveries_sample) && parsed.deliveries_sample.length > 25) {
+      parsed.deliveries_sample = parsed.deliveries_sample.slice(0, 25);
+    }
+    return JSON.stringify(parsed);
+  } catch (e) {
+    return typeof rawActa === 'string' ? rawActa : null;
+  }
+}
+
+/**
+ * Garantiza departamentos paraguas (`ente:*`) y aplica órdenes ganadoras en SQLite local.
+ */
+function applyBatchSnapshotToLocalDb(dbInstance, orders = [], umbrellaDepartments = []) {
+  if (!dbInstance) return 0;
+
+  const ensureDept = dbInstance.prepare(`
+    INSERT OR IGNORE INTO departments (id, code, name, cost_center)
+    VALUES (?, ?, ?, ?)
+  `);
+  const upsertOrder = dbInstance.prepare(`
+    INSERT INTO department_batch_orders (
+      id, order_number, department_id, combo_id, total_beneficiaries, total_combos,
+      total_weight_kg, delegate_name, delegate_document_id, delegate_phone,
+      delegate_claim_token, status, requested_by, requested_at, reviewed_by,
+      reviewed_at, review_notes, dispatched_by, dispatched_at,
+      digital_acta_hash, digital_acta_data
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      status = excluded.status,
+      total_beneficiaries = excluded.total_beneficiaries,
+      total_combos = excluded.total_combos,
+      total_weight_kg = excluded.total_weight_kg,
+      reviewed_by = COALESCE(excluded.reviewed_by, department_batch_orders.reviewed_by),
+      reviewed_at = COALESCE(excluded.reviewed_at, department_batch_orders.reviewed_at),
+      review_notes = COALESCE(excluded.review_notes, department_batch_orders.review_notes),
+      dispatched_by = COALESCE(excluded.dispatched_by, department_batch_orders.dispatched_by),
+      dispatched_at = COALESCE(excluded.dispatched_at, department_batch_orders.dispatched_at),
+      digital_acta_hash = COALESCE(excluded.digital_acta_hash, department_batch_orders.digital_acta_hash),
+      digital_acta_data = COALESCE(excluded.digital_acta_data, department_batch_orders.digital_acta_data)
+  `);
+  const getLocalById = dbInstance.prepare('SELECT * FROM department_batch_orders WHERE id = ?');
+
+  let applied = 0;
+  const tx = dbInstance.transaction(() => {
+    for (const u of umbrellaDepartments) {
+      if (!u || !u.id) continue;
+      ensureDept.run(u.id, u.code || 'ENTE_GROUP', u.name || u.id, u.cost_center || 'CC-ENTE');
+    }
+
+    for (const remote of orders) {
+      if (!remote || !remote.id || !remote.department_id) continue;
+      if (String(remote.department_id).startsWith('ente:')) {
+        const enteName = String(remote.department_id).slice(5).trim();
+        const safeCode = 'ENTE_' + enteName
+          .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^A-Z0-9]+/gi, '_').replace(/^_+|_+$/g, '').toUpperCase().slice(0, 24);
+        ensureDept.run(remote.department_id, safeCode || 'ENTE_GROUP', enteName || remote.department_id, 'CC-ENTE');
+      }
+
+      const local = getLocalById.get(remote.id);
+      const winner = resolveBatchOrderWinner(local, remote);
+      if (local && winner === local) continue;
+
+      try {
+        upsertOrder.run(
+          remote.id,
+          remote.order_number,
+          remote.department_id,
+          remote.combo_id || null,
+          remote.total_beneficiaries || 0,
+          remote.total_combos || 0,
+          remote.total_weight_kg || 0,
+          remote.delegate_name,
+          remote.delegate_document_id,
+          remote.delegate_phone || null,
+          remote.delegate_claim_token || null,
+          remote.status || 'pending_review',
+          remote.requested_by || null,
+          remote.requested_at || new Date().toISOString(),
+          remote.reviewed_by || null,
+          remote.reviewed_at || null,
+          remote.review_notes || null,
+          remote.dispatched_by || null,
+          remote.dispatched_at || null,
+          remote.digital_acta_hash || null,
+          remote.digital_acta_data || null
+        );
+        applied++;
+      } catch (e) {
+        // Ignorar si FK de usuario/combo difiere; intentar sin reviewed_by/requested_by/dispatched_by
+        try {
+          upsertOrder.run(
+            remote.id, remote.order_number, remote.department_id, null,
+            remote.total_beneficiaries || 0, remote.total_combos || 0, remote.total_weight_kg || 0,
+            remote.delegate_name, remote.delegate_document_id, remote.delegate_phone || null,
+            remote.delegate_claim_token || null, remote.status || 'pending_review',
+            null, remote.requested_at || new Date().toISOString(), null, remote.reviewed_at || null,
+            remote.review_notes || null, null, remote.dispatched_at || null,
+            remote.digital_acta_hash || null, remote.digital_acta_data || null
+          );
+          applied++;
+        } catch (innerErr) {}
+      }
+    }
+  });
+  tx();
+  return applied;
+}
+
+/**
+ * Hidrata órdenes de lotes departamentales desde Supabase Cloud hacia SQLite local.
+ */
+async function syncBatchOrdersFromCloud(dbInstance) {
+  if (!dbInstance || !isSupabaseConfigured() || !supabase) return false;
+  if (!circuitBreaker.canAttempt()) return false;
+
+  try {
+    const { data, error } = await supabase
+      .from('combos')
+      .select('description')
+      .eq('id', SYNC_BATCH_ORDERS_STORE_UUID)
+      .maybeSingle();
+
+    if (error) {
+      circuitBreaker.recordFailure(error.message);
+      return false;
+    }
+
+    circuitBreaker.recordSuccess();
+    if (!data || !data.description) return true;
+
+    const parsed = JSON.parse(data.description);
+    if (!parsed || !Array.isArray(parsed.orders)) return true;
+
+    const applied = applyBatchSnapshotToLocalDb(
+      dbInstance,
+      parsed.orders,
+      Array.isArray(parsed.umbrella_departments) ? parsed.umbrella_departments : []
+    );
+    if (applied > 0) {
+      console.log(`[SUPABASE HYDRATION] ${applied} orden(es) de lotes departamentales sincronizadas desde Supabase Cloud.`);
+    }
+    return true;
+  } catch (err) {
+    circuitBreaker.recordFailure(err.message);
+    console.warn('[BATCH CLOUD HYDRATION WARN]', err.message);
+    return false;
+  }
+}
+
+/**
+ * Persiste órdenes de lotes departamentales en Supabase Cloud con merge idempotente multi-contenedor.
+ */
+async function syncBatchOrdersToCloud(dbInstance) {
+  if (!dbInstance || !isSupabaseConfigured() || !supabase) return false;
+  if (!circuitBreaker.canAttempt()) return false;
+
+  try {
+    let remoteOrders = [];
+    let remoteUmbrella = [];
+    try {
+      const { data, error } = await supabase
+        .from('combos')
+        .select('description')
+        .eq('id', SYNC_BATCH_ORDERS_STORE_UUID)
+        .maybeSingle();
+      if (!error && data && data.description) {
+        const parsed = JSON.parse(data.description);
+        if (Array.isArray(parsed?.orders)) remoteOrders = parsed.orders;
+        if (Array.isArray(parsed?.umbrella_departments)) remoteUmbrella = parsed.umbrella_departments;
+      }
+    } catch (readErr) {}
+
+    const localOrders = dbInstance.prepare('SELECT * FROM department_batch_orders ORDER BY requested_at DESC LIMIT 200').all();
+    const localUmbrella = dbInstance.prepare("SELECT id, code, name, cost_center FROM departments WHERE id LIKE 'ente:%'").all();
+
+    const mergedMap = new Map();
+    for (const r of remoteOrders) {
+      if (r && r.id) mergedMap.set(r.id, r);
+    }
+    for (const l of localOrders) {
+      if (!l || !l.id) continue;
+      const existing = mergedMap.get(l.id);
+      const winner = resolveBatchOrderWinner(existing, l);
+      mergedMap.set(l.id, {
+        ...winner,
+        digital_acta_data: compactActaDataForStore(winner.digital_acta_data)
+      });
+    }
+
+    const umbrellaMap = new Map();
+    for (const u of [...remoteUmbrella, ...localUmbrella]) {
+      if (u && u.id) umbrellaMap.set(u.id, u);
+    }
+
+    const finalOrders = Array.from(mergedMap.values()).slice(0, 200);
+    const finalUmbrella = Array.from(umbrellaMap.values());
+
+    // Aplicar también cualquier actualización remota faltante hacia SQLite local
+    applyBatchSnapshotToLocalDb(dbInstance, finalOrders, finalUmbrella);
+
+    const { error: upErr } = await supabase.from('combos').upsert({
+      id: SYNC_BATCH_ORDERS_STORE_UUID,
+      name: SYNC_BATCH_ORDERS_STORE_NAME,
+      category: 'bolsa_viveres',
+      description: JSON.stringify({
+        version: 1,
+        updated_at: new Date().toISOString(),
+        orders: finalOrders,
+        umbrella_departments: finalUmbrella
+      }),
+      calories: 0,
+      dietary_info: 'Cloud Department Batch Orders Store',
+      is_active: false
+    }, { onConflict: 'id' });
+
+    if (upErr) {
+      circuitBreaker.recordFailure(upErr.message);
+      console.warn('[BATCH CLOUD PERSIST WARN]', upErr.message);
+      return false;
+    }
+
+    circuitBreaker.recordSuccess();
+    return true;
+  } catch (err) {
+    circuitBreaker.recordFailure(err.message);
+    console.warn('[BATCH CLOUD PERSIST ERROR]', err.message);
+    return false;
+  }
+}
+
 module.exports = {
   persistWorkerFormalization,
   persistPasskey,
   persistDeliveries,
   persistNfcCard,
   revokeNfcCard,
-  clearDeliveriesInCloud
+  clearDeliveriesInCloud,
+  syncBatchOrdersFromCloud,
+  syncBatchOrdersToCloud
 };
 

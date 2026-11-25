@@ -7,6 +7,7 @@
 class CacheService {
   constructor() {
     this.memoryStore = new Map();
+    this.inflight = new Map();
     this.hits = 0;
     this.misses = 0;
     this.engine = 'memory';
@@ -235,11 +236,24 @@ class CacheService {
       return cached;
     }
 
-    const fresh = await fetcherFn();
-    if (fresh !== undefined && fresh !== null) {
-      await this.set(key, fresh, ttlSeconds);
+    if (this.inflight.has(key)) {
+      return this.inflight.get(key);
     }
-    return fresh;
+
+    const promise = (async () => {
+      try {
+        const fresh = await fetcherFn();
+        if (fresh !== undefined && fresh !== null) {
+          await this.set(key, fresh, ttlSeconds);
+        }
+        return fresh;
+      } finally {
+        this.inflight.delete(key);
+      }
+    })();
+
+    this.inflight.set(key, promise);
+    return promise;
   }
 
   /**

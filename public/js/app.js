@@ -152,9 +152,11 @@ function navigateTo(viewId) {
       const manualBtn = document.querySelector('.portal-subtab[data-subtab="subtab-manual-dispatch"]') || document.querySelector('.portal-subtab[data-subtab="subtab-dashboard"]');
       if (manualBtn) manualBtn.click();
     }
-    if (typeof refreshPortalData === 'function') refreshPortalData();
-    if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
-      window.ManualDispatch.loadTodaySummary();
+    if (!window._sgbtBootstrappingPortal) {
+      if (typeof refreshPortalData === 'function') refreshPortalData();
+      if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+        window.ManualDispatch.loadTodaySummary();
+      }
     }
   } else if (viewId === 'view-distributor') {
     if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
@@ -603,14 +605,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (typeof setupDelegationModal === 'function') setupDelegationModal();
 
   // 6. Restauración de sesión y Deep links (Prioritario para definir contexto de autorización)
+  window._sgbtBootstrappingPortal = true;
   if (typeof checkAuthSession === 'function') checkAuthSession();
   if (typeof handleUrlDeepLinks === 'function') handleUrlDeepLinks();
+  window._sgbtBootstrappingPortal = false;
 
   // 7. Carga de configuración pública y sincronización offline
   if (typeof loadTenantSettings === 'function') await loadTenantSettings();
   if (typeof downloadDailyPack === 'function') await downloadDailyPack();
 
-  // 8. Refresco del portal administrativo ÚNICAMENTE si existe sesión administrativa activa
+  // 8. Refresco único del portal administrativo si existe sesión administrativa activa
   if (window.API && window.API.hasToken()) {
     const user = STATE.currentUser;
     const viewMode = sessionStorage.getItem('sgbt_session_view_mode') || localStorage.getItem('sgbt_session_view_mode');

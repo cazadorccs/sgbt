@@ -86,7 +86,7 @@ const getKpis = async (req, res) => {
 
         const eligibleCampWorkers = db.prepare(`SELECT COUNT(*) as c FROM workers WHERE ${campWorkersCond}`).get()?.c || totalWorkers;
         const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
-        const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1);
+        const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1);
         totalEntitlementsToday = eligibleCampWorkers * activeCombosCount;
       } else if (claimedEntitlementsToday > 0) {
         totalEntitlementsToday = claimedEntitlementsToday;
@@ -1071,7 +1071,7 @@ function getActiveAssignedCountToday() {
 
   const eligibleWorkers = db.prepare(`SELECT COUNT(*) as count FROM workers WHERE ${campWorkersCond}`).get()?.count || totalWorkers;
   const campCombos = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
-  const activeCombos = campCombos > 0 ? campCombos : (db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.count || 1);
+  const activeCombos = campCombos > 0 ? campCombos : (db.prepare("SELECT COUNT(*) as count FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.count || 1);
   return eligibleWorkers * activeCombos;
 }
 
