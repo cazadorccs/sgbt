@@ -213,7 +213,12 @@ function initializeDatabase() {
     INSERT OR IGNORE INTO operadores_puesto_autorizados (id, document_id, full_name, mesa, role, status) VALUES
       ('op-001', 'V-11111111', 'Operador Mesa 1', 'Mesa 1', 'operator', 'active'),
       ('op-002', 'V-22222222', 'Operador Mesa 2', 'Mesa 2', 'operator', 'active'),
-      ('op-003', 'V-33333333', 'Operador Mesa 3', 'Mesa 3', 'operator', 'active');
+      ('op-003', 'V-33333333', 'Operador Mesa 3', 'Mesa 3', 'operator', 'active'),
+      ('op-004', 'V-26466743', 'Operador Mesa 4', 'Mesa 4', 'operator', 'active'),
+      ('op-005', 'V-26497327', 'Operador Mesa 5', 'Mesa 5', 'operator', 'active'),
+      ('op-006', 'V-18598974', 'Operador Mesa 6', 'Mesa 6', 'operator', 'active'),
+      ('op-007', 'V-25516345', 'Operador Mesa 7', 'Mesa 7', 'operator', 'active');
+    UPDATE workers SET role = 'operator' WHERE document_id IN ('V-26466743', 'V-26497327', 'V-18598974', 'V-25516345');
 
     -- 3. CREDENCIALES PASSKEY (FIDO2 / WEBAUTHN - ECDSA P-256)
     CREATE TABLE IF NOT EXISTS passkey_credentials (
