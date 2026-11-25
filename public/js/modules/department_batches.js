@@ -12,6 +12,8 @@
     departments: [],
     entes: [],
     combos: [],
+    currentDepartmentMembers: [],
+    selectedDelegate: null,
     currentOrderInReview: null,
     currentOrderInDispatch: null,
 
@@ -129,8 +131,21 @@
       });
 
       document.addEventListener('change', (e) => {
-        if (e.target && (e.target.id === 'createBatchDeptSelect' || e.target.id === 'createBatchComboSelect') && !e.target._hasBatchListener) {
+        if (!e.target) return;
+        if (e.target.id === 'createBatchDeptSelect' && !e.target._hasBatchListener) {
           this.updateCreateProjection();
+        } else if (e.target.classList && e.target.classList.contains('batch-delegate-checkbox')) {
+          const workerId = e.target.getAttribute('data-worker-id') || '';
+          this.selectDelegateById(e.target.checked ? workerId : '');
+        }
+      });
+
+      document.addEventListener('input', (e) => {
+        if (!e.target) return;
+        if (e.target.id === 'createBatchDeptSearch') {
+          this.renderEnteSelectOptions(e.target.value);
+        } else if (e.target.id === 'createBatchMemberSearch') {
+          this.renderDepartmentMembersList(e.target.value);
         }
       });
 
@@ -151,11 +166,6 @@
         if (deptSelect && !deptSelect._hasBatchListener) {
           deptSelect._hasBatchListener = true;
           deptSelect.addEventListener('change', () => this.updateCreateProjection());
-        }
-        const comboSelect = document.getElementById('createBatchComboSelect');
-        if (comboSelect && !comboSelect._hasBatchListener) {
-          comboSelect._hasBatchListener = true;
-          comboSelect.addEventListener('change', () => this.updateCreateProjection());
         }
       });
     },
@@ -417,47 +427,71 @@
       const modal = document.getElementById('createDepartmentBatchModalBackdrop');
       if (!modal) return;
 
-      // Mostrar modal de inmediato con indicador de carga y refrescar dependencias reales
       const deptSelect = document.getElementById('createBatchDeptSelect');
+      const deptSearch = document.getElementById('createBatchDeptSearch');
+      const memberSearch = document.getElementById('createBatchMemberSearch');
       if (deptSelect) {
-        deptSelect.innerHTML = '<option value="">Cargando dependencias y entes con personal activo...</option>';
+        deptSelect.innerHTML = '<option value="">Cargando Entes con personal activo...</option>';
       }
+      if (deptSearch) deptSearch.value = '';
+      if (memberSearch) memberSearch.value = '';
 
-      // Resetear campos
-      const delName = document.getElementById('createBatchDelegateName');
-      const delDoc = document.getElementById('createBatchDelegateDoc');
-      const delPhone = document.getElementById('createBatchDelegatePhone');
+      // Resetear campos y selección de delegado
+      this.currentDepartmentMembers = [];
+      this.selectDelegateById('');
       const notesEl = document.getElementById('createBatchNotes');
       const summaryBox = document.getElementById('createBatchSummaryBox');
-      if (delName) delName.value = '';
-      if (delDoc) delDoc.value = '';
-      if (delPhone) delPhone.value = '';
       if (notesEl) notesEl.value = '';
       if (summaryBox) summaryBox.style.display = 'none';
 
       modal.classList.add('active');
 
-      // Refrescar catálogo de combos (si aún no está cargado) y dependencias en vivo
+      // Refrescar catálogo de combos (si aún no está cargado) y Entes en vivo
       const tasks = [this.loadDepartments()];
       if (!this.combos || this.combos.length === 0) {
         tasks.push(this.loadStats());
       }
       await Promise.all(tasks);
 
-      if (deptSelect) {
-        const enteGroups = (this.entes && this.entes.length > 0)
-          ? this.entes.filter(e => (e.total_workers || 0) > 0)
-          : this.departments.filter(d => d.is_ente_group && (d.total_workers || 0) > 0);
+      this.renderEnteSelectOptions('');
+    },
 
-        deptSelect.innerHTML = '<option value="">Seleccione un Ente...</option>' +
-          enteGroups.map(e => `<option value="${window.escapeHtml(e.id)}">${window.escapeHtml(e.ente || e.name)} (${e.total_workers} beneficiarios)</option>`).join('');
+    /**
+     * Renderiza las opciones del select dinámico de Entes según el término de búsqueda
+     */
+    renderEnteSelectOptions: function(searchTerm = '') {
+      const deptSelect = document.getElementById('createBatchDeptSelect');
+      if (!deptSelect) return;
+
+      const allEntes = (this.entes && this.entes.length > 0)
+        ? this.entes.filter(e => (e.total_workers || 0) > 0)
+        : this.departments.filter(d => d.is_ente_group && (d.total_workers || 0) > 0);
+
+      const q = String(searchTerm || '').trim().toLowerCase();
+      const filtered = q
+        ? allEntes.filter(e => String(e.ente || e.name || '').toLowerCase().includes(q))
+        : allEntes;
+
+      const prevValue = deptSelect.value;
+
+      if (filtered.length === 0) {
+        deptSelect.innerHTML = '<option value="">Sin Entes coincidentes...</option>';
+        deptSelect.value = '';
+        this.updateCreateProjection();
+        return;
       }
 
-      // Cargar combos activos
-      const comboSelect = document.getElementById('createBatchComboSelect');
-      if (comboSelect) {
-        comboSelect.innerHTML = '<option value="">Todos los Combos Activos de la Jornada</option>' +
-          this.combos.map(c => `<option value="${window.escapeHtml(c.id)}">${c.icon || '📦'} ${window.escapeHtml(c.name)} (${c.weight_kg || 14} kg)</option>`).join('');
+      deptSelect.innerHTML = (filtered.length > 1 || !q ? '<option value="">Seleccione un Ente...</option>' : '') +
+        filtered.map(e => `<option value="${window.escapeHtml(e.id)}">${window.escapeHtml(e.ente || e.name)} (${e.total_workers} beneficiarios)</option>`).join('');
+
+      if (q && filtered.length === 1) {
+        deptSelect.value = filtered[0].id;
+        this.updateCreateProjection();
+      } else if (prevValue && filtered.some(e => e.id === prevValue)) {
+        deptSelect.value = prevValue;
+      } else if (prevValue && !filtered.some(e => e.id === prevValue)) {
+        deptSelect.value = '';
+        this.updateCreateProjection();
       }
     },
 
@@ -467,11 +501,16 @@
     },
 
     /**
-     * Actualiza proyección en vivo de beneficiarios, combos e integrantes al seleccionar dependencia/ente
+     * Actualiza proyección en vivo de beneficiarios, combos e integrantes al seleccionar Ente
      */
     updateCreateProjection: async function() {
       const deptId = document.getElementById('createBatchDeptSelect')?.value;
       const summaryBox = document.getElementById('createBatchSummaryBox');
+      this.selectDelegateById('');
+      this.currentDepartmentMembers = [];
+      const memberSearch = document.getElementById('createBatchMemberSearch');
+      if (memberSearch) memberSearch.value = '';
+
       if (!deptId) {
         if (summaryBox) summaryBox.style.display = 'none';
         return;
@@ -481,18 +520,10 @@
       if (!dept) return;
 
       const workersCount = dept.total_workers || 0;
-      const comboId = document.getElementById('createBatchComboSelect')?.value;
-
-      let combosPerWorker = Math.max(1, (this.combos || []).length);
-      let avgWeightPerWorker = (this.combos && this.combos.length > 0)
+      const combosPerWorker = Math.max(1, (this.combos || []).length);
+      const avgWeightPerWorker = (this.combos && this.combos.length > 0)
         ? this.combos.reduce((acc, item) => acc + (Number(item.weight_kg) || 14), 0)
         : 14.5;
-
-      if (comboId) {
-        const c = this.combos.find(item => item.id === comboId);
-        combosPerWorker = 1;
-        avgWeightPerWorker = c ? (Number(c.weight_kg) || 14) : 14;
-      }
 
       const totalCombos = workersCount * combosPerWorker;
       const totalWeight = Math.round(workersCount * avgWeightPerWorker);
@@ -511,7 +542,7 @@
     },
 
     /**
-     * Carga la lista nominal de integrantes de la dependencia o Ente seleccionado en el modal
+     * Carga la lista nominal de integrantes del Ente seleccionado para escoger Delegado mediante check
      */
     loadDepartmentMembersPreview: async function(deptId) {
       const listEl = document.getElementById('createBatchMembersList');
@@ -520,40 +551,137 @@
 
       this._activeMembersFetchScope = deptId;
       if (countBadge) countBadge.textContent = 'Consultando integrantes...';
-      listEl.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 0.45rem;">Cargando nómina de la dependencia...</div>';
+      listEl.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 0.45rem;">Cargando nómina del Ente...</div>';
 
       try {
         const res = await API.get(`/api/v1/department-batches/departments/${encodeURIComponent(deptId)}/beneficiaries`);
         if (this._activeMembersFetchScope !== deptId) return;
 
         const workers = (res && res.success && Array.isArray(res.workers)) ? res.workers : [];
-        if (countBadge) countBadge.textContent = `${workers.length} integrante(s) activo(s)`;
+        this.currentDepartmentMembers = workers;
+        this.renderDepartmentMembersList(document.getElementById('createBatchMemberSearch')?.value || '');
+      } catch (e) {
+        if (this._activeMembersFetchScope !== deptId) return;
+        this.currentDepartmentMembers = [];
+        if (countBadge) countBadge.textContent = 'Error consultando';
+        listEl.innerHTML = `<div style="color:#fca5a5; padding:0.4rem;">Error cargando integrantes: ${window.escapeHtml(e.message || 'Error de red')}</div>`;
+      }
+    },
 
-        if (workers.length === 0) {
-          listEl.innerHTML = '<div style="color: #fca5a5; text-align: center; padding: 0.45rem;">No hay funcionarios activos en esta selección.</div>';
-          return;
-        }
+    /**
+     * Renderiza la lista filtrable de integrantes con check button para designar al Delegado Receptor
+     */
+    renderDepartmentMembersList: function(searchTerm = '') {
+      const listEl = document.getElementById('createBatchMembersList');
+      const countBadge = document.getElementById('createBatchMembersCountBadge');
+      if (!listEl) return;
 
-        listEl.innerHTML = workers.map((w, idx) => {
-          let stBadge = '<span style="color:#38bdf8;">Pendiente</span>';
-          if (w.daily_status === 'claimed') stBadge = '<span style="color:#34d399;">Entregado</span>';
-          const sub = [w.ente || 'MIPPCI', w.job_title || w.worker_type].filter(Boolean).join(' · ');
-          return `
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; background:rgba(15,23,42,0.55); border:1px solid rgba(148,163,184,0.12); border-radius:6px; padding:0.3rem 0.5rem;">
+      const workers = this.currentDepartmentMembers || [];
+      const q = String(searchTerm || '').trim().toLowerCase();
+      const filtered = q
+        ? workers.filter(w =>
+            String(w.full_name || '').toLowerCase().includes(q) ||
+            String(w.document_id || '').toLowerCase().includes(q) ||
+            String(w.department_name || '').toLowerCase().includes(q) ||
+            String(w.job_title || '').toLowerCase().includes(q)
+          )
+        : workers;
+
+      if (countBadge) {
+        countBadge.textContent = q
+          ? `${filtered.length} de ${workers.length} coincidencia(s)`
+          : `${workers.length} integrante(s) activo(s)`;
+      }
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div style="color: #94a3b8; text-align: center; padding: 0.5rem;">No se encontraron integrantes con ese criterio.</div>';
+        return;
+      }
+
+      const MAX_VISIBLE = 120;
+      const visible = filtered.slice(0, MAX_VISIBLE);
+      const selectedId = this.selectedDelegate ? this.selectedDelegate.id : '';
+
+      let html = visible.map((w) => {
+        const isChecked = w.id === selectedId;
+        const stBadge = w.daily_status === 'claimed'
+          ? '<span style="color:#34d399;">Entregado</span>'
+          : '<span style="color:#38bdf8;">Pendiente</span>';
+        const sub = [w.department_name || w.ente || 'MIPPCI', w.job_title || w.worker_type].filter(Boolean).join(' · ');
+        const rowBg = isChecked ? 'rgba(14, 165, 233, 0.22)' : 'rgba(15, 23, 42, 0.55)';
+        const rowBorder = isChecked ? '1px solid rgba(56, 189, 248, 0.7)' : '1px solid rgba(148, 163, 184, 0.14)';
+
+        return `
+          <label style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; background:${rowBg}; border:${rowBorder}; border-radius:6px; padding:0.35rem 0.55rem; cursor:pointer;">
+            <div style="display:flex; align-items:center; gap:0.5rem; min-width:0; flex:1;">
+              <input type="checkbox" class="batch-delegate-checkbox" data-worker-id="${window.escapeHtml(w.id)}" ${isChecked ? 'checked' : ''} style="width:16px; height:16px; accent-color:#38bdf8; cursor:pointer; flex-shrink:0;" />
               <div style="min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                <span style="color:#64748b; font-size:0.65rem;">${idx + 1}.</span>
-                <strong style="color:#e2e8f0;">${window.escapeHtml(w.full_name)}</strong>
+                <strong style="color:#f8fafc;">${window.escapeHtml(w.full_name)}</strong>
                 <span style="color:#94a3b8; font-family:monospace;">(${window.escapeHtml(w.document_id)})</span>
                 ${sub ? `<span style="color:#64748b; font-size:0.66rem;"> · ${window.escapeHtml(sub)}</span>` : ''}
               </div>
-              <div style="flex-shrink:0; font-size:0.66rem; font-weight:700;">${stBadge}</div>
+            </div>
+            <div style="flex-shrink:0; font-size:0.66rem; font-weight:700;">${stBadge}</div>
+          </label>
+        `;
+      }).join('');
+
+      if (filtered.length > MAX_VISIBLE) {
+        html += `<div style="text-align:center; color:#94a3b8; font-size:0.68rem; padding:0.35rem;">Mostrando primeros ${MAX_VISIBLE} de ${filtered.length}. Use el filtro superior para ubicar rápidamente al delegado.</div>`;
+      }
+
+      listEl.innerHTML = html;
+    },
+
+    /**
+     * Selecciona o limpia al Delegado Receptor Acreditado mediante check button (selección única)
+     */
+    selectDelegateById: function(workerId) {
+      const worker = workerId
+        ? (this.currentDepartmentMembers || []).find(w => w.id === workerId) || null
+        : null;
+      this.selectedDelegate = worker;
+
+      const elName = document.getElementById('createBatchDelegateName');
+      const elDoc = document.getElementById('createBatchDelegateDoc');
+      const elPhone = document.getElementById('createBatchDelegatePhone');
+      const cardEl = document.getElementById('createBatchSelectedDelegateCard');
+
+      if (elName) elName.value = worker ? worker.full_name : '';
+      if (elDoc) elDoc.value = worker ? worker.document_id : '';
+      if (elPhone) elPhone.value = worker ? (worker.phone_number || '') : '';
+
+      // Sincronizar estado de checkboxes visibles (un solo check activo)
+      document.querySelectorAll('#createBatchMembersList .batch-delegate-checkbox').forEach(cb => {
+        cb.checked = Boolean(worker && cb.getAttribute('data-worker-id') === worker.id);
+      });
+
+      if (cardEl) {
+        if (worker) {
+          cardEl.style.background = 'rgba(16, 185, 129, 0.12)';
+          cardEl.style.border = '1.5px solid rgba(52, 211, 153, 0.55)';
+          cardEl.style.color = '#e2e8f0';
+          cardEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+              <div>
+                <div style="font-size:0.68rem; font-weight:800; color:#34d399; text-transform:uppercase;">✅ Delegado Receptor Seleccionado</div>
+                <div style="font-weight:700; color:#f8fafc; margin-top:0.1rem;">${window.escapeHtml(worker.full_name)}</div>
+                <div style="font-size:0.72rem; color:#94a3b8;">C.I. ${window.escapeHtml(worker.document_id)}${worker.phone_number ? ` · Tel: ${window.escapeHtml(worker.phone_number)}` : ''}</div>
+              </div>
+              <button type="button" class="btn btn-outline" style="padding:0.2rem 0.55rem; font-size:0.68rem;" onclick="window.DepartmentBatches && window.DepartmentBatches.selectDelegateById('')">Quitar</button>
             </div>
           `;
-        }).join('');
-      } catch (e) {
-        if (this._activeMembersFetchScope !== deptId) return;
-        if (countBadge) countBadge.textContent = 'Error consultando';
-        listEl.innerHTML = `<div style="color:#fca5a5; padding:0.4rem;">Error cargando integrantes: ${window.escapeHtml(e.message || 'Error de red')}</div>`;
+        } else {
+          cardEl.style.background = 'rgba(15, 23, 42, 0.65)';
+          cardEl.style.border = '1px dashed rgba(56, 189, 248, 0.35)';
+          cardEl.style.color = '#94a3b8';
+          cardEl.innerHTML = '☑️ Seleccione primero el Ente y marque el <strong style="color: #38bdf8;">check</strong> de un integrante para asignarlo como <strong>Delegado Receptor Acreditado</strong>.';
+        }
+      }
+
+      // Re-renderizar estilos activos en filas visibles
+      if (this.currentDepartmentMembers && this.currentDepartmentMembers.length > 0) {
+        this.renderDepartmentMembersList(document.getElementById('createBatchMemberSearch')?.value || '');
       }
     },
 
@@ -564,15 +692,21 @@
       if (e) e.preventDefault();
 
       const deptId = document.getElementById('createBatchDeptSelect')?.value;
-      const comboId = document.getElementById('createBatchComboSelect')?.value || null;
       const delName = document.getElementById('createBatchDelegateName')?.value;
       const delDoc = document.getElementById('createBatchDelegateDoc')?.value;
       const delPhone = document.getElementById('createBatchDelegatePhone')?.value;
       const notes = document.getElementById('createBatchNotes')?.value;
 
-      if (!deptId || !delName || !delDoc) {
+      if (!deptId) {
         if (typeof window.showToast === 'function') {
-          window.showToast('Por favor complete los campos obligatorios (*)', 'warning');
+          window.showToast('Por favor seleccione el Ente solicitante (*)', 'warning');
+        }
+        return;
+      }
+
+      if (!delName || !delDoc) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('Por favor marque el check de un integrante como Delegado Receptor Acreditado (*)', 'warning');
         }
         return;
       }
@@ -586,7 +720,7 @@
       try {
         const res = await API.post('/api/v1/department-batches/orders', {
           department_id: deptId,
-          combo_id: comboId,
+          combo_id: null,
           delegate_name: delName,
           delegate_document_id: delDoc,
           delegate_phone: delPhone,

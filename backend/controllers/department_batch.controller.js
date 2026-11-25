@@ -289,7 +289,7 @@ const getDepartmentBeneficiaries = (req, res) => {
 
     const workers = db.prepare(`
       SELECT 
-        w.id, w.document_id, w.full_name, w.email, w.ente, d.name as department_name, w.worker_type, w.job_title, w.role,
+        w.id, w.document_id, w.full_name, w.email, w.phone_number, w.ente, d.name as department_name, w.worker_type, w.job_title, w.role,
         CASE 
           WHEN EXISTS (
             SELECT 1 FROM daily_entitlements e 

@@ -2108,62 +2108,31 @@
     </div>
 
     <form id="createBatchOrderForm" onsubmit="event.preventDefault();" style="padding: 0.75rem 0;">
-      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.78rem; color: #94a3b8; line-height: 1.4;">
-        ℹ️ Tramite el retiro consolidado de combos para su Dirección. Esta solicitud pasará a revisión de <strong>Gestión Humana (RRHH)</strong> y posteriormente a despacho físico en el Almacén Central.
+      <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 8px; padding: 0.65rem 0.75rem; margin-bottom: 0.9rem; font-size: 0.76rem; color: #94a3b8; line-height: 1.4;">
+        ℹ️ Seleccione el Ente solicitante, marque con el <strong>check</strong> al integrante que fungirá como <strong>Delegado Receptor</strong> y registre la solicitud (incluye automáticamente <strong>Todos los Combos Activos de la Jornada</strong>).
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 0.85rem;">
-        <!-- Dependencia -->
+      <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+        <!-- Dependencia / Ente Solicitante (Select Dinámico con Búsqueda) -->
         <div>
           <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.35rem;">
             Dependencia / Dirección Solicitante: *
           </label>
+          <input type="text" id="createBatchDeptSearch" class="form-input" placeholder="🔍 Buscar Ente (ej: MIPPCI, AVP, Radio Miraflores, Caravana...)" autocomplete="off" style="font-size: 0.8rem; margin-bottom: 0.4rem;" />
           <select id="createBatchDeptSelect" class="form-input" style="font-size: 0.82rem;" required>
             <option value="">Seleccione un Ente...</option>
           </select>
         </div>
 
-        <!-- Combo Específico o Catálogo Completo -->
-        <div>
-          <label style="display: block; font-size: 0.75rem; text-transform: uppercase; color: #94a3b8; font-weight: 700; margin-bottom: 0.35rem;">
-            Tipo de Combo Alimenticio:
-          </label>
-          <select id="createBatchComboSelect" class="form-input" style="font-size: 0.82rem;">
-            <option value="">Todos los Combos Activos de la Jornada</option>
-          </select>
-        </div>
-
-        <!-- Delegado Receptor Acreditado -->
-        <div style="border-top: 1px dashed rgba(255, 255, 255, 0.1); padding-top: 0.75rem;">
-          <div style="font-size: 0.75rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.5rem;">
-            👤 Delegado Receptor Acreditado (Responsable del Retiro):
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div>
-              <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Nombre Completo: *</label>
-              <input type="text" id="createBatchDelegateName" class="form-input" placeholder="Ej: Juan Pérez" required style="font-size: 0.82rem;" />
-            </div>
-            <div>
-              <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Cédula de Identidad: *</label>
-              <input type="text" id="createBatchDelegateDoc" class="form-input" placeholder="Ej: V-12345678" required style="font-size: 0.82rem; text-transform: uppercase;" />
-            </div>
-          </div>
-          <div style="margin-top: 0.5rem;">
-            <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Teléfono de Contacto:</label>
-            <input type="tel" id="createBatchDelegatePhone" class="form-input" placeholder="Ej: 0412-1234567" style="font-size: 0.82rem;" />
-          </div>
-        </div>
-
-        <!-- Observaciones -->
-        <div>
-          <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Observaciones / Justificación:</label>
-          <textarea id="createBatchNotes" class="form-input" rows="2" placeholder="Ej: Solicitud de despacho institucional para el personal de turno..." style="font-size: 0.8rem; resize: vertical;"></textarea>
-        </div>
-
-        <!-- Resumen de Cálculo en Vivo -->
+        <!-- Resumen de Cálculo en Vivo + Selección de Delegado por Check Button -->
         <div id="createBatchSummaryBox" style="display: none; background: rgba(56, 189, 248, 0.08); border: 1.5px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 0.75rem;">
-          <div style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase; margin-bottom: 0.4rem;">
-            📊 Proyección del Lote Departamental:
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.45rem; flex-wrap: wrap;">
+            <span style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; text-transform: uppercase;">
+              📊 Proyección del Lote:
+            </span>
+            <span style="font-size: 0.68rem; font-weight: 700; color: #34d399; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(52, 211, 153, 0.3); padding: 0.12rem 0.45rem; border-radius: 999px;">
+              📦 Todos los Combos Activos de la Jornada
+            </span>
           </div>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center;">
             <div>
@@ -2179,13 +2148,29 @@
               <div id="createBatchCalcWeight" style="font-size: 1.1rem; font-weight: 800; color: #34d399;">0 kg</div>
             </div>
           </div>
+
           <div id="createBatchMembersPreview" style="margin-top: 0.65rem; border-top: 1px dashed rgba(56, 189, 248, 0.25); padding-top: 0.55rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-              <span style="font-size: 0.7rem; font-weight: 700; color: #bae6fd; text-transform: uppercase;">👥 Integrantes de la Dependencia / Ente:</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; gap: 0.5rem;">
+              <span style="font-size: 0.7rem; font-weight: 700; color: #bae6fd; text-transform: uppercase;">☑️ Seleccione Delegado Receptor Acreditado (Responsable del Retiro): *</span>
               <span id="createBatchMembersCountBadge" style="font-size: 0.68rem; color: #94a3b8;">Cargando...</span>
             </div>
-            <div id="createBatchMembersList" style="max-height: 150px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.72rem; padding-right: 0.2rem;"></div>
+            <input type="text" id="createBatchMemberSearch" class="form-input" placeholder="🔍 Filtrar integrante por nombre o cédula para marcar check..." autocomplete="off" style="font-size: 0.76rem; padding: 0.35rem 0.6rem; margin-bottom: 0.4rem;" />
+            <div id="createBatchMembersList" style="max-height: 185px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.28rem; font-size: 0.72rem; padding-right: 0.2rem;"></div>
           </div>
+        </div>
+
+        <!-- Resumen de Delegado Receptor Seleccionado -->
+        <div id="createBatchSelectedDelegateCard" style="background: rgba(15, 23, 42, 0.65); border: 1px dashed rgba(56, 189, 248, 0.35); border-radius: 8px; padding: 0.65rem 0.75rem; font-size: 0.76rem; color: #94a3b8;">
+          ☑️ Seleccione primero el Ente y marque el <strong style="color: #38bdf8;">check</strong> de un integrante para asignarlo como <strong>Delegado Receptor Acreditado</strong>.
+        </div>
+        <input type="hidden" id="createBatchDelegateName" />
+        <input type="hidden" id="createBatchDelegateDoc" />
+        <input type="hidden" id="createBatchDelegatePhone" />
+
+        <!-- Observaciones -->
+        <div>
+          <label style="display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 0.25rem;">Observaciones / Justificación (Opcional):</label>
+          <textarea id="createBatchNotes" class="form-input" rows="2" placeholder="Ej: Solicitud de despacho institucional para el personal de turno..." style="font-size: 0.8rem; resize: vertical;"></textarea>
         </div>
       </div>
 
