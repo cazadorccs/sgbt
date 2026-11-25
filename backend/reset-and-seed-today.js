@@ -17,6 +17,18 @@ async function resetDeliveriesAndSeedToday() {
   try { db.prepare('DELETE FROM department_batch_orders').run(); } catch (e) {
     console.warn('[RESET] No se pudo limpiar department_batch_orders local:', e.message);
   }
+
+  // Purgar posibles duplicados de daily_entitlements
+  try {
+    db.prepare(`
+      DELETE FROM daily_entitlements 
+      WHERE id NOT IN (
+        SELECT MIN(id) 
+        FROM daily_entitlements 
+        GROUP BY worker_id, combo_id, valid_date
+      )
+    `).run();
+  } catch (e) {}
   
   // 2. Obtener todos los combos activos del catálogo institucional
   const activeCombos = db.prepare("SELECT id, name FROM combos WHERE is_active = 1").all();

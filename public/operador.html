@@ -225,10 +225,8 @@
           estadoEl.innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
           hide('btnAprobarContainer');
         } else if (s.has_pending) {
-          const badgeText = s.pending_combos === s.total_combos
-            ? `📦 ${s.pending_combos} combos asignados (Pendientes por entregar)`
-            : `📦 ${s.pending_combos} de ${s.total_combos} combos pendientes`;
-          estadoEl.innerHTML = `<span class="pendiente-badge">${badgeText}</span>`;
+          // El operador no ve conteos ni badges de pendientes antes de despachar
+          estadoEl.innerHTML = '';
           show('btnAprobarContainer');
         } else {
           estadoEl.innerHTML = '<span class="entregado-badge">Sin asignaciones para hoy</span>';

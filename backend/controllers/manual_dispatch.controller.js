@@ -66,11 +66,14 @@ const searchWorkerByCedula = (req, res) => {
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     let entSql = `
       SELECT 
-        e.id as entitlement_id, e.shift, e.status, e.valid_date,
+        MIN(e.id) as entitlement_id, e.shift,
+        e.valid_date,
         c.id as combo_id, c.name as combo_name, c.category, c.items_detail,
         c.icon, c.weight_kg, c.mesa_name,
-        d.id as delivery_id, d.delivered_at, d.verification_method, d.override_reason,
-        sup.full_name as supervisor_name
+        MAX(d.id) as delivery_id, MAX(d.delivered_at) as delivered_at, 
+        MAX(d.verification_method) as verification_method, MAX(d.override_reason) as override_reason,
+        MAX(sup.full_name) as supervisor_name,
+        CASE WHEN MAX(d.id) IS NOT NULL THEN 'claimed' ELSE MIN(e.status) END as status
       FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
       LEFT JOIN deliveries d ON d.entitlement_id = e.id
@@ -86,7 +89,7 @@ const searchWorkerByCedula = (req, res) => {
       ) OR d.id IS NOT NULL)`;
       entParams.push(activeCamp.id, activeCamp.id, activeCamp.id);
     }
-    entSql += ` ORDER BY c.created_at ASC, c.id ASC`;
+    entSql += ` GROUP BY c.id ORDER BY c.created_at ASC, c.id ASC LIMIT 4`;
     const entitlements = db.prepare(entSql).all(...entParams);
 
     const totalCombos = entitlements.length;
@@ -133,25 +136,30 @@ const deliverManualCombos = async (req, res) => {
       return res.status(404).json({ error: 'Trabajador no encontrado' });
     }
 
-    // Buscar derechos pendientes para hoy
+    // Buscar derechos pendientes para hoy (máximo 1 de cada tipo de combo)
     let pendingList = [];
     if (Array.isArray(entitlement_ids) && entitlement_ids.length > 0) {
       // Filtrar los IDs especificados
       const placeholders = entitlement_ids.map(() => '?').join(',');
       pendingList = db.prepare(`
-        SELECT e.id, e.combo_id, e.status, c.name as combo_name
+        SELECT MIN(e.id) as id, e.combo_id, 'pending' as status, c.name as combo_name
         FROM daily_entitlements e
         JOIN combos c ON e.combo_id = c.id
         WHERE e.id IN (${placeholders}) AND e.worker_id = ? AND e.valid_date = ? AND c.is_active = 1
+        GROUP BY e.combo_id
+        ORDER BY c.created_at ASC, c.id ASC
+        LIMIT 4
       `).all(...entitlement_ids, worker_id, today);
     } else {
-      // Tomar todos o la cantidad solicitada
-      const limit = quantity ? parseInt(quantity, 10) : 99;
+      // Tomar todos los tipos de combos pendientes (máximo 4 combos únicos)
+      const limit = quantity ? Math.min(parseInt(quantity, 10), 4) : 4;
       pendingList = db.prepare(`
-        SELECT e.id, e.combo_id, e.status, c.name as combo_name
+        SELECT MIN(e.id) as id, e.combo_id, 'pending' as status, c.name as combo_name
         FROM daily_entitlements e
         JOIN combos c ON e.combo_id = c.id
         WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1
+        GROUP BY e.combo_id
+        ORDER BY c.created_at ASC, c.id ASC
         LIMIT ?
       `).all(worker_id, today, limit);
     }
@@ -180,8 +188,6 @@ const deliverManualCombos = async (req, res) => {
       ) VALUES (?, ?, ?, ?, ?, 'manual_rrhh', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
     `);
 
-    const updateEntitlement = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
-
     const tx = db.transaction(() => {
       for (const ent of strictlyPending) {
         const deliveryId = crypto.randomUUID();
@@ -198,10 +204,17 @@ const deliverManualCombos = async (req, res) => {
           note || 'Despacho manual RRHH - Primera Jornada',
           campaignId
         );
-        updateEntitlement.run(ent.id);
+        // Marcar todas las filas de este combo para este funcionario como claimed
+        db.prepare(`
+          UPDATE daily_entitlements 
+          SET status = 'claimed' 
+          WHERE worker_id = ? AND valid_date = ? AND combo_id = ?
+        `).run(worker.id, today, ent.combo_id);
+
         deliveredItems.push({
           delivery_id: deliveryId,
           entitlement_id: ent.id,
+          combo_id: ent.combo_id,
           combo_name: ent.combo_name
         });
       }
@@ -475,35 +488,57 @@ const getTodayStatsAndRecent = async (req, res) => {
             .order('delivered_at', { ascending: false })
             .limit(5000);
           const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
-          if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
-            const insRemoteDelivery = db.prepare(`
-              INSERT OR IGNORE INTO deliveries (
-                id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-                verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `);
-            const markClaimedStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
-            const syncTx = db.transaction((list) => {
-              for (const d of list) {
-                insRemoteDelivery.run(
-                  d.id,
-                  d.entitlement_id,
-                  d.worker_id,
-                  d.distribution_point_id,
-                  d.delivered_by_user_id,
-                  d.verification_method || 'passkey_qr',
-                  d.signature_proof,
-                  d.challenge_nonce,
-                  d.is_offline_sync ? 1 : 0,
-                  d.delivered_at,
-                  d.campaign_id || null
-                );
-                if (d.entitlement_id) {
-                  markClaimedStmt.run(d.entitlement_id);
+          if (Array.isArray(remoteDeliveries)) {
+            if (remoteDeliveries.length === 0) {
+              // Si en Supabase Cloud no hay entregas de hoy (ej: reseteo a 0 de la jornada),
+              // SQLite local en Vercel debe limpiar entregas locales para mantener sincronía total con la nube.
+              db.prepare("DELETE FROM deliveries WHERE id NOT LIKE 'e2e-%' AND id NOT LIKE 'test-%' AND COALESCE(signature_proof, '') NOT LIKE '%TEST%'").run();
+              db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE valid_date = ? AND status = 'claimed'").run(today);
+            } else {
+              const insRemoteDelivery = db.prepare(`
+                INSERT OR IGNORE INTO deliveries (
+                  id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+                  verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `);
+              const markClaimedStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+              const remoteIds = new Set(remoteDeliveries.map(d => d.id));
+
+              // Eliminar entregas locales huérfanas de hoy que ya no existen en Supabase (ej: tras reset en nube)
+              const localDeliveriesToday = db.prepare(`
+                SELECT id FROM deliveries 
+                WHERE (date(delivered_at, '-4 hours') = ? OR delivered_at = ?)
+                  AND id NOT LIKE 'e2e-%'
+                  AND COALESCE(signature_proof, '') NOT LIKE '%TEST%'
+              `).all(todayVzla, todayVzla);
+              for (const loc of localDeliveriesToday) {
+                if (!remoteIds.has(loc.id)) {
+                  try { db.prepare("DELETE FROM deliveries WHERE id = ?").run(loc.id); } catch (e) {}
                 }
               }
-            });
-            syncTx(remoteDeliveries);
+
+              const syncTx = db.transaction((list) => {
+                for (const d of list) {
+                  insRemoteDelivery.run(
+                    d.id,
+                    d.entitlement_id,
+                    d.worker_id,
+                    d.distribution_point_id,
+                    d.delivered_by_user_id,
+                    d.verification_method || 'passkey_qr',
+                    d.signature_proof,
+                    d.challenge_nonce,
+                    d.is_offline_sync ? 1 : 0,
+                    d.delivered_at,
+                    d.campaign_id || null
+                  );
+                  if (d.entitlement_id) {
+                    markClaimedStmt.run(d.entitlement_id);
+                  }
+                }
+              });
+              syncTx(remoteDeliveries);
+            }
           }
         }
       }
@@ -697,6 +732,20 @@ function ensureTodayEntitlementsForWorker(workerId, today) {
     if (!activeCombos || activeCombos.length === 0) return;
 
     const campId = activeCamp ? activeCamp.id : null;
+
+    // Purgar duplicados históricos si existieran para este trabajador y fecha
+    try {
+      db.prepare(`
+        DELETE FROM daily_entitlements 
+        WHERE id NOT IN (
+          SELECT MIN(id) 
+          FROM daily_entitlements 
+          WHERE worker_id = ? AND valid_date = ? 
+          GROUP BY combo_id
+        )
+        AND worker_id = ? AND valid_date = ?
+      `).run(workerId, today, workerId, today);
+    } catch (e) {}
 
     // 2. Consultar cuáles combos ya están asignados hoy a este trabajador
     const existingEnts = db.prepare(

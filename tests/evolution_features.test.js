@@ -34,6 +34,41 @@ function runTest(name, fn) {
 // ============================================================================
 console.log('--- 1. Auto-Verificación Merkle en Carnet del Beneficiario ---');
 
+// Asegurar entregas de prueba para verificación Merkle
+try {
+  let deliveriesCount = db.prepare("SELECT COUNT(*) as c FROM deliveries").get().c;
+  if (deliveriesCount < 2) {
+    const testWorkerId = 'merkle_test_worker_1';
+    const testWorker2Id = 'merkle_test_worker_2';
+    const combo = db.prepare("SELECT id FROM combos WHERE is_active = 1 LIMIT 1").get();
+    const dp = db.prepare("SELECT id FROM distribution_points LIMIT 1").get();
+    const dpId = dp ? dp.id : '550e8400-e29b-41d4-a716-446655440000';
+    
+    // Crear trabajadores de prueba para el test de Merkle
+    db.prepare(`
+      INSERT OR IGNORE INTO workers (id, document_id, full_name, email, status, role)
+      VALUES (?, 'V-99990001', 'Test Merkle 1', 'merkle1@test.com', 'active', 'worker'),
+             (?, 'V-99990002', 'Test Merkle 2', 'merkle2@test.com', 'active', 'worker')
+    `).run(testWorkerId, testWorker2Id);
+
+    // Crear derechos de prueba
+    db.prepare(`
+      INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+      VALUES ('ent_merkle_test_1', ?, ?, '2026-11-25', 'jornada_continua', 'claimed'),
+             ('ent_merkle_test_2', ?, ?, '2026-11-25', 'jornada_continua', 'claimed')
+    `).run(testWorkerId, combo.id, testWorker2Id, combo.id);
+
+    // Crear entregas de prueba
+    db.prepare(`
+      INSERT OR IGNORE INTO deliveries (id, entitlement_id, worker_id, distribution_point_id, verification_method, signature_proof, delivered_at)
+      VALUES ('del_merkle_test_1', 'ent_merkle_test_1', ?, ?, 'passkey_qr', 'TEST_MERKLE_PROOF_1', CURRENT_TIMESTAMP),
+             ('del_merkle_test_2', 'ent_merkle_test_2', ?, ?, 'passkey_qr', 'TEST_MERKLE_PROOF_2', CURRENT_TIMESTAMP)
+    `).run(testWorkerId, dpId, testWorker2Id, dpId);
+  }
+} catch (e) {
+  console.warn('[MERKLE TEST FIXTURE WARN]', e.message);
+}
+
 runTest('Generación y verificación de Merkle Proof para beneficiario', () => {
   const deliveries = db.prepare(`
     SELECT d.id, d.entitlement_id, d.worker_id, w.document_id, w.full_name, d.delivered_at, 

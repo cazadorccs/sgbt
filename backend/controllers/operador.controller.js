@@ -129,7 +129,7 @@ const operadorSearchWorker = (req, res) => {
     // Contar solo cuántos combos tiene pendientes (SIN mostrar nombres ni detalles)
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     let pendSql = `
-      SELECT COUNT(*) as cnt FROM daily_entitlements e
+      SELECT COUNT(DISTINCT e.combo_id) as cnt FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
       WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
@@ -144,9 +144,9 @@ const operadorSearchWorker = (req, res) => {
     }
     const pendingCount = db.prepare(pendSql).get(...pendParams).cnt;
 
-    // Total asignados hoy (sino número)
+    // Total asignados hoy (conteo de combos únicos activos)
     let totalSql = `
-      SELECT COUNT(*) as cnt FROM daily_entitlements e
+      SELECT COUNT(DISTINCT e.combo_id) as cnt FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
       WHERE e.worker_id = ? AND e.valid_date = ? AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
@@ -190,7 +190,7 @@ const operadorSearchWorker = (req, res) => {
 };
 
 // 3. Despachar / entregar todos los combos pendientes del trabajador (descontar)
-// Minimalista: no requiere seleccionar combos individuales, entrega todo lo pendiente.
+// Minimalista: no requiere seleccionar combos individuales, entrega hasta 4 combos únicos activos.
 const operadorDeliver = async (req, res) => {
   const { worker_id, note, delivered_by_user_id } = req.body || {};
   const today = getTodayVzla();
@@ -219,10 +219,24 @@ const operadorDeliver = async (req, res) => {
       }
     } catch (e) {}
 
-    // Obtener todos los pendientes para hoy
+    // Purgar duplicados si existieran para este trabajador y fecha
+    try {
+      db.prepare(`
+        DELETE FROM daily_entitlements 
+        WHERE id NOT IN (
+          SELECT MIN(id) 
+          FROM daily_entitlements 
+          WHERE worker_id = ? AND valid_date = ? 
+          GROUP BY combo_id
+        )
+        AND worker_id = ? AND valid_date = ?
+      `).run(worker.id, today, worker.id, today);
+    } catch (e) {}
+
+    // Obtener combos pendientes agrupando por combo_id (máx 1 por tipo, límite 4 combos)
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     let pendSql = `
-      SELECT e.id, e.combo_id, e.status, c.name as combo_name
+      SELECT MIN(e.id) as id, e.combo_id, 'pending' as status, c.name as combo_name
       FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
       WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
@@ -236,9 +250,9 @@ const operadorDeliver = async (req, res) => {
       ))`;
       pendParams.push(activeCamp.id, activeCamp.id, activeCamp.id);
     }
-    const pendingList = db.prepare(pendSql).all(...pendParams);
+    pendSql += ` GROUP BY e.combo_id ORDER BY c.created_at ASC, c.id ASC LIMIT 4`;
+    const strictlyPending = db.prepare(pendSql).all(...pendParams);
 
-    const strictlyPending = pendingList.filter(item => item.status === 'pending');
     if (strictlyPending.length === 0) {
       return res.status(400).json({
         error: 'No hay combos pendientes para entregar hoy a este trabajador. Ya fueron despachados.'
@@ -256,7 +270,6 @@ const operadorDeliver = async (req, res) => {
         override_reason, is_offline_sync, delivered_at, campaign_id
       ) VALUES (?, ?, ?, ?, ?, 'manual_operador', ?, ?, ?, ?, 0, CURRENT_TIMESTAMP, ?)
     `);
-    const updateEntitlement = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
 
     const deliveredItems = [];
     const tx = db.transaction(() => {
@@ -275,10 +288,17 @@ const operadorDeliver = async (req, res) => {
           note || 'Despacho por operador de puesto de supervisión',
           campaignId
         );
-        updateEntitlement.run(ent.id);
+        // Marcar todas las filas de este combo para este funcionario hoy como claimed
+        db.prepare(`
+          UPDATE daily_entitlements 
+          SET status = 'claimed' 
+          WHERE worker_id = ? AND valid_date = ? AND combo_id = ?
+        `).run(worker.id, today, ent.combo_id);
+
         deliveredItems.push({
           delivery_id: deliveryId,
           entitlement_id: ent.id,
+          combo_id: ent.combo_id,
           combo_name: ent.combo_name
         });
       }
@@ -306,7 +326,7 @@ const operadorDeliver = async (req, res) => {
         id: item.delivery_id,
         entitlement_id: item.entitlement_id,
         worker_id: worker.id,
-        combo_id: strictlyPending.find(p => p.entitlement_id === item.entitlement_id)?.combo_id,
+        combo_id: item.combo_id,
         verification_method: 'manual_operador',
         delivered_at: new Date().toISOString()
       })));

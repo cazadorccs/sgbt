@@ -17,7 +17,7 @@ router.post('/manual-dispatch/incorporate', requireRole('supervisor', 'admin', '
 // KPIs y despachos recientes de hoy (Mesa de despacho / Supervisión / Monitor en vivo)
 router.get('/manual-dispatch/today-summary', authenticate, controller.getTodayStatsAndRecent);
 
-// Reinicio de entregas a 0 (Exclusivo Administrador General / Director)
-router.post('/manual-dispatch/reset-deliveries', requireRole('admin', 'director'), controller.resetDeliveriesAction);
+// Reinicio de entregas a 0 (Exclusivo Administrador General / Director / Supervisor con PIN)
+router.post('/manual-dispatch/reset-deliveries', requireRole('supervisor', 'admin', 'director'), controller.resetDeliveriesAction);
 
 module.exports = router;
