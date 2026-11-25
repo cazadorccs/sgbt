@@ -2,21 +2,22 @@
 const crypto = require('crypto');
 const { db } = require('./db');
 const { supabase, isSupabaseConfigured } = require('./supabase');
-const { clearDeliveriesInCloud, clearBatchOrdersInCloud } = require('./services/cloud_sync.service');
+const { clearDeliveriesInCloud } = require('./services/cloud_sync.service');
 
+/**
+ * Reinicia ÚNICAMENTE las entregas de combos a 0.
+ * Preserva intactos:
+ * - Jornada programada (delivery_campaigns y campaign_combos)
+ * - Órdenes de lotes departamentales (department_batch_orders)
+ * - Catálogo de combos, nómina de funcionarios y departamentos
+ */
 async function resetDeliveriesAndSeedToday() {
   const todayUtc = new Date().toISOString().split('T')[0];
   const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
   const today = todayVzla;
   
-  // 1. Eliminar entregas previas, lotes departamentales y liberar candados de dispositivos
+  // 1. Eliminar EXCLUSIVAMENTE el registro de entregas (deliveries)
   const delResult = db.prepare('DELETE FROM deliveries').run();
-  try { db.prepare('DELETE FROM device_locks').run(); } catch (e) {}
-  
-  // Limpiar órdenes de lotes departamentales locales para nueva jornada
-  try { db.prepare('DELETE FROM department_batch_orders').run(); } catch (e) {
-    console.warn('[RESET] No se pudo limpiar department_batch_orders local:', e.message);
-  }
 
   // Purgar posibles duplicados de daily_entitlements
   try {
@@ -29,48 +30,16 @@ async function resetDeliveriesAndSeedToday() {
       )
     `).run();
   } catch (e) {}
-  
-  // 2. Obtener todos los combos activos del catálogo institucional
-  const activeCombos = db.prepare("SELECT id, name FROM combos WHERE is_active = 1").all();
 
-  // 3. Obtener todos los trabajadores activos
-  const allActive = db.prepare("SELECT id FROM workers WHERE status = 'active'").all();
+  // 2. Restaurar todos los derechos de hoy a estado 'pending' (sin alterar la jornada ni combos asignados)
+  db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE valid_date IN (?, ?)").run(todayUtc, todayVzla);
 
-  const insEnt = db.prepare(`
-    INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-    VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
-  `);
-
-  let createdCount = 0;
-  const tx = db.transaction(() => {
-    for (const w of allActive) {
-      for (const c of activeCombos) {
-        const r1 = insEnt.run(crypto.randomUUID(), w.id, c.id, todayUtc);
-        if (r1.changes > 0) createdCount++;
-        if (todayVzla !== todayUtc) {
-          const r2 = insEnt.run(crypto.randomUUID(), w.id, c.id, todayVzla);
-          if (r2.changes > 0) createdCount++;
-        }
-      }
-    }
-    // Reiniciar cualquier derecho de hoy (UTC o VET) a status = 'pending'
-    db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE valid_date IN (?, ?)").run(todayUtc, todayVzla);
-  });
-  tx();
-
-  // 4. Sincronizar reseteo a Supabase Cloud con AWAIT garantizado (para que Vercel Serverless permanezca en 0)
+  // 3. Sincronizar reseteo a Supabase Cloud con AWAIT garantizado (deliveries a 0 y entitlements a pending)
   if (isSupabaseConfigured() && supabase) {
     try {
       await clearDeliveriesInCloud();
     } catch (sbErr) {
       console.warn('[RESET] No se pudo sincronizar reseteo de entregas a Supabase:', sbErr.message);
-    }
-
-    // Limpiar también el store de órdenes de lotes departamentales en la nube
-    try {
-      await clearBatchOrdersInCloud();
-    } catch (sbErr) {
-      console.warn('[RESET] No se pudo limpiar store de lotes en Supabase:', sbErr.message);
     }
   }
 
@@ -84,8 +53,6 @@ async function resetDeliveriesAndSeedToday() {
     today_vzla: todayVzla,
     deliveries_cleared: delResult.changes,
     total_deliveries: totalDeliveries,
-    workers_active: allActive.length,
-    entitlements_created: createdCount,
     pending_entitlements_today: pendingEntitlements
   };
 }
