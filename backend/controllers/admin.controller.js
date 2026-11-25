@@ -1143,31 +1143,47 @@ const ensureDeliveriesHydrated = async () => {
           .order('delivered_at', { ascending: false })
           .limit(5000);
         const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
-        if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
-          const insertRemoteDelivery = db.prepare(`
-            INSERT OR IGNORE INTO deliveries (
-              id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-              verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `);
-          const tx = db.transaction((list) => {
-            for (const d of list) {
-              insertRemoteDelivery.run(
-                d.id,
-                d.entitlement_id,
-                d.worker_id,
-                d.distribution_point_id,
-                d.delivered_by_user_id,
-                d.verification_method || 'passkey_qr',
-                d.signature_proof,
-                d.challenge_nonce,
-                d.is_offline_sync ? 1 : 0,
-                d.delivered_at,
-                d.campaign_id || null
-              );
+        if (Array.isArray(remoteDeliveries)) {
+          if (remoteDeliveries.length === 0) {
+            db.prepare('DELETE FROM deliveries').run();
+            db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE status = 'claimed'").run();
+          } else {
+            const remoteIds = new Set(remoteDeliveries.map(d => d.id));
+            const localDeliveries = db.prepare('SELECT id, entitlement_id FROM deliveries').all();
+            for (const loc of localDeliveries) {
+              if (!remoteIds.has(loc.id)) {
+                db.prepare('DELETE FROM deliveries WHERE id = ?').run(loc.id);
+                if (loc.entitlement_id) {
+                  db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE id = ?").run(loc.entitlement_id);
+                }
+              }
             }
-          });
-          tx(remoteDeliveries);
+
+            const insertRemoteDelivery = db.prepare(`
+              INSERT OR IGNORE INTO deliveries (
+                id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+                verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const tx = db.transaction((list) => {
+              for (const d of list) {
+                insertRemoteDelivery.run(
+                  d.id,
+                  d.entitlement_id,
+                  d.worker_id,
+                  d.distribution_point_id,
+                  d.delivered_by_user_id,
+                  d.verification_method || 'passkey_qr',
+                  d.signature_proof,
+                  d.challenge_nonce,
+                  d.is_offline_sync ? 1 : 0,
+                  d.delivered_at,
+                  d.campaign_id || null
+                );
+              }
+            });
+            tx(remoteDeliveries);
+          }
         }
       }
     }
