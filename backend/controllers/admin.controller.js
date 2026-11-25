@@ -1120,10 +1120,84 @@ const toggleComboStatus = async (req, res) => {
   }
 };
 
-const getAuditStats = (req, res) => {
+const ensureDeliveriesHydrated = async () => {
+  try {
+    const { cloudHydrationPromise } = require('../db');
+    if (cloudHydrationPromise) {
+      await Promise.race([
+        cloudHydrationPromise,
+        new Promise((resolve) => setTimeout(resolve, 2500))
+      ]);
+    }
+  } catch (e) {}
+
+  try {
+    const localDelCount = db.prepare("SELECT COUNT(*) as c FROM deliveries").get()?.c || 0;
+    if (localDelCount === 0) {
+      const { supabase, isSupabaseConfigured } = require('../supabase');
+      if (isSupabaseConfigured() && supabase) {
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 3500));
+        const queryPromise = supabase
+          .from('deliveries')
+          .select('*')
+          .order('delivered_at', { ascending: false })
+          .limit(5000);
+        const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
+        if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
+          const insertRemoteDelivery = db.prepare(`
+            INSERT OR IGNORE INTO deliveries (
+              id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+              verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `);
+          const tx = db.transaction((list) => {
+            for (const d of list) {
+              insertRemoteDelivery.run(
+                d.id,
+                d.entitlement_id,
+                d.worker_id,
+                d.distribution_point_id,
+                d.delivered_by_user_id,
+                d.verification_method || 'passkey_qr',
+                d.signature_proof,
+                d.challenge_nonce,
+                d.is_offline_sync ? 1 : 0,
+                d.delivered_at,
+                d.campaign_id || null
+              );
+            }
+          });
+          tx(remoteDeliveries);
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn('[AUDIT HYDRATION SYNC WARN]', syncErr.message);
+  }
+
+  try {
+    const totalCampaigns = db.prepare("SELECT count(*) as count FROM delivery_campaigns").get()?.count || 0;
+    if (totalCampaigns === 0) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const endOfYearStr = `${new Date().getFullYear()}-12-31`;
+      db.prepare(`
+        INSERT OR IGNORE INTO delivery_campaigns (id, name, description, start_date, end_date, target_group, status, notification_sent)
+        VALUES ('camp-general-activa', 'Gran Jornada Integral Institucional - MIPPCI', 'Jornada activa de entrega de combos alimenticios', ?, ?, 'all', 'en_curso', 1)
+      `).run(todayStr, endOfYearStr);
+    }
+  } catch (e) {}
+};
+
+const getAuditStats = async (req, res) => {
   const { campaign_id } = req.query;
 
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
+    await ensureDeliveriesHydrated();
+
     let whereClause = "1=1";
     const params = [];
     let selectedCampaign = null;
@@ -1146,8 +1220,8 @@ const getAuditStats = (req, res) => {
         ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0), 2) as total_weight_kg,
         ROUND(COALESCE(SUM(COALESCE(c.weight_kg, 14.0)), 0) / 1000.0, 3) as total_weight_tons
       FROM deliveries del
-      JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-      JOIN combos c ON ent.combo_id = c.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON (ent.combo_id = c.id OR del.entitlement_id = c.id)
       WHERE ${whereClause}
     `).get(...params);
 
@@ -1159,19 +1233,19 @@ const getAuditStats = (req, res) => {
 
     const combosBreakdown = db.prepare(`
       SELECT 
-        c.id as combo_id,
-        c.name as combo_name,
-        c.category as combo_category,
+        COALESCE(c.id, 'combo-inst') as combo_id,
+        COALESCE(c.name, 'Combo Institucional MIPPCI') as combo_name,
+        COALESCE(c.category, 'combo_regular') as combo_category,
         COALESCE(c.icon, '🍱') as combo_icon,
         COALESCE(c.weight_kg, 14.0) as unit_weight_kg,
         COUNT(del.id) as total_delivered,
         ROUND(SUM(COALESCE(c.weight_kg, 14.0)), 1) as total_kg,
         ROUND(SUM(COALESCE(c.weight_kg, 14.0)) / 1000.0, 3) as total_tons
       FROM deliveries del
-      JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-      JOIN combos c ON ent.combo_id = c.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON (ent.combo_id = c.id OR del.entitlement_id = c.id)
       WHERE ${whereClause}
-      GROUP BY c.id, c.name, c.category, c.icon, c.weight_kg
+      GROUP BY COALESCE(c.id, 'combo-inst'), COALESCE(c.name, 'Combo Institucional MIPPCI'), c.category, c.icon, c.weight_kg
       ORDER BY total_delivered DESC
     `).all(...params);
 
@@ -1187,12 +1261,12 @@ const getAuditStats = (req, res) => {
         COUNT(del.id) as combos_count,
         ROUND(SUM(COALESCE(c.weight_kg, 14.0)) / 1000.0, 3) as total_tons
       FROM deliveries del
-      JOIN workers w ON del.worker_id = w.id
-      JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-      JOIN combos c ON ent.combo_id = c.id
+      LEFT JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON (ent.combo_id = c.id OR del.entitlement_id = c.id)
       LEFT JOIN departments d ON w.department_id = d.id
       WHERE ${whereClause}
-      GROUP BY d.name
+      GROUP BY COALESCE(d.name, 'Sede Principal / Área Central')
       ORDER BY combos_count DESC
     `).all(...params);
 
@@ -1243,8 +1317,8 @@ const getAuditStats = (req, res) => {
       FROM deliveries del
       LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
       LEFT JOIN workers w_op ON (del.delivered_by_user_id = w_op.id OR del.delivered_by_user_id = w_op.document_id)
-      JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-      JOIN combos c ON ent.combo_id = c.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON (ent.combo_id = c.id OR del.entitlement_id = c.id)
       WHERE ${whereClause}
       GROUP BY COALESCE(opa.id, w_op.id, del.delivered_by_user_id)
       ORDER BY combos_count DESC
@@ -1286,96 +1360,115 @@ const getAuditStats = (req, res) => {
   }
 };
 
-const getDeliveries = (req, res) => {
+const getDeliveries = async (req, res) => {
   const { campaign_id, method, search, limit } = req.query;
 
-  let sql = `
-    SELECT 
-      del.id, del.delivered_at, del.verification_method, del.is_offline_sync,
-      del.override_reason, del.signature_proof, del.challenge_nonce,
-      w.full_name as worker_name, w.document_id as worker_document, w.worker_type,
-      d.name as department_name,
-      c.name as combo_name, c.category as combo_category, COALESCE(c.weight_kg, 14.0) as weight_kg,
-      camp.name as campaign_name, camp.id as campaign_id,
-      dp.name as point_name,
-      COALESCE(opa.full_name, op.full_name, 'Mesa de Despacho Central') as operator_name,
-      COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
-      sup.full_name as supervisor_name
-    FROM deliveries del
-    JOIN workers w ON del.worker_id = w.id
-    JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-    JOIN combos c ON ent.combo_id = c.id
-    JOIN distribution_points dp ON del.distribution_point_id = dp.id
-    LEFT JOIN departments d ON w.department_id = d.id
-    LEFT JOIN delivery_campaigns camp ON del.campaign_id = camp.id
-    LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
-    LEFT JOIN workers op ON (del.delivered_by_user_id = op.id OR del.delivered_by_user_id = op.document_id)
-    LEFT JOIN workers sup ON del.supervisor_id = sup.id
-    WHERE 1=1
-  `;
-  const params = [];
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
-  if (campaign_id && campaign_id !== 'all' && campaign_id !== '') {
-    const selectedCamp = db.prepare("SELECT * FROM delivery_campaigns WHERE id = ?").get(campaign_id);
-    if (selectedCamp) {
-      sql += ` AND (del.campaign_id = ? OR (del.campaign_id IS NULL AND date(del.delivered_at) >= ? AND date(del.delivered_at) <= ?))`;
-      params.push(campaign_id, selectedCamp.start_date, selectedCamp.end_date);
-    } else {
-      sql += ` AND del.campaign_id = ?`;
-      params.push(campaign_id);
+    await ensureDeliveriesHydrated();
+
+    let sql = `
+      SELECT 
+        del.id, del.delivered_at, del.verification_method, del.is_offline_sync,
+        del.override_reason, del.signature_proof, del.challenge_nonce,
+        COALESCE(w.full_name, 'Funcionario Registrado') as worker_name,
+        COALESCE(w.document_id, del.worker_id) as worker_document,
+        COALESCE(w.worker_type, 'activo') as worker_type,
+        COALESCE(d.name, 'Sede Principal') as department_name,
+        COALESCE(c.name, 'Combo Institucional MIPPCI') as combo_name,
+        COALESCE(c.category, 'combo_regular') as combo_category,
+        COALESCE(c.weight_kg, 14.0) as weight_kg,
+        COALESCE(camp.name, 'Gran Jornada Integral Institucional') as campaign_name,
+        camp.id as campaign_id,
+        COALESCE(dp.name, 'Punto Central de Entrega') as point_name,
+        COALESCE(opa.full_name, op.full_name, 'Mesa de Despacho Central') as operator_name,
+        COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
+        sup.full_name as supervisor_name
+      FROM deliveries del
+      LEFT JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON (ent.combo_id = c.id OR del.entitlement_id = c.id)
+      LEFT JOIN distribution_points dp ON del.distribution_point_id = dp.id
+      LEFT JOIN departments d ON w.department_id = d.id
+      LEFT JOIN delivery_campaigns camp ON del.campaign_id = camp.id
+      LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
+      LEFT JOIN workers op ON (del.delivered_by_user_id = op.id OR del.delivered_by_user_id = op.document_id)
+      LEFT JOIN workers sup ON del.supervisor_id = sup.id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    if (campaign_id && campaign_id !== 'all' && campaign_id !== '') {
+      const selectedCamp = db.prepare("SELECT * FROM delivery_campaigns WHERE id = ?").get(campaign_id);
+      if (selectedCamp) {
+        sql += ` AND (del.campaign_id = ? OR (del.campaign_id IS NULL AND date(del.delivered_at) >= ? AND date(del.delivered_at) <= ?))`;
+        params.push(campaign_id, selectedCamp.start_date, selectedCamp.end_date);
+      } else {
+        sql += ` AND del.campaign_id = ?`;
+        params.push(campaign_id);
+      }
     }
-  }
 
-  if (method) {
-    sql += ` AND del.verification_method = ?`;
-    params.push(method);
-  }
-  if (search) {
-    sql += ` AND (w.full_name LIKE ? OR w.document_id LIKE ? OR del.id LIKE ? OR d.name LIKE ?)`;
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
-  }
+    if (method) {
+      sql += ` AND del.verification_method = ?`;
+      params.push(method);
+    }
+    if (search) {
+      sql += ` AND (w.full_name LIKE ? OR w.document_id LIKE ? OR del.id LIKE ? OR d.name LIKE ?)`;
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
 
-  sql += ` ORDER BY del.delivered_at DESC LIMIT ?`;
-  params.push(parseInt(limit, 10) || 100);
+    sql += ` ORDER BY del.delivered_at DESC LIMIT ?`;
+    params.push(parseInt(limit, 10) || 100);
 
-  const deliveries = dbRouter.queryRead(sql, ...params);
-  res.json({ total: deliveries.length, deliveries });
+    const deliveries = dbRouter.queryRead(sql, ...params);
+    res.json({ total: deliveries.length, deliveries });
+  } catch (err) {
+    console.error('[GET DELIVERIES ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
-const exportDeliveries = (req, res) => {
+const exportDeliveries = async (req, res) => {
   const { campaign_id, format } = req.query;
   const exportFormat = format || 'json';
 
-  let sql = `
-    SELECT 
-      del.id as delivery_id,
-      del.delivered_at,
-      COALESCE(camp.name, 'Jornada General Institucional') as campaign_name,
-      w.document_id,
-      w.full_name as worker_name,
-      COALESCE(d.name, 'Sede Principal') as department_name,
-      c.name as combo_name,
-      COALESCE(c.weight_kg, 14.0) as weight_kg,
-      del.verification_method,
-      del.is_offline_sync,
-      dp.name as distribution_point,
-      COALESCE(opa.full_name, op.full_name, 'Mesa de Despacho Central') as operator_name,
-      COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
-      sup.full_name as supervisor_authorized,
-      del.override_reason,
-      del.signature_proof
-    FROM deliveries del
-    JOIN workers w ON del.worker_id = w.id
-    JOIN daily_entitlements ent ON del.entitlement_id = ent.id
-    JOIN combos c ON ent.combo_id = c.id
-    JOIN distribution_points dp ON del.distribution_point_id = dp.id
-    LEFT JOIN departments d ON w.department_id = d.id
-    LEFT JOIN delivery_campaigns camp ON del.campaign_id = camp.id
-    LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
-    LEFT JOIN workers op ON (del.delivered_by_user_id = op.id OR del.delivered_by_user_id = op.document_id)
-    LEFT JOIN workers sup ON del.supervisor_id = sup.id
-    WHERE 1=1
-  `;
+  try {
+    await ensureDeliveriesHydrated();
+
+    let sql = `
+      SELECT 
+        del.id as delivery_id,
+        del.delivered_at,
+        COALESCE(camp.name, 'Jornada General Institucional') as campaign_name,
+        COALESCE(w.document_id, del.worker_id) as document_id,
+        COALESCE(w.full_name, 'Funcionario Registrado') as worker_name,
+        COALESCE(d.name, 'Sede Principal') as department_name,
+        COALESCE(c.name, 'Combo Institucional MIPPCI') as combo_name,
+        COALESCE(c.weight_kg, 14.0) as weight_kg,
+        del.verification_method,
+        del.is_offline_sync,
+        COALESCE(dp.name, 'Punto Central de Entrega') as distribution_point,
+        COALESCE(opa.full_name, op.full_name, 'Mesa de Despacho Central') as operator_name,
+        COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
+        sup.full_name as supervisor_authorized,
+        del.override_reason,
+        del.signature_proof
+      FROM deliveries del
+      LEFT JOIN workers w ON del.worker_id = w.id
+      LEFT JOIN daily_entitlements ent ON del.entitlement_id = ent.id
+      LEFT JOIN combos c ON (ent.combo_id = c.id OR del.entitlement_id = c.id)
+      LEFT JOIN distribution_points dp ON del.distribution_point_id = dp.id
+      LEFT JOIN departments d ON w.department_id = d.id
+      LEFT JOIN delivery_campaigns camp ON del.campaign_id = camp.id
+      LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
+      LEFT JOIN workers op ON (del.delivered_by_user_id = op.id OR del.delivered_by_user_id = op.document_id)
+      LEFT JOIN workers sup ON del.supervisor_id = sup.id
+      WHERE 1=1
+    `;
   const params = [];
 
   if (campaign_id && campaign_id !== 'all' && campaign_id !== '') {
@@ -1542,7 +1635,11 @@ const exportDeliveries = (req, res) => {
     return res.send(html);
   }
 
-  res.json({ exported_at: new Date().toISOString(), count: deliveries.length, deliveries });
+    res.json({ exported_at: new Date().toISOString(), count: deliveries.length, deliveries });
+  } catch (err) {
+    console.error('[EXPORT DELIVERIES ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 const updateWorkerRole = async (req, res) => {

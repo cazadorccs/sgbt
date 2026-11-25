@@ -478,7 +478,7 @@ window.reloadOfficialCensus = async function() {
 window.loadAuditStats = async function() {
   const campaignId = document.getElementById('auditCampaignFilter')?.value || 'all';
   try {
-    const data = await API.get(`/api/v1/admin/audit/stats?campaign_id=${encodeURIComponent(campaignId)}`);
+    const data = await API.get(`/api/v1/admin/audit/stats?campaign_id=${encodeURIComponent(campaignId)}&_t=${Date.now()}`);
     if (!data.success) return;
 
     const elWorkers = document.getElementById('statAuditWorkersCount');
@@ -707,7 +707,7 @@ window.loadAuditDeliveries = async function() {
   if (!tbody) return;
 
   try {
-    const data = await API.get(`/api/v1/admin/deliveries?campaign_id=${encodeURIComponent(campaignId)}&method=${encodeURIComponent(method)}&search=${encodeURIComponent(search)}`);
+    const data = await API.get(`/api/v1/admin/deliveries?campaign_id=${encodeURIComponent(campaignId)}&method=${encodeURIComponent(method)}&search=${encodeURIComponent(search)}&_t=${Date.now()}`);
     tbody.innerHTML = '';
 
     if (!data.deliveries || data.deliveries.length === 0) {
@@ -1071,6 +1071,19 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('auditCampaignFilter')?.addEventListener('change', async () => {
     await loadAuditStats();
     await loadAuditDeliveries();
+  });
+
+  document.getElementById('btnRefreshAudit')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btnRefreshAudit');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Cargando...';
+    }
+    await Promise.allSettled([loadAuditStats(), loadAuditDeliveries()]);
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🔄 Actualizar</span>';
+    }
   });
 
   document.getElementById('auditMethodFilter')?.addEventListener('change', loadAuditDeliveries);

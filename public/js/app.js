@@ -339,6 +339,9 @@ function setupNavigation() {
         window.loadCombosCatalog();
       } else if (subtabId === 'subtab-workers' && typeof window.loadWorkersDirectory === 'function') {
         window.loadWorkersDirectory();
+      } else if (subtabId === 'subtab-audit') {
+        if (typeof window.loadAuditStats === 'function') window.loadAuditStats();
+        if (typeof window.loadAuditDeliveries === 'function') window.loadAuditDeliveries();
       } else if (subtabId === 'subtab-manual-dispatch' && window.ManualDispatch) {
         if (typeof window.ManualDispatch.loadTodaySummary === 'function') window.ManualDispatch.loadTodaySummary();
         if (typeof window.ManualDispatch.loadDepartmentsList === 'function') window.ManualDispatch.loadDepartmentsList();
