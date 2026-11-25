@@ -581,6 +581,38 @@ async function runSuite() {
   console.log(`⏱️ TIEMPO TOTAL DE EJECUCIÓN: ${totalTime}ms`);
   console.log('================================================================\n');
 
+  // Limpiar entregas sintéticas generadas por la cuenta de prueba E2E (V-18456123) para mantener limpia la BD y Supabase Cloud
+  try {
+    const { db } = require('./db');
+    const { supabase, isSupabaseConfigured } = require('./supabase');
+    const sinceIso = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const e2eWorkerId = testWorkerId || 'fdb4d82c-e11f-4d44-998d-b3cc0fa57d90';
+
+    const localE2eDels = db.prepare("SELECT id, entitlement_id FROM deliveries WHERE worker_id = ? AND delivered_at >= ?").all(e2eWorkerId, sinceIso);
+    for (const row of localE2eDels) {
+      db.prepare('DELETE FROM deliveries WHERE id = ?').run(row.id);
+      if (row.entitlement_id) {
+        db.prepare("UPDATE daily_entitlements SET status = 'pending' WHERE id = ?").run(row.entitlement_id);
+      }
+    }
+
+    if (isSupabaseConfigured() && supabase) {
+      const { data: sbDels } = await supabase
+        .from('deliveries')
+        .select('id, entitlement_id')
+        .eq('worker_id', e2eWorkerId)
+        .gte('delivered_at', sinceIso);
+      if (Array.isArray(sbDels) && sbDels.length > 0) {
+        const ids = sbDels.map(r => r.id);
+        const eids = sbDels.map(r => r.entitlement_id).filter(Boolean);
+        await supabase.from('deliveries').delete().in('id', ids);
+        if (eids.length > 0) {
+          await supabase.from('daily_entitlements').update({ status: 'pending' }).in('id', eids);
+        }
+      }
+    }
+  } catch (cleanErr) {}
+
   if (serverInstance) {
     serverInstance.close();
   }

@@ -202,11 +202,18 @@ window.ManualDispatch = (function() {
         if (data && data.stats) {
           const elWorkers = document.getElementById('manualKpiWorkers');
           const elAssigned = document.getElementById('manualKpiAssigned');
+          const elProgrammedFormula = document.getElementById('manualKpiProgrammedFormula');
+          const elDeliveredToday = document.getElementById('manualKpiDeliveredToday');
           const elDelivered = document.getElementById('manualKpiDelivered');
           const elPending = document.getElementById('manualKpiPending');
 
+          const programmedVal = data.stats.combos_programmed ?? data.stats.combos_assigned_today ?? 0;
+          const activeCombosCnt = data.stats.active_combos_count || 4;
+
           if (elWorkers) elWorkers.textContent = data.stats.total_workers;
-          if (elAssigned) elAssigned.textContent = data.stats.combos_assigned_today;
+          if (elAssigned) elAssigned.textContent = programmedVal;
+          if (elProgrammedFormula) elProgrammedFormula.textContent = `${data.stats.total_workers} × ${activeCombosCnt} combos activos`;
+          if (elDeliveredToday) elDeliveredToday.textContent = data.stats.combos_delivered_today;
           if (elDelivered) elDelivered.textContent = data.stats.combos_delivered_today;
           if (elPending) elPending.textContent = data.stats.combos_pending_today;
 

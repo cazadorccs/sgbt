@@ -78,6 +78,7 @@ const getKpis = async (req, res) => {
       const claimedEntitlementsToday = methodStats.total_deliveries || 0;
 
       let totalEntitlementsToday = 0;
+      let activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1;
       if (activeCampToday) {
         let campWorkersCond = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
         if (activeCampToday.target_group === 'activo') campWorkersCond += " AND worker_type = 'activo'";
@@ -86,10 +87,11 @@ const getKpis = async (req, res) => {
 
         const eligibleCampWorkers = db.prepare(`SELECT COUNT(*) as c FROM workers WHERE ${campWorkersCond}`).get()?.c || totalWorkers;
         const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
-        const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1);
+        if (campCombosCount > 0) activeCombosCount = campCombosCount;
         totalEntitlementsToday = eligibleCampWorkers * activeCombosCount;
-      } else if (claimedEntitlementsToday > 0) {
-        totalEntitlementsToday = claimedEntitlementsToday;
+      } else {
+        // Combos Programados = total de beneficiarios × cantidad de combos activos
+        totalEntitlementsToday = totalWorkers * activeCombosCount;
       }
 
       const totalDelivered = methodStats.total_deliveries || 0;

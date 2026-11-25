@@ -568,6 +568,7 @@ const getTodayStatsAndRecent = async (req, res) => {
     `).get(today, today);
 
     let totalAssigned = 0;
+    let activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1;
     if (activeCampToday) {
       let campWorkersCond = "status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')";
       if (activeCampToday.target_group === 'activo') campWorkersCond += " AND worker_type = 'activo'";
@@ -576,14 +577,14 @@ const getTodayStatsAndRecent = async (req, res) => {
 
       const eligibleCampWorkers = db.prepare(`SELECT COUNT(*) as c FROM workers WHERE ${campWorkersCond}`).get()?.c || totalWorkers;
       const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
-      const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1);
+      if (campCombosCount > 0) activeCombosCount = campCombosCount;
       totalAssigned = eligibleCampWorkers * activeCombosCount;
-    } else if (totalCombosDelivered > 0) {
-      // Si se realizaron entregas reales fuera de jornada formal, la programación refleja únicamente lo despachado
-      totalAssigned = totalCombosDelivered;
+    } else {
+      // Combos Programados = Total de beneficiarios × cantidad de combos activos del catálogo
+      totalAssigned = totalWorkers * activeCombosCount;
     }
 
-    // Combos Pendientes = Combos Programados Hoy - Combos Entregados
+    // Combos Pendientes = Remanente real de combos (Combos Programados - Combos Entregados)
     const totalPending = Math.max(0, totalAssigned - totalCombosDelivered);
 
     // Agrupar entregas por funcionario y momento de despacho para simplificar la vista
@@ -623,6 +624,8 @@ const getTodayStatsAndRecent = async (req, res) => {
       today,
       stats: {
         total_workers: totalWorkers,
+        active_combos_count: activeCombosCount,
+        combos_programmed: totalAssigned,
         combos_assigned_today: totalAssigned,
         combos_delivered_today: totalCombosDelivered,
         combos_pending_today: totalPending
