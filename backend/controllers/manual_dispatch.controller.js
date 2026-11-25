@@ -681,18 +681,18 @@ function ensureTodayEntitlementsForWorker(workerId, today) {
         SELECT cb.id, cb.name, cb.category, cb.icon, cb.weight_kg, cb.mesa_name
         FROM campaign_combos cc
         JOIN combos cb ON cc.combo_id = cb.id
-        WHERE cc.campaign_id = ? AND cb.is_active = 1
+        WHERE cc.campaign_id = ? AND cb.is_active = 1 AND cb.name NOT LIKE '__SYSTEM_%'
         ORDER BY cb.created_at ASC, cb.id ASC
       `).all(activeCamp.id);
 
       if ((!activeCombos || activeCombos.length === 0) && activeCamp.combo_id) {
-        const directCb = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE id = ? AND is_active = 1").get(activeCamp.combo_id);
+        const directCb = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE id = ? AND is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get(activeCamp.combo_id);
         if (directCb) activeCombos = [directCb];
       }
     }
 
     if (!activeCombos || activeCombos.length === 0) {
-      activeCombos = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE is_active = 1").all();
+      activeCombos = db.prepare("SELECT id, name, category, icon, weight_kg, mesa_name FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").all();
     }
     if (!activeCombos || activeCombos.length === 0) return;
 
@@ -747,5 +747,6 @@ module.exports = {
   deliverManualCombos,
   incorporateAndDeliver,
   getTodayStatsAndRecent,
-  resetDeliveriesAction
+  resetDeliveriesAction,
+  ensureTodayEntitlementsForWorker
 };

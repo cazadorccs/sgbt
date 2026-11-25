@@ -116,17 +116,22 @@ const operadorSearchWorker = (req, res) => {
       });
     }
 
-    // Asegurar asignaciones para hoy
+    // Asegurar asignaciones para hoy (para los 4 combos activos del catálogo o jornada)
     try {
-      const { ensureTodayEntitlementsForWorker } = require('../controllers/manual_dispatch.controller');
-    } catch (e) {}
+      const { ensureTodayEntitlementsForWorker } = require('./manual_dispatch.controller');
+      if (typeof ensureTodayEntitlementsForWorker === 'function') {
+        ensureTodayEntitlementsForWorker(worker.id, today);
+      }
+    } catch (e) {
+      console.warn('[OPERADOR] Aviso asegurando entitlements:', e.message);
+    }
 
     // Contar solo cuántos combos tiene pendientes (SIN mostrar nombres ni detalles)
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     let pendSql = `
       SELECT COUNT(*) as cnt FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
-      WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1
+      WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
     const pendParams = [worker.id, today];
     if (activeCamp) {
@@ -143,7 +148,7 @@ const operadorSearchWorker = (req, res) => {
     let totalSql = `
       SELECT COUNT(*) as cnt FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
-      WHERE e.worker_id = ? AND e.valid_date = ? AND c.is_active = 1
+      WHERE e.worker_id = ? AND e.valid_date = ? AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
     const totalParams = [worker.id, today];
     if (activeCamp) {
@@ -206,13 +211,21 @@ const operadorDeliver = async (req, res) => {
       return res.status(404).json({ error: 'Trabajador no encontrado' });
     }
 
+    // Asegurar derechos de hoy para todos los combos activos
+    try {
+      const { ensureTodayEntitlementsForWorker } = require('./manual_dispatch.controller');
+      if (typeof ensureTodayEntitlementsForWorker === 'function') {
+        ensureTodayEntitlementsForWorker(worker.id, today);
+      }
+    } catch (e) {}
+
     // Obtener todos los pendientes para hoy
     const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
     let pendSql = `
       SELECT e.id, e.combo_id, e.status, c.name as combo_name
       FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
-      WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1
+      WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
     const pendParams = [worker.id, today];
     if (activeCamp) {

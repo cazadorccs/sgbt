@@ -1037,38 +1037,34 @@ function seedDatabase(force = false) {
   insertNfc.run(crypto.randomUUID(), workerHilda, '04A1B2C3D4E5F6', 'active', operatorMiguel);
   insertNfc.run(crypto.randomUUID(), workerRoberto, '04F9E8D7C6B5A4', 'active', supervisorClaudia);
 
-  // 6. Asignaciones de la Jornada (Víveres y Proteína por Estaciones) para hoy
+  // 6. Asignaciones de la Jornada (4 Combos Institucionales Activos) para hoy
   const today = new Date().toISOString().split('T')[0];
+  const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
   const insertEntitlement = db.prepare(`
-    INSERT OR REPLACE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR IGNORE INTO daily_entitlements (id, worker_id, combo_id, valid_date, shift, status)
+    VALUES (?, ?, ?, ?, 'jornada_continua', 'pending')
   `);
 
   try {
     const allActiveWorkers = db.prepare("SELECT id, shift FROM workers WHERE status = 'active'").all();
-    const vCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres') OR name LIKE '%Víveres%' ORDER BY id ASC LIMIT 1").get() || { id: comboViveres };
-    const pCombo = db.prepare("SELECT id FROM combos WHERE category IN ('combo_proteico', 'proteico') OR name LIKE '%Prote%' ORDER BY id ASC LIMIT 1").get() || { id: comboProteico };
-    const existingPairs = new Set(
-      db.prepare("SELECT worker_id, shift FROM daily_entitlements WHERE valid_date = ?").all(today)
-        .map(r => `${r.worker_id}|${r.shift}`)
-    );
+    const allActiveCombos = db.prepare("SELECT id FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").all();
 
     const seedEntTx = db.transaction((workersList) => {
       for (const w of workersList) {
-        if (!existingPairs.has(`${w.id}|estacion_1`)) {
-          insertEntitlement.run(crypto.randomUUID(), w.id, vCombo.id, today, 'estacion_1', 'pending');
-        }
-        if (!existingPairs.has(`${w.id}|estacion_2`)) {
-          insertEntitlement.run(crypto.randomUUID(), w.id, pCombo.id, today, 'estacion_2', 'pending');
+        for (const c of allActiveCombos) {
+          insertEntitlement.run(crypto.randomUUID(), w.id, c.id, today);
+          if (todayVzla !== today) {
+            insertEntitlement.run(crypto.randomUUID(), w.id, c.id, todayVzla);
+          }
         }
       }
     });
     seedEntTx(allActiveWorkers);
   } catch (entErr) {
-    console.warn('[DB SEED] Aviso asignando derechos diarios por estaciones:', entErr.message);
+    console.warn('[DB SEED] Aviso asignando derechos diarios:', entErr.message);
   }
 
-  console.log('[DB] Seeds oficiales cargados exitosamente (Asignaciones por Estación 1 y Estación 2 activas).');
+  console.log('[DB] Seeds oficiales cargados exitosamente (4 Combos asignados por funcionario para la jornada).');
 
   // Auto-consolidación canónica idempotente de departamentos (evita departamentos duplicados por errores de transcripción o símbolos °)
   consolidateDuplicateDepartmentsIdempotent();
