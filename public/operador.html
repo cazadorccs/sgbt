@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Puesto de Supervisión & Despacho Manual - Operador</title>
   <meta name="theme-color" content="#0f172a">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
@@ -120,7 +123,19 @@
     function $ (id) { return document.getElementById(id); }
     function show(id) { $(id).classList.remove('hidden'); }
     function hide(id) { $(id).classList.add('hidden'); }
-    function setText(id, txt) { const el = $(id); if (el) el.textContent = txt; }
+    function setText(id, txt) {
+      const el = $(id);
+      if (!el) return;
+      if (typeof txt === 'string' && (txt.includes('<') || txt.includes('>'))) {
+        el.innerHTML = txt;
+      } else {
+        el.textContent = txt;
+      }
+    }
+    function setHtml(id, html) {
+      const el = $(id);
+      if (el) el.innerHTML = html;
+    }
 
     function mostrarAlerta(id, texto, tipo = 'error') {
       const el = $(id);
