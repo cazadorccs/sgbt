@@ -93,6 +93,13 @@
     // ============================================================================
     // API CLIENT MINIMAL (sin dependencias externas)
     // ============================================================================
+    // Silenciar errores asíncronos generados por extensiones del navegador (QuillBot, traductores, etc.)
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason && String(event.reason.message || event.reason).includes('message channel closed')) {
+        event.preventDefault();
+      }
+    });
+
     const API_BASE = window.location.origin;
     const TOKEN_KEY = 'sgbt_session_token';
 
@@ -240,13 +247,14 @@
         });
         if (res.success) {
           mostrarAlerta('msgExito', res.message, 'success');
-          // Refrescar estado del trabajador
-          const cedula = currentWorker.document_id;
-          const res2 = await apiRequest(`${API_BASE}/api/v1/operador/search/${encodeURIComponent(cedula)}`);
-          if (res2.found && res2.summary.is_fully_delivered) {
-            setText('estadoPendientes', '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>');
-            hide('btnAprobarContainer');
-          }
+          // Refrescar estado del trabajador a entregado
+          $('estadoPendientes').innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
+          hide('btnAprobarContainer');
+          // Limpiar input y enfocar para el siguiente funcionario
+          setTimeout(() => {
+            $('inputCedulaTrabajador').value = '';
+            $('inputCedulaTrabajador').focus();
+          }, 2500);
         } else {
           mostrarAlerta('msgErrorDespacho', res.error || 'Error al procesar la entrega');
         }
