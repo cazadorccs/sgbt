@@ -209,12 +209,14 @@ window.ManualDispatch = (function() {
 
           const programmedVal = data.stats.combos_programmed ?? data.stats.combos_assigned_today ?? 0;
           const activeCombosCnt = data.stats.active_combos_count || 4;
+          const totalDelivered = data.stats.combos_delivered_today || 0;
+          const beneficiariesAttended = data.stats.workers_attended_today ?? Math.floor(totalDelivered / activeCombosCnt);
 
           if (elWorkers) elWorkers.textContent = data.stats.total_workers;
           if (elAssigned) elAssigned.textContent = programmedVal;
           if (elProgrammedFormula) elProgrammedFormula.textContent = `${data.stats.total_workers} × ${activeCombosCnt} combos activos`;
-          if (elDeliveredToday) elDeliveredToday.textContent = data.stats.combos_delivered_today;
-          if (elDelivered) elDelivered.textContent = data.stats.combos_delivered_today;
+          if (elDeliveredToday) elDeliveredToday.textContent = beneficiariesAttended;
+          if (elDelivered) elDelivered.textContent = totalDelivered;
           if (elPending) elPending.textContent = data.stats.combos_pending_today;
 
           // Renderizar tabla de entregas recientes

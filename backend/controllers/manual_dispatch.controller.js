@@ -631,6 +631,7 @@ const getTodayStatsAndRecent = async (req, res) => {
     }
 
     const recentDeliveries = Array.from(groupedMap.values()).slice(0, 100);
+    const uniqueWorkersAttended = new Set(rawDeliveries.map(d => d.document_id)).size;
 
     res.json({
       success: true,
@@ -641,7 +642,8 @@ const getTodayStatsAndRecent = async (req, res) => {
         combos_programmed: totalAssigned,
         combos_assigned_today: totalAssigned,
         combos_delivered_today: totalCombosDelivered,
-        combos_pending_today: totalPending
+        combos_pending_today: totalPending,
+        workers_attended_today: uniqueWorkersAttended || Math.floor(totalCombosDelivered / (activeCombosCount || 4))
       },
       recent_deliveries: recentDeliveries
     });
