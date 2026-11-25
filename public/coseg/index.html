@@ -1462,7 +1462,7 @@
                 <div class="panel-title" id="workersDirectoryTitle" style="margin-bottom: 0;">Directorio de Empleados y Padrón Institucional</div>
                 <span id="workersCountBadge" class="badge-directory-count" title="Total de registros en el padrón institucional">
                   <svg class="icon-svg icon-xs" viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                  <span id="workersCountText">1,079 registros</span>
+                  <span id="workersCountText">1,362 registros</span>
                 </span>
               </div>
               <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
@@ -1476,9 +1476,9 @@
               </button>
               <button id="btnOpenImportPayrollModal" class="btn btn-outline" style="font-size: 0.8rem; background: #ffffff; display: inline-flex; align-items: center; gap: 0.4rem;">
                 <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                <span>Importar Nómina CSV</span>
+                <span>Importar Nómina CSV / Excel</span>
               </button>
-              <button id="btnReloadCensusData" onclick="if (typeof reloadOfficialCensus === 'function') reloadOfficialCensus();" class="btn btn-outline" style="font-size: 0.8rem; background: #ffffff; color: #0284c7; border-color: #93c5fd; display: inline-flex; align-items: center; gap: 0.4rem;" title="Recargar y restaurar el padrón oficial institucional completo (1,137 funcionarios)">
+              <button id="btnReloadCensusData" onclick="if (typeof reloadOfficialCensus === 'function') reloadOfficialCensus();" class="btn btn-outline" style="font-size: 0.8rem; background: #ffffff; color: #0284c7; border-color: #93c5fd; display: inline-flex; align-items: center; gap: 0.4rem;" title="Recargar y restaurar el padrón oficial institucional completo">
                 <svg class="icon-svg icon-sm" viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                 <span>Restaurar Padrón</span>
               </button>
@@ -1506,6 +1506,9 @@
               <option value="admin">👑 Administradores</option>
               <option value="worker">👤 Beneficiarios (Nómina General)</option>
             </select>
+            <select id="filterEnteSelect" class="form-select" style="border-color: #cbd5e1; font-weight: 600; max-width: 210px;">
+              <option value="">🏛️ Todos los Entes</option>
+            </select>
             <select id="filterDepartmentSelect" class="form-select" style="border-color: #cbd5e1; max-width: 250px;">
               <option value="">🏢 Todos los Departamentos</option>
             </select>
@@ -1519,7 +1522,7 @@
               <option value="">Todos los Turnos</option>
             </select>
             <select id="filterStatusSelect" class="form-select">
-              <option value="active" selected>Padrón Activo (1.079)</option>
+              <option value="active" selected>Padrón Activo (1.362)</option>
               <option value="">Todos los Estados</option>
               <option value="terminated">Bajas de Nómina</option>
             </select>
@@ -1534,7 +1537,8 @@
                   <th style="min-width: 160px; max-width: 220px;" title="Funcionario / Beneficiario">Funcionario</th>
                   <th style="width: 125px;" title="Rol Institucional y Permisos de Acceso">Rol</th>
                   <th style="width: 70px; text-align: center;" title="Condición Laboral (Pase el cursor sobre el icono para ver detalles)">Condición</th>
-                  <th style="max-width: 160px;" title="Departamento / Dirección de Adscripción">Departamento</th>
+                  <th style="width: 135px;" title="Ente u Organismo de Pertenencia">Ente</th>
+                  <th style="max-width: 160px;" title="Unidad de Adscripción / Departamento">Departamento</th>
                   <th style="width: 110px; text-align: center;" title="Método de Validación de Identidad">Validación</th>
                   <th style="width: 95px; text-align: center;" title="Estado de Entrega en la Jornada de Hoy">Jornada</th>
                   <th style="width: 85px; text-align: center;" title="Acciones Rápidas">Acciones</th>

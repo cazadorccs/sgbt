@@ -487,6 +487,7 @@ function initializeDatabase() {
   `);
 
   // Migraciones automáticas seguras de columnas opcionales en tablas existentes
+  try { db.exec("ALTER TABLE workers ADD COLUMN ente TEXT DEFAULT 'MIPPCI'"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN job_title TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE workers ADD COLUMN hire_date TEXT DEFAULT ''"); } catch (e) {}
   try { db.exec("ALTER TABLE combos ADD COLUMN items_detail TEXT DEFAULT ''"); } catch (e) {}
@@ -584,6 +585,7 @@ function initializeDatabase() {
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_document_id ON workers(document_id);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_full_name ON workers(full_name);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_status ON workers(status);"); } catch (e) {}
+  try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_ente ON workers(ente);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_workers_department ON workers(department_id);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_worker_date ON daily_entitlements(worker_id, valid_date);"); } catch (e) {}
   try { db.exec("CREATE INDEX IF NOT EXISTS idx_daily_entitlements_combo ON daily_entitlements(combo_id);"); } catch (e) {}
@@ -902,11 +904,11 @@ function seedDatabase(force = false) {
     insertCombo.run(comboComplementario, 'Combo Complementario Especial', 'Granos variados (lentejas, arvejas) y sardina enlatada', 'combo_especial', 4000, 'Refuerzo nutricional', 1);
   }
 
-  // 4. Beneficiarios y Personal Oficial (16 Funcionarios)
+  // 4. Beneficiarios y Personal Oficial
   const insertWorker = db.prepare(`
     INSERT OR REPLACE INTO workers (
-      id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, job_title, hire_date
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, document_id, full_name, email, department_id, ente, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, job_title, hire_date
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   if (productionSeed && Array.isArray(productionSeed.workers) && productionSeed.workers.length > 0) {
@@ -918,6 +920,7 @@ function seedDatabase(force = false) {
           w.full_name,
           w.email,
           w.department_id,
+          w.ente || 'MIPPCI',
           w.shift || 'jornada_continua',
           w.status || 'active',
           w.worker_type || 'activo',
@@ -937,15 +940,15 @@ function seedDatabase(force = false) {
     const deptComunicacion = db.prepare("SELECT id FROM departments WHERE code = 'DGCD_02'").get()?.id;
     const deptJubilados = db.prepare("SELECT id FROM departments WHERE code = 'CJP_03'").get()?.id;
 
-    insertWorker.run('a8b19654-8d50-4c60-a99a-259d6960a62f', 'V-13537582', 'Msc. Sahib A Franco', 'Sfranco@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+584129743120', null);
-    insertWorker.run('fdb4d82c-e11f-4d44-998d-b3cc0fa57d90', 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null);
-    insertWorker.run('594a7451-f3b9-4c58-9a26-78eb132d5300', 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@mippci.gob.ve', deptJubilados, 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 412 1112233', null);
-    insertWorker.run('23eb7b65-d7f0-4281-a940-63db5302fdf7', 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@mippci.gob.ve', deptComunicacion, 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 1112233', null);
-    insertWorker.run('d1794f4a-7dfa-47d6-97ed-0aee326a3aa4', 'V-21555666', 'Elena Sofía Morales', 'elena.morales@mippci.gob.ve', deptGestionHumana, 'mañana', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null);
-    insertWorker.run('d8e1ab71-354c-409d-977a-f7fa510ca31e', 'V-15888999', 'Andrés David Silva', 'andres.silva@mippci.gob.ve', deptComunicacion, 'tarde', 'active', 'contratado', 'worker', 1, null, '+58 412 1112233', null);
-    insertWorker.run('03ff49f9-70c7-4177-9d28-ad833563d6f1', 'V-14111222', 'Miguel Ángel Torres', 'miguel.torres@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'operator', 1, null, '+58 412 1112233', null);
-    insertWorker.run('d1388f41-9015-430f-891a-55ebee18fd5c', 'V-13222333', 'Claudia Patricia Vega', 'claudia.vega@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'supervisor', 1, null, '+58 412 1112233', null);
-    insertWorker.run('0149e33b-892d-43e3-92e8-f635e7a1d001', 'V-11123987', 'Juan Carlos Rivas', 'juan.rivas@mippci.gob.ve', deptGestionHumana, 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+58 412 1112233', null);
+    insertWorker.run('a8b19654-8d50-4c60-a99a-259d6960a62f', 'V-13537582', 'Msc. Sahib A Franco', 'Sfranco@mippci.gob.ve', deptComunicacion, 'MIPPCI', 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+584129743120', null, '', '');
+    insertWorker.run('fdb4d82c-e11f-4d44-998d-b3cc0fa57d90', 'V-18456123', 'Carlos Eduardo Mendoza', 'carlos.mendoza@mippci.gob.ve', deptGestionHumana, 'MIPPCI', 'jornada_continua', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null, '', '');
+    insertWorker.run('594a7451-f3b9-4c58-9a26-78eb132d5300', 'V-06894321', 'Hilda Teresa Domínguez', 'hilda.dominguez@mippci.gob.ve', deptJubilados, 'JUBILADOS', 'jornada_continua', 'active', 'jubilado', 'worker', 0, 'adulto_mayor_sin_smartphone', '+58 412 1112233', null, '', '');
+    insertWorker.run('23eb7b65-d7f0-4281-a940-63db5302fdf7', 'V-12345678', 'Roberto Alexander Gómez', 'roberto.gomez@mippci.gob.ve', deptComunicacion, 'MIPPCI', 'jornada_continua', 'active', 'activo', 'worker', 1, 'device_lost', '+58 412 1112233', null, '', '');
+    insertWorker.run('d1794f4a-7dfa-47d6-97ed-0aee326a3aa4', 'V-21555666', 'Elena Sofía Morales', 'elena.morales@mippci.gob.ve', deptGestionHumana, 'MIPPCI', 'mañana', 'active', 'activo', 'worker', 1, null, '+58 412 1112233', null, '', '');
+    insertWorker.run('d8e1ab71-354c-409d-977a-f7fa510ca31e', 'V-15888999', 'Andrés David Silva', 'andres.silva@mippci.gob.ve', deptComunicacion, 'MIPPCI', 'tarde', 'active', 'contratado', 'worker', 1, null, '+58 412 1112233', null, '', '');
+    insertWorker.run('03ff49f9-70c7-4177-9d28-ad833563d6f1', 'V-14111222', 'Miguel Ángel Torres', 'miguel.torres@mippci.gob.ve', deptGestionHumana, 'MIPPCI', 'jornada_continua', 'active', 'activo', 'operator', 1, null, '+58 412 1112233', null, '', '');
+    insertWorker.run('d1388f41-9015-430f-891a-55ebee18fd5c', 'V-13222333', 'Claudia Patricia Vega', 'claudia.vega@mippci.gob.ve', deptGestionHumana, 'MIPPCI', 'jornada_continua', 'active', 'activo', 'supervisor', 1, null, '+58 412 1112233', null, '', '');
+    insertWorker.run('0149e33b-892d-43e3-92e8-f635e7a1d001', 'V-11123987', 'Juan Carlos Rivas', 'juan.rivas@mippci.gob.ve', deptGestionHumana, 'MIPPCI', 'jornada_continua', 'active', 'activo', 'admin', 1, null, '+58 412 1112233', null, '', '');
   }
 
   // 5. Enrolamiento y llaves criptográficas reales ECDSA P-256
@@ -1131,16 +1134,81 @@ if (!isServerless) {
   }
 }
 
+const SYNC_WORKERS_META_STORE_UUID = 'c0000000-ca11-4000-8000-000000000002';
+
+async function syncWorkersMetaToCloud() {
+  try {
+    const { supabase, isSupabaseConfigured } = require('./supabase');
+    if (!isSupabaseConfigured() || !supabase) return false;
+    const rows = db.prepare("SELECT document_id, ente, job_title, hire_date FROM workers WHERE status = 'active' OR ente IS NOT NULL").all();
+    const metaMap = {};
+    for (const r of rows) {
+      if (!r.document_id) continue;
+      const entry = {};
+      if (r.ente && r.ente !== 'MIPPCI') entry.e = r.ente;
+      else if (r.ente === 'MIPPCI') entry.e = 'MIPPCI';
+      if (r.job_title) entry.j = r.job_title;
+      if (r.hire_date) entry.h = r.hire_date;
+      if (Object.keys(entry).length > 0) metaMap[r.document_id] = entry;
+    }
+    await supabase.from('combos').upsert({
+      id: SYNC_WORKERS_META_STORE_UUID,
+      name: '__SYSTEM_WORKERS_ENTE_STORE__',
+      category: 'bolsa_viveres',
+      description: JSON.stringify(metaMap),
+      calories: 0,
+      dietary_info: 'Cloud Workers Ente Store',
+      is_active: false
+    }, { onConflict: 'id' });
+    return true;
+  } catch (e) {
+    console.warn('[CLOUD WORKERS META SYNC WARN]', e.message);
+    return false;
+  }
+}
+
 // Función de sincronización bidireccional / hidratación con Supabase Cloud
 async function syncFromSupabase() {
   try {
     const { supabase, isSupabaseConfigured } = require('./supabase');
     if (!isSupabaseConfigured() || !supabase) return;
 
+    // 0. Hidratar departamentos desde Supabase Cloud
+    try {
+      const { data: remoteDepts, error: depErr } = await supabase.from('departments').select('*');
+      if (!depErr && Array.isArray(remoteDepts) && remoteDepts.length > 0) {
+        const upsertDept = db.prepare(`
+          INSERT INTO departments (id, code, name, cost_center)
+          VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name,
+            cost_center = COALESCE(excluded.cost_center, departments.cost_center)
+        `);
+        const txDepts = db.transaction((list) => {
+          for (const d of list) {
+            try {
+              upsertDept.run(d.id, d.code, d.name, d.cost_center || 'CC-NOMINA');
+            } catch (e) {}
+          }
+        });
+        txDepts(remoteDepts);
+      }
+    } catch (dCatch) {}
+
+    let workersMetaMap = {};
+
     // Hidratar combos desde Supabase Cloud
     try {
       const { data: rawRemoteCombos, error: cErr } = await supabase.from('combos').select('*');
       if (!cErr && Array.isArray(rawRemoteCombos) && rawRemoteCombos.length > 0) {
+        // Extraer almacén en la nube de entes/cargos de trabajadores si existe
+        const metaStore = rawRemoteCombos.find(r => r.id === SYNC_WORKERS_META_STORE_UUID || r.name === '__SYSTEM_WORKERS_ENTE_STORE__');
+        if (metaStore && metaStore.description) {
+          try {
+            workersMetaMap = JSON.parse(metaStore.description) || {};
+          } catch (metaErr) {}
+        }
+
         // Extraer almacén en la nube de jornadas si existe
         const campStore = rawRemoteCombos.find(r => r.id === 'c0000000-ca11-4000-8000-000000000001' || r.name === '__SYSTEM_CAMPAIGNS_STORE__');
         if (campStore && campStore.description) {
@@ -1203,9 +1271,14 @@ async function syncFromSupabase() {
           }
         }
 
-        const remoteCombos = rawRemoteCombos.filter(r => r.id !== 'c0000000-ca11-4000-8000-000000000001' && r.name !== '__SYSTEM_CAMPAIGNS_STORE__');
+        const remoteCombos = rawRemoteCombos.filter(r =>
+          r.id !== 'c0000000-ca11-4000-8000-000000000001' &&
+          r.name !== '__SYSTEM_CAMPAIGNS_STORE__' &&
+          r.id !== SYNC_WORKERS_META_STORE_UUID &&
+          r.name !== '__SYSTEM_WORKERS_ENTE_STORE__'
+        );
         const remoteIds = new Set(remoteCombos.map(r => r.id));
-        const localCombos = db.prepare("SELECT id FROM combos WHERE name != '__SYSTEM_CAMPAIGNS_STORE__'").all();
+        const localCombos = db.prepare("SELECT id FROM combos WHERE name NOT LIKE '__SYSTEM_%'").all();
         for (const loc of localCombos) {
           if (!remoteIds.has(loc.id)) {
             try {
@@ -1261,13 +1334,16 @@ async function syncFromSupabase() {
     if (Array.isArray(remoteWorkers) && remoteWorkers.length > 0) {
       const insertWorker = db.prepare(`
         INSERT INTO workers (
-          id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, document_id, full_name, email, department_id, ente, job_title, hire_date, shift, status, worker_type, role, has_smartphone, contingency_reason, phone_number, avatar_url, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           document_id = excluded.document_id,
           full_name = excluded.full_name,
           email = excluded.email,
           department_id = excluded.department_id,
+          ente = COALESCE(NULLIF(excluded.ente, ''), workers.ente, 'MIPPCI'),
+          job_title = CASE WHEN excluded.job_title != '' THEN excluded.job_title ELSE workers.job_title END,
+          hire_date = CASE WHEN excluded.hire_date != '' THEN excluded.hire_date ELSE workers.hire_date END,
           shift = excluded.shift,
           status = excluded.status,
           worker_type = excluded.worker_type,
@@ -1284,12 +1360,22 @@ async function syncFromSupabase() {
             const workerEmail = (w.document_id === '13537582' || String(w.document_id).includes('13537582'))
               ? 'Sfranco@mippci.gob.ve'
               : w.email;
+            const normDoc = (w.document_id && !w.document_id.includes('-') && /^\d+$/.test(w.document_id))
+              ? `V-${w.document_id}`
+              : w.document_id;
+            const meta = workersMetaMap[normDoc] || workersMetaMap[w.document_id] || {};
+            const resolvedEnte = w.ente || meta.e || 'MIPPCI';
+            const resolvedJobTitle = w.job_title || meta.j || '';
+            const resolvedHireDate = w.hire_date || meta.h || '';
             insertWorker.run(
               w.id,
               w.document_id,
               w.full_name,
               workerEmail,
               w.department_id,
+              resolvedEnte,
+              resolvedJobTitle,
+              resolvedHireDate,
               w.shift || 'jornada_continua',
               w.status || 'active',
               w.worker_type || 'activo',
@@ -1581,5 +1667,6 @@ module.exports = {
   cloudHydrationPromise,
   secureEnclaveSimulator,
   seedDatabase,
-  syncFromSupabase
+  syncFromSupabase,
+  syncWorkersMetaToCloud
 };

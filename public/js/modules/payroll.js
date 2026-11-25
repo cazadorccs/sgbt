@@ -362,6 +362,7 @@ window.setupWorkerManagement = function() {
     const worker_type = document.getElementById('newWorkerType').value;
     const role = document.getElementById('newWorkerRole')?.value || 'worker';
     const department_id = document.getElementById('newWorkerDepartment').value || null;
+    const ente = document.getElementById('newWorkerEnte')?.value.trim() || 'MIPPCI';
     const phone_number = document.getElementById('newWorkerPhone').value.trim() || null;
     const email = document.getElementById('newWorkerEmail').value.trim() || null;
     const has_smartphone = document.getElementById('newWorkerHasSmartphone').checked;
@@ -373,6 +374,7 @@ window.setupWorkerManagement = function() {
         worker_type,
         role,
         department_id,
+        ente,
         phone_number,
         email,
         has_smartphone
@@ -391,9 +393,16 @@ window.setupWorkerManagement = function() {
     }
   });
 
+  let duplicateResolutionsMap = {};
+  const auditPanel = document.getElementById('payrollDuplicateAuditPanel');
+  const auditSummary = document.getElementById('payrollDuplicateAuditSummary');
+  const auditList = document.getElementById('payrollDuplicateAuditList');
+
   btnOpenImport?.addEventListener('click', () => {
     parsedCsvWorkers = [];
+    duplicateResolutionsMap = {};
     if (previewContainer) previewContainer.style.display = 'none';
+    if (auditPanel) auditPanel.style.display = 'none';
     if (alertCsv) alertCsv.style.display = 'none';
     if (btnExecuteImport) btnExecuteImport.disabled = true;
     if (statusText) statusText.textContent = 'Ningún archivo seleccionado';
@@ -427,80 +436,158 @@ window.setupWorkerManagement = function() {
   function handleCsvFile(file) {
     if (!file) return;
     if (statusText) statusText.textContent = `Archivo: ${file.name} (${Math.round(file.size / 1024)} KB)`;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      parseCsvContent(e.target.result);
-    };
-    reader.readAsText(file);
+    duplicateResolutionsMap = {};
+    if (auditPanel) auditPanel.style.display = 'none';
+
+    const lowerName = file.name.toLowerCase();
+    const isExcel = lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls');
+
+    if (isExcel) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          if (statusText) statusText.textContent = `⏳ Auditando archivo Excel: ${file.name}...`;
+          const base64Data = e.target.result;
+          const auditRes = await API.post('/api/v1/admin/workers/audit-duplicates', {
+            excelBase64: base64Data,
+            source: 'excel_upload'
+          });
+          applyParsedWorkersAndAudit(auditRes.workers || [], auditRes);
+          if (statusText) statusText.textContent = `Archivo Excel: ${file.name} (${Math.round(file.size / 1024)} KB)`;
+        } catch (err) {
+          window.showToast('Error leyendo archivo Excel: ' + err.message, 'error');
+          if (statusText) statusText.textContent = `❌ Error al analizar ${file.name}`;
+        }
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        parseCsvContent(e.target.result);
+      };
+      reader.readAsText(file);
+    }
   }
 
-  function parseCsvContent(text) {
-    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) {
-      window.showToast('El archivo CSV debe contener al menos la cabecera y una fila de datos.', 'warning');
-      return;
-    }
-
-    const delimiter = lines[0].includes(';') ? ';' : ',';
-    parsedCsvWorkers = [];
+  function applyParsedWorkersAndAudit(workersList, auditRes) {
+    parsedCsvWorkers = workersList || [];
     if (previewBody) previewBody.innerHTML = '';
 
-    for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
-      if (parts.length < 2) continue;
+    parsedCsvWorkers.slice(0, 15).forEach(w => {
+      if (!previewBody) return;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${w.document_id}</strong></td>
+        <td>${w.full_name}</td>
+        <td><span class="ente-badge-pill">${w.ente || 'MIPPCI'}</span></td>
+        <td>${w.department_name || 'Sin Asignar'}</td>
+        <td>${w.worker_type || 'activo'}</td>
+      `;
+      previewBody.appendChild(tr);
+    });
 
-      let doc = parts[0] || '';
-      if (!doc.startsWith('V-') && !doc.startsWith('E-')) {
-        doc = 'V-' + doc.replace(/\D/g, '');
+    if (auditRes && auditRes.has_duplicates && auditRes.duplicate_warnings && auditRes.duplicate_warnings.length > 0) {
+      if (auditPanel && auditSummary && auditList) {
+        auditPanel.style.display = 'block';
+        auditSummary.innerHTML = `Se detectaron <strong>${auditRes.duplicate_count}</strong> cédula(s) duplicada(s) dentro del archivo (${auditRes.total_rows} filas totales → ${auditRes.unique_rows} registros únicos). Seleccione cuál registro preservar antes de importar:`;
+        auditList.innerHTML = '';
+
+        auditRes.duplicate_warnings.forEach(dw => {
+          duplicateResolutionsMap[dw.document_id] = dw.preserved_index;
+          const card = document.createElement('div');
+          card.style.cssText = 'background: #ffffff; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.55rem 0.7rem; font-size: 0.75rem;';
+          const optionsHtml = (dw.records || []).map((rec, rIdx) => `
+            <label style="display: flex; align-items: flex-start; gap: 0.4rem; margin-top: 0.3rem; cursor: pointer;">
+              <input type="radio" name="dup_res_${dw.document_id}" value="${rec.index}" ${rec.is_preserved ? 'checked' : ''} style="margin-top: 0.15rem;" />
+              <span>
+                <strong>Registro ${rIdx + 1} (Fila ${rec.row_number}):</strong>
+                <span class="ente-badge-pill" style="font-size: 0.68rem; padding: 0.08rem 0.4rem;">${rec.ente}</span>
+                ${rec.full_name} — <em>Depto:</em> ${rec.department_name || '(Vacía)'}${rec.job_title ? ` — <em>Cargo:</em> ${rec.job_title}` : ''}
+              </span>
+            </label>
+          `).join('');
+
+          card.innerHTML = `
+            <div style="font-weight: 700; color: #92400e;">⚠️ Cédula Duplicada: ${dw.document_id} (${dw.occurrences_count} ocurrencias)</div>
+            ${optionsHtml}
+          `;
+          card.querySelectorAll(`input[name="dup_res_${dw.document_id}"]`).forEach(radio => {
+            radio.addEventListener('change', (ev) => {
+              duplicateResolutionsMap[dw.document_id] = parseInt(ev.target.value, 10);
+            });
+          });
+          auditList.appendChild(card);
+        });
       }
-
-      const name = parts[1] || '';
-      const condition = parts[2] ? parts[2].toLowerCase() : 'activo';
-      const phone = parts[3] || '';
-      const email = parts[4] || '';
-
-      if (!name) continue;
-
-      parsedCsvWorkers.push({
-        document_id: doc,
-        full_name: name,
-        worker_type: condition.includes('jub') ? 'jubilado' : (condition.includes('cont') ? 'contratado' : 'activo'),
-        phone_number: phone,
-        email: email
-      });
-
-      if (parsedCsvWorkers.length <= 10 && previewBody) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${doc}</strong></td>
-          <td>${name}</td>
-          <td>${condition}</td>
-          <td>${phone || '--'}</td>
-        `;
-        previewBody.appendChild(tr);
-      }
+    } else if (auditPanel) {
+      auditPanel.style.display = 'none';
     }
 
     if (parsedCsvWorkers.length > 0) {
       if (previewContainer) previewContainer.style.display = 'block';
       if (btnExecuteImport) btnExecuteImport.disabled = false;
       if (alertCsv) {
-        alertCsv.className = 'alert-box alert-info';
-        alertCsv.innerHTML = `📋 Se detectaron <strong>${parsedCsvWorkers.length} registros válidos</strong> listos para importar.`;
+        alertCsv.className = auditRes && auditRes.has_duplicates ? 'alert-box alert-warning' : 'alert-box alert-info';
+        alertCsv.innerHTML = auditRes && auditRes.has_duplicates
+          ? `🛡️ <strong>Auditoría Activa:</strong> ${auditRes.total_rows} filas analizadas. Al importar se preservarán <strong>${auditRes.unique_rows} registros únicos</strong> eliminando los duplicados seleccionados.`
+          : `📋 Se detectaron <strong>${parsedCsvWorkers.length} registros válidos</strong> sin duplicidades, listos para importar.`;
         alertCsv.style.display = 'block';
       }
     } else {
-      window.showToast('No se pudieron extraer registros válidos del archivo CSV.', 'error');
+      window.showToast('No se pudieron extraer registros válidos del archivo.', 'error');
+    }
+  }
+
+  async function parseCsvContent(text) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      window.showToast('El archivo CSV debe contener al menos la cabecera y una fila de datos.', 'warning');
+      return;
+    }
+
+    try {
+      const auditRes = await API.post('/api/v1/admin/workers/audit-duplicates', {
+        csvText: text,
+        source: 'csv_upload'
+      });
+      applyParsedWorkersAndAudit(auditRes.workers || [], auditRes);
+    } catch (err) {
+      // Fallback parser local si falla la petición previa
+      const delimiter = lines[0].includes(';') ? ';' : ',';
+      const localWorkers = [];
+      for (let i = 1; i < lines.length; i++) {
+        const parts = lines[i].split(delimiter).map(p => p.trim().replace(/^["']|["']$/g, ''));
+        if (parts.length < 2) continue;
+        let doc = parts[0] || '';
+        if (!doc.startsWith('V-') && !doc.startsWith('E-')) doc = 'V-' + doc.replace(/\D/g, '');
+        const name = parts[1] || '';
+        const condition = parts[2] ? parts[2].toLowerCase() : 'activo';
+        const phone = parts[3] || '';
+        const email = parts[4] || '';
+        const ente = parts[5] ? parts[5].toUpperCase() : 'MIPPCI';
+        const dept = parts[6] || null;
+        if (!name) continue;
+        localWorkers.push({
+          row_number: i + 1,
+          document_id: doc,
+          full_name: name,
+          ente,
+          department_name: dept,
+          worker_type: condition.includes('jub') ? 'jubilado' : (condition.includes('cont') ? 'contratado' : 'activo'),
+          phone_number: phone,
+          email: email
+        });
+      }
+      applyParsedWorkersAndAudit(localWorkers, { has_duplicates: false, total_rows: localWorkers.length, unique_rows: localWorkers.length });
     }
   }
 
   btnDownloadSample?.addEventListener('click', () => {
     const sampleCsv = 
-`cedula,nombre_completo,condicion,telefono,correo
-V-19876543,Ana Beatriz Morales,activo,+584141112233,ana.morales@ente.gob.ve
-V-07654321,Pedro José Castillo,jubilado,+584129998877,pedro.castillo@ente.gob.ve
-V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@ente.gob.ve`;
+`cedula,nombre_completo,condicion,telefono,correo,ente,unidad_de_adscripcion
+V-19876543,Ana Beatriz Morales,activo,+584141112233,ana.morales@mippci.gob.ve,MIPPCI,OFICINA DE GESTION HUMANA
+V-07654321,Pedro José Castillo,jubilado,+584129998877,pedro.castillo@mippci.gob.ve,JUBILADOS,
+V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@mippci.gob.ve,RADIO MIRAFLORES,`;
 
     const blob = new Blob([sampleCsv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -516,37 +603,49 @@ V-25111222,Mariana Elena Torres,contratado,+584163334455,mariana.torres@ente.gob
     if (parsedCsvWorkers.length === 0) return;
 
     btnExecuteImport.disabled = true;
-    const CHUNK_SIZE = 250;
-    const totalBatches = Math.ceil(parsedCsvWorkers.length / CHUNK_SIZE);
     let totalImported = 0;
     let totalDeptWarnings = 0;
+    let totalDuplicatesFiltered = 0;
 
     try {
-      for (let b = 0; b < totalBatches; b++) {
-        const chunk = parsedCsvWorkers.slice(b * CHUNK_SIZE, (b + 1) * CHUNK_SIZE);
-        btnExecuteImport.textContent = `⏳ Procesando lote ${b + 1} de ${totalBatches}... (${totalImported} registrados)`;
-
-        const data = await API.post('/api/v1/admin/workers/batch', { workers: chunk });
-        totalImported += (data.imported || data.processed || 0);
-        if (data.department_warnings && data.department_warnings.length > 0) {
-          totalDeptWarnings += data.department_warnings.length;
+      // Si el lote cabe en el límite del endpoint (<= 5,000), enviarlo completo con las resoluciones de auditoría anti-duplicidad
+      if (parsedCsvWorkers.length <= 5000) {
+        btnExecuteImport.textContent = `⏳ Auditando e importando ${parsedCsvWorkers.length} registros...`;
+        const data = await API.post('/api/v1/admin/workers/batch', {
+          workers: parsedCsvWorkers,
+          duplicate_resolutions: duplicateResolutionsMap
+        });
+        totalImported = data.imported || data.processed || 0;
+        totalDeptWarnings = (data.department_warnings || []).length;
+        totalDuplicatesFiltered = data.duplicates_filtered || 0;
+      } else {
+        const CHUNK_SIZE = 500;
+        const totalBatches = Math.ceil(parsedCsvWorkers.length / CHUNK_SIZE);
+        for (let b = 0; b < totalBatches; b++) {
+          const chunk = parsedCsvWorkers.slice(b * CHUNK_SIZE, (b + 1) * CHUNK_SIZE);
+          btnExecuteImport.textContent = `⏳ Procesando lote ${b + 1} de ${totalBatches}... (${totalImported} registrados)`;
+          const data = await API.post('/api/v1/admin/workers/batch', { workers: chunk, duplicate_resolutions: duplicateResolutionsMap });
+          totalImported += (data.imported || data.processed || 0);
+          totalDeptWarnings += (data.department_warnings || []).length;
+          totalDuplicatesFiltered += (data.duplicates_filtered || 0);
         }
       }
 
-      if (totalDeptWarnings > 0) {
-        window.showToast(`🎉 ¡Importación completada! Se procesaron ${totalImported} trabajadores con ${totalDeptWarnings} discrepancias en departamentos normalizadas.`, 'warning');
+      if (totalDuplicatesFiltered > 0 || totalDeptWarnings > 0) {
+        window.showToast(`🛡️ ¡Importación auditada! ${totalImported} trabajadores procesados (${totalDuplicatesFiltered} duplicados depurados, ${totalDeptWarnings} departamentos normalizados).`, 'warning');
       } else {
         window.showToast(`🎉 ¡Importación completada con éxito! Se procesaron ${totalImported} trabajadores.`, 'success');
       }
       closeImport();
       if (typeof loadWorkersDirectory === 'function') await loadWorkersDirectory();
+      if (typeof refreshPortalData === 'function') await refreshPortalData();
       playAudioFeedback('success');
 
     } catch (err) {
       window.showToast('Error durante la importación masiva: ' + err.message, 'error');
     } finally {
       btnExecuteImport.disabled = false;
-      btnExecuteImport.textContent = '🚀 Iniciar Importación a Base de Datos';
+      btnExecuteImport.textContent = '🚀 Importar Beneficiarios';
     }
   });
 };

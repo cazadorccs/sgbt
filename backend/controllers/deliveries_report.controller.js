@@ -194,7 +194,7 @@ const getDeliveriesReport = async (req, res) => {
     const totalActiveWorkers = db.prepare(`
       SELECT COUNT(*) as c FROM workers 
       WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
-    `).get()?.c || 1079;
+    `).get()?.c || 1362;
 
     const activeCampToday = db.prepare(`
       SELECT c.id FROM delivery_campaigns c
@@ -203,7 +203,7 @@ const getDeliveriesReport = async (req, res) => {
         AND date('now') <= date(c.end_date)
       LIMIT 1
     `).get();
-    const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1;
+    const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1;
     const totalAssignedCombos = activeCampToday ? (totalActiveWorkers * activeCombosCount) : 0;
 
     // Desglose de métodos para la selección actual

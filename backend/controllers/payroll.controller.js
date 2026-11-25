@@ -3,7 +3,7 @@
 
 const crypto = require('crypto');
 const xlsx = require('xlsx');
-const { db } = require('../db');
+const { db, syncWorkersMetaToCloud } = require('../db');
 const { verifyWebhookHmac } = require('../crypto-utils');
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -77,6 +77,7 @@ function parseExcelToWorkers(buffer) {
 
     const docIdx = rawHeaders.findIndex(h => h.includes('cedula') || h.includes('document') || h.includes('ci') || h.includes('id'));
     const nameIdx = rawHeaders.findIndex(h => h.includes('nombre') || h.includes('apellidos') || h.includes('trabajador') || h.includes('empleado'));
+    const enteIdx = rawHeaders.findIndex(h => h === 'ente' || h.includes('ente') || h.includes('organismo') || h.includes('institucion'));
     const deptIdx = rawHeaders.findIndex(h => h.includes('adscripcion') || h.includes('departamento') || h.includes('unidad') || h.includes('gerencia') || h.includes('direccion') || h.includes('area'));
     const jobIdx = rawHeaders.findIndex(h => h.includes('cargo') || h.includes('puesto') || h.includes('posicion'));
     const hireIdx = rawHeaders.findIndex(h => h.includes('ingreso') || h.includes('fecha_de_ingreso') || h.includes('contratacion'));
@@ -97,7 +98,8 @@ function parseExcelToWorkers(buffer) {
         ? String(row[nameIdx]).trim().replace(/\s+/g, ' ') 
         : `Funcionario ${cleanDoc}`;
 
-      const deptName = deptIdx >= 0 && row[deptIdx] ? String(row[deptIdx]).trim() : 'Sede Principal MIPPCI';
+      const enteName = enteIdx >= 0 && row[enteIdx] ? String(row[enteIdx]).trim().toUpperCase() : 'MIPPCI';
+      const deptName = deptIdx >= 0 && row[deptIdx] ? String(row[deptIdx]).trim() : '';
       const jobTitle = jobIdx >= 0 && row[jobIdx] ? String(row[jobIdx]).trim() : '';
       let hireDate = '';
       if (hireIdx >= 0 && row[hireIdx]) {
@@ -116,14 +118,19 @@ function parseExcelToWorkers(buffer) {
       if (email && !email.includes('@')) email += '@mippci.gob.ve';
 
       const phone = phoneIdx >= 0 && row[phoneIdx] ? String(row[phoneIdx]).trim() : null;
-      const rawType = typeIdx >= 0 && row[typeIdx] ? String(row[typeIdx]).toLowerCase() : 'activo';
-      const workerType = rawType.includes('jubilad') || rawType.includes('pensionad') ? 'jubilado' : (rawType.includes('contratad') ? 'contratado' : 'activo');
+      const rawType = typeIdx >= 0 && row[typeIdx] ? String(row[typeIdx]).toLowerCase() : '';
+      let workerType = 'activo';
+      if (rawType.includes('jubilad') || enteName === 'JUBILADOS') workerType = 'jubilado';
+      else if (rawType.includes('pensionad') || enteName === 'PENSIONADOS') workerType = 'pensionado';
+      else if (rawType.includes('contratad')) workerType = 'contratado';
 
       workers.push({
+        row_number: i + 1,
         document_id: cleanDoc,
         full_name: fullName,
         email: email,
-        department_name: deptName,
+        ente: enteName || 'MIPPCI',
+        department_name: deptName || null,
         job_title: jobTitle,
         hire_date: hireDate,
         phone_number: phone,
@@ -173,9 +180,11 @@ function parseCsvToWorkers(csvText) {
   const nameIdx = headers.findIndex(h => h.includes('nombre') || h.includes('name') || h.includes('trabajador') || h.includes('empleado'));
   const emailIdx = headers.findIndex(h => h.includes('email') || h.includes('correo'));
   const phoneIdx = headers.findIndex(h => h.includes('telefono') || h.includes('phone') || h.includes('celular') || h.includes('movil'));
-  const deptIdx = headers.findIndex(h => h.includes('departamento') || h.includes('department') || h.includes('sede') || h.includes('area') || h.includes('gerencia') || h.includes('direccion'));
+  const enteIdx = headers.findIndex(h => h === 'ente' || h.includes('ente') || h.includes('organismo') || h.includes('institucion'));
+  const deptIdx = headers.findIndex(h => h.includes('adscripcion') || h.includes('departamento') || h.includes('department') || h.includes('unidad') || h.includes('sede') || h.includes('area') || h.includes('gerencia') || h.includes('direccion'));
+  const jobIdx = headers.findIndex(h => h.includes('cargo') || h.includes('puesto'));
   const shiftIdx = headers.findIndex(h => h.includes('turno') || h.includes('shift') || h.includes('jornada'));
-  const typeIdx = headers.findIndex(h => h.includes('tipo') || h.includes('type') || h.includes('cargo') || h.includes('condicion'));
+  const typeIdx = headers.findIndex(h => h.includes('tipo') || h.includes('type') || h.includes('condicion'));
   const phoneHasIdx = headers.findIndex(h => h.includes('smartphone') || h.includes('telefono_propio') || h.includes('tiene_telefono'));
 
   const workers = [];
@@ -187,13 +196,21 @@ function parseCsvToWorkers(csvText) {
     const docId = normalizeDocumentId(rawDoc);
     if (!docId) continue;
 
+    const fullName = nameIdx >= 0 && cols[nameIdx] ? cols[nameIdx] : (cols[1] || `Funcionario ${docId}`);
     let email = emailIdx >= 0 && cols[emailIdx] ? cols[emailIdx] : `${docId.replace(/[^a-zA-Z0-9]/g, '')}@mippci.gob.ve`;
     if (!email.includes('@')) email += '@mippci.gob.ve';
 
     const phone = phoneIdx >= 0 && cols[phoneIdx] ? cols[phoneIdx] : null;
-    const deptName = deptIdx >= 0 && cols[deptIdx] ? cols[deptIdx] : null;
+    const enteName = enteIdx >= 0 && cols[enteIdx] ? cols[enteIdx].trim().toUpperCase() : 'MIPPCI';
+    const deptName = deptIdx >= 0 && cols[deptIdx] ? cols[deptIdx].trim() : null;
+    const jobTitle = jobIdx >= 0 && cols[jobIdx] ? cols[jobIdx].trim() : '';
     const shift = shiftIdx >= 0 && cols[shiftIdx] ? cols[shiftIdx].toLowerCase().replace(/\s+/g, '_') : 'jornada_continua';
-    const workerType = typeIdx >= 0 && cols[typeIdx] ? cols[typeIdx].toLowerCase() : 'activo';
+    const workerType = typeIdx >= 0 && cols[typeIdx] ? cols[typeIdx].toLowerCase() : '';
+
+    let resolvedType = 'activo';
+    if (workerType.includes('jubilad') || enteName === 'JUBILADOS') resolvedType = 'jubilado';
+    else if (workerType.includes('pensionad') || enteName === 'PENSIONADOS') resolvedType = 'pensionado';
+    else if (workerType.includes('contratad')) resolvedType = 'contratado';
 
     let hasSmart = 1;
     if (phoneHasIdx >= 0 && cols[phoneHasIdx]) {
@@ -202,13 +219,16 @@ function parseCsvToWorkers(csvText) {
     }
 
     workers.push({
+      row_number: i + 1,
       document_id: docId.trim(),
       full_name: fullName.trim(),
       email: email.trim().toLowerCase(),
+      ente: enteName || 'MIPPCI',
       phone_number: phone ? phone.trim() : null,
-      department_name: deptName ? deptName.trim() : null,
+      department_name: deptName || null,
+      job_title: jobTitle,
       shift: shift || 'jornada_continua',
-      worker_type: workerType.includes('jubilad') || workerType.includes('pensionad') ? 'jubilado' : (workerType.includes('contratad') ? 'contratado' : 'activo'),
+      worker_type: resolvedType,
       status: 'active',
       has_smartphone: hasSmart,
       contingency_reason: hasSmart ? null : 'adulto_mayor_sin_smartphone'
@@ -289,26 +309,117 @@ const handleWebhook = (req, res) => {
   });
 };
 
-const handleBatchImport = (req, res) => {
-  let { batch_id, source, workers, csvText, excelBase64, fileBase64 } = req.body;
+/**
+ * Filtro de Auditoría Anti-Duplicidad para cargas masivas de nómina:
+ * Detecta múltiples ocurrencias de una misma cédula dentro del lote cargado,
+ * permitiendo resolución explícita o deduplicación auditada.
+ */
+function auditDuplicateWorkers(workersList, duplicateResolutions = {}) {
+  const occurrencesMap = new Map();
 
+  workersList.forEach((w, idx) => {
+    const cleanDoc = normalizeDocumentId(w && w.document_id ? w.document_id : '');
+    if (!cleanDoc) return;
+    if (!occurrencesMap.has(cleanDoc)) occurrencesMap.set(cleanDoc, []);
+    occurrencesMap.get(cleanDoc).push({
+      index: idx,
+      row_number: w.row_number || (idx + 2),
+      document_id: cleanDoc,
+      full_name: (w.full_name || '').trim(),
+      ente: (w.ente || 'MIPPCI').trim().toUpperCase(),
+      department_name: w.department_name || '',
+      job_title: w.job_title || '',
+      worker_type: w.worker_type || 'activo',
+      raw: { ...w, document_id: cleanDoc }
+    });
+  });
+
+  const duplicateWarnings = [];
+  const skipIndices = new Set();
+
+  for (const [docId, group] of occurrencesMap.entries()) {
+    if (group.length > 1) {
+      // Si el usuario envió una resolución explícita (index elegido o 'last'), preservar ese registro
+      const resChoice = duplicateResolutions ? duplicateResolutions[docId] : undefined;
+      let chosenEntry = group[group.length - 1]; // Predeterminado: último registro válido del lote
+      if (typeof resChoice === 'number') {
+        const found = group.find(g => g.index === resChoice || g.row_number === resChoice);
+        if (found) chosenEntry = found;
+      } else if (typeof resChoice === 'string' && resChoice.trim() !== '') {
+        const parsedIdx = parseInt(resChoice, 10);
+        const found = group.find(g => g.index === parsedIdx || g.row_number === parsedIdx || g.ente === resChoice.trim().toUpperCase());
+        if (found) chosenEntry = found;
+      }
+
+      for (const item of group) {
+        if (item.index !== chosenEntry.index) {
+          skipIndices.add(item.index);
+        }
+      }
+
+      duplicateWarnings.push({
+        document_id: docId,
+        occurrences_count: group.length,
+        conflict_type: 'duplicate_document_in_batch',
+        preserved_index: chosenEntry.index,
+        preserved_row: chosenEntry.row_number,
+        preserved_record: {
+          row_number: chosenEntry.row_number,
+          full_name: chosenEntry.full_name,
+          ente: chosenEntry.ente,
+          department_name: chosenEntry.department_name || '(Vacía)',
+          job_title: chosenEntry.job_title
+        },
+        records: group.map(g => ({
+          index: g.index,
+          row_number: g.row_number,
+          full_name: g.full_name,
+          ente: g.ente,
+          department_name: g.department_name || '(Vacía)',
+          job_title: g.job_title,
+          is_preserved: g.index === chosenEntry.index
+        })),
+        message: `Cédula duplicada ${docId} detectada ${group.length} veces en el archivo (${group.map(g => `${g.ente}: ${g.full_name}`).join(' vs ')}).`
+      });
+    }
+  }
+
+  const deduplicatedWorkers = workersList.filter((w, idx) => {
+    const cleanDoc = normalizeDocumentId(w && w.document_id ? w.document_id : '');
+    if (!cleanDoc) return true; // handleBatchImport lo contará en failed
+    return !skipIndices.has(idx);
+  });
+
+  return {
+    has_duplicates: duplicateWarnings.length > 0,
+    duplicate_count: duplicateWarnings.length,
+    duplicates_filtered: skipIndices.size,
+    total_rows: workersList.length,
+    unique_rows: deduplicatedWorkers.length,
+    duplicate_warnings: duplicateWarnings,
+    deduplicated_workers: deduplicatedWorkers
+  };
+}
+
+function parsePayrollInputPayload(body) {
+  let { source, workers, csvText, excelBase64, fileBase64 } = body || {};
   if (excelBase64 || fileBase64) {
-    const rawB64 = (excelBase64 || fileBase64).replace(/^data:.*?;base64,/, '');
+    const rawB64 = String(excelBase64 || fileBase64).replace(/^data:.*?;base64,/, '');
     const buf = Buffer.from(rawB64, 'base64');
     workers = parseExcelToWorkers(buf);
     source = source || 'excel_upload';
   } else if (csvText && typeof csvText === 'string') {
-    if (csvText.length > 10 * 1024 * 1024) { // Límite estricto de 10MB
-      return res.status(413).json({ error: 'El archivo CSV excede el tamaño máximo permitido de 10MB.' });
+    if (csvText.length > 10 * 1024 * 1024) {
+      return { errorStatus: 413, error: 'El archivo CSV excede el tamaño máximo permitido de 10MB.' };
     }
     workers = parseCsvToWorkers(csvText);
     source = source || 'csv_upload';
   } else if (typeof workers === 'string') {
     if (workers.length > 10 * 1024 * 1024) {
-      return res.status(413).json({ error: 'La carga excede el tamaño máximo permitido de 10MB.' });
+      return { errorStatus: 413, error: 'La carga excede el tamaño máximo permitido de 10MB.' };
     }
-    try { 
-      workers = JSON.parse(workers); 
+    try {
+      workers = JSON.parse(workers);
     } catch (e) {
       workers = parseCsvToWorkers(workers);
       source = source || 'csv_upload';
@@ -316,14 +427,82 @@ const handleBatchImport = (req, res) => {
   }
 
   if (!workers || !Array.isArray(workers)) {
-    return res.status(400).json({ error: 'Array de trabajadores, texto CSV o archivo Excel en Base64 requerido' });
+    return { errorStatus: 400, error: 'Array de trabajadores, texto CSV o archivo Excel en Base64 requerido' };
+  }
+  if (workers.length > 5000) {
+    return { errorStatus: 413, error: 'El lote excede el límite máximo permitido de 5,000 registros por carga. Divida el lote en bloques menores.' };
+  }
+  return { workers, source };
+}
+
+const auditDuplicatesEndpoint = (req, res) => {
+  const parsed = parsePayrollInputPayload(req.body);
+  if (parsed.error) {
+    return res.status(parsed.errorStatus).json({ error: parsed.error });
   }
 
-  if (workers.length > 5000) {
-    return res.status(413).json({ 
-      error: 'El lote excede el límite máximo permitido de 5,000 registros por carga. Divida el lote en bloques menores.' 
+  const { workers, source } = parsed;
+  const audit = auditDuplicateWorkers(workers, req.body?.duplicate_resolutions);
+
+  if (audit.has_duplicates) {
+    try {
+      const { logActivity } = require('../services/logger.service');
+      logActivity({
+        level: 'WARN',
+        source: 'PAYROLL_DUPLICATE_AUDIT',
+        action: 'PAYROLL_DUPLICATES_DETECTED',
+        method: req.method,
+        endpoint: req.originalUrl,
+        statusCode: 200,
+        userId: req.user?.id || 'admin',
+        userName: req.user?.full_name || 'Administrador Institucional',
+        ipAddress: req.ip,
+        requestPayload: JSON.stringify({ total_rows: audit.total_rows, source: source || 'upload' }),
+        responsePayload: JSON.stringify({ duplicate_count: audit.duplicate_count, duplicate_warnings: audit.duplicate_warnings.slice(0, 25) })
+      });
+    } catch (e) {}
+  }
+
+  res.json({
+    success: true,
+    source: source || 'upload',
+    has_duplicates: audit.has_duplicates,
+    duplicate_count: audit.duplicate_count,
+    duplicates_filtered: audit.duplicates_filtered,
+    total_rows: audit.total_rows,
+    unique_rows: audit.unique_rows,
+    duplicate_warnings: audit.duplicate_warnings,
+    workers: workers.map((w, idx) => ({
+      ...w,
+      index: idx,
+      document_id: normalizeDocumentId(w.document_id)
+    }))
+  });
+};
+
+const handleBatchImport = (req, res) => {
+  const parsed = parsePayrollInputPayload(req.body);
+  if (parsed.error) {
+    return res.status(parsed.errorStatus).json({ error: parsed.error });
+  }
+
+  let { batch_id, strict_duplicate_audit, duplicate_resolutions } = req.body;
+  let { workers, source } = parsed;
+
+  // Ejecutar Filtro de Auditoría Anti-Duplicidad antes de persistir
+  const duplicateAudit = auditDuplicateWorkers(workers, duplicate_resolutions || {});
+
+  if (duplicateAudit.has_duplicates && strict_duplicate_audit === true && (!duplicate_resolutions || Object.keys(duplicate_resolutions).length === 0)) {
+    return res.status(409).json({
+      success: false,
+      error: `Filtro de Auditoría: Se detectaron ${duplicateAudit.duplicate_count} cédula(s) duplicada(s) en la carga. Resuelva los conflictos antes de importar.`,
+      has_duplicates: true,
+      duplicate_count: duplicateAudit.duplicate_count,
+      duplicate_warnings: duplicateAudit.duplicate_warnings
     });
   }
+
+  workers = duplicateAudit.deduplicated_workers;
 
   let processed = 0;
   let updated = 0;
@@ -348,15 +527,16 @@ const handleBatchImport = (req, res) => {
 
   const insertOrUpdate = db.prepare(`
     INSERT INTO workers (
-      id, document_id, full_name, email, department_id, job_title, hire_date,
+      id, document_id, full_name, email, department_id, ente, job_title, hire_date,
       shift, status, worker_type, has_smartphone, phone_number, contingency_reason, enrollment_status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'precargado')
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'precargado')
     ON CONFLICT(document_id) DO UPDATE SET
       full_name = excluded.full_name,
       email = COALESCE(excluded.email, workers.email),
-      department_id = COALESCE(excluded.department_id, workers.department_id),
-      job_title = COALESCE(excluded.job_title, workers.job_title),
-      hire_date = COALESCE(excluded.hire_date, workers.hire_date),
+      department_id = excluded.department_id,
+      ente = COALESCE(NULLIF(excluded.ente, ''), workers.ente, 'MIPPCI'),
+      job_title = COALESCE(NULLIF(excluded.job_title, ''), workers.job_title),
+      hire_date = COALESCE(NULLIF(excluded.hire_date, ''), workers.hire_date),
       shift = excluded.shift,
       status = excluded.status,
       worker_type = excluded.worker_type,
@@ -438,12 +618,13 @@ const handleBatchImport = (req, res) => {
         }
 
         const id = w.id || w.worker_id || crypto.randomUUID();
-        const docId = String(w.document_id).trim();
+        const docId = normalizeDocumentId(String(w.document_id).trim());
         const fullName = (w.full_name || 'Trabajador ' + docId).trim();
         const email = (w.email || `${docId.replace(/[^a-zA-Z0-9]/g, '')}@mippci.gob.ve`).trim().toLowerCase();
+        const ente = (w.ente || 'MIPPCI').trim().toUpperCase();
         const shift = w.shift || 'jornada_continua';
         const status = w.status || 'active';
-        const workerType = w.worker_type || 'activo';
+        const workerType = w.worker_type || (ente === 'JUBILADOS' ? 'jubilado' : (ente === 'PENSIONADOS' ? 'pensionado' : 'activo'));
         const hasSmart = w.has_smartphone !== undefined ? (w.has_smartphone ? 1 : 0) : 1;
         const phone = w.phone_number || null;
         const contingency = w.contingency_reason || (hasSmart ? null : 'adulto_mayor_sin_smartphone');
@@ -461,6 +642,7 @@ const handleBatchImport = (req, res) => {
           fullName,
           email,
           deptId,
+          ente,
           jobTitle,
           hireDate,
           shift,
@@ -488,7 +670,11 @@ const handleBatchImport = (req, res) => {
       failed,
       failed === 0 ? 'success' : 'partial_failure',
       JSON.stringify({ 
-        total: workers.length, 
+        total: duplicateAudit.total_rows,
+        unique_rows: duplicateAudit.unique_rows,
+        duplicates_detected: duplicateAudit.duplicate_count,
+        duplicates_filtered: duplicateAudit.duplicates_filtered,
+        duplicate_warnings: duplicateAudit.duplicate_warnings.slice(0, 50),
         processed, 
         updated, 
         failed, 
@@ -501,6 +687,27 @@ const handleBatchImport = (req, res) => {
 
   tx();
 
+  if (duplicateAudit.has_duplicates) {
+    try {
+      const { logActivity } = require('../services/logger.service');
+      logActivity({
+        level: 'WARN',
+        source: 'PAYROLL_DUPLICATE_AUDIT',
+        action: 'PAYROLL_BATCH_DEDUPLICATED',
+        method: req.method,
+        endpoint: req.originalUrl,
+        statusCode: 200,
+        userId: req.user?.id || 'admin',
+        userName: req.user?.full_name || 'Administrador Institucional',
+        ipAddress: req.ip,
+        requestPayload: JSON.stringify({ batch_id, total_rows: duplicateAudit.total_rows }),
+        responsePayload: JSON.stringify({ duplicates_filtered: duplicateAudit.duplicates_filtered, duplicate_warnings: duplicateAudit.duplicate_warnings.slice(0, 25) })
+      });
+    } catch (e) {}
+  }
+
+  syncWorkersMetaToCloud().catch(() => {});
+
   const precargadosCount = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND (enrollment_status = 'precargado' OR enrollment_status IS NULL)").get()?.c || 0;
   const registradosCount = db.prepare("SELECT COUNT(*) as c FROM workers WHERE status = 'active' AND enrollment_status = 'registrado'").get()?.c || 0;
 
@@ -509,19 +716,25 @@ const handleBatchImport = (req, res) => {
     status: 'success',
     batch_id: batch_id || `batch_${Date.now()}`,
     source: source || 'manual_batch',
-    total_records: workers.length,
+    total_records: duplicateAudit.total_rows,
+    unique_records: duplicateAudit.unique_rows,
     processed,
     updated,
     failed,
+    duplicates_detected: duplicateAudit.duplicate_count,
+    duplicates_filtered: duplicateAudit.duplicates_filtered,
+    duplicate_warnings: duplicateAudit.duplicate_warnings,
     precargados: precargadosCount,
     registrados: registradosCount,
     department_warnings: departmentWarnings,
     warnings_count: departmentWarnings.length,
     deadline_date: '2026-11-22',
     campaign_date: '2026-11-27',
-    message: departmentWarnings.length > 0
-      ? `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} en base de datos, ${departmentWarnings.length} advertencias de discrepancias tipográficas en departamentos normalizadas).`
-      : `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} actualizados en base de datos, ${failed} omitidos).`
+    message: duplicateAudit.has_duplicates
+      ? `Sincronización auditada: ${processed} trabajadores procesados. El Filtro Anti-Duplicidad depuró ${duplicateAudit.duplicates_filtered} registro(s) duplicado(s).`
+      : (departmentWarnings.length > 0
+        ? `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} en base de datos, ${departmentWarnings.length} advertencias de discrepancias tipográficas en departamentos normalizadas).`
+        : `Sincronización de nómina exitosa: ${processed} trabajadores procesados (${updated} actualizados en base de datos, ${failed} omitidos).`)
   });
 };
 
@@ -609,6 +822,8 @@ const terminateEmployee = (req, res) => {
 module.exports = {
   handleWebhook,
   handleBatchImport,
+  auditDuplicatesEndpoint,
+  auditDuplicateWorkers,
   terminateEmployee,
   parseCsvToWorkers,
   parseExcelToWorkers,

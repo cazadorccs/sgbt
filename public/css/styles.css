@@ -1433,6 +1433,29 @@ body.dark-mode .sidebar-tool-text small {
   color: var(--text-muted);
 }
 
+.ente-badge-pill {
+  display: inline-block;
+  max-width: 135px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: rgba(2, 132, 199, 0.12);
+  color: #0369a1;
+  border: 1px solid rgba(2, 132, 199, 0.28);
+}
+
+body.dark-theme .ente-badge-pill,
+[data-theme="dark"] .ente-badge-pill {
+  background: rgba(56, 189, 248, 0.15);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
 /* Tooltip Flotante Global (Inmune a recortes por overflow en tablas) */
 .app-floating-tooltip {
   position: fixed;

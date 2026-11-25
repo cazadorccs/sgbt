@@ -148,9 +148,10 @@ const getKpis = async (req, res) => {
 };
 
 const getWorkers = (req, res) => {
-  const { search, shift, status, worker_type, role, department, department_id } = req.query;
+  const { search, shift, status, worker_type, role, department, department_id, ente } = req.query;
   const today = new Date().toISOString().split('T')[0];
   const deptFilter = (department || department_id || '').trim();
+  const enteFilter = (ente || '').trim();
 
   // Auto-recuperación del padrón: Si la base de datos tiene menos de 1,000 trabajadores, rehidratar de inmediato
   try {
@@ -165,7 +166,7 @@ const getWorkers = (req, res) => {
   }
 
   // Solo conciliar asignaciones pendientes en carga general sin filtros de búsqueda
-  if (!search && !role && !worker_type && !shift && !status && !deptFilter) {
+  if (!search && !role && !worker_type && !shift && !status && !deptFilter && !enteFilter) {
     try {
       const defaultCombo = db.prepare("SELECT id FROM combos WHERE category IN ('bolsa_viveres', 'almuerzo') AND is_active = 1 LIMIT 1").get()?.id || 'c1a2b3c4-1111-2222-3333-444455556666';
       const unassignedWorkers = db.prepare(`
@@ -193,7 +194,8 @@ const getWorkers = (req, res) => {
   let sql = `
     SELECT 
       w.id, w.document_id, w.full_name, w.email, w.role, w.shift, w.status, w.worker_type, w.has_smartphone, w.contingency_reason, w.avatar_url,
-      w.department_id,
+      w.department_id, w.job_title, w.hire_date,
+      COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI') as ente,
       d.name as department_name,
       (SELECT COUNT(*) FROM passkey_credentials WHERE worker_id = w.id AND status = 'active') as active_passkeys,
       (SELECT card_uid FROM nfc_cards WHERE worker_id = w.id AND status = 'active' LIMIT 1) as nfc_uid,
@@ -213,16 +215,20 @@ const getWorkers = (req, res) => {
     const cleanSearch = search.trim();
     const digitsOnly = cleanSearch.replace(/[^0-9]/g, '');
     if (digitsOnly.length >= 3) {
-      sql += ` AND (w.document_id LIKE ? OR w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ?)`;
-      params.push(`%${digitsOnly}%`, `%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`);
+      sql += ` AND (w.document_id LIKE ? OR w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ? OR COALESCE(w.ente, '') LIKE ?)`;
+      params.push(`%${digitsOnly}%`, `%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`);
     } else {
-      sql += ` AND (w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ?)`;
-      params.push(`%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`);
+      sql += ` AND (w.document_id LIKE ? OR w.full_name LIKE ? OR w.email LIKE ? OR COALESCE(w.ente, '') LIKE ?)`;
+      params.push(`%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`, `%${cleanSearch}%`);
     }
   }
   if (worker_type) {
-    sql += ` AND w.worker_type = ?`;
-    params.push(worker_type);
+    if (worker_type === 'jubilado') {
+      sql += ` AND w.worker_type IN ('jubilado', 'pensionado')`;
+    } else {
+      sql += ` AND w.worker_type = ?`;
+      params.push(worker_type);
+    }
   }
   if (role) {
     sql += ` AND w.role = ?`;
@@ -231,6 +237,10 @@ const getWorkers = (req, res) => {
   if (deptFilter) {
     sql += ` AND (w.department_id = ? OR d.name = ? OR d.code = ?)`;
     params.push(deptFilter, deptFilter, deptFilter);
+  }
+  if (enteFilter) {
+    sql += ` AND UPPER(COALESCE(NULLIF(TRIM(w.ente), ''), 'MIPPCI')) = UPPER(?)`;
+    params.push(enteFilter);
   }
   if (shift) {
     sql += ` AND w.shift = ?`;
@@ -272,7 +282,17 @@ const getWorkers = (req, res) => {
   });
 
   const totalCensus = db.prepare("SELECT COUNT(*) as count FROM workers WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')").get()?.count || workers.length;
-  res.json({ total: workers.length, total_census: totalCensus, workers });
+  let entes = [];
+  try {
+    entes = db.prepare(`
+      SELECT DISTINCT COALESCE(NULLIF(TRIM(ente), ''), 'MIPPCI') as ente
+      FROM workers
+      WHERE status = 'active' AND document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
+      ORDER BY ente ASC
+    `).all().map(r => r.ente);
+  } catch (e) {}
+
+  res.json({ total: workers.length, total_census: totalCensus, entes, workers });
 };
 
 // Helper canónico de normalización de Cédula de Identidad (V-XXXXXXXX / E-XXXXXXXX)
@@ -287,13 +307,14 @@ const normalizeDocumentId = (doc) => {
 };
 
 const createWorker = (req, res) => {
-  const { document_id, full_name, email, department_id, worker_type, role, has_smartphone, phone_number, shift } = req.body;
+  const { document_id, full_name, email, department_id, ente, worker_type, role, has_smartphone, phone_number, shift } = req.body;
 
   if (!document_id || !full_name) {
     return res.status(400).json({ error: 'Cédula y Nombre Completo son obligatorios' });
   }
 
   const cleanDoc = normalizeDocumentId(document_id);
+  const cleanEnte = (ente && String(ente).trim()) ? String(ente).trim().toUpperCase() : 'MIPPCI';
   const workerEmail = (email && email.trim()) ? email.trim() : `${cleanDoc.toLowerCase().replace(/[^a-z0-9]/g, '')}@mippci.gob.ve`;
 
   try {
@@ -305,20 +326,26 @@ const createWorker = (req, res) => {
     const workerId = crypto.randomUUID();
     db.prepare(`
       INSERT INTO workers (
-        id, document_id, full_name, email, department_id, shift, status, worker_type, role, has_smartphone, phone_number
-      ) VALUES (?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
+        id, document_id, full_name, email, department_id, ente, shift, status, worker_type, role, has_smartphone, phone_number
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)
     `).run(
       workerId,
       cleanDoc,
       full_name.trim(),
       workerEmail,
       department_id || null,
+      cleanEnte,
       shift || 'jornada_continua',
       worker_type || 'activo',
       role || 'worker',
       has_smartphone !== undefined ? (has_smartphone ? 1 : 0) : 1,
       phone_number || null
     );
+
+    try {
+      const { syncWorkersMetaToCloud } = require('../db');
+      syncWorkersMetaToCloud().catch(() => {});
+    } catch (e) {}
 
     const created = db.prepare('SELECT * FROM workers WHERE id = ?').get(workerId);
     res.status(201).json({
@@ -334,7 +361,7 @@ const createWorker = (req, res) => {
 
 const updateWorker = (req, res) => {
   const { id } = req.params;
-  const { full_name, email, department_id, worker_type, role, has_smartphone, phone_number, status, shift } = req.body;
+  const { full_name, email, department_id, ente, worker_type, role, has_smartphone, phone_number, status, shift } = req.body;
 
   try {
     const worker = db.prepare('SELECT * FROM workers WHERE id = ?').get(id);
@@ -347,6 +374,7 @@ const updateWorker = (req, res) => {
         full_name = COALESCE(?, full_name),
         email = COALESCE(?, email),
         department_id = COALESCE(?, department_id),
+        ente = COALESCE(?, ente),
         worker_type = COALESCE(?, worker_type),
         role = COALESCE(?, role),
         has_smartphone = COALESCE(?, has_smartphone),
@@ -359,6 +387,7 @@ const updateWorker = (req, res) => {
       full_name ? full_name.trim() : null,
       email ? email.trim() : null,
       department_id || null,
+      ente ? String(ente).trim().toUpperCase() : null,
       worker_type || null,
       role || null,
       has_smartphone !== undefined ? (has_smartphone ? 1 : 0) : null,
@@ -367,6 +396,11 @@ const updateWorker = (req, res) => {
       shift || null,
       id
     );
+
+    try {
+      const { syncWorkersMetaToCloud } = require('../db');
+      syncWorkersMetaToCloud().catch(() => {});
+    } catch (e) {}
 
     const updated = db.prepare('SELECT * FROM workers WHERE id = ?').get(id);
     res.json({ success: true, message: 'Datos del beneficiario actualizados', worker: updated });
@@ -647,10 +681,15 @@ const getCombos = async (req, res) => {
       try {
         const { supabase, isSupabaseConfigured } = require('../supabase');
         if (isSupabaseConfigured() && supabase) {
-          const { data: remoteCombos, error } = await supabase.from('combos').select('*').order('created_at', { ascending: false });
-          if (!error && Array.isArray(remoteCombos) && remoteCombos.length > 0) {
+          const { data: rawRemoteCombos, error } = await supabase.from('combos').select('*').order('created_at', { ascending: false });
+          if (!error && Array.isArray(rawRemoteCombos) && rawRemoteCombos.length > 0) {
+            const remoteCombos = rawRemoteCombos.filter(r =>
+              r.id !== 'c0000000-ca11-4000-8000-000000000001' &&
+              r.id !== 'c0000000-ca11-4000-8000-000000000002' &&
+              !String(r.name || '').startsWith('__SYSTEM_')
+            );
             const remoteIds = new Set(remoteCombos.map(r => r.id));
-            const localCombos = db.prepare('SELECT id FROM combos').all();
+            const localCombos = db.prepare("SELECT id FROM combos WHERE name NOT LIKE '__SYSTEM_%'").all();
             for (const loc of localCombos) {
               if (!remoteIds.has(loc.id)) {
                 try { 
@@ -720,6 +759,7 @@ const getCombos = async (req, res) => {
           ) combo_link
           JOIN delivery_campaigns camp ON combo_link.campaign_id = camp.id
         ) best_camp ON best_camp.combo_id = c.id AND best_camp.rn = 1
+        WHERE c.name NOT LIKE '__SYSTEM_%'
         ORDER BY c.created_at DESC
       `).all();
     });

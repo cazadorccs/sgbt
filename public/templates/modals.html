@@ -774,7 +774,7 @@
 
         <div class="input-group">
           <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-            Departamento / Dirección:
+            Departamento / Unidad de Adscripción:
           </label>
           <select id="newWorkerDepartment" class="form-select">
             <!-- Se puebla dinámicamente -->
@@ -782,16 +782,37 @@
         </div>
       </div>
 
-      <div class="input-group">
-        <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
-          Rol / Perfil Operativo: *
-        </label>
-        <select id="newWorkerRole" class="form-select" required style="font-weight: 600; border-color: #cbd5e1;">
-          <option value="worker" selected>👤 Beneficiario Titular (Nómina General)</option>
-          <option value="operator">📦 Mesa de Despacho (Operador de Escáner)</option>
-          <option value="supervisor">🛡️ Supervisor de Jornada / RRHH (Autorizaciones)</option>
-          <option value="admin">👑 Administrador General del Sistema</option>
-        </select>
+      <div class="form-grid-2">
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Ente u Organismo: *
+          </label>
+          <input type="text" id="newWorkerEnte" class="form-input" value="MIPPCI" list="enteOptionsList"
+            placeholder="Ej: MIPPCI, AVP, RADIO MIRAFLORES" required />
+          <datalist id="enteOptionsList">
+            <option value="MIPPCI"></option>
+            <option value="AVP"></option>
+            <option value="RADIO MIRAFLORES"></option>
+            <option value="JUBILADOS"></option>
+            <option value="PENSIONADOS"></option>
+            <option value="VPSCC"></option>
+            <option value="FPNP"></option>
+            <option value="FUNDACIÓN CUATRO F"></option>
+            <option value="CARAVANA"></option>
+          </datalist>
+        </div>
+
+        <div class="input-group">
+          <label style="font-size: 0.75rem; color: #475569; font-weight: 700; text-transform: uppercase;">
+            Rol / Perfil Operativo: *
+          </label>
+          <select id="newWorkerRole" class="form-select" required style="font-weight: 600; border-color: #cbd5e1;">
+            <option value="worker" selected>👤 Beneficiario Titular (Nómina General)</option>
+            <option value="operator">📦 Mesa de Despacho (Operador de Escáner)</option>
+            <option value="supervisor">🛡️ Supervisor de Jornada / RRHH (Autorizaciones)</option>
+            <option value="admin">👑 Administrador General del Sistema</option>
+          </select>
+        </div>
       </div>
 
       <div class="form-grid-2">
@@ -842,7 +863,7 @@
     <div class="panel-header" style="margin-bottom: 1.25rem;">
       <div class="panel-title"
         style="color: #0f172a; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-        📂 Carga Masiva de Nómina Institucional (CSV)
+        📂 Carga Masiva de Nómina Institucional (CSV / Excel)
       </div>
       <button id="btnCloseImportPayrollModal" type="button" class="modal-close-btn" title="Cerrar modal"
         aria-label="Cerrar"><svg class="icon-svg" style="width: 18px; height: 18px;" viewBox="0 0 24 24" fill="none"
@@ -853,19 +874,18 @@
     </div>
 
     <div style="font-size: 0.82rem; color: #64748b; margin-bottom: 1rem; line-height: 1.4;">
-      Importe la nómina del ministerio o ente público en formato CSV. Los trabajadores quedarán habilitados de forma
-      inmediata para retirar sus beneficios.
+      Importe la nómina del ministerio o entes adscritos en formato CSV o Excel (.xlsx). El <strong>Filtro de Auditoría Anti-Duplicidad</strong> validará automáticamente las cédulas antes de cargar los registros.
     </div>
 
     <div class="file-dropzone" id="csvFileDropzone">
       <div class="file-dropzone-icon">📥</div>
       <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem;">
-        Haga clic o arrastre su archivo CSV aquí
+        Haga clic o arrastre su archivo CSV o Excel (.xlsx) aquí
       </div>
       <div style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
-        Formatos compatibles: .csv, .txt con separación por comas o punto y coma
+        Formatos compatibles: .xlsx, .xls, .csv, .txt
       </div>
-      <input type="file" id="csvFileInput" accept=".csv,text/csv,text/plain" style="display: none;" />
+      <input type="file" id="csvFileInput" accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display: none;" />
     </div>
 
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
@@ -877,6 +897,15 @@
         seleccionado</span>
     </div>
 
+    <!-- PANEL DEL FILTRO DE AUDITORÍA ANTI-DUPLICIDAD -->
+    <div id="payrollDuplicateAuditPanel" style="display: none; margin-top: 1rem; background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 10px; padding: 0.85rem; max-height: 220px; overflow-y: auto;">
+      <div style="display: flex; align-items: center; gap: 0.45rem; font-weight: 800; color: #b45309; font-size: 0.85rem; margin-bottom: 0.4rem;">
+        <span>🛡️ Filtro de Auditoría: Duplicidad Detectada en la Carga</span>
+      </div>
+      <div id="payrollDuplicateAuditSummary" style="font-size: 0.76rem; color: #78350f; margin-bottom: 0.6rem;"></div>
+      <div id="payrollDuplicateAuditList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+    </div>
+
     <!-- TABLA PREVIA DE IMPORTACIÓN -->
     <div id="csvPreviewContainer"
       style="display: none; margin-top: 1rem; max-height: 200px; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid #e2e8f0; border-radius: var(--radius-sm);">
@@ -885,8 +914,9 @@
           <tr>
             <th>Cédula</th>
             <th>Nombre</th>
+            <th>Ente</th>
+            <th>Departamento</th>
             <th>Condición</th>
-            <th>Teléfono</th>
           </tr>
         </thead>
         <tbody id="csvPreviewTableBody"></tbody>

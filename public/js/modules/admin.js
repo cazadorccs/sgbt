@@ -114,13 +114,13 @@ try {
   }
 } catch (e) {}
 
-// Pre-índice de búsqueda acelerado para el padrón (1.138 registros en < 1ms)
+// Pre-índice de búsqueda acelerado para el padrón
 let workersSearchIndex = null;
 function buildWorkersSearchIndex(workers) {
   if (!Array.isArray(workers)) return;
   workersSearchIndex = workers.map(w => ({
     raw: w,
-    searchStr: `${w.document_id || ''} ${w.full_name || ''} ${w.department_name || ''} ${w.job_title || ''} ${w.email || ''}`.toLowerCase()
+    searchStr: `${w.document_id || ''} ${w.full_name || ''} ${w.ente || ''} ${w.department_name || ''} ${w.job_title || ''} ${w.email || ''}`.toLowerCase()
   }));
 }
 
@@ -146,7 +146,7 @@ function renderWorkersPage() {
   tbody.innerHTML = '';
 
   if (total === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron trabajadores con los filtros seleccionados.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding: 2rem; color: #64748b;">No se encontraron trabajadores con los filtros seleccionados.</td></tr>';
   } else {
     const fragment = document.createDocumentFragment();
     pageWorkers.forEach(w => {
@@ -185,9 +185,9 @@ function renderWorkersPage() {
       let condTooltip = 'Condición: Funcionario Activo (Nómina Regular)';
       let condClass = 'badge-activo';
 
-      if (w.worker_type === 'jubilado') {
+      if (w.worker_type === 'jubilado' || w.worker_type === 'pensionado') {
         condIcon = '👴';
-        condLabel = 'Personal Jubilado';
+        condLabel = w.worker_type === 'pensionado' ? 'Personal Pensionado' : 'Personal Jubilado';
         condTooltip = 'Condición: Personal Jubilado / Pensionado';
         condClass = 'badge-jubilado';
       } else if (w.worker_type === 'contratado') {
@@ -271,6 +271,9 @@ function renderWorkersPage() {
         ? `V-${w.document_id}`
         : (w.document_id || '');
 
+      const safeEnte = (w.ente || 'MIPPCI').trim();
+      const safeDept = w.department_name || 'Sin Asignar';
+
       tr.innerHTML = `
         <td style="text-align: center; vertical-align: middle;">${avatarHtml}</td>
         <td class="text-mono" style="font-weight: 600; font-size: 0.8rem; white-space: nowrap;">${displayDoc}</td>
@@ -281,7 +284,10 @@ function renderWorkersPage() {
         <td>${roleSelectHtml}</td>
         <td style="text-align: center;">${condBadge}</td>
         <td>
-          <div class="dept-cell-truncate" data-tooltip="${w.department_name || 'Sin Asignar'}" title="${w.department_name || 'Sin Asignar'}">${w.department_name || 'Sin Asignar'}</div>
+          <span class="ente-badge-pill" data-tooltip="Ente: ${safeEnte}" title="Ente: ${safeEnte}">${safeEnte}</span>
+        </td>
+        <td>
+          <div class="dept-cell-truncate" data-tooltip="${safeDept}" title="${safeDept}">${safeDept}</div>
         </td>
         <td style="text-align: center;">
           <span class="badge ${badgeClass}" data-tooltip="${authFullLabel}" title="${authFullLabel}">${badgeIcon} ${authShortLabel}</span>
@@ -376,6 +382,7 @@ window.loadWorkersDirectory = async function(preservePage = false) {
   await ensureDepartmentFilterPopulated();
   const search = document.getElementById('searchWorkerInput')?.value || '';
   const role = document.getElementById('filterRoleSelect')?.value || '';
+  const ente = document.getElementById('filterEnteSelect')?.value || '';
   const department = document.getElementById('filterDepartmentSelect')?.value || '';
   const workerType = document.getElementById('filterWorkerTypeSelect')?.value || '';
   const shift = document.getElementById('filterShiftSelect')?.value || '';
@@ -385,9 +392,20 @@ window.loadWorkersDirectory = async function(preservePage = false) {
   if (!tbody) return;
 
   try {
-    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&department=${encodeURIComponent(department)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
+    const url = `/api/v1/admin/workers?search=${encodeURIComponent(search)}&role=${encodeURIComponent(role)}&ente=${encodeURIComponent(ente)}&department=${encodeURIComponent(department)}&worker_type=${encodeURIComponent(workerType)}&shift=${encodeURIComponent(shift)}&status=${encodeURIComponent(status)}`;
     const data = await API.get(url);
     allFilteredWorkers = data.workers || [];
+
+    // Poblar selector de Entes dinámicamente preservando selección
+    const enteSelect = document.getElementById('filterEnteSelect');
+    if (enteSelect && Array.isArray(data.entes) && data.entes.length > 0 && enteSelect.options.length <= 1) {
+      const curEnte = enteSelect.value;
+      enteSelect.innerHTML = '<option value="">🏛️ Todos los Entes</option>';
+      data.entes.forEach(eName => {
+        enteSelect.innerHTML += `<option value="${eName}">${eName}</option>`;
+      });
+      if (curEnte) enteSelect.value = curEnte;
+    }
 
     // Actualizar Contador Totalizador del Directorio de Empleados
     const countBadge = document.getElementById('workersCountBadge');
@@ -395,8 +413,13 @@ window.loadWorkersDirectory = async function(preservePage = false) {
     const totalCensus = (typeof data.total_census === 'number') ? data.total_census : (allFilteredWorkers.length);
     const filteredCount = allFilteredWorkers.length;
 
+    const statusSelect = document.getElementById('filterStatusSelect');
+    if (statusSelect && statusSelect.options && statusSelect.options[0]) {
+      statusSelect.options[0].textContent = `Padrón Activo (${totalCensus.toLocaleString()})`;
+    }
+
     if (countText) {
-      const isFiltered = Boolean(search || role || department || workerType || shift || (status && status !== 'active'));
+      const isFiltered = Boolean(search || role || ente || department || workerType || shift || (status && status !== 'active'));
       if (isFiltered && filteredCount !== totalCensus) {
         countText.textContent = `${filteredCount.toLocaleString()} de ${totalCensus.toLocaleString()} registros`;
         if (countBadge) countBadge.title = `${filteredCount.toLocaleString()} funcionarios coincidentes con los filtros aplicados (de ${totalCensus.toLocaleString()} en el padrón)`;
@@ -440,7 +463,7 @@ window.changeWorkerRole = async function(workerId, newRole, workerName) {
 };
 
 window.reloadOfficialCensus = async function() {
-  if (!confirm('¿Desea recargar y restaurar el padrón oficial institucional completo (1,137 funcionarios) desde la base de datos maestra?')) {
+  if (!confirm('¿Desea recargar y restaurar el padrón oficial institucional completo desde la base de datos maestra?')) {
     return;
   }
   try {
@@ -925,6 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('filterRoleSelect')?.addEventListener('change', loadWorkersDirectory);
+  document.getElementById('filterEnteSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterDepartmentSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterWorkerTypeSelect')?.addEventListener('change', loadWorkersDirectory);
   document.getElementById('filterShiftSelect')?.addEventListener('change', loadWorkersDirectory);
