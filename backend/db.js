@@ -1513,7 +1513,7 @@ async function syncFromSupabase() {
     }
 
     // Hidratar entregas registradas en Supabase Cloud para que Vercel Serverless las reconozca de inmediato
-    const { data: remoteDeliveries, error: delErr } = await supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(300);
+    const { data: remoteDeliveries, error: delErr } = await supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(2000);
     if (!delErr && Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
       const insertRemoteDelivery = db.prepare(`
         INSERT OR IGNORE INTO deliveries (

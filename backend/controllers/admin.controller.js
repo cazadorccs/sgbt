@@ -24,7 +24,7 @@ const getKpis = async (req, res) => {
           if (cloudHydrationPromise) {
             await Promise.race([
               cloudHydrationPromise,
-              new Promise((resolve) => setTimeout(resolve, 500))
+              new Promise((resolve) => setTimeout(resolve, 2500))
             ]);
           }
         }

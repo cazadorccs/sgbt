@@ -430,6 +430,8 @@ const incorporateAndDeliver = async (req, res) => {
   }
 };
 
+let lastSummaryCloudSyncMs = 0;
+
 // 4. Estadísticas del día y lista de despachos recientes
 const getTodayStatsAndRecent = async (req, res) => {
   const todayVzla = getTodayVzla();
@@ -440,8 +442,8 @@ const getTodayStatsAndRecent = async (req, res) => {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
 
-    // Resiliencia Serverless (Vercel Cold-Start):
-    // Esperar brevemente la hidratación inicial desde Supabase o hidratar entregas si la BD local está vacía
+    // Resiliencia Serverless (Vercel Cold-Start / Multi-Contenedor):
+    // Sincronizar entregas reales de hoy desde Supabase Cloud (sin truncar en 60)
     try {
       const localCount = db.prepare(`
         SELECT COUNT(*) as c FROM deliveries 
@@ -453,29 +455,36 @@ const getTodayStatsAndRecent = async (req, res) => {
         if (cloudHydrationPromise) {
           await Promise.race([
             cloudHydrationPromise,
-            new Promise((resolve) => setTimeout(resolve, 600))
+            new Promise((resolve) => setTimeout(resolve, 800))
           ]);
         }
+      }
 
-        const countAfterHydration = db.prepare(`
-          SELECT COUNT(*) as c FROM deliveries 
-          WHERE date(delivered_at, '-4 hours') = ? OR delivered_at = ?
-        `).get(todayVzla, todayVzla)?.c || 0;
-
-        if (countAfterHydration === 0) {
-          const { supabase, isSupabaseConfigured } = require('../supabase');
-          if (isSupabaseConfigured() && supabase) {
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 800));
-            const queryPromise = supabase.from('deliveries').select('*').order('delivered_at', { ascending: false }).limit(60);
-            const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
-            if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
-              const insRemoteDelivery = db.prepare(`
-                INSERT OR IGNORE INTO deliveries (
-                  id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
-                  verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              `);
-              for (const d of remoteDeliveries) {
+      const nowMs = Date.now();
+      const shouldSyncCloud = localCount === 0 || (nowMs - lastSummaryCloudSyncMs > 5000);
+      if (shouldSyncCloud) {
+        const { supabase, isSupabaseConfigured } = require('../supabase');
+        if (isSupabaseConfigured() && supabase) {
+          lastSummaryCloudSyncMs = nowMs;
+          const startOfTodayVzlaUtc = `${todayVzla}T04:00:00.000Z`;
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout Supabase')), 3500));
+          const queryPromise = supabase
+            .from('deliveries')
+            .select('*')
+            .gte('delivered_at', startOfTodayVzlaUtc)
+            .order('delivered_at', { ascending: false })
+            .limit(5000);
+          const { data: remoteDeliveries } = await Promise.race([queryPromise, timeoutPromise]);
+          if (Array.isArray(remoteDeliveries) && remoteDeliveries.length > 0) {
+            const insRemoteDelivery = db.prepare(`
+              INSERT OR IGNORE INTO deliveries (
+                id, entitlement_id, worker_id, distribution_point_id, delivered_by_user_id,
+                verification_method, signature_proof, challenge_nonce, is_offline_sync, delivered_at, campaign_id
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            const markClaimedStmt = db.prepare("UPDATE daily_entitlements SET status = 'claimed' WHERE id = ?");
+            const syncTx = db.transaction((list) => {
+              for (const d of list) {
                 insRemoteDelivery.run(
                   d.id,
                   d.entitlement_id,
@@ -489,8 +498,12 @@ const getTodayStatsAndRecent = async (req, res) => {
                   d.delivered_at,
                   d.campaign_id || null
                 );
+                if (d.entitlement_id) {
+                  markClaimedStmt.run(d.entitlement_id);
+                }
               }
-            }
+            });
+            syncTx(remoteDeliveries);
           }
         }
       }
@@ -537,7 +550,7 @@ const getTodayStatsAndRecent = async (req, res) => {
       AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%'
       AND COALESCE(d.signature_proof, '') != 'AUTO_INTEGRITY_SYNC'
       ORDER BY d.delivered_at DESC
-      LIMIT 500
+      LIMIT 6000
     `).all(todayVzla, todayVzla);
 
     // Contar combos entregados directamente de rawDeliveries
@@ -563,7 +576,7 @@ const getTodayStatsAndRecent = async (req, res) => {
 
       const eligibleCampWorkers = db.prepare(`SELECT COUNT(*) as c FROM workers WHERE ${campWorkersCond}`).get()?.c || totalWorkers;
       const campCombosCount = db.prepare("SELECT COUNT(*) as c FROM campaign_combos WHERE campaign_id = ?").get(activeCampToday.id)?.c || 0;
-      const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name != '__SYSTEM_CAMPAIGNS_STORE__'").get()?.c || 1);
+      const activeCombosCount = campCombosCount > 0 ? campCombosCount : (db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 1);
       totalAssigned = eligibleCampWorkers * activeCombosCount;
     } else if (totalCombosDelivered > 0) {
       // Si se realizaron entregas reales fuera de jornada formal, la programación refleja únicamente lo despachado

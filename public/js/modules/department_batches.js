@@ -857,6 +857,17 @@
           this.closeDispatchModal();
           await this.loadData();
 
+          // Actualizar contadores en vivo del panel de despacho manual y KPIs globales
+          if (window.ManualDispatch && typeof window.ManualDispatch.loadTodaySummary === 'function') {
+            window.ManualDispatch.loadTodaySummary().catch(() => {});
+          }
+          if (typeof window.loadManualDispatchStats === 'function') {
+            window.loadManualDispatchStats().catch(() => {});
+          }
+          if (typeof window.refreshPortalData === 'function') {
+            window.refreshPortalData().catch(() => {});
+          }
+
           // Abrir automáticamente el acta digital oficial
           setTimeout(() => {
             this.viewActa(orderId);
@@ -928,19 +939,21 @@
           }
         }
 
-        // Generar QR de Validación Criptográfica del Acta
+        // Generar QR de Validación Criptográfica del Acta (usando QRCodeGenerator / node-qrcode)
         const qrContainer = document.getElementById('actaQrTarget');
         if (qrContainer) {
           qrContainer.innerHTML = '';
-          if (typeof QRCode !== 'undefined') {
-            new QRCode(qrContainer, {
-              text: `MIPPCI-ACTA:${a.order_number}:HASH:${hash.slice(0, 16)}`,
-              width: 72,
-              height: 72,
-              colorDark: "#0f172a",
-              colorLight: "#ffffff",
-              correctLevel: QRCode.CorrectLevel.M
-            });
+          const qrText = `MIPPCI-ACTA:${a.order_number}:HASH:${hash.slice(0, 16)}`;
+          try {
+            if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+              window.QRCodeGenerator.render('actaQrTarget', qrText, { size: 72 });
+            } else if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+              const canvas = document.createElement('canvas');
+              qrContainer.appendChild(canvas);
+              QRCode.toCanvas(canvas, qrText, { width: 72, margin: 1 });
+            }
+          } catch (qrErr) {
+            console.warn('[ACTA QR WARN]', qrErr.message);
           }
         }
 
