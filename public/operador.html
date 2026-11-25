@@ -672,7 +672,7 @@
     });
 
     // ============================================================================
-    // APROBAR ENTREGA (Online con Fallback Offline Inmediato)
+    // APROBAR ENTREGA (Online con Fallback Offline Inmediato y Máxima Velocidad)
     // ============================================================================
     async function aprobarEntregaOffline(worker) {
       const offDelivery = {
@@ -688,57 +688,80 @@
       await OperatorDB.marcarEntregadoEnPadron(worker.id);
       worker.is_delivered = 1;
 
-      mostrarAlerta('msgExito', `✓ Despacho registrado localmente para ${worker.full_name}. Se sincronizará automáticamente al conectarse a internet.`, 'success');
-      $('estadoPendientes').innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy (Guardado local)</span>';
+      mostrarAlerta('msgExito', `✓ Despacho registrado localmente para ${worker.full_name}.`, 'success');
+
+      // Ocultar ficha del funcionario y botón inmediatamente para pasar sin demora al siguiente
+      hide('infoTrabajador');
       hide('btnAprobarContainer');
+      setText('estadoPendientes', '');
+      currentWorker = null;
+
+      // Limpiar input y re-enfocar al instante (tiempo de espera 0)
+      const inputEl = $('inputCedulaTrabajador');
+      if (inputEl) {
+        inputEl.value = '';
+        inputEl.focus();
+      }
 
       await actualizarEstadoRedUI();
 
-      setTimeout(() => {
-        $('inputCedulaTrabajador').value = '';
-        $('inputCedulaTrabajador').focus();
-      }, 2500);
+      // Sincronización automática inmediata en segundo plano si hay conexión
+      if (navigator.onLine) {
+        sincronizarColaOffline().catch(() => {});
+      }
     }
 
     $('btnAprobarEntrega').addEventListener('click', async () => {
       if (!currentWorker) return;
       limpiarAlertas();
       const btn = $('btnAprobarEntrega');
-      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Procesando Despacho...';
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Aprobando...';
 
-      // Si estamos sin conexión, registrar en local
+      const workerToDeliver = currentWorker;
+
+      // Si estamos sin conexión, registrar en local al instante
       if (!navigator.onLine) {
-        await aprobarEntregaOffline(currentWorker);
+        await aprobarEntregaOffline(workerToDeliver);
         btn.disabled = false; btn.innerHTML = '✓ Aprobar Entrega y Descontar';
         return;
       }
 
-      // Intentar online
+      // Intentar despacho online de alta velocidad
       try {
         const res = await apiRequest(`${API_BASE}/api/v1/operador/deliver`, {
           method: 'POST',
           body: JSON.stringify({
-            worker_id: currentWorker.id,
+            worker_id: workerToDeliver.id,
             note: 'Despacho aprobado desde Puesto de Supervisión Manual'
           })
-        }, 8000);
+        }, 5000);
 
         if (res.success) {
           mostrarAlerta('msgExito', res.message, 'success');
-          $('estadoPendientes').innerHTML = '<span class="entregado-badge">✓ Todos los combos entregados hoy</span>';
+          await OperatorDB.marcarEntregadoEnPadron(workerToDeliver.id);
+
+          // Ocultar ficha de entrega y botón inmediatamente para agilizar la fila
+          hide('infoTrabajador');
           hide('btnAprobarContainer');
-          await OperatorDB.marcarEntregadoEnPadron(currentWorker.id);
-          setTimeout(() => {
-            $('inputCedulaTrabajador').value = '';
-            $('inputCedulaTrabajador').focus();
-          }, 2500);
+          setText('estadoPendientes', '');
+          currentWorker = null;
+
+          // Limpiar input y enfocar de inmediato (0ms de espera)
+          const inputEl = $('inputCedulaTrabajador');
+          if (inputEl) {
+            inputEl.value = '';
+            inputEl.focus();
+          }
+
+          // Sincronización y actualización automática en segundo plano cada vez que se aprueba una entrega
+          sincronizarColaOffline().catch(() => {});
         } else {
           mostrarAlerta('msgErrorDespacho', res.error || 'Error al procesar la entrega');
         }
       } catch (err) {
         console.warn('[ENTREGA ONLINE FALLO, GUARDANDO EN COLA OFFLINE]', err.message);
-        // Si falló por red/timeout, guardar offline para no parar la mesa
-        await aprobarEntregaOffline(currentWorker);
+        // Si falló por intermitencia de red, asegurar despacho localmente sin parar la mesa
+        await aprobarEntregaOffline(workerToDeliver);
       } finally {
         btn.disabled = false; btn.innerHTML = '✓ Aprobar Entrega y Descontar';
       }
