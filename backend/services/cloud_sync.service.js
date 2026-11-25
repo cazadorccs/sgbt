@@ -45,6 +45,8 @@ const DEFAULT_DISTRIBUTION_POINT_ID = '5b0f10e3-7eac-4872-bf96-74ecd359be7e'; //
 const DEFAULT_COMBO_ID = 'c1a2b3c4-1111-2222-3333-444455556666'; // Canasta Básica MIPPCI
 const SYNC_BATCH_ORDERS_STORE_UUID = 'c0000000-ca11-4000-8000-000000000003';
 const SYNC_BATCH_ORDERS_STORE_NAME = '__SYSTEM_BATCH_ORDERS_STORE__';
+const SYNC_MINISTERIAL_ACTAS_STORE_UUID = 'c0000000-ca11-4000-8000-000000000004';
+const SYNC_MINISTERIAL_ACTAS_STORE_NAME = '__SYSTEM_MINISTERIAL_ACTAS_STORE__';
 const BATCH_STATUS_RANK = {
   pending_review: 1,
   approved: 3,
@@ -658,6 +660,140 @@ async function syncBatchOrdersToCloud(dbInstance, options = {}) {
   }
 }
 
+/**
+ * Sincroniza e hidrata las Actas Ministeriales Definitivas desde Supabase Cloud.
+ */
+async function syncMinisterialActasFromCloud(dbInstance) {
+  if (!dbInstance || !isSupabaseConfigured() || !supabase) return false;
+  if (!circuitBreaker.canAttempt()) return false;
+
+  try {
+    const { data, error } = await supabase
+      .from('combos')
+      .select('description')
+      .eq('id', SYNC_MINISTERIAL_ACTAS_STORE_UUID)
+      .maybeSingle();
+
+    if (error) {
+      circuitBreaker.recordFailure(error.message);
+      return false;
+    }
+
+    circuitBreaker.recordSuccess();
+    if (!data || !data.description) return true;
+
+    const parsed = JSON.parse(data.description);
+    if (!parsed || !Array.isArray(parsed.actas)) return true;
+
+    const insertStmt = dbInstance.prepare(`
+      INSERT OR IGNORE INTO ministerial_actas (
+        id, acta_number, acta_type, title, institution, campaign_date, census_cutoff_date,
+        total_workers_census, total_formalized, total_rezagados, formalization_pct,
+        total_combos_assigned, total_gross_weight_tons, passkey_adoption_pct,
+        security_incidents_blocked, digital_acta_hash, digital_acta_data, generated_by,
+        generated_at, signatories
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    let count = 0;
+    const tx = dbInstance.transaction((actas) => {
+      for (const a of actas) {
+        if (!a || !a.id || !a.acta_number) continue;
+        const res = insertStmt.run(
+          a.id,
+          a.acta_number,
+          a.acta_type || 'cierre_censo_y_despacho',
+          a.title || 'Acta Oficial',
+          a.institution || 'MIPPCI',
+          a.campaign_date || '2026-11-27',
+          a.census_cutoff_date || '2026-11-22T23:59:59',
+          a.total_workers_census || 0,
+          a.total_formalized || 0,
+          a.total_rezagados || 0,
+          a.formalization_pct || 0,
+          a.total_combos_assigned || 0,
+          a.total_gross_weight_tons || 0,
+          a.passkey_adoption_pct || 0,
+          a.security_incidents_blocked || 0,
+          a.digital_acta_hash || '',
+          a.digital_acta_data || '{}',
+          a.generated_by || null,
+          a.generated_at || new Date().toISOString(),
+          typeof a.signatories === 'object' ? JSON.stringify(a.signatories) : (a.signatories || '{}')
+        );
+        if (res.changes > 0) count++;
+      }
+    });
+
+    tx(parsed.actas);
+    if (count > 0) {
+      console.log(`[SUPABASE HYDRATION] ${count} acta(s) ministeriales sincronizadas desde Supabase Cloud.`);
+    }
+    return true;
+  } catch (err) {
+    circuitBreaker.recordFailure(err.message);
+    console.warn('[MINISTERIAL ACTAS CLOUD HYDRATION WARN]', err.message);
+    return false;
+  }
+}
+
+/**
+ * Persiste las Actas Ministeriales Definitivas en Supabase Cloud.
+ */
+async function syncMinisterialActasToCloud(dbInstance) {
+  if (!dbInstance || !isSupabaseConfigured() || !supabase) return false;
+  if (!circuitBreaker.canAttempt()) return false;
+
+  try {
+    let remoteActas = [];
+    try {
+      const { data, error } = await supabase
+        .from('combos')
+        .select('description')
+        .eq('id', SYNC_MINISTERIAL_ACTAS_STORE_UUID)
+        .maybeSingle();
+      if (!error && data && data.description) {
+        const parsed = JSON.parse(data.description);
+        if (Array.isArray(parsed?.actas)) remoteActas = parsed.actas;
+      }
+    } catch (readErr) {}
+
+    const localActas = dbInstance.prepare('SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 50').all();
+    const actasMap = new Map();
+    remoteActas.forEach(a => { if (a && a.id) actasMap.set(a.id, a); });
+    localActas.forEach(a => { if (a && a.id) actasMap.set(a.id, a); });
+
+    const finalActas = Array.from(actasMap.values());
+
+    const { error: upErr } = await supabase.from('combos').upsert({
+      id: SYNC_MINISTERIAL_ACTAS_STORE_UUID,
+      name: SYNC_MINISTERIAL_ACTAS_STORE_NAME,
+      category: 'bolsa_viveres',
+      description: JSON.stringify({
+        version: 1,
+        updated_at: new Date().toISOString(),
+        actas: finalActas
+      }),
+      calories: 0,
+      dietary_info: 'Cloud Ministerial Actas Store',
+      is_active: false
+    }, { onConflict: 'id' });
+
+    if (upErr) {
+      circuitBreaker.recordFailure(upErr.message);
+      console.warn('[MINISTERIAL ACTAS CLOUD PERSIST WARN]', upErr.message);
+      return false;
+    }
+
+    circuitBreaker.recordSuccess();
+    return true;
+  } catch (err) {
+    circuitBreaker.recordFailure(err.message);
+    console.warn('[MINISTERIAL ACTAS CLOUD PERSIST ERROR]', err.message);
+    return false;
+  }
+}
+
 module.exports = {
   persistWorkerFormalization,
   persistPasskey,
@@ -667,6 +803,8 @@ module.exports = {
   clearDeliveriesInCloud,
   clearBatchOrdersInCloud,
   syncBatchOrdersFromCloud,
-  syncBatchOrdersToCloud
+  syncBatchOrdersToCloud,
+  syncMinisterialActasFromCloud,
+  syncMinisterialActasToCloud
 };
 

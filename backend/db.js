@@ -1590,10 +1590,11 @@ async function syncFromSupabase() {
 
     // Hidratar órdenes de lotes departamentales desde Supabase Cloud
     try {
-      const { syncBatchOrdersFromCloud } = require('./services/cloud_sync.service');
+      const { syncBatchOrdersFromCloud, syncMinisterialActasFromCloud } = require('./services/cloud_sync.service');
       await syncBatchOrdersFromCloud(db);
+      await syncMinisterialActasFromCloud(db);
     } catch (batchHydErr) {
-      console.warn('[SUPABASE HYDRATION WARN] Lotes departamentales:', batchHydErr.message);
+      console.warn('[SUPABASE HYDRATION WARN] Lotes departamentales / Actas:', batchHydErr.message);
     }
 
     // Saneamiento estricto anti-simulaciones:

@@ -748,14 +748,26 @@ window.setupDelegationModal = function() {
 
       if (qrDisplay) {
         qrDisplay.innerHTML = '';
-        if (typeof QRCode !== 'undefined') {
+        if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+          window.QRCodeGenerator.render('delegationQrDisplay', data.qr_string, { size: 220 });
+        } else if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+          const canvas = document.createElement('canvas');
+          qrDisplay.appendChild(canvas);
+          QRCode.toCanvas(canvas, data.qr_string, {
+            width: 220,
+            margin: 1,
+            errorCorrectionLevel: 'M',
+            color: { dark: '#040d16', light: '#ffffff' }
+          });
+        } else if (typeof QRCode === 'function') {
+          const lvl = (typeof QRCode !== 'undefined' && QRCode.CorrectLevel) ? QRCode.CorrectLevel.M : undefined;
           new QRCode(qrDisplay, {
             text: data.qr_string,
             width: 220,
             height: 220,
             colorDark: '#040d16',
             colorLight: '#ffffff',
-            correctLevel: QRCode.CorrectLevel.M
+            ...(lvl !== undefined ? { correctLevel: lvl } : {})
           });
         }
       }

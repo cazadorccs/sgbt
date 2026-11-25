@@ -702,14 +702,27 @@
         const qrTarget = document.getElementById('ministerialActaQrTarget');
         if (qrTarget) {
           qrTarget.innerHTML = '';
-          if (typeof QRCode !== 'undefined') {
+          const qrText = `MIPPCI-ACTA-MINISTERIAL:${acta.acta_number}:HASH:${acta.digital_acta_hash}`;
+          if (window.QRCodeGenerator && typeof window.QRCodeGenerator.render === 'function') {
+            window.QRCodeGenerator.render('ministerialActaQrTarget', qrText, { size: 72 });
+          } else if (typeof QRCode !== 'undefined' && typeof QRCode.toCanvas === 'function') {
+            const canvas = document.createElement('canvas');
+            qrTarget.appendChild(canvas);
+            QRCode.toCanvas(canvas, qrText, {
+              width: 72,
+              margin: 1,
+              errorCorrectionLevel: 'M',
+              color: { dark: '#0f172a', light: '#ffffff' }
+            });
+          } else if (typeof QRCode === 'function') {
+            const lvl = (typeof QRCode !== 'undefined' && QRCode.CorrectLevel) ? QRCode.CorrectLevel.M : undefined;
             new QRCode(qrTarget, {
-              text: `MIPPCI-ACTA-MINISTERIAL:${acta.acta_number}:HASH:${acta.digital_acta_hash}`,
+              text: qrText,
               width: 72,
               height: 72,
               colorDark: '#0f172a',
               colorLight: '#ffffff',
-              correctLevel: QRCode.CorrectLevel.M
+              ...(lvl !== undefined ? { correctLevel: lvl } : {})
             });
           }
         }

@@ -9,6 +9,7 @@ const QRCode = require('qrcode');
 const { db } = require('../db');
 const { generateSha256IntegritySeal } = require('../services/audit.service');
 const { cache } = require('../services/cache.service');
+const { syncMinisterialActasToCloud, syncMinisterialActasFromCloud } = require('../services/cloud_sync.service');
 
 // Prepared statements en caché para auditoría de entregas
 let _stmtDelStats = null;
@@ -623,6 +624,9 @@ const generateMinisterialActa = async (req, res) => {
     console.log(`📜 [MINISTERIAL ACTA GENERATED] ${actaNumber} | Sello SHA-256: ${digitalHash}`);
 
     await cache.delPattern('ministerial:*');
+    syncMinisterialActasToCloud(db).catch(err => {
+      console.warn('[MINISTERIAL ACTA CLOUD SYNC WARN]', err.message);
+    });
 
     return res.status(201).json({
       success: true,
@@ -644,7 +648,7 @@ const generateMinisterialActa = async (req, res) => {
 /**
  * 7. Consulta de Acta Ministerial por ID o última emitida
  */
-const getMinisterialActa = (req, res) => {
+const getMinisterialActa = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -655,8 +659,33 @@ const getMinisterialActa = (req, res) => {
       row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
     }
 
+    // Si no se encuentra localmente en SQLite (ej. instancia serverless recién inicializada),
+    // intentar hidratar de Supabase Cloud antes de fallar
     if (!row) {
-      return res.status(404).json({ error: 'Acta ministerial no encontrada o aún no ha sido emitida.' });
+      try {
+        await syncMinisterialActasFromCloud(db);
+        if (id && id !== 'latest') {
+          row = db.prepare("SELECT * FROM ministerial_actas WHERE id = ? OR acta_number = ?").get(id, id);
+        } else {
+          row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
+        }
+      } catch (e) {}
+    }
+
+    // Fallback: si se buscó por un UUID específico y no existe pero sí hay alguna acta emitida,
+    // devolver la más reciente para permitir inspección sin bloquear al operador
+    if (!row && id && id !== 'latest') {
+      row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
+      if (row) {
+        console.log(`ℹ️ [ACTA FALLBACK] Solicitada ${id} no encontrada, sirviendo última acta activa ${row.acta_number}`);
+      }
+    }
+
+    if (!row) {
+      return res.status(404).json({
+        success: false,
+        error: 'Acta ministerial no encontrada o aún no ha sido emitida formalmente.'
+      });
     }
 
     let parsedData = {};
@@ -707,6 +736,22 @@ const printMinisterialActaHtml = async (req, res) => {
     if (id && id !== 'latest') {
       row = db.prepare("SELECT * FROM ministerial_actas WHERE id = ? OR acta_number = ?").get(id, id);
     } else {
+      row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
+    }
+
+    if (!row) {
+      try {
+        await syncMinisterialActasFromCloud(db);
+        if (id && id !== 'latest') {
+          row = db.prepare("SELECT * FROM ministerial_actas WHERE id = ? OR acta_number = ?").get(id, id);
+        } else {
+          row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
+        }
+      } catch (e) {}
+    }
+
+    // Fallback: si se buscó por UUID no encontrado, imprimir la última existente
+    if (!row && id && id !== 'latest') {
       row = db.prepare("SELECT * FROM ministerial_actas ORDER BY generated_at DESC LIMIT 1").get();
     }
 
