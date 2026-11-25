@@ -1298,7 +1298,8 @@ const getDeliveries = (req, res) => {
       c.name as combo_name, c.category as combo_category, COALESCE(c.weight_kg, 14.0) as weight_kg,
       camp.name as campaign_name, camp.id as campaign_id,
       dp.name as point_name,
-      op.full_name as operator_name,
+      COALESCE(opa.full_name, op.full_name, 'Mesa de Despacho Central') as operator_name,
+      COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
       sup.full_name as supervisor_name
     FROM deliveries del
     JOIN workers w ON del.worker_id = w.id
@@ -1307,7 +1308,8 @@ const getDeliveries = (req, res) => {
     JOIN distribution_points dp ON del.distribution_point_id = dp.id
     LEFT JOIN departments d ON w.department_id = d.id
     LEFT JOIN delivery_campaigns camp ON del.campaign_id = camp.id
-    LEFT JOIN workers op ON del.delivered_by_user_id = op.id
+    LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
+    LEFT JOIN workers op ON (del.delivered_by_user_id = op.id OR del.delivered_by_user_id = op.document_id)
     LEFT JOIN workers sup ON del.supervisor_id = sup.id
     WHERE 1=1
   `;
@@ -1357,6 +1359,8 @@ const exportDeliveries = (req, res) => {
       del.verification_method,
       del.is_offline_sync,
       dp.name as distribution_point,
+      COALESCE(opa.full_name, op.full_name, 'Mesa de Despacho Central') as operator_name,
+      COALESCE(opa.mesa, 'Mesa General') as operator_mesa,
       sup.full_name as supervisor_authorized,
       del.override_reason,
       del.signature_proof
@@ -1367,6 +1371,8 @@ const exportDeliveries = (req, res) => {
     JOIN distribution_points dp ON del.distribution_point_id = dp.id
     LEFT JOIN departments d ON w.department_id = d.id
     LEFT JOIN delivery_campaigns camp ON del.campaign_id = camp.id
+    LEFT JOIN operadores_puesto_autorizados opa ON (del.delivered_by_user_id = opa.id OR del.delivered_by_user_id = opa.document_id)
+    LEFT JOIN workers op ON (del.delivered_by_user_id = op.id OR del.delivered_by_user_id = op.document_id)
     LEFT JOIN workers sup ON del.supervisor_id = sup.id
     WHERE 1=1
   `;
@@ -1388,7 +1394,7 @@ const exportDeliveries = (req, res) => {
   const deliveries = dbRouter.queryRead(sql, ...params);
 
   if (exportFormat === 'csv') {
-    const headers = ['ID Entrega', 'Fecha/Hora', 'Jornada', 'Cédula', 'Trabajador', 'Departamento', 'Combo', 'Peso (Kg)', 'Método Validación', 'Offline Sync', 'Punto Entrega', 'Supervisor/Operador', 'Motivo Exención', 'Firma Criptográfica'];
+    const headers = ['ID Entrega', 'Fecha/Hora', 'Jornada', 'Cédula', 'Trabajador', 'Departamento', 'Combo', 'Peso (Kg)', 'Método Validación', 'Offline Sync', 'Punto Entrega', 'Operador / Mesa', 'Supervisor/Autorizado', 'Motivo Exención', 'Firma Criptográfica'];
     const csvRows = [headers.join(',')];
 
     deliveries.forEach(d => {
@@ -1404,6 +1410,7 @@ const exportDeliveries = (req, res) => {
         `"${d.verification_method}"`,
         d.is_offline_sync ? 'SÍ' : 'NO',
         `"${d.distribution_point}"`,
+        `"${d.operator_name ? `${d.operator_name} (${d.operator_mesa})` : 'Mesa General'}"`,
         `"${d.supervisor_authorized || 'Despachador Autorizado'}"`,
         `"${d.override_reason || 'N/A'}"`,
         `"${d.signature_proof ? d.signature_proof.substring(0, 32) + '...' : 'N/A'}"`
@@ -1465,7 +1472,8 @@ const exportDeliveries = (req, res) => {
       'Método Verificación': d.verification_method === 'passkey_qr' ? 'Passkey QR Celular' : (d.verification_method === 'nfc_card' ? 'Tarjeta NFC' : (d.verification_method === 'supervisor_daily_qr' ? 'QR Diario Supervisor' : 'Contingencia Supervisor')),
       'Offline Sync': d.is_offline_sync ? 'SÍ' : 'NO',
       'Punto Entrega': d.distribution_point,
-      'Operador / Supervisor': d.supervisor_authorized || 'Despachador Autorizado',
+      'Operador / Mesa': d.operator_name ? `${d.operator_name} (${d.operator_mesa})` : 'Mesa General',
+      'Supervisor Autorizado': d.supervisor_authorized || 'Despachador Autorizado',
       'Motivo Contingencia': d.override_reason || 'N/A',
       'Firma / Hash': d.signature_proof ? d.signature_proof.substring(0, 32) + '...' : 'N/A'
     }));

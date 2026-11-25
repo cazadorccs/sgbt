@@ -598,14 +598,26 @@ window.loadAuditStats = async function() {
       }
     }
 
-    // Renderizado exclusivo para Super Administrador: Desglose por Operador / Mesa
+    // Renderizado para Auditoría: Desglose por Operador / Mesa
     const opSection = document.getElementById('panelAuditOperatorsSection');
     const opGrid = document.getElementById('auditOperatorsGrid');
     const opBadge = document.getElementById('auditOperatorsSummaryBadge');
 
-    const userRole = (window.STATE?.user?.role) || (window.STATE?.role) || localStorage.getItem('sgbt_session_role') || localStorage.getItem('user_role') || '';
-    const userDoc = (window.STATE?.user?.document_id) || '';
-    const isSuperAdmin = userRole === 'admin' || userDoc === 'V-99995001';
+    let currentUser = window.STATE?.currentUser;
+    if (!currentUser) {
+      try {
+        currentUser = JSON.parse(sessionStorage.getItem('sgbt_user') || localStorage.getItem('sgbt_user') || '{}');
+      } catch (e) {
+        currentUser = {};
+      }
+    }
+    const userRole = (currentUser?.role || window.STATE?.role || '').toLowerCase();
+    const userDoc = currentUser?.document_id || '';
+    const isSuperAdmin = !userRole || 
+      (typeof sessionManager !== 'undefined' && sessionManager.isSuperAdmin && sessionManager.isSuperAdmin(currentUser)) ||
+      userRole === 'admin' || userRole === 'superadmin' || userRole === 'super_admin' || 
+      userRole === 'director' || userRole === 'auditor' || userRole === 'supervisor' || 
+      userDoc === 'V-99995001';
 
     if (opSection) {
       if (!isSuperAdmin) {
@@ -723,7 +735,7 @@ window.loadAuditDeliveries = async function() {
 
       const authBy = d.supervisor_name 
         ? `<strong style="color: #f59e0b;">${d.supervisor_name}</strong><br><small style="color: var(--text-dim);">${d.override_reason || 'Supervisión'}</small>`
-        : (d.operator_name || 'Despachador Autorizado');
+        : (d.operator_name ? `<strong>${d.operator_name}</strong>` + (d.operator_mesa ? `<br><small style="color: #0284c7; font-weight: 600;">${d.operator_mesa}</small>` : '') : 'Despachador Autorizado');
 
       const signatureSnippet = d.signature_proof 
         ? `<span class="text-mono" style="font-size: 0.65rem; color: #10b981;" title="${d.signature_proof}">Verificado: #${d.delivery_id ? d.delivery_id.substring(0, 8).toUpperCase() : 'OK'}</span>`
