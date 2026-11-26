@@ -359,13 +359,17 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
 
     return `
       <div class="dept-detail-card">
-        <div class="dept-detail-header">
-          <span>🏢 ${depName}</span>
-          <span><strong>${deptBeneficiariesCount}</strong> funcionarios atendidos &bull; <strong>${deptCombosCount}</strong> combos despachados</span>
-        </div>
         <table class="delivery-table">
           <thead>
-            <tr>
+            <tr class="dept-banner-row">
+              <th colspan="6" class="dept-banner-th">
+                <div class="dept-banner-content">
+                  <span class="dept-title">🏢 ${depName}</span>
+                  <span class="dept-stats"><strong>${deptBeneficiariesCount}</strong> funcionarios atendidos &bull; <strong>${deptCombosCount}</strong> combos despachados</span>
+                </div>
+              </th>
+            </tr>
+            <tr class="dept-cols-row">
               <th style="width: 14%; text-align: center;">Hora Entrega</th>
               <th style="width: 13%;">Cédula</th>
               <th style="width: 29%;">Funcionario Beneficiario</th>
@@ -443,14 +447,18 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     `).join('');
 
     return `
-      <div class="dept-detail-card" style="border-left: 4px solid #f59e0b;">
-        <div class="dept-detail-header" style="background: #fffbeb; border-bottom: 1.5px solid #fde68a;">
-          <span style="color: #92400e;">🏢 ${depName}</span>
-          <span style="color: #b45309;"><strong>${workersList.length}</strong> funcionarios pendientes &bull; <strong>${combosPendingDept}</strong> combos remanentes</span>
-        </div>
+      <div class="dept-detail-card dept-pending-card">
         <table class="delivery-table">
           <thead>
-            <tr>
+            <tr class="dept-banner-row">
+              <th colspan="6" class="dept-banner-th dept-banner-pending-th">
+                <div class="dept-banner-content dept-banner-pending-content">
+                  <span class="dept-title">🏢 ${depName}</span>
+                  <span class="dept-stats"><strong>${workersList.length}</strong> funcionarios pendientes &bull; <strong>${combosPendingDept}</strong> combos remanentes</span>
+                </div>
+              </th>
+            </tr>
+            <tr class="dept-cols-row">
               <th style="width: 5%; text-align: center;">N°</th>
               <th style="width: 15%;">Cédula</th>
               <th style="width: 32%;">Funcionario Beneficiario</th>
@@ -473,44 +481,70 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
   <meta charset="UTF-8">
   <title>Acta Oficial de Despacho y Auditoría - ${actaNumber}</title>
   <style>
-    @page { size: letter; margin: 1.5cm; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.5; margin: 0; padding: 2rem; background: #f8fafc; }
-    .page-container { max-width: 900px; margin: 0 auto; background: #ffffff; padding: 3rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
-    .header { border-bottom: 2px solid #0f172a; padding-bottom: 1.25rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; }
+    @page { size: letter; margin: 1.2cm 1cm; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.45; margin: 0; padding: 1.5rem; background: #f8fafc; }
+    .page-container { max-width: 920px; margin: 0 auto; background: #ffffff; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+    .header { border-bottom: 2px solid #0f172a; padding-bottom: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; }
     .header-titles h1 { font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 0.25rem 0; text-transform: uppercase; letter-spacing: 0.5px; }
     .header-titles h2 { font-size: 0.95rem; font-weight: 600; color: #475569; margin: 0 0 0.25rem 0; }
     .header-titles p { font-size: 0.8rem; color: #64748b; margin: 0; }
     .badge-acta { text-align: right; }
     .badge-acta .num { font-size: 1rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 0.35rem 0.75rem; border-radius: 6px; display: inline-block; }
     .badge-acta .date { font-size: 0.75rem; color: #64748b; margin-top: 0.35rem; }
-    .section-title { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin: 1.75rem 0 0.85rem 0; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
-    .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.85rem 0.5rem; text-align: center; }
-    .kpi-box .val { font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
-    .kpi-box .lbl { font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.35rem; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.85rem; }
-    th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 0.6rem 0.75rem; border: 1px solid #cbd5e1; text-transform: uppercase; font-size: 0.75rem; }
-    td { padding: 0.6rem 0.75rem; border: 1px solid #cbd5e1; color: #1e293b; }
+    .section-title { font-size: 0.92rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin: 1.5rem 0 0.75rem 0; page-break-after: avoid; break-after: avoid; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.65rem; margin-bottom: 1.25rem; page-break-inside: avoid; break-inside: avoid; }
+    .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.75rem 0.5rem; text-align: center; }
+    .kpi-box .val { font-size: 1.45rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .kpi-box .lbl { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.3rem; }
+    
+    /* Control de continuidad de tablas y cabeceras repetitivas en salto de página */
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1.25rem; font-size: 0.82rem; page-break-inside: auto; break-inside: auto; }
+    thead { display: table-header-group; }
+    tbody { display: table-row-group; }
+    tr { page-break-inside: avoid; break-inside: avoid; }
+    th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 0.5rem 0.65rem; border: 1px solid #cbd5e1; text-transform: uppercase; font-size: 0.72rem; }
+    td { padding: 0.5rem 0.65rem; border: 1px solid #cbd5e1; color: #1e293b; }
     tr:nth-child(even) { background: #f8fafc; }
-    .integrity-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.75rem; color: #166534; margin: 1.5rem 0; word-break: break-all; }
-    .dept-detail-card { margin-bottom: 1.25rem; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; page-break-inside: avoid; break-inside: avoid; background: #ffffff; }
-    .dept-detail-header { background: #f1f5f9; border-bottom: 1.5px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 700; font-size: 0.82rem; color: #0f172a; display: flex; justify-content: space-between; align-items: center; }
-    .delivery-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 0; }
-    .delivery-table th { background: #f8fafc; color: #475569; font-size: 0.69rem; padding: 0.4rem 0.55rem; border: 1px solid #e2e8f0; text-transform: uppercase; font-weight: 700; }
-    .delivery-table td { padding: 0.4rem 0.55rem; border: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; }
+    
+    .dept-detail-card { margin-bottom: 1.25rem; page-break-inside: auto; break-inside: auto; background: #ffffff; }
+    .delivery-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 0; border: 1px solid #cbd5e1; page-break-inside: auto; break-inside: auto; }
+    .delivery-table thead { display: table-header-group; }
+    .delivery-table tbody { display: table-row-group; }
+    .delivery-table tr { page-break-inside: avoid; break-inside: avoid; }
+    .delivery-table th { background: #f8fafc; color: #475569; font-size: 0.69rem; padding: 0.38rem 0.55rem; border: 1px solid #cbd5e1; text-transform: uppercase; font-weight: 700; }
+    .delivery-table td { padding: 0.35rem 0.55rem; border: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; }
     .delivery-table tr:nth-child(even) { background: #f8fafc; }
+    
+    .dept-banner-row { page-break-inside: avoid; break-inside: avoid; page-break-after: avoid; break-after: avoid; }
+    .dept-banner-th { background: #f1f5f9 !important; padding: 0.5rem 0.75rem !important; border: 1px solid #cbd5e1 !important; border-bottom: 2px solid #0284c7 !important; color: #0f172a !important; text-align: left !important; }
+    .dept-banner-pending-th { background: #fffbeb !important; border-bottom: 2px solid #f59e0b !important; color: #92400e !important; }
+    .dept-banner-content { display: flex; justify-content: space-between; align-items: center; width: 100%; font-size: 0.82rem; font-weight: 700; text-transform: none; letter-spacing: normal; }
+    .dept-title { font-size: 0.84rem; font-weight: 800; color: #0f172a; }
+    .dept-stats { font-size: 0.75rem; font-weight: 600; color: #475569; }
+    .dept-banner-pending-content .dept-title { color: #92400e; }
+    .dept-banner-pending-content .dept-stats { color: #b45309; }
+    
     .delivery-time { font-weight: 800; color: #0284c7; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; }
-    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 4rem; text-align: center; }
-    .sig-line { border-top: 1.5px solid #64748b; margin-top: 3.5rem; padding-top: 0.5rem; }
-    .sig-line .name { font-weight: 700; font-size: 0.85rem; color: #0f172a; }
-    .sig-line .title { font-size: 0.75rem; color: #64748b; }
-    .print-actions { text-align: right; margin-bottom: 1.5rem; }
-    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.6rem 1.25rem; font-weight: 600; font-size: 0.85rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 3rem; text-align: center; page-break-inside: avoid; break-inside: avoid; }
+    .sig-line { border-top: 1.5px solid #64748b; margin-top: 2.5rem; padding-top: 0.4rem; }
+    .sig-line .name { font-weight: 700; font-size: 0.82rem; color: #0f172a; }
+    .sig-line .title { font-size: 0.72rem; color: #64748b; }
+    .print-actions { text-align: right; margin-bottom: 1.25rem; }
+    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
     .btn-print:hover { background: #0369a1; }
+    
     @media print {
-      body { background: #ffffff; padding: 0; }
-      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
-      .print-actions { display: none; }
+      body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; width: 100% !important; }
+      .print-actions { display: none !important; }
+      table { page-break-inside: auto !important; break-inside: auto !important; }
+      thead { display: table-header-group !important; }
+      tbody { display: table-row-group !important; }
+      tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .dept-banner-row { page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: avoid !important; break-after: avoid !important; }
+      .dept-detail-card { page-break-inside: auto !important; break-inside: auto !important; margin-bottom: 0.85rem !important; }
+      .section-title { page-break-after: avoid !important; break-after: avoid !important; }
+      .kpi-grid, .signatures { page-break-inside: avoid !important; break-inside: avoid !important; }
     }
   </style>
 </head>

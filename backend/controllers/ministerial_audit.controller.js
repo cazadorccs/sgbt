@@ -846,9 +846,13 @@ const printMinisterialActaHtml = async (req, res) => {
     .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
     .btn-print:hover { background: #0369a1; }
     @media print {
-      body { background: #ffffff; padding: 0; }
-      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
-      .print-actions { display: none; }
+      body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .print-actions { display: none !important; }
+      table { page-break-inside: auto !important; break-inside: auto !important; }
+      thead { display: table-header-group !important; }
+      tbody { display: table-row-group !important; }
+      tr { page-break-inside: avoid !important; break-inside: avoid !important; }
     }
   </style>
 </head>
@@ -1263,7 +1267,7 @@ const printProvisionalActaHtml = async (req, res) => {
       const padronEnte = padronMap.get(e.ente) || e.total_workers;
       const covEnte = padronEnte > 0 ? Math.round((e.total_workers / padronEnte) * 100) : 0;
       treeHtml += `
-        <div style="margin-top: 1.5rem; page-break-inside: avoid;">
+        <div style="margin-top: 1.5rem; page-break-inside: auto; break-inside: auto;">
           <div style="background: #0f172a; color: white; padding: 0.6rem 0.85rem; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 700;">
             <span>🏢 ENTE: ${e.ente}</span>
             <span style="font-size: 0.78rem; font-weight: 600; color: #38bdf8;">
@@ -1274,20 +1278,24 @@ const printProvisionalActaHtml = async (req, res) => {
 
       for (const d of Object.values(e.departments)) {
         treeHtml += `
-          <div style="margin-top: 0.85rem; margin-bottom: 0.5rem;">
-            <div style="background: #f1f5f9; padding: 0.35rem 0.6rem; border-left: 4px solid #0284c7; font-size: 0.78rem; font-weight: 700; color: #1e293b; display: flex; justify-content: space-between;">
-              <span>📁 ${d.dept_name}</span>
-              <span style="color: #64748b;">${d.workers_count} funcionario(s) • ${d.combos_count} combos</span>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; margin-top: 0.35rem; font-size: 0.74rem;">
+          <div style="margin-top: 0.85rem; margin-bottom: 0.5rem; page-break-inside: auto;">
+            <table style="width: 100%; border-collapse: collapse; margin-top: 0.35rem; font-size: 0.74rem; page-break-inside: auto;">
               <thead>
+                <tr style="page-break-inside: avoid; page-break-after: avoid;">
+                  <th colspan="6" style="background: #f1f5f9; padding: 0.4rem 0.6rem; border: 1px solid #cbd5e1; border-bottom: 2px solid #0284c7; font-size: 0.78rem; font-weight: 700; color: #1e293b; text-align: left;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span>📁 ${d.dept_name}</span>
+                      <span style="color: #64748b; font-weight: 600;">${d.workers_count} funcionario(s) • ${d.combos_count} combos</span>
+                    </div>
+                  </th>
+                </tr>
                 <tr style="background: #f8fafc; border-bottom: 1.5px solid #cbd5e1; text-align: left; color: #475569;">
-                  <th style="padding: 0.35rem 0.5rem; width: 40px;">#</th>
-                  <th style="padding: 0.35rem 0.5rem; width: 110px;">Cédula</th>
-                  <th style="padding: 0.35rem 0.5rem;">Nombres y Apellidos</th>
-                  <th style="padding: 0.35rem 0.5rem; width: 70px; text-align: center;">Combos</th>
-                  <th style="padding: 0.35rem 0.5rem; width: 80px; text-align: right;">Peso (kg)</th>
-                  <th style="padding: 0.35rem 0.5rem; width: 140px; text-align: right;">Fecha/Hora Entrega</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 40px; border: 1px solid #cbd5e1;">#</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 110px; border: 1px solid #cbd5e1;">Cédula</th>
+                  <th style="padding: 0.35rem 0.5rem; border: 1px solid #cbd5e1;">Nombres y Apellidos</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 70px; text-align: center; border: 1px solid #cbd5e1;">Combos</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 80px; text-align: right; border: 1px solid #cbd5e1;">Peso (kg)</th>
+                  <th style="padding: 0.35rem 0.5rem; width: 140px; text-align: right; border: 1px solid #cbd5e1;">Fecha/Hora Entrega</th>
                 </tr>
               </thead>
               <tbody>
@@ -1345,9 +1353,13 @@ const printProvisionalActaHtml = async (req, res) => {
     .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
     .btn-print:hover { background: #0369a1; }
     @media print {
-      body { background: #ffffff; padding: 0; }
-      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+      body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
       .print-actions { display: none !important; }
+      table { page-break-inside: auto !important; break-inside: auto !important; }
+      thead { display: table-header-group !important; }
+      tbody { display: table-row-group !important; }
+      tr { page-break-inside: avoid !important; break-inside: avoid !important; }
     }
   </style>
 </head>

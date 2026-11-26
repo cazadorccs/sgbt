@@ -32,9 +32,15 @@
     .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.6rem 1.25rem; font-weight: 600; font-size: 0.85rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
     .btn-print:hover { background: #0369a1; }
     @media print {
-      body { background: #ffffff; padding: 0; }
-      .page-container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
-      .print-actions { display: none; }
+      body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .print-actions { display: none !important; }
+      table { page-break-inside: auto !important; break-inside: auto !important; }
+      thead { display: table-header-group !important; }
+      tbody { display: table-row-group !important; }
+      tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .section-title { page-break-after: avoid !important; break-after: avoid !important; }
+      .kpi-grid, .signatures { page-break-inside: avoid !important; break-inside: avoid !important; }
     }
   </style>
 </head>
