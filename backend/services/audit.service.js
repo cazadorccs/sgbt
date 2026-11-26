@@ -625,15 +625,6 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     </div>
     ${pendingDetailSections || '<div style="text-align:center; padding: 1.25rem; color: #166534; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; font-weight: 700;">✓ ¡Jornada Completa! El 100% del personal de todas las dependencias ha retirado sus combos satisfactoriamente.</div>'}
 
-    <div class="section-title">5. Sello de Integridad Digital Inmutable (SHA-256)</div>
-    <div class="integrity-box">
-      <strong>🔒 Sello de Integridad Criptográfica de la Jornada (SHA-256):</strong><br>
-      <code>${integrityHash}</code><br>
-      <small style="color: #15803d; margin-top: 4px; display: inline-block;">
-        ✓ Este sello certifica que ningún registro de entrega ha sido alterado, eliminado o duplicado con posterioridad a la jornada.
-      </small>
-    </div>
-
     <div class="signatures">
       <div class="sig-line">
         <div class="name">Msc. Sahib A Franco</div>

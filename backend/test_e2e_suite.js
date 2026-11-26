@@ -377,10 +377,10 @@ test('E2E-22: Generación de Acta Oficial Ministerial de Despacho y Auditoría (
   if (typeof res.data !== 'string' || !res.data.includes('Acta Oficial de Despacho, Rendición y Auditoría Logística')) {
     throw new Error('El contenido retornado no corresponde al formato oficial del Acta Ministerial');
   }
-  if (!res.data.includes('Sello de Integridad Criptográfica de la Jornada (SHA-256)')) {
-    throw new Error('El acta no contiene el sello de integridad criptográfica');
+  if (!res.data.includes('Rendición Consolidada por Dependencia Ministerial')) {
+    throw new Error('El acta no contiene la rendición por dependencia ministerial');
   }
-  console.log('     [Acta Oficial Generada Exitosamente: Membrete Ministerial, Tonelaje, Desglose por Dependencia y Sello SHA-256]');
+  console.log('     [Acta Oficial Generada Exitosamente: Membrete Ministerial, Tonelaje y Desglose por Dependencia]');
 });
 
 test('E2E-23: Arquitectura PWA Background Sync e IndexedDB (Offline Engine)', async () => {
