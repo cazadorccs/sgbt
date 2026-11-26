@@ -817,7 +817,41 @@ const printMinisterialActaHtml = async (req, res) => {
   <meta charset="UTF-8">
   <title>Acta Ministerial Definitiva - ${row.acta_number}</title>
   <style>
-    @page { size: letter; margin: 1.2cm; }
+    @page { 
+      size: letter; 
+      margin: 1.8cm 1.2cm 1.8cm 1.2cm; 
+      @top-left {
+        content: "REPÚBLICA BOLIVARIANA DE VENEZUELA • MIPPCI";
+        font-size: 7pt;
+        font-weight: 700;
+        color: #475569;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @top-right {
+        content: "SGBT • ACTA MINISTERIAL DEFINITIVA";
+        font-size: 7pt;
+        font-weight: 600;
+        color: #64748b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @bottom-left {
+        content: "Ministerio del Poder Popular para la Comunicación y la Información • RIF G-20003090-9";
+        font-size: 7pt;
+        color: #64748b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @bottom-right {
+        content: "Página " counter(page);
+        font-size: 7pt;
+        font-weight: 700;
+        color: #0f172a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+    }
+    @page :first {
+      @top-left { content: none; }
+      @top-right { content: none; }
+    }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.45; margin: 0; padding: 1.5rem; background: #f8fafc; }
     .page-container { max-width: 860px; margin: 0 auto; background: #ffffff; padding: 2.5rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
     .header { border-bottom: 2px solid #0f172a; padding-bottom: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; }
@@ -842,13 +876,51 @@ const printMinisterialActaHtml = async (req, res) => {
     .sig-line { border-top: 1.5px solid #64748b; margin-top: 2.5rem; padding-top: 0.4rem; }
     .sig-line .name { font-weight: 700; font-size: 0.78rem; color: #0f172a; }
     .sig-line .title { font-size: 0.68rem; color: #64748b; margin-top: 0.15rem; }
-    .print-actions { text-align: right; margin-bottom: 1.25rem; }
-    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .print-actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; background: #f0f9ff; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0.85rem 1.25rem; }
+    .print-tip { display: flex; align-items: flex-start; gap: 0.75rem; font-size: 0.78rem; color: #0369a1; text-align: left; line-height: 1.45; }
+    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.65rem 1.35rem; font-weight: 700; font-size: 0.85rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3); }
     .btn-print:hover { background: #0369a1; }
+    .print-running-header, .print-running-footer { display: none; }
     @media print {
       body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
       .print-actions { display: none !important; }
+      .print-running-header {
+        display: block !important;
+        position: fixed;
+        top: -1.3cm;
+        left: 0;
+        right: 0;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 3px;
+        background: #ffffff;
+      }
+      .running-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 7pt;
+        color: #475569;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .print-running-footer {
+        display: block !important;
+        position: fixed;
+        bottom: -1.3cm;
+        left: 0;
+        right: 0;
+        border-top: 1px solid #cbd5e1;
+        padding-top: 3px;
+        background: #ffffff;
+      }
+      .running-footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 7pt;
+        color: #64748b;
+      }
       table { page-break-inside: auto !important; break-inside: auto !important; }
       thead { display: table-header-group !important; }
       tbody { display: table-row-group !important; }
@@ -858,7 +930,30 @@ const printMinisterialActaHtml = async (req, res) => {
 </head>
 <body>
   <div class="page-container">
+    <div class="print-running-header">
+      <div class="running-header-content">
+        <span>🇻🇪 <strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
+        <span>${row.acta_number} &bull; ACTA MINISTERIAL DEFINITIVA</span>
+      </div>
+    </div>
+
+    <div class="print-running-footer">
+      <div class="running-footer-content">
+        <span>Ministerio del Poder Popular para la Comunicación y la Información &bull; RIF G-20003090-9</span>
+        <span>Documento Oficial Certificado &bull; Cierre Definitivo de Jornada</span>
+      </div>
+    </div>
+
     <div class="print-actions">
+      <div class="print-tip">
+        <span style="font-size: 1.15rem; line-height: 1;">💡</span>
+        <div>
+          <strong style="color: #0369a1;">Recomendación para exportar PDF oficial:</strong><br>
+          En la ventana de impresión (Ctrl+P / <em>Guardar como PDF</em>), desmarque la casilla <strong>"Encabezados y pies de página"</strong>.
+          <br>
+          <span style="color: #475569; font-size: 0.73rem;">Esto evita que el navegador imprima la URL externa en el borde inferior. El acta ya incluye su propio encabezado institucional, número de acta y pie de página en cada hoja.</span>
+        </div>
+      </div>
       <button class="btn-print" onclick="window.print()">
         <span>🖨️ Imprimir / Guardar como PDF</span>
       </button>
@@ -1331,7 +1426,41 @@ const printProvisionalActaHtml = async (req, res) => {
   <meta charset="UTF-8">
   <title>Acta Ministerial Provisional - ${provisionalNumber}</title>
   <style>
-    @page { size: letter; margin: 1cm; }
+    @page { 
+      size: letter; 
+      margin: 1.8cm 1.2cm 1.8cm 1.2cm; 
+      @top-left {
+        content: "REPÚBLICA BOLIVARIANA DE VENEZUELA • MIPPCI";
+        font-size: 7pt;
+        font-weight: 700;
+        color: #475569;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @top-right {
+        content: "SGBT • AUDITORÍA PREVIA Y CONTROL DE CARGA";
+        font-size: 7pt;
+        font-weight: 600;
+        color: #64748b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @bottom-left {
+        content: "Ministerio del Poder Popular para la Comunicación y la Información • RIF G-20003090-9";
+        font-size: 7pt;
+        color: #64748b;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @bottom-right {
+        content: "Página " counter(page);
+        font-size: 7pt;
+        font-weight: 700;
+        color: #0f172a;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+    }
+    @page :first {
+      @top-left { content: none; }
+      @top-right { content: none; }
+    }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.4; margin: 0; padding: 1.25rem; background: #f8fafc; }
     .page-container { max-width: 900px; margin: 0 auto; background: #ffffff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
     .header { border-bottom: 2px solid #0f172a; padding-bottom: 1rem; margin-bottom: 1.25rem; display: flex; justify-content: space-between; align-items: flex-start; }
@@ -1349,13 +1478,51 @@ const printProvisionalActaHtml = async (req, res) => {
     .sig-line { border-top: 1.5px solid #64748b; margin-top: 2rem; padding-top: 0.4rem; }
     .sig-line .name { font-weight: 700; font-size: 0.76rem; color: #0f172a; }
     .sig-line .title { font-size: 0.66rem; color: #64748b; margin-top: 0.15rem; }
-    .print-actions { text-align: right; margin-bottom: 1rem; }
-    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.55rem 1.2rem; font-weight: 600; font-size: 0.82rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+    .print-actions { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.25rem; background: #f0f9ff; border: 1.5px solid #0284c7; border-radius: 8px; padding: 0.85rem 1.25rem; }
+    .print-tip { display: flex; align-items: flex-start; gap: 0.75rem; font-size: 0.78rem; color: #0369a1; text-align: left; line-height: 1.45; }
+    .btn-print { background: #0284c7; color: #ffffff; border: none; padding: 0.65rem 1.35rem; font-weight: 700; font-size: 0.85rem; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; white-space: nowrap; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3); }
     .btn-print:hover { background: #0369a1; }
+    .print-running-header, .print-running-footer { display: none; }
     @media print {
       body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
       .print-actions { display: none !important; }
+      .print-running-header {
+        display: block !important;
+        position: fixed;
+        top: -1.3cm;
+        left: 0;
+        right: 0;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 3px;
+        background: #ffffff;
+      }
+      .running-header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 7pt;
+        color: #475569;
+        text-transform: uppercase;
+        font-weight: 700;
+      }
+      .print-running-footer {
+        display: block !important;
+        position: fixed;
+        bottom: -1.3cm;
+        left: 0;
+        right: 0;
+        border-top: 1px solid #cbd5e1;
+        padding-top: 3px;
+        background: #ffffff;
+      }
+      .running-footer-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 7pt;
+        color: #64748b;
+      }
       table { page-break-inside: auto !important; break-inside: auto !important; }
       thead { display: table-header-group !important; }
       tbody { display: table-row-group !important; }
@@ -1364,10 +1531,33 @@ const printProvisionalActaHtml = async (req, res) => {
   </style>
 </head>
 <body>
-  <div class="print-actions">
-    <button class="btn-print" onclick="window.print()">🖨️ Imprimir Acta Provisional (PDF)</button>
-  </div>
   <div class="page-container">
+    <div class="print-running-header">
+      <div class="running-header-content">
+        <span>🇻🇪 <strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
+        <span>${provisionalNumber} &bull; ACTA PROVISIONAL DE DESPACHO</span>
+      </div>
+    </div>
+
+    <div class="print-running-footer">
+      <div class="running-footer-content">
+        <span>Ministerio del Poder Popular para la Comunicación y la Información &bull; RIF G-20003090-9</span>
+        <span>Auditoría Ministerial Previa &bull; Despacho SGBT</span>
+      </div>
+    </div>
+
+    <div class="print-actions">
+      <div class="print-tip">
+        <span style="font-size: 1.15rem; line-height: 1;">💡</span>
+        <div>
+          <strong style="color: #0369a1;">Recomendación para exportar PDF oficial:</strong><br>
+          En la ventana de impresión (Ctrl+P / <em>Guardar como PDF</em>), desmarque la casilla <strong>"Encabezados y pies de página"</strong>.
+          <br>
+          <span style="color: #475569; font-size: 0.73rem;">Esto evita que el navegador imprima la URL externa en el borde inferior. El acta ya incluye su propio encabezado institucional, número de acta y pie de página en cada hoja.</span>
+        </div>
+      </div>
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimir Acta Provisional (PDF)</button>
+    </div>
     <div class="header">
       <div class="header-titles">
         <h1>República Bolivariana de Venezuela</h1>
