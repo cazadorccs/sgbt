@@ -547,8 +547,8 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
         <div class="title">Mesa de Despacho Central</div>
       </div>
       <div class="sig-line">
-        <div class="name">Auditor Interno</div>
-        <div class="title">Dirección de Auditoría Ministerial</div>
+        <div class="name">Lic. Marisol Pastrana</div>
+        <div class="title">Oficina de Gestión Humana</div>
       </div>
     </div>
   </div>
