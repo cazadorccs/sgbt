@@ -44,15 +44,25 @@ const getKpis = async (req, res) => {
       const todayUtc = new Date().toISOString().split('T')[0];
       const todayVzla = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Caracas' }).format(new Date());
 
-      // Verificar si existe una Jornada Activa HOY (en curso y vigente)
-      const activeCampToday = db.prepare(`
+      // Verificar si existe una Jornada Activa (en curso)
+      let activeCampToday = db.prepare(`
         SELECT c.id, c.name, c.target_group, c.start_date, c.end_date 
         FROM delivery_campaigns c
         WHERE c.status = 'en_curso'
-          AND date(?) >= date(c.start_date)
-          AND date(?) <= date(c.end_date)
+        ORDER BY c.created_at DESC
         LIMIT 1
-      `).get(todayVzla, todayVzla);
+      `).get();
+
+      if (activeCampToday && activeCampToday.end_date < todayVzla) {
+        try {
+          db.prepare("UPDATE delivery_campaigns SET end_date = ? WHERE id = ?").run(todayVzla, activeCampToday.id);
+          activeCampToday.end_date = todayVzla;
+        } catch (e) {}
+      }
+
+      const campId = activeCampToday ? activeCampToday.id : null;
+      const campStartDate = activeCampToday ? activeCampToday.start_date : todayVzla;
+      const campEndDate = activeCampToday ? (activeCampToday.end_date || todayVzla) : todayVzla;
 
       const methodStats = db.prepare(`
         SELECT 
@@ -66,14 +76,15 @@ const getKpis = async (req, res) => {
         FROM deliveries d
         JOIN workers w ON d.worker_id = w.id
         WHERE (
-          date(d.delivered_at, '-4 hours') = ?
-          OR d.delivered_at = ?
+          (date(d.delivered_at, '-4 hours') = ? OR d.delivered_at = ?)
+          OR (d.campaign_id IS NOT NULL AND d.campaign_id = ?)
+          OR (date(d.delivered_at, '-4 hours') >= ? AND date(d.delivered_at, '-4 hours') <= ?)
         )
         AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
         AND d.id NOT LIKE 'e2e-%'
         AND COALESCE(d.signature_proof, '') NOT LIKE '%TEST%'
         AND COALESCE(d.signature_proof, '') != 'AUTO_INTEGRITY_SYNC'
-      `).get(todayVzla, todayVzla);
+      `).get(todayVzla, todayVzla, campId, campStartDate, campEndDate);
 
       const claimedEntitlementsToday = methodStats.total_deliveries || 0;
 

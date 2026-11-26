@@ -126,14 +126,27 @@ const operadorSearchWorker = (req, res) => {
       console.warn('[OPERADOR] Aviso asegurando entitlements:', e.message);
     }
 
-    // Contar solo cuántos combos tiene pendientes (SIN mostrar nombres ni detalles)
-    const activeCamp = db.prepare("SELECT id FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    // Contar combos pendientes y entregados en la jornada activa
+    const activeCamp = db.prepare("SELECT id, start_date, end_date FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    const campId = activeCamp ? activeCamp.id : null;
+    const campStart = activeCamp ? activeCamp.start_date : today;
+    const campEnd = activeCamp ? (activeCamp.end_date || today) : today;
+
+    let deliveredInCamp = 0;
+    if (activeCamp) {
+      deliveredInCamp = db.prepare(`
+        SELECT COUNT(DISTINCT d.id) as cnt FROM deliveries d
+        WHERE d.worker_id = ? 
+          AND (d.campaign_id = ? OR (date(d.delivered_at, '-4 hours') >= date(?) AND date(d.delivered_at, '-4 hours') <= date(?)))
+      `).get(worker.id, campId, campStart, campEnd)?.cnt || 0;
+    }
+
     let pendSql = `
       SELECT COUNT(DISTINCT e.combo_id) as cnt FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
-      WHERE e.worker_id = ? AND e.valid_date = ? AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
+      WHERE e.worker_id = ? AND (e.valid_date = ? OR (e.campaign_id IS NOT NULL AND e.campaign_id = ?)) AND e.status = 'pending' AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
-    const pendParams = [worker.id, today];
+    const pendParams = [worker.id, today, campId];
     if (activeCamp) {
       pendSql += ` AND (e.campaign_id = ? OR e.combo_id IN (
         SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
@@ -142,15 +155,20 @@ const operadorSearchWorker = (req, res) => {
       ))`;
       pendParams.push(activeCamp.id, activeCamp.id, activeCamp.id);
     }
-    const pendingCount = db.prepare(pendSql).get(...pendParams).cnt;
+    let pendingCount = db.prepare(pendSql).get(...pendParams)?.cnt || 0;
 
-    // Total asignados hoy (conteo de combos únicos activos)
+    // Si ya retiró en esta jornada activa, no tiene combos pendientes
+    if (deliveredInCamp > 0) {
+      pendingCount = 0;
+    }
+
+    // Total asignados en la jornada
     let totalSql = `
       SELECT COUNT(DISTINCT e.combo_id) as cnt FROM daily_entitlements e
       JOIN combos c ON e.combo_id = c.id
-      WHERE e.worker_id = ? AND e.valid_date = ? AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
+      WHERE e.worker_id = ? AND (e.valid_date = ? OR (e.campaign_id IS NOT NULL AND e.campaign_id = ?)) AND c.is_active = 1 AND c.name NOT LIKE '__SYSTEM_%'
     `;
-    const totalParams = [worker.id, today];
+    const totalParams = [worker.id, today, campId];
     if (activeCamp) {
       totalSql += ` AND (e.campaign_id = ? OR e.combo_id IN (
         SELECT combo_id FROM campaign_combos WHERE campaign_id = ?
@@ -159,10 +177,13 @@ const operadorSearchWorker = (req, res) => {
       ))`;
       totalParams.push(activeCamp.id, activeCamp.id, activeCamp.id);
     }
-    const totalCount = db.prepare(totalSql).get(...totalParams).cnt;
+    let totalCount = db.prepare(totalSql).get(...totalParams)?.cnt || 0;
+    if (deliveredInCamp > 0 && totalCount === 0) {
+      totalCount = deliveredInCamp;
+    }
 
     // Ya entregados
-    const deliveredCount = totalCount - pendingCount;
+    const deliveredCount = deliveredInCamp > 0 ? deliveredInCamp : Math.max(0, totalCount - pendingCount);
 
     return res.json({
       found: true,
@@ -365,19 +386,31 @@ const operadorDeliver = async (req, res) => {
 const operadorOfflinePack = (req, res) => {
   const today = getTodayVzla();
   try {
+    const activeCamp = db.prepare("SELECT id, start_date, end_date FROM delivery_campaigns WHERE status = 'en_curso' LIMIT 1").get();
+    const campId = activeCamp ? activeCamp.id : null;
+    const campStart = activeCamp ? activeCamp.start_date : today;
+    const campEnd = activeCamp ? (activeCamp.end_date || today) : today;
+
     const workers = db.prepare(`
       SELECT w.id, w.document_id, w.full_name, w.worker_type,
              COALESCE(d.name, 'Sin Dirección') as department_name,
              CASE WHEN EXISTS (
                SELECT 1 FROM daily_entitlements de
                JOIN combos c ON de.combo_id = c.id
-               WHERE de.worker_id = w.id AND de.valid_date = ? AND de.status = 'claimed' AND c.is_active = 1
+               WHERE de.worker_id = w.id 
+                 AND (de.valid_date = ? OR (de.campaign_id IS NOT NULL AND de.campaign_id = ?))
+                 AND de.status = 'claimed' 
+                 AND c.is_active = 1
+             ) OR EXISTS (
+               SELECT 1 FROM deliveries del
+               WHERE del.worker_id = w.id 
+                 AND (del.campaign_id = ? OR (date(del.delivered_at, '-4 hours') >= date(?) AND date(del.delivered_at, '-4 hours') <= date(?)))
              ) THEN 1 ELSE 0 END as is_delivered
       FROM workers w
       LEFT JOIN departments d ON w.department_id = d.id
       WHERE w.status = 'active'
       ORDER BY w.full_name ASC
-    `).all(today);
+    `).all(today, campId, campId, campStart, campEnd);
 
     return res.json({
       success: true,
