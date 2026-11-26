@@ -138,9 +138,9 @@ function generateMerkleProof(deliveries = [], target) {
   if (typeof target === 'number') {
     index = target;
   } else if (typeof target === 'string') {
-    index = deliveries.findIndex(d => 
-      d.document_id === target || 
-      d.id === target || 
+    index = deliveries.findIndex(d =>
+      d.document_id === target ||
+      d.id === target ||
       d.delivery_id === target
     );
   }
@@ -338,7 +338,7 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     const rowsHtml = sortedGrouped.map((item, rowIdx) => {
       const timeFormatted = formatVzlaTime(item.delivered_at);
       const dateFormatted = formatVzlaDate(item.delivered_at);
-      const combosLabel = item.combos_count > 1 
+      const combosLabel = item.combos_count > 1
         ? `<strong>${item.combos_count} combos</strong> <span style="color: #64748b; font-size: 0.72rem;">(${item.combo_names.join(', ') || 'Combos Asignados'})</span>`
         : `<strong>1 combo</strong> <span style="color: #64748b; font-size: 0.72rem;">(${item.combo_names[0] || 'Combo Institucional'})</span>`;
 
@@ -382,6 +382,91 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     `;
   }).join('');
 
+  // 4. Desglose detallado de personal que aún no ha retirado (rezagados) por dependencia ministerial
+  const deliveredCedulasSet = new Set(deliveries.map(d => d.document_id).filter(Boolean));
+  const deliveredWorkerIdsSet = new Set(deliveries.map(d => d.worker_id).filter(Boolean));
+
+  let allActiveWorkers = [];
+  try {
+    allActiveWorkers = db.prepare(`
+      SELECT 
+        w.id,
+        w.document_id,
+        w.full_name,
+        COALESCE(w.job_title, 'Funcionario Público') as job_title,
+        COALESCE(w.worker_type, 'activo') as worker_type,
+        COALESCE(d.name, 'Dirección General / Nómina Central') as department_name
+      FROM workers w
+      LEFT JOIN departments d ON w.department_id = d.id
+      WHERE w.status = 'active'
+        AND w.document_id NOT IN ('V-99995001', 'V-18456123', 'V-11123987', 'V-00000000', '00000000', '')
+      ORDER BY department_name ASC, w.full_name ASC
+    `).all();
+  } catch (errWorkers) {
+    console.warn('[AUDIT ACTA] Error consultando nómina de trabajadores:', errWorkers.message);
+  }
+
+  const pendingWorkers = allActiveWorkers.filter(w => !deliveredCedulasSet.has(w.document_id) && !deliveredWorkerIdsSet.has(w.id));
+
+  // Agrupar pendientes por dependencia ministerial
+  const pendingDeptsMap = new Map();
+  for (const pw of pendingWorkers) {
+    const depName = pw.department_name || 'Dirección General / Nómina Central';
+    if (!pendingDeptsMap.has(depName)) {
+      pendingDeptsMap.set(depName, []);
+    }
+    pendingDeptsMap.get(depName).push(pw);
+  }
+
+  const sortedPendingDeptNames = Array.from(pendingDeptsMap.keys()).sort((a, b) => a.localeCompare(b, 'es'));
+
+  // Determinar cuántos combos corresponden por trabajador (por defecto 4 según la jornada institucional)
+  const activeCombosCount = db.prepare("SELECT COUNT(*) as c FROM combos WHERE is_active = 1 AND name NOT LIKE '__SYSTEM_%'").get()?.c || 4;
+
+  const pendingDetailSections = sortedPendingDeptNames.map((depName) => {
+    const workersList = pendingDeptsMap.get(depName) || [];
+    const combosPendingDept = workersList.length * activeCombosCount;
+
+    const rowsPendingHtml = workersList.map((pw, idx) => `
+      <tr>
+        <td style="text-align: center; font-weight: 700; color: #64748b;">${idx + 1}</td>
+        <td style="font-weight: 700; white-space: nowrap; font-family: monospace, monospace; color: #0f172a;">${pw.document_id}</td>
+        <td style="font-weight: 600;">${pw.full_name}</td>
+        <td style="color: #475569; font-size: 0.72rem;">${pw.job_title}</td>
+        <td style="text-align: center;"><strong>${activeCombosCount} combos</strong></td>
+        <td style="text-align: center;">
+          <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 0.69rem; border: 1px solid #fde68a; display: inline-block; white-space: nowrap;">
+            ⏳ Rezagado (En Mesa)
+          </span>
+        </td>
+      </tr>
+    `).join('');
+
+    return `
+      <div class="dept-detail-card" style="border-left: 4px solid #f59e0b;">
+        <div class="dept-detail-header" style="background: #fffbeb; border-bottom: 1.5px solid #fde68a;">
+          <span style="color: #92400e;">🏢 ${depName}</span>
+          <span style="color: #b45309;"><strong>${workersList.length}</strong> funcionarios pendientes &bull; <strong>${combosPendingDept}</strong> combos remanentes</span>
+        </div>
+        <table class="delivery-table">
+          <thead>
+            <tr>
+              <th style="width: 5%; text-align: center;">N°</th>
+              <th style="width: 15%;">Cédula</th>
+              <th style="width: 32%;">Funcionario Beneficiario</th>
+              <th style="width: 24%;">Cargo / Área</th>
+              <th style="width: 12%; text-align: center;">Cuota Asignada</th>
+              <th style="width: 12%; text-align: center;">Estatus Logístico</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsPendingHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -399,10 +484,10 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     .badge-acta .num { font-size: 1rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 0.35rem 0.75rem; border-radius: 6px; display: inline-block; }
     .badge-acta .date { font-size: 0.75rem; color: #64748b; margin-top: 0.35rem; }
     .section-title { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin: 1.75rem 0 0.85rem 0; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-    .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 1rem; text-align: center; }
-    .kpi-box .val { font-size: 1.6rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
-    .kpi-box .lbl { font-size: 0.75rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.35rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+    .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.85rem 0.5rem; text-align: center; }
+    .kpi-box .val { font-size: 1.5rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
+    .kpi-box .lbl { font-size: 0.72rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.35rem; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.85rem; }
     th { background: #f1f5f9; color: #334155; font-weight: 700; text-align: left; padding: 0.6rem 0.75rem; border: 1px solid #cbd5e1; text-transform: uppercase; font-size: 0.75rem; }
     td { padding: 0.6rem 0.75rem; border: 1px solid #cbd5e1; color: #1e293b; }
@@ -451,20 +536,24 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
 
     <div class="kpi-grid">
       <div class="kpi-box">
-        <div class="val">${metrics.totalDeliveries}</div>
-        <div class="lbl">Total Entregas</div>
+        <div class="val">${allActiveWorkers.length || metrics.totalBeneficiaries}</div>
+        <div class="lbl">Padrón Total</div>
       </div>
       <div class="kpi-box">
-        <div class="val">${metrics.totalBeneficiaries}</div>
-        <div class="lbl">Beneficiarios Atendidos</div>
+        <div class="val" style="color: #0284c7;">${metrics.totalBeneficiaries}</div>
+        <div class="lbl">Atendidos</div>
       </div>
       <div class="kpi-box">
-        <div class="val">${metrics.totalTons} t</div>
-        <div class="lbl">Tonelaje Total Despachado</div>
+        <div class="val" style="color: #d97706;">${pendingWorkers.length}</div>
+        <div class="lbl">Rezagados / Pendientes</div>
+      </div>
+      <div class="kpi-box">
+        <div class="val" style="color: #16a34a;">${metrics.totalTons} t</div>
+        <div class="lbl">Tonelaje Despachado</div>
       </div>
       <div class="kpi-box">
         <div class="val">${metrics.offlinePct}%</div>
-        <div class="lbl">Sincronización Offline</div>
+        <div class="lbl">Sync Offline</div>
       </div>
     </div>
 
@@ -528,7 +617,15 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     </div>
     ${deptDetailSections || '<div style="text-align:center; padding: 1rem; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 6px;">No se registraron despachos para desglosar en este período.</div>'}
 
-    <div class="section-title">4. Sello de Integridad Digital Inmutable (SHA-256)</div>
+    <div class="section-title">4. Rendición Consolidada por Dependencia Ministerial (Desglose Detallado de Personal Pendiente por Retirar / Rezagados)</div>
+    <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 0.85rem;">
+      Relación nominal de trabajadores que aún no han formalizado el retiro de sus beneficios alimenticios en las mesas de despacho. La cuota asignada permanece en custodia y reserva garantizada en almacén central.
+      <br>
+      <strong>Balance de Remanente:</strong> ${pendingWorkers.length} funcionarios pendientes distribuidos en ${sortedPendingDeptNames.length} dependencias (${pendingWorkers.length * activeCombosCount} combos en resguardo en mesa).
+    </div>
+    ${pendingDetailSections || '<div style="text-align:center; padding: 1.25rem; color: #166534; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; font-weight: 700;">✓ ¡Jornada Completa! El 100% del personal de todas las dependencias ha retirado sus combos satisfactoriamente.</div>'}
+
+    <div class="section-title">5. Sello de Integridad Digital Inmutable (SHA-256)</div>
     <div class="integrity-box">
       <strong>🔒 Sello de Integridad Criptográfica de la Jornada (SHA-256):</strong><br>
       <code>${integrityHash}</code><br>
