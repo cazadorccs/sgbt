@@ -819,7 +819,7 @@ const printMinisterialActaHtml = async (req, res) => {
   <style>
     @page { 
       size: letter; 
-      margin: 1.8cm 1.2cm 1.8cm 1.2cm; 
+      margin: 1.6cm 1.2cm 2.0cm 1.2cm; 
       @top-left {
         content: "REPÚBLICA BOLIVARIANA DE VENEZUELA • MIPPCI";
         font-size: 7pt;
@@ -862,7 +862,7 @@ const printMinisterialActaHtml = async (req, res) => {
     .badge-acta .num { font-size: 0.95rem; font-weight: 800; color: #0284c7; background: #e0f2fe; padding: 0.35rem 0.75rem; border-radius: 6px; display: inline-block; }
     .badge-acta .date { font-size: 0.72rem; color: #64748b; margin-top: 0.35rem; }
     .section-title { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; color: #0f172a; border-left: 4px solid #0284c7; padding-left: 0.5rem; margin: 1.5rem 0 0.75rem 0; }
-    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; margin-bottom: 1.25rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem; margin-bottom: 1.5rem; }
     .kpi-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.85rem; text-align: center; }
     .kpi-box .val { font-size: 1.45rem; font-weight: 800; color: #0f172a; line-height: 1.1; }
     .kpi-box .lbl { font-size: 0.7rem; color: #64748b; font-weight: 600; text-transform: uppercase; margin-top: 0.3rem; }
@@ -883,48 +883,14 @@ const printMinisterialActaHtml = async (req, res) => {
     .print-running-header, .print-running-footer { display: none; }
     @media print {
       body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 0 1.5cm 0 !important; margin: 0 !important; max-width: 100% !important; }
       .print-actions { display: none !important; }
-      .print-running-header {
-        display: block !important;
-        position: fixed;
-        top: -1.3cm;
-        left: 0;
-        right: 0;
-        border-bottom: 1px solid #cbd5e1;
-        padding-bottom: 3px;
-        background: #ffffff;
-      }
-      .running-header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7pt;
-        color: #475569;
-        text-transform: uppercase;
-        font-weight: 700;
-      }
-      .print-running-footer {
-        display: block !important;
-        position: fixed;
-        bottom: -1.3cm;
-        left: 0;
-        right: 0;
-        border-top: 1px solid #cbd5e1;
-        padding-top: 3px;
-        background: #ffffff;
-      }
-      .running-footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7pt;
-        color: #64748b;
-      }
+      .print-running-header, .print-running-footer { display: none !important; }
       table { page-break-inside: auto !important; break-inside: auto !important; }
       thead { display: table-header-group !important; }
       tbody { display: table-row-group !important; }
       tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .kpi-grid, .signatures, .integrity-container { page-break-inside: avoid !important; break-inside: avoid !important; margin-bottom: 1.5rem !important; }
     }
   </style>
 </head>
@@ -932,7 +898,7 @@ const printMinisterialActaHtml = async (req, res) => {
   <div class="page-container">
     <div class="print-running-header">
       <div class="running-header-content">
-        <span>🇻🇪 <strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
+        <span><strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
         <span>${row.acta_number} &bull; ACTA MINISTERIAL DEFINITIVA</span>
       </div>
     </div>
@@ -1485,48 +1451,14 @@ const printProvisionalActaHtml = async (req, res) => {
     .print-running-header, .print-running-footer { display: none; }
     @media print {
       body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 0 1.5cm 0 !important; margin: 0 !important; max-width: 100% !important; }
       .print-actions { display: none !important; }
-      .print-running-header {
-        display: block !important;
-        position: fixed;
-        top: -1.3cm;
-        left: 0;
-        right: 0;
-        border-bottom: 1px solid #cbd5e1;
-        padding-bottom: 3px;
-        background: #ffffff;
-      }
-      .running-header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7pt;
-        color: #475569;
-        text-transform: uppercase;
-        font-weight: 700;
-      }
-      .print-running-footer {
-        display: block !important;
-        position: fixed;
-        bottom: -1.3cm;
-        left: 0;
-        right: 0;
-        border-top: 1px solid #cbd5e1;
-        padding-top: 3px;
-        background: #ffffff;
-      }
-      .running-footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7pt;
-        color: #64748b;
-      }
+      .print-running-header, .print-running-footer { display: none !important; }
       table { page-break-inside: auto !important; break-inside: auto !important; }
       thead { display: table-header-group !important; }
       tbody { display: table-row-group !important; }
       tr { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .kpi-grid, .signatures { page-break-inside: avoid !important; break-inside: avoid !important; margin-bottom: 1.5rem !important; }
     }
   </style>
 </head>
@@ -1534,7 +1466,7 @@ const printProvisionalActaHtml = async (req, res) => {
   <div class="page-container">
     <div class="print-running-header">
       <div class="running-header-content">
-        <span>🇻🇪 <strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
+        <span><strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
         <span>${provisionalNumber} &bull; ACTA PROVISIONAL DE DESPACHO</span>
       </div>
     </div>

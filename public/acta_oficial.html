@@ -6,7 +6,7 @@
   <style>
     @page { 
       size: letter; 
-      margin: 1.8cm 1.2cm 1.8cm 1.2cm; 
+      margin: 1.6cm 1.2cm 2.0cm 1.2cm; 
       @top-left {
         content: "REPÚBLICA BOLIVARIANA DE VENEZUELA • MIPPCI";
         font-size: 7pt;
@@ -69,50 +69,15 @@
     .print-running-header, .print-running-footer { display: none; }
     @media print {
       body { background: #ffffff !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-      .page-container { box-shadow: none !important; border: none !important; padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
+      .page-container { box-shadow: none !important; border: none !important; padding: 0 0 1.5cm 0 !important; margin: 0 !important; max-width: 100% !important; }
       .print-actions { display: none !important; }
-      .print-running-header {
-        display: block !important;
-        position: fixed;
-        top: -1.3cm;
-        left: 0;
-        right: 0;
-        border-bottom: 1px solid #cbd5e1;
-        padding-bottom: 3px;
-        background: #ffffff;
-      }
-      .running-header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7pt;
-        color: #475569;
-        text-transform: uppercase;
-        font-weight: 700;
-      }
-      .print-running-footer {
-        display: block !important;
-        position: fixed;
-        bottom: -1.3cm;
-        left: 0;
-        right: 0;
-        border-top: 1px solid #cbd5e1;
-        padding-top: 3px;
-        background: #ffffff;
-      }
-      .running-footer-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 7pt;
-        color: #64748b;
-      }
+      .print-running-header, .print-running-footer { display: none !important; }
       table { page-break-inside: auto !important; break-inside: auto !important; }
       thead { display: table-header-group !important; }
       tbody { display: table-row-group !important; }
       tr { page-break-inside: avoid !important; break-inside: avoid !important; }
       .section-title { page-break-after: avoid !important; break-after: avoid !important; }
-      .kpi-grid, .signatures { page-break-inside: avoid !important; break-inside: avoid !important; }
+      .kpi-grid, .signatures { page-break-inside: avoid !important; break-inside: avoid !important; margin-bottom: 1.5rem !important; }
     }
   </style>
 </head>
@@ -120,7 +85,7 @@
   <div class="page-container">
     <div class="print-running-header">
       <div class="running-header-content">
-        <span>🇻🇪 <strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
+        <span><strong>REPÚBLICA BOLIVARIANA DE VENEZUELA</strong> &bull; MIPPCI &bull; SGBT</span>
         <span>ACTA-20261025-0825077A &bull; ACTA OFICIAL DE AUDITORÍA</span>
       </div>
     </div>
