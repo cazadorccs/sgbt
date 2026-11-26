@@ -2,7 +2,132 @@
 // Servicio centralizado de Auditoría, Métricas de Despacho y Generación de Actas Oficiales con Sellos Criptográficos SHA-256
 
 const crypto = require('crypto');
+const path = require('path');
+const fs = require('fs');
+let XLSX;
+try {
+  XLSX = require('xlsx');
+} catch (e) {}
 const { db } = require('../db');
+
+const FALLBACK_GESTION_HUMANA_ROWS = [
+  { num: 1, dir: 'DIRECCION GENERAL DEL DESPACHO', asignadas: 25, entregadas: 25, pendientes: 0 },
+  { num: 2, dir: 'AUDITORIA INTERNA', asignadas: 14, entregadas: 14, pendientes: 0 },
+  { num: 3, dir: 'OFICINA DE ATENCION AL CIUDADANO', asignadas: 11, entregadas: 11, pendientes: 0 },
+  { num: 4, dir: 'OFICINA ESTRATEGICA DE SEGUIMIENTO Y EVALUACION DE POLITICAS PUBLICAS', asignadas: 7, entregadas: 7, pendientes: 0 },
+  { num: 5, dir: 'OFICINA ESTRATEGICA DE SEGUIMIENTO Y EVALUACION DE POLITICAS PUBLICAS / ANDERI HINDU', asignadas: 1, entregadas: 1, pendientes: 0 },
+  { num: 6, dir: 'CONSULTORIA JURIDICA', asignadas: 8, entregadas: 6, pendientes: 2 },
+  { num: 7, dir: 'OFICINA DE GESTION COMUNICACIONAL PROTOCOLO', asignadas: 12, entregadas: 11, pendientes: 1 },
+  { num: 8, dir: 'OFICINA DE PLANIFICACION Y PRESUPUESTO', asignadas: '', entregadas: '', pendientes: 0 },
+  { num: 9, dir: 'DIRECCION DE PRESUPUESTO', asignadas: 9, entregadas: 9, pendientes: 0 },
+  { num: 10, dir: 'DIRECCION DE PLANIFICACION', asignadas: 12, entregadas: 12, pendientes: 0 },
+  { num: 11, dir: 'OFICINA DE GESTION HUMANA', asignadas: 51, entregadas: 51, pendientes: 0 },
+  { num: 12, dir: 'OFICINA DE GESTION ADMINISTRATIVA', asignadas: 5, entregadas: 5, pendientes: 0 },
+  { num: 13, dir: 'DIRECCION DE COMPRAS Y SERVICIOS', asignadas: 6, entregadas: 6, pendientes: 0 },
+  { num: 14, dir: 'DIRECCION DE ADMINISTRACION', asignadas: 13, entregadas: 13, pendientes: 0 },
+  { num: 15, dir: 'DIRECCION DE ARCHIVO GENERAL', asignadas: 5, entregadas: 5, pendientes: 0 },
+  { num: 16, dir: 'DIRECCION DE CONTABILDAD', asignadas: 8, entregadas: 8, pendientes: 0 },
+  { num: 17, dir: 'SERVICIOS GENERALES', asignadas: 128, entregadas: 126, pendientes: 2 },
+  { num: 18, dir: 'OFICINA  DE TECNOLOGIA DE LA INFORMACION Y LA COMUNICACIÓN', asignadas: 25, entregadas: 25, pendientes: 0 },
+  { num: 19, dir: 'OFICINA DE SEGURIDAD Y PROTECCION INTEGRAL', asignadas: 65, entregadas: 63, pendientes: 2 },
+  { num: 20, dir: 'OFICINA DE ASUNTOS INTERNACIONALES', asignadas: 9, entregadas: 9, pendientes: 0 },
+  { num: 21, dir: 'VICEMINISTERIO DE COMUNICACIÓN E INFORMACION', asignadas: 2, entregadas: 2, pendientes: 0 },
+  { num: 22, dir: 'DIRECCION GENERAL DE SEGUIMIENTO Y POLITICAS', asignadas: 10, entregadas: 10, pendientes: 0 },
+  { num: 23, dir: 'VICEMINISTERIO DE PLANIFICACION Y ESTRATEGIA COMUNICACIONAL', asignadas: 7, entregadas: 6, pendientes: 1 },
+  { num: 24, dir: 'DIRECCION GENERAL DE ESTRATEGIA  COMUNICACIONAL', asignadas: 10, entregadas: 9, pendientes: 1 },
+  { num: 25, dir: 'DIRECCION DE DISEÑO ESTRATEGIA', asignadas: 8, entregadas: 7, pendientes: 1 },
+  { num: 26, dir: 'DIRECCION DE ANALISIS DEL ENTORNO', asignadas: 28, entregadas: 25, pendientes: 3 },
+  { num: 27, dir: 'DIRECCION DE INVESTIGACION SOCIAL', asignadas: 10, entregadas: 10, pendientes: 0 },
+  { num: 28, dir: 'DIRECCION GENERAL DE COMUNICACION DIGITAL', asignadas: 47, entregadas: 6, pendientes: 46 },
+  { num: 29, dir: 'PLATAFORMA WEB', asignadas: '', entregadas: 7, pendientes: '' },
+  { num: 30, dir: 'ANALISIS Y MONITOREO', asignadas: '', entregadas: 16, pendientes: '' },
+  { num: 31, dir: 'CONTENIDO MULTIMEDIA', asignadas: '', entregadas: 17, pendientes: '' },
+  { num: 32, dir: 'DIRECCION GENERAL DE PRODUCCION DE CONTENIDO', asignadas: 19, entregadas: 17, pendientes: 2 },
+  { num: 33, dir: 'CREATIVOS', asignadas: 10, entregadas: 8, pendientes: 2 },
+  { num: 34, dir: 'AUDIOVISUALES', asignadas: 24, entregadas: 19, pendientes: 5 },
+  { num: 35, dir: 'PUBLICACIONES', asignadas: 5, entregadas: 4, pendientes: 1 },
+  { num: 36, dir: 'ARTE', asignadas: 12, entregadas: 10, pendientes: 2 },
+  { num: 37, dir: 'VICEMINISTERIO DE SOPORTE Y PLATAFOMA COMUNICACIONAL CARACAS', asignadas: 121, entregadas: '', pendientes: 121 },
+  { num: 38, dir: 'VICEMINISTERIO DE SOPORTE Y PLATAFOMA COMUNICACIONAL INTERIOR', asignadas: 146, entregadas: '', pendientes: 146 },
+  { num: 39, dir: 'DIRECCION GENRAL DE TRAMISIONES CCAS', asignadas: 39, entregadas: '', pendientes: 39 },
+  { num: 40, dir: 'REDES TECNOLOGICAS CCAS', asignadas: 27, entregadas: '', pendientes: 27 },
+  { num: 41, dir: 'REDES TECNOLOGICAS INTERIOR', asignadas: 5, entregadas: '', pendientes: 5 },
+  { num: 42, dir: 'VICEMINISTERIO DE GESTION COMUNICACIONAL', asignadas: 13, entregadas: 12, pendientes: 1 },
+  { num: 43, dir: 'COMUNICACIÓN DE GOBIERNO', asignadas: 8, entregadas: 8, pendientes: 0 },
+  { num: 44, dir: 'ARTICULACION CON MEDIOS', asignadas: 7, entregadas: 7, pendientes: 0 },
+  { num: 45, dir: 'PNI CCAS', asignadas: 8, entregadas: 8, pendientes: 0 },
+  { num: 46, dir: 'PNI INTERIOR', asignadas: 4, entregadas: '', pendientes: 4 },
+  { num: 47, dir: 'MEDIOS ALTERNATIVOS', asignadas: 29, entregadas: 21, pendientes: 8 },
+  { num: 48, dir: 'COMUNICALLE', asignadas: 21, entregadas: 21, pendientes: 0 },
+  { num: 49, dir: 'GRUPO EDITORIAL /KARINA DIRINO', asignadas: 7, entregadas: 7, pendientes: 0 },
+  { num: 50, dir: 'OIR CARACAS', asignadas: 5, entregadas: 5, pendientes: 0 },
+  { num: 51, dir: 'OIR REGIONES', asignadas: 37, entregadas: '', pendientes: 37 },
+  { num: 52, dir: 'CEBAC. VALENCIA', asignadas: 3, entregadas: 3, pendientes: 0 },
+  { num: 53, dir: 'VICEPRESIDENCIA SECTORIAL DE COMUNICACIÓN Y CULTURA', asignadas: 17, entregadas: 17, pendientes: 0 },
+  { num: 54, dir: 'RADIO MIRAFLORES', asignadas: 48, entregadas: 41, pendientes: 7 },
+  { num: 55, dir: 'FUNDACION PREMIO  NACIONAL DE PERIODISMO', asignadas: 13, entregadas: 13, pendientes: 0 },
+  { num: 56, dir: 'CARAVANA', asignadas: 10, entregadas: 10, pendientes: 0 },
+  { num: 57, dir: 'AVP', asignadas: 76, entregadas: 75, pendientes: 1 },
+  { num: 58, dir: 'FUNDACION 4F', asignadas: 13, entregadas: 13, pendientes: 0 },
+  { num: 59, dir: 'JUBILADOS Y PENSIONADOS', asignadas: 100, entregadas: 82, pendientes: 18 }
+];
+
+function getGestionHumanaSummaryData() {
+  const possiblePaths = [
+    path.resolve(__dirname, '../../RESUMEN DE LISTADO NOVIEMBRE AL 11-11-2026  25112026 7 58 pm.xlsx'),
+    path.resolve(process.cwd(), 'RESUMEN DE LISTADO NOVIEMBRE AL 11-11-2026  25112026 7 58 pm.xlsx'),
+    path.resolve(__dirname, '../RESUMEN DE LISTADO NOVIEMBRE AL 11-11-2026  25112026 7 58 pm.xlsx')
+  ];
+
+  let filePath = null;
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      filePath = p;
+      break;
+    }
+  }
+
+  const rows = [];
+  let totalAsignadas = 1363;
+  let totalEntregadas = 923;
+  let totalPendientes = 440;
+
+  if (filePath && XLSX) {
+    try {
+      const wb = XLSX.readFile(filePath);
+      const sheetName = wb.SheetNames[0];
+      const sheet = wb.Sheets[sheetName];
+
+      for (let r = 11; r < 70; r++) {
+        const num = sheet[XLSX.utils.encode_cell({ r, c: 0 })]?.v ?? (r - 10);
+        const dir = sheet[XLSX.utils.encode_cell({ r, c: 1 })]?.v;
+        if (!dir) continue;
+        const asignadas = sheet[XLSX.utils.encode_cell({ r, c: 3 })]?.v;
+        const entregadas = sheet[XLSX.utils.encode_cell({ r, c: 4 })]?.v;
+        const pendientes = sheet[XLSX.utils.encode_cell({ r, c: 5 })]?.v;
+        rows.push({
+          num,
+          dir: String(dir).trim(),
+          asignadas: asignadas !== undefined && asignadas !== null && asignadas !== '' ? Number(asignadas) : '',
+          entregadas: entregadas !== undefined && entregadas !== null && entregadas !== '' ? Number(entregadas) : '',
+          pendientes: pendientes !== undefined && pendientes !== null && pendientes !== '' ? Number(pendientes) : ''
+        });
+      }
+
+      if (sheet['D71']?.v) totalAsignadas = Number(sheet['D71'].v);
+      if (sheet['E71']?.v) totalEntregadas = Number(sheet['E71'].v);
+      if (sheet['F71']?.v) totalPendientes = Number(sheet['F71'].v);
+
+      if (rows.length > 0) {
+        return { rows, totalAsignadas, totalEntregadas, totalPendientes };
+      }
+    } catch (err) {
+      console.warn('[AUDIT ACTA] Error leyendo Excel de Gestión Humana:', err.message);
+    }
+  }
+
+  return { rows: FALLBACK_GESTION_HUMANA_ROWS, totalAsignadas: 1363, totalEntregadas: 923, totalPendientes: 440 };
+}
 
 /**
  * Calcula métricas detalladas y agregaciones de entregas para auditoría
@@ -475,6 +600,23 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     `;
   }).join('');
 
+  const ghSummary = getGestionHumanaSummaryData();
+  const ghRowsHtml = ghSummary.rows.map(r => {
+    const asigText = r.asignadas !== '' ? Number(r.asignadas).toLocaleString('es-VE') : '<span style="color:#94a3b8;">--</span>';
+    const entText = r.entregadas !== '' ? `<strong>${Number(r.entregadas).toLocaleString('es-VE')}</strong>` : '<span style="color:#94a3b8;">--</span>';
+    const pendText = r.pendientes !== '' ? (Number(r.pendientes) > 0 ? `<strong style="color:#b45309;">${Number(r.pendientes).toLocaleString('es-VE')}</strong>` : '0') : '<span style="color:#94a3b8;">--</span>';
+
+    return `
+      <tr>
+        <td style="text-align: center; color: #64748b; font-weight: 700;">${r.num}</td>
+        <td style="font-weight: 600; color: #0f172a;">${r.dir}</td>
+        <td style="text-align: right;">${asigText}</td>
+        <td style="text-align: right; color: #0284c7;">${entText}</td>
+        <td style="text-align: right;">${pendText}</td>
+      </tr>
+    `;
+  }).join('');
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -658,6 +800,51 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
       <strong>Balance de Remanente:</strong> ${pendingWorkers.length} funcionarios pendientes distribuidos en ${sortedPendingDeptNames.length} dependencias (${pendingWorkers.length * activeCombosCount} combos en resguardo en mesa).
     </div>
     ${pendingDetailSections || '<div style="text-align:center; padding: 1.25rem; color: #166534; background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; font-weight: 700;">✓ ¡Jornada Completa! El 100% del personal de todas las dependencias ha retirado sus combos satisfactoriamente.</div>'}
+
+    <div class="section-title">5. Cuadro de Resumen General de Entrega de Bolsas (Gestión Humana)</div>
+    <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 0.85rem;">
+      <strong>Oficina de Gestión Humana &bull; Coordinación de Bienestar Social:</strong> Balance oficial de asignación y entrega física de bolsas de alimentos por dirección ministerial correspondiente a la jornada.
+    </div>
+
+    <table class="delivery-table">
+      <thead>
+        <tr class="dept-banner-row">
+          <th colspan="5" class="dept-banner-th" style="background: #0f172a !important; color: #ffffff !important; border-bottom: 2px solid #38bdf8 !important;">
+            <div class="dept-banner-content">
+              <span class="dept-title" style="color: #ffffff;">📊 RESUMEN DE ENTREGA DE BOLSAS NOVIEMBRE 2026</span>
+              <span class="dept-stats" style="color: #38bdf8;">OFICINA DE GESTIÓN HUMANA &bull; COORDINACIÓN BIENESTAR SOCIAL</span>
+            </div>
+          </th>
+        </tr>
+        <tr class="dept-cols-row">
+          <th style="width: 6%; text-align: center;">N°</th>
+          <th style="width: 52%;">Direcciones / Dependencias</th>
+          <th style="width: 14%; text-align: right;">N° Bolsas Asignadas</th>
+          <th style="width: 14%; text-align: right;">Entregadas</th>
+          <th style="width: 14%; text-align: right;">Pendientes por Entregar</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ghRowsHtml}
+        <tr style="background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f172a;">
+          <td colspan="2" style="text-align: right; text-transform: uppercase; padding: 0.55rem 0.75rem;">Total Bolsas / Combos:</td>
+          <td style="text-align: right; color: #0f172a; font-size: 0.88rem; padding: 0.55rem 0.75rem;">${Number(ghSummary.totalAsignadas).toLocaleString('es-VE')}</td>
+          <td style="text-align: right; color: #0284c7; font-size: 0.88rem; padding: 0.55rem 0.75rem;">${Number(ghSummary.totalEntregadas).toLocaleString('es-VE')}</td>
+          <td style="text-align: right; color: #b45309; font-size: 0.88rem; padding: 0.55rem 0.75rem;">${Number(ghSummary.totalPendientes).toLocaleString('es-VE')}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 0.75rem; margin-bottom: 2rem; page-break-inside: avoid; break-inside: avoid;">
+      <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.78rem;">
+        <div style="color: #64748b; font-weight: 600; text-transform: uppercase;">Solicitados por Gestión Humana</div>
+        <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin-top: 0.2rem;">${Number(ghSummary.totalAsignadas).toLocaleString('es-VE')} bolsas</div>
+      </div>
+      <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.78rem;">
+        <div style="color: #64748b; font-weight: 600; text-transform: uppercase;">Combos de Alimentos Adquiridos</div>
+        <div style="font-size: 1.25rem; font-weight: 800; color: #0284c7; margin-top: 0.2rem;">${Number(ghSummary.totalAsignadas).toLocaleString('es-VE')} bolsas</div>
+      </div>
+    </div>
 
     <div class="signatures">
       <div class="sig-line">
