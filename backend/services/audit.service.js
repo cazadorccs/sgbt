@@ -647,7 +647,7 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
       @bottom-right {
-        content: "Página " counter(page);
+        content: "Página " counter(page) " de " counter(pages);
         font-size: 7pt;
         font-weight: 700;
         color: #0f172a;
