@@ -211,6 +211,60 @@ function generateSha256IntegritySeal(deliveries = []) {
 }
 
 /**
+ * Helpers de formateo para fecha y hora venezolana
+ */
+function formatVzlaTime(dateStr) {
+  if (!dateStr) return '--:--';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return new Intl.DateTimeFormat('es-VE', {
+      timeZone: 'America/Caracas',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).format(d);
+  } catch (e) {
+    return String(dateStr);
+  }
+}
+
+function formatVzlaDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('es-VE', {
+      timeZone: 'America/Caracas',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(d);
+  } catch (e) {
+    return '';
+  }
+}
+
+function formatMethodLabel(method) {
+  switch (method) {
+    case 'passkey_qr':
+    case 'passkey_nfc':
+      return 'FIDO2 Passkey';
+    case 'nfc_card':
+      return 'Tarjeta NFC';
+    case 'supervisor_daily_qr':
+      return 'QR Supervisor';
+    case 'supervisor_override':
+      return 'Liberación Supervisor';
+    case 'manual_operador':
+      return 'Despacho Manual';
+    default:
+      return method || 'Registrado';
+  }
+}
+
+/**
  * Genera el documento HTML imprimible del Acta Oficial Ministerial de Despacho y Auditoría
  */
 function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
@@ -232,6 +286,101 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
       <td style="text-align: right; font-weight: 700;">${dept.tons} t</td>
     </tr>
   `).join('');
+
+  // 3. Desglose detallado de cada entrega con su hora respectiva por dependencia ministerial
+  const deptsDeliveriesMap = new Map();
+  for (const d of deliveries) {
+    const depName = d.department_name || 'Dirección General / Nómina Central';
+    if (!deptsDeliveriesMap.has(depName)) {
+      deptsDeliveriesMap.set(depName, []);
+    }
+    deptsDeliveriesMap.get(depName).push(d);
+  }
+
+  const sortedDeptNames = Array.from(deptsDeliveriesMap.keys()).sort((a, b) => a.localeCompare(b, 'es'));
+
+  const deptDetailSections = sortedDeptNames.map((depName, idx) => {
+    const rawDeptDeliveries = deptsDeliveriesMap.get(depName) || [];
+
+    // Agrupar entregas por trabajador y segundo de despacho
+    const groupedMap = new Map();
+    for (const d of rawDeptDeliveries) {
+      const timeKey = (d.delivered_at || '').substring(0, 19);
+      const groupKey = `${d.document_id || d.worker_id}_${timeKey}`;
+      if (!groupedMap.has(groupKey)) {
+        groupedMap.set(groupKey, {
+          delivered_at: d.delivered_at,
+          document_id: d.document_id || d.worker_id || '--',
+          worker_name: d.worker_name || 'Funcionario Registrado',
+          verification_method: d.verification_method,
+          operator_name: d.operator_name || d.operator_mesa || 'Mesa Central',
+          combos_count: 0,
+          combo_names: []
+        });
+      }
+      const grp = groupedMap.get(groupKey);
+      grp.combos_count++;
+      if (d.combo_name && !grp.combo_names.includes(d.combo_name)) {
+        grp.combo_names.push(d.combo_name);
+      }
+    }
+
+    // Ordenar cronológicamente por hora de entrega (ascendente)
+    const sortedGrouped = Array.from(groupedMap.values()).sort((a, b) => {
+      const ta = new Date(a.delivered_at || 0).getTime();
+      const tb = new Date(b.delivered_at || 0).getTime();
+      return ta - tb;
+    });
+
+    const deptBeneficiariesCount = new Set(rawDeptDeliveries.map(d => d.document_id)).size;
+    const deptCombosCount = rawDeptDeliveries.length;
+
+    const rowsHtml = sortedGrouped.map((item, rowIdx) => {
+      const timeFormatted = formatVzlaTime(item.delivered_at);
+      const dateFormatted = formatVzlaDate(item.delivered_at);
+      const combosLabel = item.combos_count > 1 
+        ? `<strong>${item.combos_count} combos</strong> <span style="color: #64748b; font-size: 0.72rem;">(${item.combo_names.join(', ') || 'Combos Asignados'})</span>`
+        : `<strong>1 combo</strong> <span style="color: #64748b; font-size: 0.72rem;">(${item.combo_names[0] || 'Combo Institucional'})</span>`;
+
+      return `
+        <tr>
+          <td style="text-align: center; white-space: nowrap;">
+            <div class="delivery-time">${timeFormatted}</div>
+            <div style="font-size: 0.66rem; color: #64748b;">${dateFormatted}</div>
+          </td>
+          <td style="font-weight: 700; white-space: nowrap; font-family: monospace, monospace;">${item.document_id}</td>
+          <td style="font-weight: 600;">${item.worker_name}</td>
+          <td>${combosLabel}</td>
+          <td style="font-size: 0.73rem; white-space: nowrap;">${formatMethodLabel(item.verification_method)}</td>
+          <td style="font-size: 0.73rem; color: #475569; white-space: nowrap;">${item.operator_name}</td>
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div class="dept-detail-card">
+        <div class="dept-detail-header">
+          <span>🏢 ${depName}</span>
+          <span><strong>${deptBeneficiariesCount}</strong> funcionarios atendidos &bull; <strong>${deptCombosCount}</strong> combos despachados</span>
+        </div>
+        <table class="delivery-table">
+          <thead>
+            <tr>
+              <th style="width: 14%; text-align: center;">Hora Entrega</th>
+              <th style="width: 13%;">Cédula</th>
+              <th style="width: 29%;">Funcionario Beneficiario</th>
+              <th style="width: 26%;">Combos Despachados</th>
+              <th style="width: 9%;">Validación</th>
+              <th style="width: 9%;">Mesa / Operador</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml || '<tr><td colspan="6" style="text-align: center; color: #94a3b8; padding: 0.75rem;">Sin despachos registrados en esta dependencia.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -259,6 +408,13 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
     td { padding: 0.6rem 0.75rem; border: 1px solid #cbd5e1; color: #1e293b; }
     tr:nth-child(even) { background: #f8fafc; }
     .integrity-box { background: #f0fdf4; border: 1px solid #86efac; border-radius: 6px; padding: 0.85rem 1rem; font-size: 0.75rem; color: #166534; margin: 1.5rem 0; word-break: break-all; }
+    .dept-detail-card { margin-bottom: 1.25rem; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden; page-break-inside: avoid; break-inside: avoid; background: #ffffff; }
+    .dept-detail-header { background: #f1f5f9; border-bottom: 1.5px solid #cbd5e1; padding: 0.5rem 0.75rem; font-weight: 700; font-size: 0.82rem; color: #0f172a; display: flex; justify-content: space-between; align-items: center; }
+    .delivery-table { width: 100%; border-collapse: collapse; font-size: 0.76rem; margin-bottom: 0; }
+    .delivery-table th { background: #f8fafc; color: #475569; font-size: 0.69rem; padding: 0.4rem 0.55rem; border: 1px solid #e2e8f0; text-transform: uppercase; font-weight: 700; }
+    .delivery-table td { padding: 0.4rem 0.55rem; border: 1px solid #e2e8f0; color: #1e293b; vertical-align: middle; }
+    .delivery-table tr:nth-child(even) { background: #f8fafc; }
+    .delivery-time { font-weight: 800; color: #0284c7; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.75rem; }
     .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem; margin-top: 4rem; text-align: center; }
     .sig-line { border-top: 1.5px solid #64748b; margin-top: 3.5rem; padding-top: 0.5rem; }
     .sig-line .name { font-weight: 700; font-size: 0.85rem; color: #0f172a; }
@@ -350,7 +506,7 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
       </tbody>
     </table>
 
-    <div class="section-title">2. Rendición Consolidada por Dependencia Ministerial</div>
+    <div class="section-title">2. Rendición Consolidada por Dependencia Ministerial (Balance General)</div>
     <table>
       <thead>
         <tr>
@@ -366,7 +522,13 @@ function generateOfficialActaHtml({ deliveries = [], tenantInfo = {} }) {
       </tbody>
     </table>
 
-    <div class="section-title">3. Sello de Integridad Digital Inmutable (SHA-256)</div>
+    <div class="section-title">3. Rendición Consolidada por Dependencia Ministerial (Desglose Detallado con Horas de Entrega)</div>
+    <div style="font-size: 0.76rem; color: #64748b; margin-bottom: 0.85rem;">
+      Registro exhaustivo de despachos efectuados por dependencia, identificando funcionario, documento de identidad, combos asignados, mecanismo de autenticación y hora exacta de recepción auditada.
+    </div>
+    ${deptDetailSections || '<div style="text-align:center; padding: 1rem; color: #94a3b8; border: 1px dashed #cbd5e1; border-radius: 6px;">No se registraron despachos para desglosar en este período.</div>'}
+
+    <div class="section-title">4. Sello de Integridad Digital Inmutable (SHA-256)</div>
     <div class="integrity-box">
       <strong>🔒 Sello de Integridad Criptográfica de la Jornada (SHA-256):</strong><br>
       <code>${integrityHash}</code><br>
